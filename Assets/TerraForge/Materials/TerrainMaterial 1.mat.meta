@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 96e50ac9e0e39e8419cfc676a38c2217
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 261488
+  packageName: TerraForge (Beta) - procedural terrain generator
+  packageVersion: 1.03
+  assetPath: Assets/TerraForge/Materials/TerrainMaterial 1.mat
+  uploadId: 618734

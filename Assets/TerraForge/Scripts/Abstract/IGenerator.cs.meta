@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: 26ee295bdba5c94448d7a0b257105750
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 261488
+  packageName: TerraForge (Beta) - procedural terrain generator
+  packageVersion: 1.03
+  assetPath: Assets/TerraForge/Scripts/Abstract/IGenerator.cs
+  uploadId: 618734

@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: e138ad955fc3a114daf6301948814c99
+ShaderIncludeImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 261488
+  packageName: TerraForge (Beta) - procedural terrain generator
+  packageVersion: 1.03
+  assetPath: Assets/TerraForge/TerraForgeShaders/URP/TerraForgeTerrainLibURP.hlsl
+  uploadId: 618734

@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: e75a38cc086af2040be2c4593c9c0cda
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 261488
+  packageName: TerraForge (Beta) - procedural terrain generator
+  packageVersion: 1.03
+  assetPath: Assets/TerraForge/Scripts/Generators/HeightsGenerator.cs
+  uploadId: 618734

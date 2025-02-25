@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: ab17c199772b1c74d9a4c59f19d0de70
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 261488
+  packageName: TerraForge (Beta) - procedural terrain generator
+  packageVersion: 1.03
+  assetPath: Assets/TerraForge/Scripts/Maps/FastNoiseLite.cs
+  uploadId: 618734
