@@ -1,11 +1,11 @@
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Unity.Collections;
-using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
-using Zenject;
+using VContainer;
+using VContainer.Unity;
 
 public class HexMonoFactory : MonoBehaviour
 {
@@ -13,18 +13,12 @@ public class HexMonoFactory : MonoBehaviour
     [SerializeField] private GameObject _hexPrefab;
     [SerializeField] private bool _needToApplyMaterial;
     [SerializeField] private Material _material;
-    private DiContainer _container;
-
-    private void Start()
-    {
-        //var system = World.DefaultGameObjectInjectionWorld.GetExistingSystemManaged<HexGenerationSystem>();
-        //system.Init(this);
-    }
+    private IObjectResolver _resolver;
 
     [Inject]
-    private void Init(DiContainer container)
+    private void Init(IObjectResolver resolver)
     {
-        _container = container;
+        _resolver = resolver;
     }
 
     public async void SpawnHex(NativeList<float3> vertices)
@@ -47,12 +41,9 @@ public class HexMonoFactory : MonoBehaviour
     {
         var vertices = new NativeList<float3>(Allocator.TempJob);
 
-        foreach (var hexPoint in hex.Points)
-        {
-            vertices.Add(hexPoint.Position);
-        }
+        foreach (var hexPoint in hex.Points) vertices.Add(hexPoint.Position);
 
-        var hexGo = _container.InstantiatePrefab(_hexPrefab, parentTransform: _root.transform);
+        var hexGo =  _resolver.Instantiate(_hexPrefab, _root.transform);
         hexGo.GetComponent<HexView>().Init(hex);
         hexGo.name = $"Hex_({hex.Position.x}:{hex.Position.y})";
 
@@ -71,10 +62,7 @@ public class HexMonoFactory : MonoBehaviour
         return true;
     }
 
-    public async UniTask<bool> SplitMesh(HexViewData hex, int detailLevel)
-    {
-        return true;
-    }
+    public async UniTask<bool> SplitMesh(HexViewData hex, int detailLevel) => true;
 
     private async UniTask<bool> WaitForWaveJob(NativeList<float3> vertices, MeshFilter meshFilter, int detailLevel)
     {
@@ -91,20 +79,11 @@ public class HexMonoFactory : MonoBehaviour
         var uvs3Out = new NativeList<float2>(Allocator.TempJob);
         var uvs4Out = new NativeList<float2>(Allocator.TempJob);
 
-        for (var j = 0; j < mesh.triangles.Length; j++)
-        {
-            triangles.Add(mesh.triangles[j]);
-        }
+        for (var j = 0; j < mesh.triangles.Length; j++) triangles.Add(mesh.triangles[j]);
 
-        for (var j = 0; j < mesh.uv.Length; j++)
-        {
-            uvs.Add(mesh.uv[j]);
-        }
+        for (var j = 0; j < mesh.uv.Length; j++) uvs.Add(mesh.uv[j]);
 
-        for (var j = 0; j < mesh.uv2.Length; j++)
-        {
-            uvs2.Add(mesh.uv2[j]);
-        }
+        for (var j = 0; j < mesh.uv2.Length; j++) uvs2.Add(mesh.uv2[j]);
 
         var job = new WaveHexBuildJob
         {
@@ -119,11 +98,11 @@ public class HexMonoFactory : MonoBehaviour
             UVs3Out = uvs3Out,
             UVs4Out = uvs4Out
         };
-        
+
         var handler = job.Schedule();
         await handler.ToUniTask(PlayerLoopTiming.Update);
         handler.Complete();
-        
+
         var newMesh = new Mesh();
 
         var vertList = new List<Vector3>();
@@ -133,35 +112,17 @@ public class HexMonoFactory : MonoBehaviour
         var uv3List = new List<Vector2>();
         var uv4List = new List<Vector2>();
 
-        for (var j = 0; j < verticesOut.Length; j++)
-        {
-            vertList.Add(verticesOut[j]);
-        }
+        for (var j = 0; j < verticesOut.Length; j++) vertList.Add(verticesOut[j]);
 
-        for (var j = 0; j < trianglesOut.Length; j++)
-        {
-            triList.Add(trianglesOut[j]);
-        }
+        for (var j = 0; j < trianglesOut.Length; j++) triList.Add(trianglesOut[j]);
 
-        for (var j = 0; j < uvsOut.Length; j++)
-        {
-            uvList.Add(uvsOut[j]);
-        }
+        for (var j = 0; j < uvsOut.Length; j++) uvList.Add(uvsOut[j]);
 
-        for (var j = 0; j < uvs2Out.Length; j++)
-        {
-            uv2List.Add(uvs2Out[j]);
-        }
+        for (var j = 0; j < uvs2Out.Length; j++) uv2List.Add(uvs2Out[j]);
 
-        for (var j = 0; j < uvs3Out.Length; j++)
-        {
-            uv3List.Add(uvs3Out[j]);
-        }
+        for (var j = 0; j < uvs3Out.Length; j++) uv3List.Add(uvs3Out[j]);
 
-        for (var j = 0; j < uvs4Out.Length; j++)
-        {
-            uv4List.Add(uvs4Out[j]);
-        }
+        for (var j = 0; j < uvs4Out.Length; j++) uv4List.Add(uvs4Out[j]);
 
         newMesh.SetVertices(vertList);
         newMesh.SetTriangles(triList, 0);

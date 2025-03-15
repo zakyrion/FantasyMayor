@@ -34,7 +34,6 @@ MonoBehaviour:
     - Assembly-CSharp-firstpass
     - Dreamteck.Splines
     - Dreamteck.Utilities
-    - ScriptableBuildPipelineTests
     - UniRx
     - UniRx.Examples
     - UniTask
@@ -42,9 +41,7 @@ MonoBehaviour:
     - UniTask.DOTween
     - UniTask.Linq
     - UniTask.TextMeshPro
-    - Zenject
-    - Zenject-IntegrationTests
-    - Zenject-IntegrationTests-Editor
+    - VContainer
     showAdvancedSettings: 0
   addMgrToSceneAutomatically: 0
   autoUpdateReferences: 1

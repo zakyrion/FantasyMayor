@@ -1,6 +1,6 @@
 using UnityEngine;
 using UnityEngine.Serialization;
-using Zenject;
+using VContainer;
 
 public class StartService : MonoBehaviour
 {

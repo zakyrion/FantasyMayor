@@ -3,7 +3,7 @@ using Sirenix.OdinInspector;
 using UniRx;
 using Unity.Mathematics;
 using UnityEngine;
-using Zenject;
+using VContainer;
 
 public class HexView : DisposedMono
 {

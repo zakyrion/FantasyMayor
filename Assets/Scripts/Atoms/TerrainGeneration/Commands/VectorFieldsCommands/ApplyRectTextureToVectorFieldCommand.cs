@@ -12,15 +12,14 @@ public class ApplyRectTextureToVectorFieldCommand
         _hexDataLayer = hexDataLayer;
     }
 
-    public async UniTask<bool> Execute(Rect rect, Texture2D texture, float height)
+    public async UniTask<bool> Execute(Rect rect, TerrainHeightmap heightmap, float height)
     {
         var job = new ApplyRectTextureToVectorFieldSimpleJob
         {
-            TextureResolution = texture.width,
             Rect = rect,
             Height = height,
             HexVectors = _hexDataLayer.HexVectors,
-            HeightMap = texture.ToHeightmap(Allocator.TempJob)
+            HeightMap = heightmap
         };
 
         await job.Schedule();

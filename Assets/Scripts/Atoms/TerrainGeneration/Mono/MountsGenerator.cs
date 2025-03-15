@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
+using Unity.Collections;
 using Unity.Mathematics;
-using Zenject;
+using VContainer;
 
 public class MountsGenerator : ISurfaceGenerator
 {
@@ -27,10 +28,7 @@ public class MountsGenerator : ISurfaceGenerator
         _spotGenerator = spotGenerator;
     }
 
-    public async UniTask<bool> Generate(dynamic data)
-    {
-        return true;
-    }
+    public async UniTask<bool> Generate(dynamic data) => true;
 
     public async void AddHill(List<int2> shape)
     {
@@ -59,7 +57,8 @@ public class MountsGenerator : ISurfaceGenerator
 
         blendedTexture = blendCommand.MultiplyMaps(regionHillTexture, blendedTexture);
 
-        await applyTextureCommand.Execute(spotHill.Rect, blendedTexture, _terrainGeneratorSettingsScriptable.HexSize);
+        await applyTextureCommand.Execute(spotHill.Rect, blendedTexture.ToTerrainHeightmap(Allocator.TempJob),
+            _terrainGeneratorSettingsScriptable.HexSize);
 
         var hexVectors = _hexDataLayer.HexVectors;
 
@@ -107,7 +106,8 @@ public class MountsGenerator : ISurfaceGenerator
 
         blendedTexture = blendCommand.MultiplyMaps(blendedRegion, blendedTexture);
 
-        await applyTextureCommand.Execute(spotHill.Rect, blendedTexture, _terrainGeneratorSettingsScriptable.HexSize);
+        await applyTextureCommand.Execute(spotHill.Rect, blendedTexture.ToTerrainHeightmap(Allocator.TempJob),
+            _terrainGeneratorSettingsScriptable.HexSize);
         await smoothCommand.Execute();
 
         toMeshCommand.Execute();

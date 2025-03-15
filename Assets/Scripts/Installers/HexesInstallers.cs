@@ -1,15 +1,14 @@
 using UnityEngine;
-using Zenject;
+using VContainer;
 
-public class HexesInstallers : MonoInstaller
+public class HexesInstallers : MonoBehaviour
 {
     [SerializeField] private HexMonoFactory _hexMonoFactory;
 
-    
-    public override void InstallBindings()
+
+    public void InstallBindings(IContainerBuilder builder)
     {
-        Container.Bind<HexMonoFactory>().FromInstance(_hexMonoFactory);
-        
-        Container.BindInterfacesAndSelfTo<HexesAtom>().AsSingle();
+        builder.RegisterInstance(_hexMonoFactory);
+        builder.Register<HexesSystem>(Lifetime.Scoped).AsSelf().AsImplementedInterfaces();
     }
 }

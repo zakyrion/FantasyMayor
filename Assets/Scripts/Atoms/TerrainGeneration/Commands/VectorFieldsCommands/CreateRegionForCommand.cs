@@ -3,6 +3,9 @@ using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
 
+/// <summary>
+/// Class responsible for generating regions for terrain heightmaps based on specified resolution.
+/// </summary>
 public class CreateRegionForCommand
 {
     private readonly int _resolution;

@@ -2,60 +2,85 @@ using Cysharp.Threading.Tasks;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
-using Zenject;
+using Random = UnityEngine.Random;
 
 public class TerrainLevelGenerator : ISurfaceGenerator
 {
     private readonly HeightmapDataLayer _heightmapDataLayer;
-    private readonly HeightMapsGenerator _heightMapsGenerator;
-    private readonly HeightsGeneratorSettingsScriptable _heightsGeneratorSettings;
     private readonly HexViewDataLayer _hexDataLayer;
 
-    private readonly SeedDataLayer _seedDataLayer;
-    private readonly RegionShapeShiftSettingsScriptable _shiftSettings;
-    private readonly SpotGenerator _spotGenerator;
     private readonly TerrainGeneratorSettingsScriptable _terrainGeneratorSettingsScriptable;
 
-    [Inject]
-    public TerrainLevelGenerator(HeightMapsGenerator heightMapsGenerator,
-        HeightsGeneratorSettingsScriptable heightsGeneratorSettings,
-        RegionShapeShiftSettingsScriptable regionShapeShiftSettings,
+    public TerrainLevelGenerator(
         HexViewDataLayer hexDataLayer,
-        SeedDataLayer seedDataLayer,
-        SpotGenerator spotGenerator,
         TerrainGeneratorSettingsScriptable terrainGeneratorSettingsScriptable,
         HeightmapDataLayer heightmapDataLayer)
     {
-        _heightMapsGenerator = heightMapsGenerator;
-        _heightsGeneratorSettings = heightsGeneratorSettings;
         _hexDataLayer = hexDataLayer;
-        _seedDataLayer = seedDataLayer;
-        _spotGenerator = spotGenerator;
         _terrainGeneratorSettingsScriptable = terrainGeneratorSettingsScriptable;
         _heightmapDataLayer = heightmapDataLayer;
-        _shiftSettings = regionShapeShiftSettings;
     }
 
     public async UniTask<bool> Generate(NativeList<int2> shape, int level)
     {
-        var createLevelCommand =
-            new CreateLevelsForRegionCommand(_terrainGeneratorSettingsScriptable.DecorationMapResolution);
+        var pixelsPerHex = _terrainGeneratorSettingsScriptable.PixelsPerHex * .6f;
+        var pixelsPerUnit = _terrainGeneratorSettingsScriptable.PixelsPerUnit;
+        var region = BuildRect(shape);
+
+        var resolution = (int) (region.width * pixelsPerUnit);
+        var forceCommand = new ApplyVectorForcesCommand(_hexDataLayer);
+
+        var circleEmitters = new NativeList<CircleEmitter>(Allocator.TempJob);
+
+        var connectedHexes = new NativeHashSet<int2>(shape.Length, Allocator.Temp);
+
+        for (var i = 0; i < shape.Length; i++)
+        {
+            var hexData = _hexDataLayer[shape[i]];
+            var position = ToTextureSpace(region, resolution, hexData.Position3D.xz);
+            var emittersCount = Random.Range(3, 7);
+
+            var emitters = EmitterPacker.PlaceEmitters(position, 20, 5, 8, emittersCount, .4f);
+
+            foreach (var emitterData in emitters)
+            {
+                circleEmitters.Add(CircleEmitter.FromEmitterData(emitterData, Random.Range(15, 30),
+                    (FalloffType) Random.Range(0, 3)));
+            }
+
+
+            connectedHexes.Add(shape[i]);
+            var neighbours = HexUtil.Neighbours(shape[i]);
+
+            foreach (var neighbour in neighbours)
+            {
+                if (shape.Contains(neighbour) && !connectedHexes.Contains(neighbour))
+                {
+                    var neighbourData = _hexDataLayer[neighbour];
+                    var lineBetween = hexData.Position3D.xz - neighbourData.Position3D.xz;
+
+                    position = ToTextureSpace(region, resolution,
+                        neighbourData.Position3D.xz + lineBetween * Random.Range(0.4f, 0.6f));
+                    var platoRadius = pixelsPerHex * Random.Range(0.3f, 0.5f);
+
+                    var connector = new CircleEmitter
+                    {
+                        Position = position,
+                        PlatoRadius = platoRadius,
+                        FalloffRadius = (pixelsPerHex - platoRadius) * Random.Range(1, 1.4f),
+                        FalloffType = FalloffType.Smooth
+                    };
+                    circleEmitters.Add(connector);
+                }
+            }
+        }
+
+        var heightmap = await forceCommand.Execute(resolution, circleEmitters);
+
+        _heightmapDataLayer.SetTexture(heightmap.ToTexture());
+
         var applyTextureCommand = new ApplyRectTextureToVectorFieldCommand(_hexDataLayer);
-
-
-        var stripe = GenerateIsolines(shape, level, 2);
-        stripe.Draw(Color.magenta);
-
-        Debug.Log("[skh] apply level");
-        var maxHeight = _terrainGeneratorSettingsScriptable.HeightPerLevel * level;
-
-        var heightmap =
-            await createLevelCommand.Execute(stripe, stripe.GetPointInside().xz, maxHeight);
-        var heightmapTexture = heightmap.ToTexture();
-
-        _heightmapDataLayer.SetTexture(heightmapTexture);
-
-        await applyTextureCommand.Execute(stripe.Rect(), heightmapTexture, level);
+        await applyTextureCommand.Execute(region, heightmap, 1);
 
         var hexVectors = _hexDataLayer.HexVectors;
 
@@ -75,28 +100,68 @@ public class TerrainLevelGenerator : ISurfaceGenerator
         return true;
     }
 
-    private Stripe GenerateIsolines(NativeList<int2> shape, int level, int linesCount)
+    private Rect BuildRect(NativeList<int2> shape)
     {
-        
-        //спробувати перлін штампи.
-        //ізолінія окреслює регіон, на який потім наноситься штамп перліна, якщо шум безперервно заповнює регіон всередині на певний відосток
-        //тоді по котнуру будується "справжня" ізолінія
-        //для більшої ізолінії також використати попередній регіон щоб бути впевненим що він більше за попередній
-        
-        //1 - використати сплайн
-        //2 - вектор напрям для зміщення ліній в певну сторону
-        //3 - обмеження мінімальної відстані між точками ізоліній 
-        
-        var smallBorder = _spotGenerator.BuildSmallSizeBorderLine(shape);
-        var bigBorder = _spotGenerator.BuildLargeSizeBorderLine(shape, 1.3f);
+        if (shape.Length == 0)
+        {
+            Debug.LogError("Shape is null or empty!");
+            return Rect.zero;
+        }
 
-        smallBorder.SetHeight(1);
-        bigBorder.SetHeight(0);
+        var minX = float.MaxValue;
+        var minY = float.MaxValue;
+        var maxX = float.MinValue;
+        var maxY = float.MinValue;
 
-        var stripe = new Stripe(50 * shape.Length, smallBorder, bigBorder);
-        stripe.ShiftLine(0, _shiftSettings.GetRandomSetting(), .3f);
-        stripe.ShiftLine(1, _shiftSettings.GetRandomSetting(), .3f);
+        // Determine the bounding box coordinates
+        for (var i = 0; i < shape.Length; i++)
+        {
+            var hexViewData = _hexDataLayer.GetHex(shape[i]);
+            if (hexViewData == null)
+            {
+                Debug.LogWarning($"HexViewData not found for index {i}, skipping.");
+                continue;
+            }
 
-        return stripe;
+            var points = hexViewData.Points;
+            foreach (var point in points)
+            {
+                // Assuming point has properties X and Z or similar.
+                if (point.Position.x < minX) minX = point.Position.x;
+                if (point.Position.z < minY) minY = point.Position.z;
+                if (point.Position.x > maxX) maxX = point.Position.x;
+                if (point.Position.z > maxY) maxY = point.Position.z;
+            }
+        }
+
+        minX -= 1;
+        minY -= 1;
+        maxX += 1;
+        maxY += 1;
+
+        // Calculate width and height
+        var width = maxX - minX;
+        var height = maxY - minY;
+
+        // Determine the size of the square
+        var maxSize = Mathf.Max(width, height);
+
+        // Center the shape in the square rect
+        var centerX = (minX + maxX) / 2;
+        var centerY = (minY + maxY) / 2;
+
+        // Define the square rect
+        var squareRect = new Rect(
+            centerX - maxSize / 2, // Min X
+            centerY - maxSize / 2, // Min Y
+            maxSize, // Width
+            maxSize // Height
+        );
+
+        return squareRect;
     }
+
+    public int2 ToTextureSpace(Rect region, int resolution, float2 position) =>
+        (int2) math.remap(region.min, region.max, new float2(0, 0), new float2(resolution, resolution),
+            position);
 }

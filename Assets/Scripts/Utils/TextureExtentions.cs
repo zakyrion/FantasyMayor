@@ -20,6 +20,22 @@ public static class TextureExtentions
         return map;
     }
 
+    public static TerrainHeightmap ToTerrainHeightmap(this Texture2D texture, Allocator allocator)
+    {
+        var heightmap = new TerrainHeightmap(texture.width, allocator);
+        
+        for (var x = 0; x < texture.width; x++)
+        {
+            for (var y = 0; y < texture.height; y++)
+            {
+                var color = texture.GetPixel(x, y);
+                heightmap[x, y] = color.r;
+            }
+        }
+        
+        return heightmap;
+    }
+
     public static Texture2D ToTexture(this NativeHashMap<int2, float> map, int size)
     {
         var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
-using Zenject;
+using VContainer;
 
 public class DataLayer
 {
@@ -9,7 +9,7 @@ public class DataLayer
     [Inject]
     public DataLayer(List<IDataContainer> dataContainers)
     {
-        Debug.Log($"[skh ]DataLayer constructor. Containers count: {dataContainers.Count}");
+        Debug.Log($"[skh] DataLayer constructor. Containers count: {dataContainers.Count}");
         _dataContainers = dataContainers;
     }
 

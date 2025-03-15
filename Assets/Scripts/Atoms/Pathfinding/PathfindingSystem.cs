@@ -1,0 +1,69 @@
+using System.Collections.Generic;
+using System.Linq;
+using Unity.Mathematics;
+using VContainer;
+
+public class PathfindingSystem : IPathfindingAPI
+{
+    private readonly HexViewDataLayer _hexDataLayer;
+
+    [Inject]
+    public PathfindingSystem(HexViewDataLayer hexDataLayer)
+    {
+        _hexDataLayer = hexDataLayer;
+    }
+
+    List<int2> IPathfindingAPI.GetPath(int2 start, int2 end)
+    {
+        var openSet = new List<HexViewData>();
+        var closedSet = new HashSet<int2>();
+        var cameFrom = new Dictionary<int2, int2>();
+
+        openSet.Add(_hexDataLayer[start]);
+
+        var gScore = new Dictionary<int2, float> {{start, 0}};
+        var fScore = new Dictionary<int2, float> {{start, HeuristicCostEstimate(start, end)}};
+
+        while (openSet.Count > 0)
+        {
+            var current = openSet.Aggregate((x, y) => fScore[x.Position] < fScore[y.Position] ? x : y);
+
+            if (current.Position.Equals(end)) return ReconstructPath(cameFrom, end);
+
+            openSet.Remove(current);
+            closedSet.Add(current.Position);
+
+            foreach (var neighbor in current.Neighbors)
+            {
+                if (closedSet.Contains(neighbor.Position)) continue;
+
+                var tentativeGScore =
+                    gScore[current.Position] + 1; // assuming distance between any two neighbors is 1
+
+                if (!openSet.Contains(neighbor) || tentativeGScore < gScore[neighbor.Position])
+                {
+                    cameFrom[neighbor.Position] = current.Position;
+                    gScore[neighbor.Position] = tentativeGScore;
+                    fScore[neighbor.Position] = tentativeGScore + HeuristicCostEstimate(neighbor.Position, end);
+                    if (!openSet.Contains(neighbor)) openSet.Add(neighbor);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private float HeuristicCostEstimate(int2 a, int2 b) => math.distance(a, b);
+
+    private List<int2> ReconstructPath(Dictionary<int2, int2> cameFrom, int2 current)
+    {
+        if (cameFrom.ContainsKey(current))
+        {
+            var path = ReconstructPath(cameFrom, cameFrom[current]);
+            path.Add(current);
+            return path;
+        }
+
+        return new List<int2> {current};
+    }
+}

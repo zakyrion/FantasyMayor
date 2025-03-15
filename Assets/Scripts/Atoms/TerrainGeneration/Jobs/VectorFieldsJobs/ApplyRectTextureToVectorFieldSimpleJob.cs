@@ -6,15 +6,18 @@ using UnityEngine;
 public struct ApplyRectTextureToVectorFieldSimpleJob : IJob
 {
     public float Height;
-    public int TextureResolution;
+    private int _textureResolution;
     public Rect Rect;
 
     //TODO replace by TerrainHeightmap
-    [ReadOnly] public NativeHashMap<int2, float> HeightMap;
+    [ReadOnly] public TerrainHeightmap HeightMap;
+
+    //[ReadOnly] public NativeHashMap<int2, float> HeightMap;
     public NativeHashMap<int2, FieldsVector> HexVectors;
 
     public void Execute()
     {
+        _textureResolution = HeightMap.Resolution;
         var rectCenterGridPosition = HexVectorUtil.CalculateGridPosition(Rect);
 
         var checkQueue = new NativeQueue<int2>(Allocator.TempJob);
@@ -37,8 +40,8 @@ public struct ApplyRectTextureToVectorFieldSimpleJob : IJob
 
                     if (HeightMap.TryGetValue(coords, out var textureHeight))
                     {
-                        var xNext = math.min(TextureResolution - 1, coords.x + 1);
-                        var yNext = math.min(TextureResolution - 1, coords.y + 1);
+                        var xNext = math.min(_textureResolution - 1, coords.x + 1);
+                        var yNext = math.min(_textureResolution - 1, coords.y + 1);
 
                         var koefX = texturePosition.x - coords.x;
                         var koefY = texturePosition.y - coords.y;
@@ -78,7 +81,7 @@ public struct ApplyRectTextureToVectorFieldSimpleJob : IJob
             return false;
 
         texturePosition = math.remap(Rect.min, Rect.max,
-            new float2(), new float2(TextureResolution, TextureResolution), worldPosition.xz);
+            new float2(), new float2(_textureResolution, _textureResolution), worldPosition.xz);
 
         return true;
     }

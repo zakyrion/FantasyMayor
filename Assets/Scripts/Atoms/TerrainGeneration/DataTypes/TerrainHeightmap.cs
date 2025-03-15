@@ -70,6 +70,18 @@ public struct TerrainHeightmap : IDisposable
         return heightmap;
     }
 
+    public bool TryGetValue(int2 index, out float value)
+    {
+        if (ContainsKey(index))
+        {
+            value = Heightmap[index];
+            return true;
+        }
+
+        value = 0f;
+        return false;
+    }
+
     public void Normalize(float minClamp = 0f, float maxClamp = 1f)
     {
         // Find the maximum and minimum values in the heightmap
@@ -88,19 +100,14 @@ public struct TerrainHeightmap : IDisposable
             }
         }
 
-        if (maxValue - 1 < 0.0001f)
-        {
-            return;
-        }
+        if (maxValue - 1 < 0.0001f) return;
 
         var divide = maxValue - minValue;
 
         for (var x = 0; x < Heightmap.Resolution; x++)
         {
             for (var y = 0; y < Heightmap.Resolution; y++)
-            {
-                this[x, y] = math.clamp( (this[x, y] - minValue) / divide, minClamp, maxClamp) * koef;
-            }
+                this[x, y] = math.clamp((this[x, y] - minValue) / divide, minClamp, maxClamp) * koef;
         }
     }
 
@@ -112,10 +119,7 @@ public struct TerrainHeightmap : IDisposable
         var result = new TerrainHeightmap(a.Heightmap.Resolution, allocator);
         for (var x = 0; x < a.Heightmap.Resolution; x++)
         {
-            for (var y = 0; y < a.Heightmap.Resolution; y++)
-            {
-                result[x, y] = a[x, y] * b[x, y];
-            }
+            for (var y = 0; y < a.Heightmap.Resolution; y++) result[x, y] = a[x, y] * b[x, y];
         }
 
         return result;

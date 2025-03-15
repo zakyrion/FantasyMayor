@@ -12,7 +12,11 @@ public class TerrainGeneratorSettingsScriptable : ScriptableObject, IDataContain
     [field: SerializeField] public float HeightPerLevel { get; private set; } = 1;
 
     [field: SerializeField] public int HexDetailLevel { get; private set; } = 20;
+
+    [field: SerializeField] public float PixelsPerHex { get; private set; } = 64;
     public float TriangleSize => HexSize / HexDetailLevel;
+
+    public float PixelsPerUnit => PixelsPerHex / HexSize / 2;
 
     public void Dispose()
     {
