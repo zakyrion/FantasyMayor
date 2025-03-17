@@ -54,11 +54,11 @@ public class SpawnHexesByWavesCommand
 
     private void JointNeighbours()
     {
-        var dictionary = _hexDataLayer.Hexes.ToDictionary(hex => hex.Position);
+        var dictionary = _hexDataLayer.Hexes.ToDictionary(hex => hex.HexId);
 
         foreach (var hex in _hexDataLayer.Hexes)
         {
-            foreach (var neighbour in HexUtil.Neighbours(hex.Position))
+            foreach (var neighbour in HexUtil.Neighbours(hex.HexId.Coords))
             {
                 if (dictionary.TryGetValue(neighbour, out var data))
                     hex.AddNeighbor(data);

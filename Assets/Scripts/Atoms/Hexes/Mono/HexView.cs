@@ -1,24 +1,23 @@
 using System;
 using Sirenix.OdinInspector;
 using UniRx;
-using Unity.Mathematics;
 using UnityEngine;
 using Zenject;
 
 public class HexView : DisposedMono
 {
     [SerializeField] private IntReactiveProperty _level;
-    [SerializeField] [ReadOnly] private int2 _position;
 
     private IDisposable[] _disposable;
     private HexViewData _hexData;
 
     [Inject] private IHexesAPI _hexesAPI;
+    [SerializeField] [ReadOnly] private HexId _hexId;
 
     public void Init(HexViewData hexData)
     {
         _hexData = hexData;
-        _position = hexData.Position;
+        _hexId = hexData.HexId;
 
         AddDisposable(hexData.Mesh.Subscribe(ApplyMesh));
         AddDisposable(hexData.Texture.Subscribe(ApplyTexture));
@@ -39,6 +38,6 @@ public class HexView : DisposedMono
 
     private void ApplyLevel(int level)
     {
-        _hexesAPI.SetHexLevel(_hexData.Position, level);
+        _hexesAPI.SetHexLevel(_hexData.HexId, level);
     }
 }

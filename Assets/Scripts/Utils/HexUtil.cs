@@ -28,6 +28,11 @@ public static class HexUtil
     {
         for (var i = 0; i <= 5; i++) yield return Neighbour(i) + position;
     }
+    
+    public static IEnumerable<HexId> Neighbours(HexId hexId)
+    {
+        for (var i = 0; i <= 5; i++) yield return new HexId() {Coords = Neighbour(i) + hexId.Coords};
+    }
 
     public static IEnumerable<(float3, float3)> Edges(float3 center, float size)
     {

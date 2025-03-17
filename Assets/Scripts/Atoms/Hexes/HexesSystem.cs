@@ -42,10 +42,10 @@ public class HexesSystem : IHexesAPI
 
     }
 
-    public async void SetHexLevel(int2 position, int level)
+    public async void SetHexLevel(HexId hexId, int level)
     {
         Debug.Log("[skh] call");
-        var hexData = _hexDataLayer.GetHex(position);
+        var hexData = _hexDataLayer.GetHex(hexId);
         hexData.SetLevel(level);
 
         //var shape = SelectHexDataByLevel(hexData, SelectionType.SameAndHigher).Select(h=> h.Position).ToList();

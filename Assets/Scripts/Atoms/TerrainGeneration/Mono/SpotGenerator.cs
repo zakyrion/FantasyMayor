@@ -24,30 +24,10 @@ public class SpotGenerator : MonoBehaviour
         _terrainGeneratorSettingsScriptable = terrainGeneratorSettingsScriptable;
     }
 
-    public async UniTask<Spot> GenerateRiverSpot(List<int2> hexes,
+    public async UniTask<Spot> GenerateSpot(List<HexId> hexes,
         Allocator allocator = Allocator.TempJob)
     {
-        var beginHex = _hexDataLayer[hexes[0]];
-
-        var borderEdges = HexUtil.Neighbours(beginHex.Position).Where(pos => !_hexDataLayer.Exists(pos)).Select(n =>
-            HexUtil.GetCenterOfEdge(n - beginHex.Position,
-                beginHex.Position3D, _terrainGeneratorSettingsScriptable.HexSize)).ToList();
-
-        //побудувати сплайн по точках, центр грані, центр гекса, центр грані, центр гекса
-        //по кожній точці сплайну взяти дотичну і по ній подубувати випадкову точку русла
-        //зробити обхід по часовій стрілці, зберігаючи точки русла
-        //обʼєднати точки русла в замкнений сплайн,по сплайну побудувати spot
-
-        //Можна побудувати криву, сплайн між всіма точками, а потім взяти паралельну кожній точці і побудувати русло
-
-
-        return default;
-    }
-
-    public async UniTask<Spot> GenerateSpot(List<int2> hexes,
-        Allocator allocator = Allocator.TempJob)
-    {
-        var line = BuildFullSizeBorderLine(hexes.ToNativeList(Allocator.Temp));
+        var line = BuildFullSizeBorderLine(hexes);
         var splinePoints = new List<SplinePoint>();
 
         var minX = line.Segments.Min(point => point.Start.x) - _terrainGeneratorSettingsScriptable.HexSize * .5f;
@@ -78,10 +58,10 @@ public class SpotGenerator : MonoBehaviour
         };
     }
 
-    public async UniTask<Spot> GenerateSpot(List<int2> hexes, Rect rect,
+    public async UniTask<Spot> GenerateSpot(List<HexId> hexes, Rect rect,
         Allocator allocator = Allocator.TempJob)
     {
-        var line = BuildFullSizeBorderLine(hexes.ToNativeList(Allocator.Temp));
+        var line = BuildFullSizeBorderLine(hexes);
         var splinePoints = new List<SplinePoint>();
 
         splinePoints.AddRange(line.Segments.Select(point => new SplinePoint
@@ -107,7 +87,7 @@ public class SpotGenerator : MonoBehaviour
         };
     }
 
-    public BorderLine BuildFullSizeBorderLine(NativeList<int2> hexes)
+    public BorderLine BuildFullSizeBorderLine(List<HexId> hexes)
     {
         var lines = new List<LineWithCenter>();
 
@@ -117,7 +97,7 @@ public class SpotGenerator : MonoBehaviour
 
             for (var i = 0; i < 6; i++)
             {
-                var neighborPosition = HexUtil.Neighbour(i, hexPosition);
+                var neighborPosition = HexUtil.Neighbour(i, hexPosition.Coords);
 
                 if (!_hexDataLayer.Exists(neighborPosition) ||
                     !hexes.Contains(neighborPosition)) lines.Add(hex.GetLine(i));
@@ -205,10 +185,10 @@ public class SpotGenerator : MonoBehaviour
         return resultBorder.Order();
     }
 
-    public BorderLine BuildSmallSizeBorderLine(NativeList<int2> hexes, float scale = 0.8f) =>
+    public BorderLine BuildSmallSizeBorderLine(List<HexId> hexes, float scale = 0.8f) =>
         BuildSmallSizeBorderLine(BuildFullSizeBorderLine(hexes), scale);
 
-    public BorderLine BuildLargeSizeBorderLine(NativeList<int2> hexes, float scale = 1.2f) =>
+    public BorderLine BuildLargeSizeBorderLine(List<HexId> hexes, float scale = 1.2f) =>
         BuildLargeSizeBorderLine(BuildFullSizeBorderLine(hexes), scale);
 
     public BorderLine BuildLargeSizeBorderLine(BorderLine currentBorder, float scale = 1.2f)

@@ -40,7 +40,6 @@ public class GeneratorUI : MonoBehaviour
 
     private void ShowPointsButtonClicked()
     {
-        _terrainGenerationAPI.GenerateWater();
     }
 
     private void CastButtonClicked()

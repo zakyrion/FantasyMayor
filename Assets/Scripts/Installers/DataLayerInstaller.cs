@@ -19,7 +19,6 @@ public class DataLayerInstaller : ScriptableObjectInstaller<DataLayerInstaller>
         Container.BindInterfacesAndSelfTo<SeedDataLayer>().AsSingle();
         Container.BindInterfacesAndSelfTo<TerrainGeneratorSettingsScriptable>()
             .FromInstance(_terrainGeneratorSettingsScriptable).AsSingle();
-        Container.BindInterfacesAndSelfTo<WaterGeneratorDataLayer>().AsSingle();
         Container.BindInterfacesAndSelfTo<MountsGeneratorDataLayer>().AsSingle();
     }
 }

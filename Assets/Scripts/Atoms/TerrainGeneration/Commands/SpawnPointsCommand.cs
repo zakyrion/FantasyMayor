@@ -33,7 +33,7 @@ public class SpawnPointsCommand
                 var existedPoint = points.Find(point => point.AtTheSamePosition(vertices[i]));
                 if (existedPoint != null)
                 {
-                    existedPoint.AddOwner(hex.Position);
+                    existedPoint.AddOwner(hex.HexId.Coords);
                     hex.AddPoint(existedPoint);
                     continue;
                 }
@@ -43,7 +43,7 @@ public class SpawnPointsCommand
                     Position = vertices[i],
                     Type = PointType.Corner
                 };
-                existedPoint.AddOwner(hex.Position);
+                existedPoint.AddOwner(hex.HexId.Coords);
                 hex.AddPoint(existedPoint);
                 points.Add(existedPoint);
             }
@@ -55,7 +55,7 @@ public class SpawnPointsCommand
             {
                 foreach (var owner in point.Owners)
                 {
-                    if (hex.Position.Equals(owner))
+                    if (hex.HexId.Equals(owner))
                     {
                         continue;
                     }

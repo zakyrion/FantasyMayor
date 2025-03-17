@@ -1,6 +1,4 @@
 using System.Collections.Generic;
-using Unity.Collections;
-using Unity.Mathematics;
 using UnityEngine;
 using Zenject;
 
@@ -12,14 +10,8 @@ public class TerrainGeneratorService : MonoBehaviour, ITerrainGenerationAPI
     private SpotGenerator _spotGenerator;
     private TerrainHexViewGenerator _surfaceGeneratorService;
     private TerrainLevelGenerator _terrainLevelGenerator;
-    private WaterGeneratorService _waterGeneratorService;
 
     private int _waves;
-
-    void ITerrainGenerationAPI.GenerateWater()
-    {
-        _waterGeneratorService.Generate(_waves);
-    }
 
     public void Apply()
     {
@@ -31,41 +23,40 @@ public class TerrainGeneratorService : MonoBehaviour, ITerrainGenerationAPI
 
         foreach (var level in levels)
         {
-            var hexesAtLayer = new NativeHashSet<int2>(_hexDataLayer.Hexes.Count, Allocator.Temp);
+            var hexesAtLayer = new HashSet<HexId>();
 
             foreach (var hexData in _hexDataLayer.Hexes)
             {
                 if (hexData.Level.Value == level)
-                    hexesAtLayer.Add(hexData.Position);
+                    hexesAtLayer.Add(hexData.HexId);
             }
 
             while (hexesAtLayer.Count > 0)
             {
-                var toCheck = new NativeList<int2>(Allocator.Temp);
+                var toCheck = new List<HexId>();
 
                 using var enumerator = hexesAtLayer.GetEnumerator();
                 enumerator.MoveNext();
                 toCheck.Add(enumerator.Current);
 
-                var spot = new NativeList<int2>(Allocator.Temp);
-                //var spot = new List<int2>();
+                var spot = new List<HexId>();
 
-                while (toCheck.Length > 0)
+                while (toCheck.Count > 0)
                 {
-                    var nextToCheck = new NativeList<int2>(Allocator.Temp);
+                    var nextToCheck = new List<HexId>();
 
-                    for (var i = 0; i < toCheck.Length; i++)
+                    for (var i = 0; i < toCheck.Count; i++)
                     {
                         var hex = _hexDataLayer[toCheck[i]];
-                        spot.Add(hex.Position);
-                        hexesAtLayer.Remove(hex.Position);
+                        spot.Add(hex.HexId);
+                        hexesAtLayer.Remove(hex.HexId);
 
                         foreach (var neighbor in hex.Neighbors)
                         {
-                            if (neighbor.Level.Value == level && hexesAtLayer.Contains(neighbor.Position))
+                            if (neighbor.Level.Value == level && hexesAtLayer.Contains(neighbor.HexId))
                             {
-                                nextToCheck.Add(neighbor.Position);
-                                hexesAtLayer.Remove(neighbor.Position);
+                                nextToCheck.Add(neighbor.HexId);
+                                hexesAtLayer.Remove(neighbor.HexId);
                             }
                         }
                     }
@@ -96,13 +87,12 @@ public class TerrainGeneratorService : MonoBehaviour, ITerrainGenerationAPI
 
     [Inject]
     private void Init(MountsGenerator mountsGeneratorService,
-        WaterGeneratorService waterGeneratorService, TerrainHexViewGenerator surfaceGeneratorService,
+        TerrainHexViewGenerator surfaceGeneratorService,
         SpotGenerator spotGenerator, HexViewDataLayer hexDataLayer, TerrainLevelGenerator terrainLevelGenerator)
     {
         Debug.Log("[skh] TerrainGeneratorService.Init()");
 
         _mountsGeneratorService = mountsGeneratorService;
-        _waterGeneratorService = waterGeneratorService;
         _surfaceGeneratorService = surfaceGeneratorService;
         _terrainLevelGenerator = terrainLevelGenerator;
 

@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using Unity.Collections;
-using Unity.Mathematics;
 using Zenject;
 
 public class MountsGenerator : ISurfaceGenerator
@@ -30,7 +29,7 @@ public class MountsGenerator : ISurfaceGenerator
 
     public async UniTask<bool> Generate(dynamic data) => true;
 
-    public async void AddHill(List<int2> shape)
+    public async void AddHill(List<HexId> shape)
     {
         var applyTextureCommand = new ApplyRectTextureToVectorFieldCommand(_hexDataLayer);
         var regionCommand = new CreateRegionForCommand(_terrainGeneratorSettingsScriptable.DecorationMapResolution);
@@ -76,7 +75,7 @@ public class MountsGenerator : ISurfaceGenerator
         }
     }
 
-    public async void AddMount(List<int2> shape)
+    public async void AddMount(List<HexId> shape)
     {
         var applyTextureCommand = new ApplyRectTextureToVectorFieldCommand(_hexDataLayer);
         var regionCommand = new CreateRegionForCommand(1024);
@@ -113,7 +112,7 @@ public class MountsGenerator : ISurfaceGenerator
         toMeshCommand.Execute();
     }
 
-    private List<int2> GetSubShape(List<int2> shape, SurfaceType type)
+    private List<HexId> GetSubShape(List<HexId> shape, SurfaceType type)
     {
         return shape.Where(c => _hexDataLayer[c].SurfaceType == type).ToList();
     }

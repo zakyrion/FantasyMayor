@@ -15,7 +15,7 @@ public class PathfindingSystem : IPathfindingAPI
 
     List<int2> IPathfindingAPI.GetPath(int2 start, int2 end)
     {
-        var openSet = new List<HexViewData>();
+        /*var openSet = new List<HexViewData>();
         var closedSet = new HashSet<int2>();
         var cameFrom = new Dictionary<int2, int2>();
 
@@ -26,29 +26,29 @@ public class PathfindingSystem : IPathfindingAPI
 
         while (openSet.Count > 0)
         {
-            var current = openSet.Aggregate((x, y) => fScore[x.Position] < fScore[y.Position] ? x : y);
+            var current = openSet.Aggregate((x, y) => fScore[x.HexId] < fScore[y.HexId] ? x : y);
 
-            if (current.Position.Equals(end)) return ReconstructPath(cameFrom, end);
+            if (current.HexId.Equals(end)) return ReconstructPath(cameFrom, end);
 
             openSet.Remove(current);
-            closedSet.Add(current.Position);
+            closedSet.Add(current.HexId);
 
             foreach (var neighbor in current.Neighbors)
             {
-                if (closedSet.Contains(neighbor.Position)) continue;
+                if (closedSet.Contains(neighbor.HexId)) continue;
 
                 var tentativeGScore =
-                    gScore[current.Position] + 1; // assuming distance between any two neighbors is 1
+                    gScore[current.HexId] + 1; // assuming distance between any two neighbors is 1
 
-                if (!openSet.Contains(neighbor) || tentativeGScore < gScore[neighbor.Position])
+                if (!openSet.Contains(neighbor) || tentativeGScore < gScore[neighbor.HexId])
                 {
-                    cameFrom[neighbor.Position] = current.Position;
-                    gScore[neighbor.Position] = tentativeGScore;
-                    fScore[neighbor.Position] = tentativeGScore + HeuristicCostEstimate(neighbor.Position, end);
+                    cameFrom[neighbor.HexId] = current.HexId;
+                    gScore[neighbor.HexId] = tentativeGScore;
+                    fScore[neighbor.HexId] = tentativeGScore + HeuristicCostEstimate(neighbor.HexId, end);
                     if (!openSet.Contains(neighbor)) openSet.Add(neighbor);
                 }
             }
-        }
+        }*/
 
         return null;
     }

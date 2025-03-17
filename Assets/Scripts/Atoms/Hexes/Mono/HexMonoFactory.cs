@@ -44,7 +44,7 @@ public class HexMonoFactory : MonoBehaviour
 
         var hexGo = _resolver.InstantiatePrefab(_hexPrefab, _root.transform);
         hexGo.GetComponent<HexView>().Init(hex);
-        hexGo.name = $"Hex_({hex.Position.x}:{hex.Position.y})";
+        hexGo.name = $"Hex_({hex.HexId.x}:{hex.HexId.y})";
 
         if (_needToApplyMaterial)
         {

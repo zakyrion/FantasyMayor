@@ -21,7 +21,6 @@ public class TerrainGenerationInstaller : MonoInstaller
         Container.Bind<HeightsGeneratorSettingsScriptable>().FromInstance(_heightsGeneratorSettings);
 
         Container.Bind<MountsGenerator>().AsSingle();
-        Container.Bind<WaterGeneratorService>().AsSingle();
         Container.Bind<TerrainHexViewGenerator>().AsSingle();
         Container.Bind<TerrainLevelGenerator>().AsSingle();
 

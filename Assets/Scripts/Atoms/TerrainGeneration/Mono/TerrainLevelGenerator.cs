@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Unity.Collections;
 using Unity.Mathematics;
@@ -21,7 +22,7 @@ public class TerrainLevelGenerator : ISurfaceGenerator
         _heightmapDataLayer = heightmapDataLayer;
     }
 
-    public async UniTask<bool> Generate(NativeList<int2> shape, int level)
+    public async UniTask<bool> Generate(List<HexId> shape, int level)
     {
         var pixelsPerHex = _terrainGeneratorSettingsScriptable.PixelsPerHex * .6f;
         var pixelsPerUnit = _terrainGeneratorSettingsScriptable.PixelsPerUnit;
@@ -32,9 +33,9 @@ public class TerrainLevelGenerator : ISurfaceGenerator
 
         var circleEmitters = new NativeList<CircleEmitter>(Allocator.TempJob);
 
-        var connectedHexes = new NativeHashSet<int2>(shape.Length, Allocator.Temp);
+        var connectedHexes = new HashSet<HexId>();
 
-        for (var i = 0; i < shape.Length; i++)
+        for (var i = 0; i < shape.Count; i++)
         {
             var hexData = _hexDataLayer[shape[i]];
             var position = ToTextureSpace(region, resolution, hexData.Position3D.xz);
@@ -100,9 +101,9 @@ public class TerrainLevelGenerator : ISurfaceGenerator
         return true;
     }
 
-    private Rect BuildRect(NativeList<int2> shape)
+    private Rect BuildRect(List<HexId> shape)
     {
-        if (shape.Length == 0)
+        if (shape.Count == 0)
         {
             Debug.LogError("Shape is null or empty!");
             return Rect.zero;
@@ -114,7 +115,7 @@ public class TerrainLevelGenerator : ISurfaceGenerator
         var maxY = float.MinValue;
 
         // Determine the bounding box coordinates
-        for (var i = 0; i < shape.Length; i++)
+        for (var i = 0; i < shape.Count; i++)
         {
             var hexViewData = _hexDataLayer.GetHex(shape[i]);
             if (hexViewData == null)

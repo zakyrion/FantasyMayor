@@ -11,9 +11,9 @@ public class HexViewData
     private readonly ReactiveProperty<Mesh> _mesh = new();
     private readonly ReactiveProperty<Texture> _texture = new();
 
-    public HexViewData(int level, int2 position, float size)
+    public HexViewData(int level, HexId hexId, float size)
     {
-        Position = position;
+        HexId = hexId;
         Size = size;
         _level.Value = level;
         Position3D = CalculateTopAngleWorldPosition();
@@ -44,11 +44,11 @@ public class HexViewData
     public List<HexViewData> Neighbors { get; } = new();
 
     public SurfaceType SurfaceType { get; set; }
-    public int2 Position { get; set; }
+    public HexId HexId { get; set; }
     public float3 Position3D { get; set; }
     public int LevelValue => _level.Value;
-    public int Q => Position.x;
-    public int R => Position.y;
+    public int Q => HexId.x;
+    public int R => HexId.y;
 
     public float3 CalculateTopAngleWorldPosition()
     {
@@ -147,8 +147,8 @@ public class HexViewData
 
     public int GetSharedLineIndex(HexViewData other)
     {
-        if (HexUtil.IsNeighbour(Position, other.Position))
-            return HexUtil.GetSharedLineIndex(other.Position - Position);
+        if (HexUtil.IsNeighbour(HexId.Coords, other.HexId.Coords))
+            return HexUtil.GetSharedLineIndex(other.HexId.Coords - HexId.Coords);
 
         return -1;
     }

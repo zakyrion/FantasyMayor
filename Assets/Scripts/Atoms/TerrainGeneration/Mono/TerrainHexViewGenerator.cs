@@ -49,7 +49,7 @@ public class TerrainHexViewGenerator : ISurfaceGenerator
             foreach (var vertex in vertices)
             {
                 var gridPosition = HexVectorUtil.CalculateGridPosition(vertex);
-                var hexVector = new FieldsVector(gridPosition, vertex, hex.Position);
+                var hexVector = new FieldsVector(gridPosition, vertex);
 
                 if (!hexVectors.ContainsKey(hexVector.GridPosition))
                     hexVectors.Add(hexVector.GridPosition, hexVector);
