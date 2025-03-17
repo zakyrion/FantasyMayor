@@ -41,7 +41,8 @@ MonoBehaviour:
     - UniTask.DOTween
     - UniTask.Linq
     - UniTask.TextMeshPro
-    - VContainer
+    - Zenject
+    - Zenject-IntegrationTests
     showAdvancedSettings: 0
   addMgrToSceneAutomatically: 0
   autoUpdateReferences: 1

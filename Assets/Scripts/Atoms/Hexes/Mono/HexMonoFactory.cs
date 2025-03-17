@@ -4,8 +4,7 @@ using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
-using VContainer;
-using VContainer.Unity;
+using Zenject;
 
 public class HexMonoFactory : MonoBehaviour
 {
@@ -13,10 +12,10 @@ public class HexMonoFactory : MonoBehaviour
     [SerializeField] private GameObject _hexPrefab;
     [SerializeField] private bool _needToApplyMaterial;
     [SerializeField] private Material _material;
-    private IObjectResolver _resolver;
+    private DiContainer _resolver;
 
     [Inject]
-    private void Init(IObjectResolver resolver)
+    private void Init(DiContainer resolver)
     {
         _resolver = resolver;
     }
@@ -43,7 +42,7 @@ public class HexMonoFactory : MonoBehaviour
 
         foreach (var hexPoint in hex.Points) vertices.Add(hexPoint.Position);
 
-        var hexGo =  _resolver.Instantiate(_hexPrefab, _root.transform);
+        var hexGo = _resolver.InstantiatePrefab(_hexPrefab, _root.transform);
         hexGo.GetComponent<HexView>().Init(hex);
         hexGo.name = $"Hex_({hex.Position.x}:{hex.Position.y})";
 

@@ -3,7 +3,7 @@ using HW.Data;
 using UniRx;
 using Unity.Mathematics;
 using UnityEngine;
-using VContainer;
+using Zenject;
 using static WaterGeneratorDataLayer;
 using Random = Unity.Mathematics.Random;
 

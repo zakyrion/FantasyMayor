@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.UI;
-using VContainer;
+using Zenject;
 
 public class GeneratorUI : MonoBehaviour
 {
@@ -9,7 +9,7 @@ public class GeneratorUI : MonoBehaviour
     [SerializeField] private Button _applyButton;
 
     private IDisposable _disposable;
-    
+
     [Inject] private ITerrainGenerationAPI _terrainGenerationAPI;
 
     private void OnEnable()

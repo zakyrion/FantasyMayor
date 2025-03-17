@@ -1,7 +1,7 @@
 using UniRx;
 using UnityEngine;
 using UnityEngine.UI;
-using VContainer;
+using Zenject;
 
 public class HightmapUI : MonoBehaviour
 {

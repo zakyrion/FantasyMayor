@@ -1,5 +1,6 @@
 using Cysharp.Threading.Tasks;
 using Unity.Collections;
+using Unity.Jobs;
 using UnityEngine;
 
 public class ApplyVectorForcesCommand
@@ -10,19 +11,14 @@ public class ApplyVectorForcesCommand
     {
         _hexDataLayer = hexDataLayer;
     }
-
-    //додати точки позитивних емітерів 
-    //додати точки негативних емітерів
-    //додати круглі емітери
-    //додати еліптичні емітери
-    //додати гесагональні емітери
-    //позитивні емітери можуть бути тільки всередині гексів
-    //негативні можуть бути лише біля кордонів гексів і не дуже великі
+   
     public async UniTask<TerrainHeightmap> Execute(int resolution, NativeList<CircleEmitter> circleEmitters)
     {
+        int totalPixels = resolution * resolution;
         var heightmap = new TerrainHeightmap(resolution, Allocator.TempJob);
 
-        var job = new ApplyVectorForcesJob
+        //var job = new ApplyVectorForcesJob
+        var job = new ParallelApplyVectorForcesJob
         {
             Resolution = resolution,
             Heightmap = heightmap,
@@ -30,7 +26,10 @@ public class ApplyVectorForcesCommand
             NoiseScale = 0.08f
         };
         
-        job.Execute();
+        await job.Schedule(totalPixels, 64);
+        heightmap.Normalize();
+        
+        //job.Execute();
 
         return heightmap;
     }

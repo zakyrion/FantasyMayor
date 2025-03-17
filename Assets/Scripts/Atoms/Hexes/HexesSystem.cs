@@ -3,11 +3,8 @@ using Cysharp.Threading.Tasks;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
-using VContainer;
+using Zenject;
 
-//Спробував збудувати меш. Закінчую цю порнографію. 
-//В блендері легше зробити штампи й працювати ними для "підняття й виділення зон"
-//Спробую редагувати зображенням. Якщо не вийде - займусь штампами
 public class HexesSystem : IHexesAPI
 {
     public enum SelectionType

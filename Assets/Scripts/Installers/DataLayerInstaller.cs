@@ -1,19 +1,25 @@
 using UnityEngine;
-using VContainer;
+using Zenject;
 
 [CreateAssetMenu(fileName = "DataLayerInstaller", menuName = "Installers/DataLayerInstaller")]
-public class DataLayerInstaller : ScriptableObject
+public class DataLayerInstaller : ScriptableObjectInstaller<DataLayerInstaller>
 {
     [SerializeField] private TerrainGeneratorSettingsScriptable _terrainGeneratorSettingsScriptable;
 
-    public void InstallBindings(IContainerBuilder builder)
+    public override void InstallBindings()
     {
-        builder.Register<DataLayer>(Lifetime.Scoped);
+        Container.Bind<DataLayer>().AsSingle();
 
-        builder.Register<HexViewDataLayer>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
-        builder.Register<WaterGeneratorDataLayer>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
-        builder.Register<MountsGeneratorDataLayer>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
-        builder.Register<SeedDataLayer>(Lifetime.Scoped).AsImplementedInterfaces().AsSelf();
-        builder.RegisterInstance(_terrainGeneratorSettingsScriptable).AsImplementedInterfaces().AsSelf();
+        InitDataLayers();
+    }
+
+    private void InitDataLayers()
+    {
+        Container.BindInterfacesAndSelfTo<HexViewDataLayer>().AsSingle();
+        Container.BindInterfacesAndSelfTo<SeedDataLayer>().AsSingle();
+        Container.BindInterfacesAndSelfTo<TerrainGeneratorSettingsScriptable>()
+            .FromInstance(_terrainGeneratorSettingsScriptable).AsSingle();
+        Container.BindInterfacesAndSelfTo<WaterGeneratorDataLayer>().AsSingle();
+        Container.BindInterfacesAndSelfTo<MountsGeneratorDataLayer>().AsSingle();
     }
 }

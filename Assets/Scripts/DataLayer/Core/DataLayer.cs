@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
-using VContainer;
+using Zenject;
 
 public class DataLayer
 {

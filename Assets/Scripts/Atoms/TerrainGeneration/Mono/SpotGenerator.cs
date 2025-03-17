@@ -7,7 +7,7 @@ using Dreamteck.Splines;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
-using VContainer;
+using Zenject;
 
 public class SpotGenerator : MonoBehaviour
 {
