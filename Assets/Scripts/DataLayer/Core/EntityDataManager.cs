@@ -1,25 +1,28 @@
 using System;
 using System.Collections.Generic;
 
-public abstract class EntityDataManager<TKey> where TKey : class
+namespace DataLayer.Core
 {
-    protected Dictionary<Type, IContainer<TKey>> Containers = new();
-
-    public void AddContainer(IContainer<TKey> container)
+    public abstract class EntityDataManager<TKey> where TKey : class
     {
-        var type = typeof(IContainer<TKey>);
-        Containers.Add(type, container);
-    }
+        protected Dictionary<Type, IContainer<TKey>> Containers = new();
 
-    public void RemoveContainer(IContainer<TKey> container)
-    {
-        var type = typeof(IContainer<TKey>);
-        Containers.Remove(type);
-    }
+        public void AddContainer(IContainer<TKey> container)
+        {
+            var type = typeof(IContainer<TKey>);
+            Containers.Add(type, container);
+        }
 
-    public TContainer GetContainer<TContainer>() where TContainer : IContainer
-    {
-        var type = typeof(TContainer);
-        return (TContainer) Containers[type];
+        public TContainer GetContainer<TContainer>() where TContainer : IContainer
+        {
+            var type = typeof(TContainer);
+            return (TContainer)Containers[type];
+        }
+
+        public void RemoveContainer(IContainer<TKey> container)
+        {
+            var type = typeof(IContainer<TKey>);
+            Containers.Remove(type);
+        }
     }
 }

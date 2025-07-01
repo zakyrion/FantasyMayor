@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using Atoms.Hexes.DataLayer;
+using Atoms.Hexes.DataTypes;
 using Cysharp.Threading.Tasks;
 using Unity.Collections;
 using Unity.Mathematics;

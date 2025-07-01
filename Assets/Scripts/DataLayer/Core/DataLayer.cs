@@ -1,17 +1,25 @@
 using System.Collections.Generic;
+using JetBrains.Annotations;
 using UnityEngine;
 using Zenject;
 
-public class DataLayer
+namespace DataLayer.Core
 {
-    private readonly List<IDataContainer> _dataContainers;
-
-    [Inject]
-    public DataLayer(List<IDataContainer> dataContainers)
+    [UsedImplicitly]
+    public class DataLayer
     {
-        Debug.Log($"[skh] DataLayer constructor. Containers count: {dataContainers.Count}");
-        _dataContainers = dataContainers;
-    }
+        private readonly List<IDataContainer> _dataContainers;
 
-    public T GetData<T>() where T : IDataContainer => (T) _dataContainers.Find(x => x is T);
+        [Inject]
+        public DataLayer(List<IDataContainer> dataContainers)
+        {
+            Debug.Log($"[skh] DataLayer constructor. Containers count: {dataContainers.Count}");
+            _dataContainers = dataContainers;
+        }
+
+        public T GetData<T>() where T : IDataContainer
+        {
+            return (T)_dataContainers.Find(x => x is T);
+        }
+    }
 }

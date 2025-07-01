@@ -1,3 +1,4 @@
+using Atoms.Hexes.DataLayer;
 using UnityEngine;
 using Zenject;
 
@@ -8,7 +9,7 @@ public class DataLayerInstaller : ScriptableObjectInstaller<DataLayerInstaller>
 
     public override void InstallBindings()
     {
-        Container.Bind<DataLayer>().AsSingle();
+        Container.Bind<DataLayer.Core.DataLayer>().AsSingle();
 
         InitDataLayers();
     }

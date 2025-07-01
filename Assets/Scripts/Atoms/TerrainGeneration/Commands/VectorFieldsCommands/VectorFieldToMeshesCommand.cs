@@ -1,3 +1,5 @@
+using Atoms.Hexes.DataLayer;
+
 public class VectorFieldToMeshesCommand
 {
     private readonly HexViewDataLayer _hexDataLayer;

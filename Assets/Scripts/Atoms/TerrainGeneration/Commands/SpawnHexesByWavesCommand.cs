@@ -1,4 +1,6 @@
 using System.Linq;
+using Atoms.Hexes.DataLayer;
+using Atoms.Hexes.DataTypes;
 using Unity.Collections;
 using Unity.Mathematics;
 

@@ -3,48 +3,51 @@ using UnityEngine;
 using UnityEngine.UI;
 using Zenject;
 
-public class GeneratorUI : MonoBehaviour
+namespace Atoms.TerrainGeneration.UI
 {
-    [SerializeField] private StartService _startService;
-    [SerializeField] private Button _applyButton;
-
-    private IDisposable _disposable;
-
-    [Inject] private ITerrainGenerationAPI _terrainGenerationAPI;
-
-    private void OnEnable()
+    public class GeneratorUI : MonoBehaviour
     {
-        _applyButton.onClick.AddListener(ApplyButtonClicked);
-    }
+        [SerializeField] private StartService _startService;
+        [SerializeField] private Button _applyButton;
 
-    private void OnDisable()
-    {
-        _applyButton.onClick.RemoveAllListeners();
+        private IDisposable _disposable;
 
-        _disposable?.Dispose();
-    }
+        [Inject] private ITerrainGenerationAPI _terrainGenerationAPI;
 
-    private void ApplyButtonClicked()
-    {
-        _terrainGenerationAPI.Apply();
-    }
+        private void OnEnable()
+        {
+            _applyButton.onClick.AddListener(ApplyButtonClicked);
+        }
 
-    private void HeightmapChanged(Texture texture)
-    {
-    }
+        private void OnDisable()
+        {
+            _applyButton.onClick.RemoveAllListeners();
 
-    private void ConvertToMeshButtonClicked()
-    {
-        _terrainGenerationAPI.GenerateMount();
-    }
+            _disposable?.Dispose();
+        }
 
-    private void ShowPointsButtonClicked()
-    {
-    }
+        private void ApplyButtonClicked()
+        {
+            _terrainGenerationAPI.Apply();
+        }
 
-    private void CastButtonClicked()
-    {
-        Debug.Log("[skh] GeneratorUIView.OnClick()");
-        _startService.GenerateTerrain();
+        private void CastButtonClicked()
+        {
+            Debug.Log("[skh] GeneratorUIView.OnClick()");
+            _startService.GenerateTerrain();
+        }
+
+        private void ConvertToMeshButtonClicked()
+        {
+            _terrainGenerationAPI.GenerateMount();
+        }
+
+        private void HeightmapChanged(Texture texture)
+        {
+        }
+
+        private void ShowPointsButtonClicked()
+        {
+        }
     }
 }

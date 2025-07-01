@@ -34,7 +34,7 @@ MonoBehaviour:
     - Assembly-CSharp-firstpass
     - Dreamteck.Splines
     - Dreamteck.Utilities
-    - ScriptableBuildPipelineTests
+    - TestNewCustomAssembly
     - UniRx
     - UniRx.Examples
     - UniTask

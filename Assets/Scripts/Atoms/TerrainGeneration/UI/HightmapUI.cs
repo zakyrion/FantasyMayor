@@ -3,21 +3,24 @@ using UnityEngine;
 using UnityEngine.UI;
 using Zenject;
 
-public class HightmapUI : MonoBehaviour
+namespace Atoms.TerrainGeneration.UI
 {
-    [SerializeField] private RawImage _heightmapImage;
-    [Inject] private HeightmapDataLayer _heightmapDataLayer;
-
-    private void Awake()
+    public class HightmapUI : MonoBehaviour
     {
-        _heightmapDataLayer.HeightmapTexture.Subscribe(HeightmapChanged);
+        [SerializeField] private RawImage _heightmapImage;
+        [Inject] private HeightmapDataLayer _heightmapDataLayer;
 
-        _heightmapImage.gameObject.SetActive(false);
-    }
+        private void Awake()
+        {
+            _heightmapDataLayer.HeightmapTexture.Subscribe(HeightmapChanged);
 
-    private void HeightmapChanged(Texture texture)
-    {
-        _heightmapImage.gameObject.SetActive(true);
-        _heightmapImage.texture = texture;
+            _heightmapImage.gameObject.SetActive(false);
+        }
+
+        private void HeightmapChanged(Texture texture)
+        {
+            _heightmapImage.gameObject.SetActive(true);
+            _heightmapImage.texture = texture;
+        }
     }
 }

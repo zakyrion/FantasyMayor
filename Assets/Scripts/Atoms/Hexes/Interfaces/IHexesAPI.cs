@@ -1,3 +1,4 @@
+using Atoms.Hexes.DataTypes;
 using Cysharp.Threading.Tasks;
 using Unity.Mathematics;
 

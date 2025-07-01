@@ -1,3 +1,4 @@
+using DataLayer.Core;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "TerrainGeneratorSettingsScriptable",

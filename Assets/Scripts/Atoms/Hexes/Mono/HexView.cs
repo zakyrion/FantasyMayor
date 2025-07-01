@@ -1,4 +1,5 @@
 using System;
+using Atoms.Hexes.DataTypes;
 using Sirenix.OdinInspector;
 using UniRx;
 using UnityEngine;
