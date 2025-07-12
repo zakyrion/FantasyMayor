@@ -1,4 +1,7 @@
-using UniRx;
+using System.Threading;
+using Core.Data;
+using Core.DataLayer;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
 using Zenject;
@@ -8,19 +11,28 @@ namespace Atoms.TerrainGeneration.UI
     public class HightmapUI : MonoBehaviour
     {
         [SerializeField] private RawImage _heightmapImage;
-        [Inject] private HeightmapDataLayer _heightmapDataLayer;
+        [Inject] private IDataContainer<HeightmapDataLayer> _heightmapDataLayer;
+        private SubscriptionId _subscriptionId;
 
         private void Awake()
         {
-            _heightmapDataLayer.HeightmapTexture.Subscribe(HeightmapChanged);
+            _heightmapDataLayer.SubscribeOnUpdateAsync(HeightmapChangedAsync, 0, CancellationToken.None)
+                .ContinueWith(result => _subscriptionId = result.SubscriptionId).Forget();
 
             _heightmapImage.gameObject.SetActive(false);
         }
 
-        private void HeightmapChanged(Texture texture)
+
+        private void OnDestroy()
+        {
+            _heightmapDataLayer.UnsubscribeOnUpdate(_subscriptionId);
+        }
+
+        private UniTask HeightmapChangedAsync(HeightmapDataLayer dataLayer, CancellationToken cancellationToken)
         {
             _heightmapImage.gameObject.SetActive(true);
-            _heightmapImage.texture = texture;
+            _heightmapImage.texture = dataLayer.Texture;
+            return UniTask.CompletedTask;
         }
     }
 }

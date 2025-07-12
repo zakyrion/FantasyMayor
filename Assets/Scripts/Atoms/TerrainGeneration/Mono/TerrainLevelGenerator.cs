@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using System.Threading;
 using Atoms.Hexes.DataLayer;
+using Core.DataLayer;
 using Cysharp.Threading.Tasks;
 using Unity.Collections;
 using Unity.Mathematics;
@@ -8,15 +10,14 @@ using Random = UnityEngine.Random;
 
 public class TerrainLevelGenerator : ISurfaceGenerator
 {
-    private readonly HeightmapDataLayer _heightmapDataLayer;
+    private readonly IDataContainer<HeightmapDataLayer> _heightmapDataLayer;
     private readonly HexViewDataLayer _hexDataLayer;
 
     private readonly TerrainGeneratorSettingsScriptable _terrainGeneratorSettingsScriptable;
 
     public TerrainLevelGenerator(
         HexViewDataLayer hexDataLayer,
-        TerrainGeneratorSettingsScriptable terrainGeneratorSettingsScriptable,
-        HeightmapDataLayer heightmapDataLayer)
+        TerrainGeneratorSettingsScriptable terrainGeneratorSettingsScriptable, IDataContainer<HeightmapDataLayer> heightmapDataLayer)
     {
         _hexDataLayer = hexDataLayer;
         _terrainGeneratorSettingsScriptable = terrainGeneratorSettingsScriptable;
@@ -29,7 +30,7 @@ public class TerrainLevelGenerator : ISurfaceGenerator
         var pixelsPerUnit = _terrainGeneratorSettingsScriptable.PixelsPerUnit;
         var region = BuildRect(shape);
 
-        var resolution = (int) (region.width * pixelsPerUnit);
+        var resolution = (int)(region.width * pixelsPerUnit);
         var forceCommand = new ApplyVectorForcesCommand(_hexDataLayer);
 
         var circleEmitters = new NativeList<CircleEmitter>(Allocator.TempJob);
@@ -47,7 +48,7 @@ public class TerrainLevelGenerator : ISurfaceGenerator
             foreach (var emitterData in emitters)
             {
                 circleEmitters.Add(CircleEmitter.FromEmitterData(emitterData, Random.Range(15, 30),
-                    (FalloffType) Random.Range(0, 3)));
+                    (FalloffType)Random.Range(0, 3)));
             }
 
 
@@ -79,7 +80,10 @@ public class TerrainLevelGenerator : ISurfaceGenerator
 
         var heightmap = await forceCommand.Execute(resolution, circleEmitters);
 
-        _heightmapDataLayer.SetTexture(heightmap.ToTexture());
+        await _heightmapDataLayer.AddOrUpdateAsync(new HeightmapDataLayer
+        {
+            Texture = heightmap.ToTexture()
+        }, CancellationToken.None);
 
         var applyTextureCommand = new ApplyRectTextureToVectorFieldCommand(_hexDataLayer);
         await applyTextureCommand.Execute(region, heightmap, 1);
@@ -100,6 +104,12 @@ public class TerrainLevelGenerator : ISurfaceGenerator
         }
 
         return true;
+    }
+
+    public int2 ToTextureSpace(Rect region, int resolution, float2 position)
+    {
+        return (int2)math.remap(region.min, region.max, new float2(0, 0), new float2(resolution, resolution),
+            position);
     }
 
     private Rect BuildRect(List<HexId> shape)
@@ -129,10 +139,14 @@ public class TerrainLevelGenerator : ISurfaceGenerator
             foreach (var point in points)
             {
                 // Assuming point has properties X and Z or similar.
-                if (point.Position.x < minX) minX = point.Position.x;
-                if (point.Position.z < minY) minY = point.Position.z;
-                if (point.Position.x > maxX) maxX = point.Position.x;
-                if (point.Position.z > maxY) maxY = point.Position.z;
+                if (point.Position.x < minX)
+                    minX = point.Position.x;
+                if (point.Position.z < minY)
+                    minY = point.Position.z;
+                if (point.Position.x > maxX)
+                    maxX = point.Position.x;
+                if (point.Position.z > maxY)
+                    maxY = point.Position.z;
             }
         }
 
@@ -162,8 +176,4 @@ public class TerrainLevelGenerator : ISurfaceGenerator
 
         return squareRect;
     }
-
-    public int2 ToTextureSpace(Rect region, int resolution, float2 position) =>
-        (int2) math.remap(region.min, region.max, new float2(0, 0), new float2(resolution, resolution),
-            position);
 }

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Atoms.Hexes.DataLayer;
 using Atoms.Hexes.DataTypes;
+using Core.DataLayer;
 using Cysharp.Threading.Tasks;
 using JetBrains.Annotations;
 using Unity.Collections;
@@ -18,6 +19,7 @@ namespace Atoms.Hexes
         private readonly TerrainLevelGenerator _levelGeneratorService;
         private readonly SpotGenerator _spotGenerator;
         private readonly TerrainGeneratorSettingsScriptable _terrainGeneratorSettings;
+        private IDataContainer<HeightmapDataLayer> _dataContainer;
         private HeightmapDataLayer _heightmapDataLayer;
 
         [Inject]
