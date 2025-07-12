@@ -1,9 +1,8 @@
-using DataLayer.Core;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "TerrainGeneratorSettingsScriptable",
     menuName = "Settings/TerrainGeneratorSettingsScriptable")]
-public class TerrainGeneratorSettingsScriptable : ScriptableObject, IDataContainer
+public class TerrainGeneratorSettingsScriptable : ScriptableObject
 {
     [field: SerializeField] public int DecorationMapResolution { get; private set; }
 
@@ -15,9 +14,9 @@ public class TerrainGeneratorSettingsScriptable : ScriptableObject, IDataContain
     [field: SerializeField] public int HexDetailLevel { get; private set; } = 20;
 
     [field: SerializeField] public float PixelsPerHex { get; private set; } = 64;
-    public float TriangleSize => HexSize / HexDetailLevel;
 
     public float PixelsPerUnit => PixelsPerHex / HexSize / 2;
+    public float TriangleSize => HexSize / HexDetailLevel;
 
     public void Dispose()
     {

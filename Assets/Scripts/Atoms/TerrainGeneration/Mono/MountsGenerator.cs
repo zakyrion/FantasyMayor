@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using Atoms.Hexes.DataLayer;
+using Core.DataLayer;
 using Cysharp.Threading.Tasks;
 using Unity.Collections;
 using Zenject;
@@ -11,12 +13,12 @@ public class MountsGenerator : ISurfaceGenerator
     private readonly HeightsGeneratorSettingsScriptable _heightsGeneratorSettings;
     private readonly HexViewDataLayer _hexDataLayer;
 
-    private readonly SeedDataLayer _seedDataLayer;
+    private readonly IDataContainer<SeedDataLayer> _seedDataLayer;
     private readonly SpotGenerator _spotGenerator;
     private readonly TerrainGeneratorSettingsScriptable _terrainGeneratorSettingsScriptable;
 
     [Inject]
-    public MountsGenerator(SeedDataLayer seedDataLayer, HexViewDataLayer hexDataLayer,
+    public MountsGenerator(IDataContainer<SeedDataLayer> seedDataLayer, HexViewDataLayer hexDataLayer,
         TerrainGeneratorSettingsScriptable terrainGeneratorSettingsScriptable, HeightMapsGenerator heightMapsGenerator,
         HeightsGeneratorSettingsScriptable heightsGeneratorSettings, SpotGenerator spotGenerator)
     {
@@ -28,10 +30,16 @@ public class MountsGenerator : ISurfaceGenerator
         _spotGenerator = spotGenerator;
     }
 
-    public async UniTask<bool> Generate(dynamic data) => true;
-
-    public async void AddHill(List<HexId> shape)
+    public async UniTask AddHillAsync(List<HexId> shape, CancellationToken cancellationToken)
     {
+        var seedResult = await _seedDataLayer.GetAsync(cancellationToken);
+        if (cancellationToken.IsCancellationRequested || !seedResult.Exist)
+        {
+            return;
+        }
+
+        var seedData = seedResult.DataLayer;
+
         var applyTextureCommand = new ApplyRectTextureToVectorFieldCommand(_hexDataLayer);
         var regionCommand = new CreateRegionForCommand(_terrainGeneratorSettingsScriptable.DecorationMapResolution);
         var blendCommand = new MapsCombineCommand();
@@ -46,10 +54,10 @@ public class MountsGenerator : ISurfaceGenerator
         var regionHillTexture = regionHill.ToTexture();
 
         var heightmapHill = _heightMapsGenerator
-            .Generate(settingsHill, _seedDataLayer.Seed.Value, regionHill.Resolution).ToTexture();
+            .Generate(settingsHill, seedData.Seed, regionHill.Resolution).ToTexture();
         var heightmapMount = _heightMapsGenerator
-            .Generate(settingsMount, _seedDataLayer.Seed.Value, regionHill.Resolution).ToTexture();
-        var blendMap = _heightMapsGenerator.Generate(settingsBlend, _seedDataLayer.Seed.Value, regionHill.Resolution)
+            .Generate(settingsMount, seedData.Seed, regionHill.Resolution).ToTexture();
+        var blendMap = _heightMapsGenerator.Generate(settingsBlend, seedData.Seed, regionHill.Resolution)
             .ToTexture();
 
         var blendedTexture =
@@ -111,6 +119,11 @@ public class MountsGenerator : ISurfaceGenerator
         await smoothCommand.Execute();
 
         toMeshCommand.Execute();
+    }
+
+    public async UniTask<bool> Generate(dynamic data)
+    {
+        return true;
     }
 
     private List<HexId> GetSubShape(List<HexId> shape, SurfaceType type)

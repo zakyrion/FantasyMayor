@@ -1,3 +1,5 @@
+using System.Threading;
+using Core.DataLayer;
 using UnityEngine;
 using UnityEngine.Serialization;
 using Zenject;
@@ -16,7 +18,8 @@ public class StartService : MonoBehaviour
 
     private void Start()
     {
-        if (_generateTerrainOnStart) GenerateTerrain();
+        if (_generateTerrainOnStart)
+            GenerateTerrain();
     }
 
     public void GenerateTerrain()
@@ -25,9 +28,9 @@ public class StartService : MonoBehaviour
     }
 
     [Inject]
-    private void Init(ITerrainGenerationAPI terrainGenerationAPI, SeedDataLayer seedDataLayer)
+    private void Init(ITerrainGenerationAPI terrainGenerationAPI, IDataContainer<SeedDataLayer> seedDataLayer)
     {
         _terrainGenerationAPI = terrainGenerationAPI;
-        seedDataLayer.SetSeed(_seed);
+        seedDataLayer.AddOrUpdateAsync(new SeedDataLayer { Seed = _seed }, CancellationToken.None);
     }
 }

@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using Atoms.Hexes.DataTypes;
-using DataLayer.Core;
 using JetBrains.Annotations;
 using Unity.Collections;
 using Unity.Mathematics;
@@ -8,7 +7,7 @@ using Unity.Mathematics;
 namespace Atoms.Hexes.DataLayer
 {
     [UsedImplicitly]
-    public class HexViewDataLayer : IDataContainer
+    public class HexViewDataLayer
     {
         public List<HexViewData> Hexes = new();
         private readonly Dictionary<HexId, HexViewData> _hexCache = new();

@@ -1,9 +1,4 @@
-using DataLayer.Core;
 using Unity.Mathematics;
-
-public class HexDataManager : EntityDataManager<HexId>
-{
-}
 
 /// <summary>
 ///     Coords in 2d hex grid

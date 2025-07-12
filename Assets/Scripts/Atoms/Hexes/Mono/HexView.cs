@@ -25,6 +25,11 @@ public class HexView : DisposedMono
         AddDisposable(_level.Skip(1).Subscribe(ApplyLevel));
     }
 
+    private void ApplyLevel(int level)
+    {
+        _hexesAPI.SetHexLevel(_hexData.HexId, level);
+    }
+
     private void ApplyMesh(Mesh mesh)
     {
         var meshFilter = GetComponent<MeshFilter>();
@@ -35,10 +40,5 @@ public class HexView : DisposedMono
     {
         var meshRenderer = GetComponent<MeshRenderer>();
         meshRenderer.material.mainTexture = texture;
-    }
-
-    private void ApplyLevel(int level)
-    {
-        _hexesAPI.SetHexLevel(_hexData.HexId, level);
     }
 }

@@ -1,10 +1,9 @@
-using DataLayer.Core;
 using Unity.Mathematics;
 
 /// <summary>
 ///     Provides data for generating mounts.
 /// </summary>
-public class MountsGeneratorDataLayer : IDataContainer
+public class MountsGeneratorDataLayer
 {
     public int SpotCount { get; set; }
 
