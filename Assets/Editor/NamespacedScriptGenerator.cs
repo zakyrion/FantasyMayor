@@ -55,7 +55,7 @@ public class NamespacePostProcessor : AssetPostprocessor
 
     private static string GetNamespaceFromPath(string assetPath)
     {
-        var relativePath = Path.GetDirectoryName(assetPath).Replace("Assets/Scripts/Modules", "").Replace("/", ".");
+        var relativePath = Path.GetDirectoryName(assetPath).Replace("Assets/Scripts/", "").Replace("/", ".");
         var baseNamespace = "YourProject"; // Replace with your project's root namespace
 
         if (string.IsNullOrEmpty(relativePath))
