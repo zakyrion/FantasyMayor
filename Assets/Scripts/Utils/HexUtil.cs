@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Modules.Hexes.DataTypes;
 using Unity.Burst;
 using Unity.Mathematics;
 

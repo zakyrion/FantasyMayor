@@ -1,5 +1,6 @@
 using System.Collections.Generic;
-using Atoms.Hexes.DataLayer;
+using Modules.Hexes.DataLayer;
+using Modules.Hexes.DataTypes;
 using UnityEngine;
 using Zenject;
 

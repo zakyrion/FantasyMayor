@@ -4,7 +4,7 @@ using UniRx;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace Atoms.Hexes.DataTypes
+namespace Modules.Hexes.DataTypes
 {
     public class HexViewData
     {

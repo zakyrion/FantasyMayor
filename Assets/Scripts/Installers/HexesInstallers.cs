@@ -1,15 +1,25 @@
-using Atoms.Hexes;
+using Modules.Hexes;
+using Modules.Hexes.Creators;
+using Modules.Hexes.Systems;
+using Modules.Hexes.ViewManagers;
 using UnityEngine;
 using Zenject;
 
-public class HexesInstallers : MonoInstaller
+namespace Installers
 {
-    [SerializeField] private HexMonoFactory _hexMonoFactory;
-
-    public override void InstallBindings()
+    public class HexesInstallers : MonoInstaller
     {
-        Container.Bind<HexMonoFactory>().FromInstance(_hexMonoFactory);
+        [SerializeField]
+        private GameObject _hexesRoot;
 
-        Container.BindInterfacesAndSelfTo<HexesSystem>().AsSingle();
+        public override void InstallBindings()
+        {
+            Container.BindInstance(_hexesRoot).WithId(Constants.HEXES_ROOT_ID).AsCached();
+
+            Container.BindInterfacesTo<HexesSystem>().AsCached().NonLazy();
+            Container.BindInterfacesTo<HexesGenerateProcessor>().AsCached().NonLazy();
+            Container.BindInterfacesTo<HexesViewManager>().AsCached().NonLazy();
+            Container.BindInterfacesTo<HexesCreator>().AsCached();
+        }
     }
 }

@@ -1,5 +1,5 @@
-using Atoms.Hexes.DataLayer;
 using Cysharp.Threading.Tasks;
+using Modules.Hexes.DataLayer;
 using UnityEngine;
 
 /// <summary>
@@ -42,7 +42,7 @@ public class TerrainHexViewGenerator : ISurfaceGenerator
     
     private void ConvertToVectorField()
     {
-        ref var hexVectors = ref _hexDataLayer.HexVectors;
+        /*ref var hexVectors = ref _hexDataLayer.HexVectors;
 
         foreach (var hex in _hexDataLayer.Hexes)
         {
@@ -55,6 +55,6 @@ public class TerrainHexViewGenerator : ISurfaceGenerator
                 if (!hexVectors.ContainsKey(hexVector.GridPosition))
                     hexVectors.Add(hexVector.GridPosition, hexVector);
             }
-        }
+        }*/
     }
 }

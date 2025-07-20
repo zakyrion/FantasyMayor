@@ -21,11 +21,9 @@ public struct FieldsVector
     }
 
     #region HexOwner
-
     public void SetHeight(float height)
     {
         WorldPosition = new float3(WorldPosition.x, height, WorldPosition.z);
     }
-
     #endregion
 }

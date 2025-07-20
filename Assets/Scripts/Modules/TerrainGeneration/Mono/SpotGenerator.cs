@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Atoms.Hexes.DataLayer;
 using Cysharp.Threading.Tasks;
 using DataTypes;
 using Dreamteck.Splines;
+using Modules.Hexes.DataLayer;
+using Modules.Hexes.DataTypes;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;

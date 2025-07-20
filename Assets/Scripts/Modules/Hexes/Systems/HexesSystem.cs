@@ -1,38 +1,36 @@
+using System;
 using System.Collections.Generic;
-using Atoms.Hexes.DataLayer;
-using Atoms.Hexes.DataTypes;
+using System.Threading;
 using Core.DataLayer;
+using Core.EventDataBus;
 using Cysharp.Threading.Tasks;
 using JetBrains.Annotations;
+using Modules.Hexes.DataLayer;
+using Modules.Hexes.DataTypes;
+using Modules.Hexes.Operations;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 using Zenject;
 
-namespace Atoms.Hexes
+namespace Modules.Hexes.Systems
 {
     [UsedImplicitly]
-    public class HexesSystem : IHexesAPI
+    public class HexesSystem : IHexesAPI, IDisposable
     {
         private readonly HexViewDataLayer _hexDataLayer;
-        private readonly HexMonoFactory _hexMonoFactory;
-        private readonly TerrainLevelGenerator _levelGeneratorService;
-        private readonly SpotGenerator _spotGenerator;
-        private readonly TerrainGeneratorSettingsScriptable _terrainGeneratorSettings;
         private IDataContainer<HeightmapDataLayer> _dataContainer;
-        private HeightmapDataLayer _heightmapDataLayer;
+
 
         [Inject]
-        private HexesSystem(HexMonoFactory hexMonoFactory, HexViewDataLayer hexDataLayer,
-            TerrainGeneratorSettingsScriptable terrainGeneratorSettings, SpotGenerator spotGenerator,
-            TerrainLevelGenerator levelGeneratorService, HeightmapDataLayer heightmapDataLayer)
+        private HexesSystem(IDataContainer<HeightmapDataLayer> dataContainer, IBus<HexesGenerateOperation> busGenerate, IBus<HexesCreateViewOperation> busCreateView)
         {
-            _hexMonoFactory = hexMonoFactory;
-            _hexDataLayer = hexDataLayer;
-            _terrainGeneratorSettings = terrainGeneratorSettings;
-            _spotGenerator = spotGenerator;
-            _levelGeneratorService = levelGeneratorService;
-            _heightmapDataLayer = heightmapDataLayer;
+            _dataContainer = dataContainer;
+        }
+
+        public async UniTask ProcessAsync(HexesGenerateOperation data, CancellationToken cancellationToken)
+        {
+            Debug.Log("[skh] call");
         }
 
         public List<HexViewData> SelectHexDataByLevel(HexViewData specificHexData, SelectionType selectionType)
@@ -116,19 +114,13 @@ namespace Atoms.Hexes
             //максимальний перепад рівнів висоти 2 рівні. Якщо перепад більше, то сусідні гекси будуть автоматично підняті  до рівня x-2 і так далі
         }
 
+        public void Dispose()
+        {
+        }
+
         private void BuildLevelMesh(NativeList<int2> hexesIds)
         {
             var vertices = new List<Vector3>();
-        }
-
-        void IHexesAPI.CreateAllHexes()
-        {
-
-        }
-
-        UniTask<bool> IHexesAPI.CreateHex(HexViewData hexData, int detailLevel)
-        {
-            return _hexMonoFactory.SpawnHex(hexData, detailLevel);
         }
 
         public enum SelectionType

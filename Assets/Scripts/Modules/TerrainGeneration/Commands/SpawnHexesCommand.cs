@@ -1,7 +1,5 @@
-using System.Collections.Generic;
-using Atoms.Hexes.DataLayer;
 using Cysharp.Threading.Tasks;
-using UnityEngine;
+using Modules.Hexes.DataLayer;
 
 public class SpawnHexesCommand
 {
@@ -16,7 +14,7 @@ public class SpawnHexesCommand
 
     public async UniTask<bool> Execute(int hexDetailLevel)
     {
-        var tasks = new List<UniTask>();
+        /*var tasks = new List<UniTask>();
         foreach (var hex in _hexDataLayer.Hexes)
         {
             tasks.Add(_hexesAPI.CreateHex(hex, hexDetailLevel));
@@ -25,6 +23,8 @@ public class SpawnHexesCommand
         var awaiter = UniTask.WhenAll(tasks);
         await awaiter;
 
-        return awaiter.Status == UniTaskStatus.Succeeded;
+        return awaiter.Status == UniTaskStatus.Succeeded;*/
+
+        return true;
     }
 }

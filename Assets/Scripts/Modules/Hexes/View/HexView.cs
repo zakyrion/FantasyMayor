@@ -1,9 +1,8 @@
 using System;
-using Atoms.Hexes.DataTypes;
+using Modules.Hexes.DataTypes;
 using Sirenix.OdinInspector;
 using UniRx;
 using UnityEngine;
-using Zenject;
 
 public class HexView : DisposedMono
 {
@@ -12,7 +11,6 @@ public class HexView : DisposedMono
     private IDisposable[] _disposable;
     private HexViewData _hexData;
 
-    [Inject] private IHexesAPI _hexesAPI;
     [SerializeField] [ReadOnly] private HexId _hexId;
 
     public void Init(HexViewData hexData)
@@ -27,7 +25,6 @@ public class HexView : DisposedMono
 
     private void ApplyLevel(int level)
     {
-        _hexesAPI.SetHexLevel(_hexData.HexId, level);
     }
 
     private void ApplyMesh(Mesh mesh)

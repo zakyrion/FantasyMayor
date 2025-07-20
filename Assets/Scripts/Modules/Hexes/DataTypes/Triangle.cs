@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -100,7 +99,7 @@ public struct Triangle
 
         // projection of the point onto the plane of the triangle
         var projectedPoint = new float3(point.x, 0, point.y) -
-                             (math.dot(normal, new float3(point.x, 0, point.y)) - d) * normal;
+            (math.dot(normal, new float3(point.x, 0, point.y)) - d) * normal;
 
         // calculate barycentric coordinates
         float3 v0 = B - A, v1 = C - A, v2 = projectedPoint - A;
@@ -123,7 +122,10 @@ public struct Triangle
         return u * A.y + v * B.y + w * C.y;
     }
 
-    public bool ContainsVertex(float3 vertex) => A.Equals(vertex) || B.Equals(vertex) || C.Equals(vertex);
+    public bool ContainsVertex(float3 vertex)
+    {
+        return A.Equals(vertex) || B.Equals(vertex) || C.Equals(vertex);
+    }
 
     public void Draw(Color color, float duration = 10)
     {

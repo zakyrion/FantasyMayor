@@ -1,4 +1,4 @@
-using Atoms.Hexes.DataLayer;
+using Modules.Hexes.DataLayer;
 
 public class VectorFieldToMeshesCommand
 {
@@ -11,7 +11,7 @@ public class VectorFieldToMeshesCommand
 
     public void Execute()
     {
-        var hexVectors = _hexDataLayer.HexVectors;
+        /*var hexVectors = _hexDataLayer.HexVectors;
 
         foreach (var hexData in _hexDataLayer.Hexes)
         {
@@ -24,6 +24,6 @@ public class VectorFieldToMeshesCommand
             }
 
             hexData.SetVertices(vertices);
-        }
+        }*/
     }
 }

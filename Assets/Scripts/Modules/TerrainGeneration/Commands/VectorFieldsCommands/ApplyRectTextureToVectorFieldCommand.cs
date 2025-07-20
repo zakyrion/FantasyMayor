@@ -1,5 +1,5 @@
-using Atoms.Hexes.DataLayer;
 using Cysharp.Threading.Tasks;
+using Modules.Hexes.DataLayer;
 using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
@@ -15,7 +15,7 @@ public class ApplyRectTextureToVectorFieldCommand
 
     public async UniTask<bool> Execute(Rect rect, TerrainHeightmap heightmap, float height)
     {
-        var job = new ApplyRectTextureToVectorFieldSimpleJob
+        /*var job = new ApplyRectTextureToVectorFieldSimpleJob
         {
             Rect = rect,
             Height = height,
@@ -23,7 +23,7 @@ public class ApplyRectTextureToVectorFieldCommand
             HeightMap = heightmap
         };
 
-        await job.Schedule();
+        await job.Schedule();*/
 
         return true;
     }

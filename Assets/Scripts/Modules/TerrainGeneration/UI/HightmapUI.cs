@@ -8,20 +8,11 @@ using Zenject;
 
 namespace Atoms.TerrainGeneration.UI
 {
-    public class HightmapUI : MonoBehaviour
+    public class HightmapUI : MonoBehaviour, IInitializable
     {
         [SerializeField] private RawImage _heightmapImage;
         [Inject] private IDataContainer<HeightmapDataLayer> _heightmapDataLayer;
         private SubscriptionId _subscriptionId;
-
-        private void Awake()
-        {
-            _heightmapDataLayer.SubscribeOnUpdateAsync(HeightmapChangedAsync, 0, CancellationToken.None)
-                .ContinueWith(result => _subscriptionId = result.SubscriptionId).Forget();
-
-            _heightmapImage.gameObject.SetActive(false);
-        }
-
 
         private void OnDestroy()
         {
@@ -33,6 +24,14 @@ namespace Atoms.TerrainGeneration.UI
             _heightmapImage.gameObject.SetActive(true);
             _heightmapImage.texture = dataLayer.Texture;
             return UniTask.CompletedTask;
+        }
+
+        public void Initialize()
+        {
+            _heightmapDataLayer.SubscribeOnUpdateAsync(HeightmapChangedAsync, 0, CancellationToken.None)
+                .ContinueWith(result => _subscriptionId = result.SubscriptionId).Forget();
+
+            _heightmapImage.gameObject.SetActive(false);
         }
     }
 }

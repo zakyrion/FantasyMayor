@@ -1,9 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using Atoms.Hexes.DataLayer;
 using Core.DataLayer;
 using Cysharp.Threading.Tasks;
+using Modules.Hexes.DataLayer;
+using Modules.Hexes.DataTypes;
 using Unity.Collections;
 using Zenject;
 
@@ -68,7 +69,7 @@ public class MountsGenerator : ISurfaceGenerator
         await applyTextureCommand.Execute(spotHill.Rect, blendedTexture.ToTerrainHeightmap(Allocator.TempJob),
             _terrainGeneratorSettingsScriptable.HexSize);
 
-        var hexVectors = _hexDataLayer.HexVectors;
+        /*var hexVectors = _hexDataLayer.HexVectors;
 
         foreach (var hexData in _hexDataLayer.Hexes)
         {
@@ -81,7 +82,7 @@ public class MountsGenerator : ISurfaceGenerator
             }
 
             hexData.SetVertices(vertices);
-        }
+        }*/
     }
 
     public async void AddMount(List<HexId> shape)

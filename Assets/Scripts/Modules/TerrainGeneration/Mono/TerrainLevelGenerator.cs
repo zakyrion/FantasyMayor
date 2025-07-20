@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using System.Threading;
-using Atoms.Hexes.DataLayer;
 using Core.DataLayer;
 using Cysharp.Threading.Tasks;
+using Modules.Hexes.DataLayer;
+using Modules.Hexes.DataTypes;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
@@ -88,7 +89,7 @@ public class TerrainLevelGenerator : ISurfaceGenerator
         var applyTextureCommand = new ApplyRectTextureToVectorFieldCommand(_hexDataLayer);
         await applyTextureCommand.Execute(region, heightmap, 1);
 
-        var hexVectors = _hexDataLayer.HexVectors;
+        /*var hexVectors = _hexDataLayer.HexVectors;
 
         foreach (var hexData in _hexDataLayer.Hexes)
         {
@@ -101,7 +102,7 @@ public class TerrainLevelGenerator : ISurfaceGenerator
             }
 
             hexData.SetVertices(vertices);
-        }
+        }*/
 
         return true;
     }
