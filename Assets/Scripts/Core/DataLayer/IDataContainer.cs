@@ -20,10 +20,10 @@ namespace Core.DataLayer
         UniTask<DataLayerResult<TData>> GetAsync(string id, CancellationToken cancellationToken);
 
         // Subscribe methods
-        DataSubscribeResult SubscribeOnUpdate(Func<TData, CancellationToken, UniTask> callback, int order);
-        UniTask<DataSubscribeResult> SubscribeOnUpdateAsync(Func<TData, CancellationToken, UniTask> callback, int id, int order, CancellationToken cancellationToken);
-        UniTask<DataSubscribeResult> SubscribeOnUpdateAsync(Func<TData, CancellationToken, UniTask> callback, Guid id, int order, CancellationToken cancellationToken);
-        UniTask<DataSubscribeResult> SubscribeOnUpdateAsync(Func<TData, CancellationToken, UniTask> callback, string id, int order, CancellationToken cancellationToken);
+        DataSubscribeResult SubscribeOnUpdate(Func<DataContext<TData>, CancellationToken, UniTask> callback, int order);
+        DataSubscribeResult SubscribeOnUpdate(Func<DataContext<TData>, CancellationToken, UniTask> callback, int id, int order);
+        DataSubscribeResult SubscribeOnUpdate(Func<DataContext<TData>, CancellationToken, UniTask> callback, Guid id, int order);
+        DataSubscribeResult SubscribeOnUpdate(Func<DataContext<TData>, CancellationToken, UniTask> callback, string id, int order);
 
         // Unsubscribe
         void UnsubscribeOnUpdate(SubscriptionId id);

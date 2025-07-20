@@ -39,7 +39,7 @@ namespace Modules.Hexes.View.UI
 
             _bus.PublishAsync(new HexesGenerateOperation
             {
-                WaveCount = 5
+                WaveCount = 1
             }, _cancellationTokenSource.Token).ContinueWith(() =>
             {
                 if (this)

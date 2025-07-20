@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Threading;
 using Core.DataLayer;
 using Core.EventDataBus;
@@ -58,29 +59,19 @@ namespace Modules.Hexes.Systems
                 }
             }
 
-            var container = await _dataContainer.GetAsync(cancellationToken);
-            if (cancellationToken.IsCancellationRequested)
-            {
-                return;
-            }
-
             Debug.Log($"[skh] process end. Count: {hexesToSpawn.Count}");
-            var dataLayer = container.DataLayer;
+            var dataLayer = new HexesDataLayer();
 
-            if (container.Exist)
-            {
-                dataLayer.Hexes.Clear();
-            }
-
-            dataLayer.Hexes = new List<HexData>();
+            var hexes = new List<HexData>(hexesToSpawn.Count);
             foreach (var hexId in hexesToSpawn)
             {
-                dataLayer.Hexes.Add(new HexData
+                hexes.Add(new HexData
                 {
                     HexId = hexId
                 });
             }
 
+            dataLayer.Hexes = hexes.ToImmutableArray();
             await _dataContainer.AddOrUpdateAsync(dataLayer, cancellationToken);
         }
     }

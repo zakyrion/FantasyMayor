@@ -47,7 +47,7 @@ namespace Core.DataLayer
         #endregion
 
         #region Helper Methods
-        private async UniTask NotifySubscribersAsync(IEnumerable<ISubscriber> subscribers, TData data, CancellationToken cancellationToken)
+        private async UniTask NotifySubscribersAsync(IEnumerable<ISubscriber> subscribers, DataLayerResult<TData> oldData, DataLayerResult<TData> newData, CancellationToken cancellationToken)
         {
             foreach (var subscriber in subscribers.OrderBy(s => s.Order))
             {
@@ -56,7 +56,11 @@ namespace Core.DataLayer
 
                 try
                 {
-                    await subscriber.Callback(data, cancellationToken);
+                    await subscriber.Callback(new DataContext<TData>
+                    {
+                        Old = oldData,
+                        New = newData
+                    }, cancellationToken);
                     if (cancellationToken.IsCancellationRequested)
                         break;
                 }
@@ -133,7 +137,7 @@ namespace Core.DataLayer
         #endregion
 
         #region Subscribe Methods
-        public DataSubscribeResult SubscribeOnUpdate(Func<TData, CancellationToken, UniTask> callback, int order)
+        public DataSubscribeResult SubscribeOnUpdate(Func<DataContext<TData>, CancellationToken, UniTask> callback, int order)
         {
             var subscriptionId = new SubscriptionId(Guid.NewGuid());
             var subscriber = new Subscriber(subscriptionId, callback, order);
@@ -148,7 +152,7 @@ namespace Core.DataLayer
             return new DataSubscribeResult(result, subscriptionId);
         }
 
-        public UniTask<DataSubscribeResult> SubscribeOnUpdateAsync(Func<TData, CancellationToken, UniTask> callback, int id, int order, CancellationToken cancellationToken)
+        public DataSubscribeResult SubscribeOnUpdate(Func<DataContext<TData>, CancellationToken, UniTask> callback, int id, int order)
         {
             var subscriptionId = new SubscriptionId(Guid.NewGuid());
             var subscriber = new Subscriber(subscriptionId, callback, order);
@@ -160,10 +164,10 @@ namespace Core.DataLayer
                 _activeSubscriptions.TryAdd(subscriptionId, new IntSubscriptionInfo(id));
             }
 
-            return UniTask.FromResult(new DataSubscribeResult(result, subscriptionId));
+            return new DataSubscribeResult(result, subscriptionId);
         }
 
-        public UniTask<DataSubscribeResult> SubscribeOnUpdateAsync(Func<TData, CancellationToken, UniTask> callback, Guid id, int order, CancellationToken cancellationToken)
+        public DataSubscribeResult SubscribeOnUpdate(Func<DataContext<TData>, CancellationToken, UniTask> callback, Guid id, int order)
         {
             var subscriptionId = new SubscriptionId(Guid.NewGuid());
             var subscriber = new Subscriber(subscriptionId, callback, order);
@@ -175,10 +179,10 @@ namespace Core.DataLayer
                 _activeSubscriptions.TryAdd(subscriptionId, new GuidSubscriptionInfo(id));
             }
 
-            return UniTask.FromResult(new DataSubscribeResult(result, subscriptionId));
+            return new DataSubscribeResult(result, subscriptionId);
         }
 
-        public UniTask<DataSubscribeResult> SubscribeOnUpdateAsync(Func<TData, CancellationToken, UniTask> callback, string id, int order, CancellationToken cancellationToken)
+        public DataSubscribeResult SubscribeOnUpdate(Func<DataContext<TData>, CancellationToken, UniTask> callback, string id, int order)
         {
             var subscriptionId = new SubscriptionId(Guid.NewGuid());
             var subscriber = new Subscriber(subscriptionId, callback, order);
@@ -190,7 +194,7 @@ namespace Core.DataLayer
                 _activeSubscriptions.TryAdd(subscriptionId, new StringSubscriptionInfo(id));
             }
 
-            return UniTask.FromResult(new DataSubscribeResult(result, subscriptionId));
+            return new DataSubscribeResult(result, subscriptionId);
         }
         #endregion
 
@@ -216,12 +220,15 @@ namespace Core.DataLayer
                     if (operation.CancellationToken.IsCancellationRequested)
                         continue;
 
-                    _storage.SetNoIdValue(operation.Data);
+                    var exist = _storage.TryGetNoIdValue(out var oldData);
+
                     var subscribers = _subscribers.GetNoIdSubscribers();
                     if (subscribers != null)
                     {
-                        await NotifySubscribersAsync(subscribers, operation.Data, operation.CancellationToken);
+                        await NotifySubscribersAsync(subscribers, new DataLayerResult<TData>(oldData, exist), new DataLayerResult<TData>(operation.Data, true), operation.CancellationToken);
                     }
+                    _storage.SetNoIdValue(operation.Data);
+
                 }
                 catch (Exception ex)
                 {
@@ -261,12 +268,13 @@ namespace Core.DataLayer
                     if (operation.CancellationToken.IsCancellationRequested)
                         continue;
 
-                    _storage.SetIntValue(operation.Id, operation.Data);
+                    var exist = _storage.TryGetIntValue(operation.Id, out var oldData);
                     var subscribers = _subscribers.GetIntSubscribers(operation.Id);
                     if (subscribers != null)
                     {
-                        await NotifySubscribersAsync(subscribers, operation.Data, operation.CancellationToken);
+                        await NotifySubscribersAsync(subscribers, new DataLayerResult<TData>(oldData, exist), new DataLayerResult<TData>(operation.Data, true), operation.CancellationToken);
                     }
+                    _storage.SetIntValue(operation.Id, operation.Data);
                 }
                 catch (Exception ex)
                 {
@@ -306,12 +314,14 @@ namespace Core.DataLayer
                     if (operation.CancellationToken.IsCancellationRequested)
                         continue;
 
-                    _storage.SetGuidValue(operation.Id, operation.Data);
+                    var exist = _storage.TryGetGuidValue(operation.Id, out var oldData);
                     var subscribers = _subscribers.GetGuidSubscribers(operation.Id);
                     if (subscribers != null)
                     {
-                        await NotifySubscribersAsync(subscribers, operation.Data, operation.CancellationToken);
+                        await NotifySubscribersAsync(subscribers, new DataLayerResult<TData>(oldData, exist), new DataLayerResult<TData>(operation.Data, true), operation.CancellationToken);
                     }
+                    _storage.SetGuidValue(operation.Id, operation.Data);
+
                 }
                 catch (Exception ex)
                 {
@@ -351,12 +361,15 @@ namespace Core.DataLayer
                     if (operation.CancellationToken.IsCancellationRequested)
                         continue;
 
-                    _storage.SetStringValue(operation.Id, operation.Data);
+                    var exist = _storage.TryGetStringValue(operation.Id, out var oldData);
                     var subscribers = _subscribers.GetStringSubscribers(operation.Id);
                     if (subscribers != null)
                     {
-                        await NotifySubscribersAsync(subscribers, operation.Data, operation.CancellationToken);
+                        await NotifySubscribersAsync(subscribers, new DataLayerResult<TData>(oldData, exist), new DataLayerResult<TData>(operation.Data, true), operation.CancellationToken);
                     }
+
+                    _storage.SetStringValue(operation.Id, operation.Data);
+
                 }
                 catch (Exception ex)
                 {
@@ -587,18 +600,18 @@ namespace Core.DataLayer
 
         private interface ISubscriber
         {
-            Func<TData, CancellationToken, UniTask> Callback { get; }
+            Func<DataContext<TData>, CancellationToken, UniTask> Callback { get; }
             SubscriptionId Id { get; }
             int Order { get; }
         }
 
         private class Subscriber : ISubscriber
         {
-            public Func<TData, CancellationToken, UniTask> Callback { get; }
+            public Func<DataContext<TData>, CancellationToken, UniTask> Callback { get; }
             public SubscriptionId Id { get; }
             public int Order { get; }
 
-            public Subscriber(SubscriptionId id, Func<TData, CancellationToken, UniTask> callback, int order)
+            public Subscriber(SubscriptionId id, Func<DataContext<TData>, CancellationToken, UniTask> callback, int order)
             {
                 Id = id;
                 Callback = callback;

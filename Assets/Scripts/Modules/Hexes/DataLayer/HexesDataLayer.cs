@@ -1,10 +1,10 @@
-using System.Collections.Generic;
+using System.Collections.Immutable;
 using Modules.Hexes.DataTypes;
 
 namespace Modules.Hexes.DataLayer
 {
     public struct HexesDataLayer
     {
-        public List<HexData> Hexes;
+        public ImmutableArray<HexData> Hexes;
     }
 }

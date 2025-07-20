@@ -1,10 +1,11 @@
 using System.Threading;
 using Core;
+using Cysharp.Threading.Tasks;
 
 namespace Modules.Hexes.Creators
 {
     internal interface IHexesCreator
     {
-        Box<HexView> CreateHexAsync(CancellationToken cancellationToken);
+        UniTask<Box<HexView>> CreateHexAsync(CancellationToken cancellationToken);
     }
 }

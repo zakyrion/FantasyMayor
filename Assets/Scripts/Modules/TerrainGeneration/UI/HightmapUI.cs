@@ -19,18 +19,18 @@ namespace Atoms.TerrainGeneration.UI
             _heightmapDataLayer.UnsubscribeOnUpdate(_subscriptionId);
         }
 
-        private UniTask HeightmapChangedAsync(HeightmapDataLayer dataLayer, CancellationToken cancellationToken)
-        {
-            _heightmapImage.gameObject.SetActive(true);
-            _heightmapImage.texture = dataLayer.Texture;
-            return UniTask.CompletedTask;
-        }
-
         public void Initialize()
         {
             _subscriptionId = _heightmapDataLayer.SubscribeOnUpdate(HeightmapChangedAsync, 0).SubscriptionId;
 
             _heightmapImage.gameObject.SetActive(false);
+        }
+
+        private UniTask HeightmapChangedAsync(DataContext<HeightmapDataLayer> context, CancellationToken cancellationToken)
+        {
+            _heightmapImage.gameObject.SetActive(true);
+            _heightmapImage.texture = context.New.DataLayer.Texture;
+            return UniTask.CompletedTask;
         }
     }
 }

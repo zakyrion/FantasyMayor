@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using Core;
 using JetBrains.Annotations;
 using Modules.Hexes.DataTypes;
 using Unity.Collections;
@@ -9,7 +11,8 @@ namespace Modules.Hexes.DataLayer
     [UsedImplicitly]
     public struct HexesViewDataLayer
     {
-        public List<HexViewData> Hexes;
+        public ImmutableArray<Box<HexView>> HexViews;
+        public ImmutableArray<HexViewData> Hexes;
         private readonly Dictionary<HexId, HexViewData> _hexCache;
         private NativeHashMap<int2, FieldsVector> _vectorField;
         //public ref NativeHashMap<int2, FieldsVector> HexVectors => ref _vectorField;
