@@ -6,11 +6,11 @@ using UnityEngine;
 
 public class ApplyRectTextureToVectorFieldCommand
 {
-    private readonly HexViewDataLayer _hexDataLayer;
+    private readonly HexesViewDataLayer _hexesDataLayer;
 
-    public ApplyRectTextureToVectorFieldCommand(HexViewDataLayer hexDataLayer)
+    public ApplyRectTextureToVectorFieldCommand(HexesViewDataLayer hexesDataLayer)
     {
-        _hexDataLayer = hexDataLayer;
+        _hexesDataLayer = hexesDataLayer;
     }
 
     public async UniTask<bool> Execute(Rect rect, TerrainHeightmap heightmap, float height)

@@ -4,11 +4,11 @@ using Unity.Jobs;
 
 public class SmoothVectorFieldCommand
 {
-    private readonly HexViewDataLayer _hexDataLayer;
+    private readonly HexesViewDataLayer _hexesDataLayer;
 
-    public SmoothVectorFieldCommand(HexViewDataLayer hexDataLayer)
+    public SmoothVectorFieldCommand(HexesViewDataLayer hexesDataLayer)
     {
-        _hexDataLayer = hexDataLayer;
+        _hexesDataLayer = hexesDataLayer;
     }
 
     public async UniTask<bool> Execute()

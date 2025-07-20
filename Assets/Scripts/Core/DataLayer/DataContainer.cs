@@ -133,7 +133,7 @@ namespace Core.DataLayer
         #endregion
 
         #region Subscribe Methods
-        public UniTask<DataSubscribeResult> SubscribeOnUpdateAsync(Func<TData, CancellationToken, UniTask> callback, int order, CancellationToken cancellationToken)
+        public DataSubscribeResult SubscribeOnUpdate(Func<TData, CancellationToken, UniTask> callback, int order)
         {
             var subscriptionId = new SubscriptionId(Guid.NewGuid());
             var subscriber = new Subscriber(subscriptionId, callback, order);
@@ -145,7 +145,7 @@ namespace Core.DataLayer
                 _activeSubscriptions.TryAdd(subscriptionId, new NoIdSubscriptionInfo());
             }
 
-            return UniTask.FromResult(new DataSubscribeResult(result, subscriptionId));
+            return new DataSubscribeResult(result, subscriptionId);
         }
 
         public UniTask<DataSubscribeResult> SubscribeOnUpdateAsync(Func<TData, CancellationToken, UniTask> callback, int id, int order, CancellationToken cancellationToken)

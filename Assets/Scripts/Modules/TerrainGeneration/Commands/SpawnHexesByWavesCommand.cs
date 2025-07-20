@@ -6,11 +6,11 @@ using Unity.Mathematics;
 
 public class SpawnHexesByWavesCommand
 {
-    private readonly HexViewDataLayer _hexDataLayer;
+    private readonly HexesViewDataLayer _hexesDataLayer;
 
-    public SpawnHexesByWavesCommand(HexViewDataLayer hexDataLayer)
+    public SpawnHexesByWavesCommand(HexesViewDataLayer hexesDataLayer)
     {
-        _hexDataLayer = hexDataLayer;
+        _hexesDataLayer = hexesDataLayer;
     }
 
     public void Execute(int waves, float size)
@@ -48,7 +48,7 @@ public class SpawnHexesByWavesCommand
         void AddHex(int2 position)
         {
             var hex = new HexViewData(0, position, size);
-            _hexDataLayer.AddHex(hex);
+            _hexesDataLayer.AddHex(hex);
         }
 
         JointNeighbours();
@@ -56,9 +56,9 @@ public class SpawnHexesByWavesCommand
 
     private void JointNeighbours()
     {
-        var dictionary = _hexDataLayer.Hexes.ToDictionary(hex => hex.HexId);
+        var dictionary = _hexesDataLayer.Hexes.ToDictionary(hex => hex.HexId);
 
-        foreach (var hex in _hexDataLayer.Hexes)
+        foreach (var hex in _hexesDataLayer.Hexes)
         {
             foreach (var neighbour in HexUtil.Neighbours(hex.HexId.Coords))
             {

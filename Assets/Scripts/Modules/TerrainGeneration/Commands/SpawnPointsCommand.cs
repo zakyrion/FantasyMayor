@@ -7,11 +7,11 @@ using Unity.Mathematics;
 /// </summary>
 public class SpawnPointsCommand
 {
-    private readonly HexViewDataLayer _hexDataLayer;
+    private readonly HexesViewDataLayer _hexesDataLayer;
 
-    public SpawnPointsCommand(HexViewDataLayer hexDataLayer)
+    public SpawnPointsCommand(HexesViewDataLayer hexesDataLayer)
     {
-        _hexDataLayer = hexDataLayer;
+        _hexesDataLayer = hexesDataLayer;
     }
 
     /// <summary>
@@ -20,7 +20,7 @@ public class SpawnPointsCommand
     /// <param name="hexSize">The size of the hexagon.</param>
     public void Execute(float hexSize)
     {
-        var hexes = _hexDataLayer.Hexes;
+        var hexes = _hexesDataLayer.Hexes;
         var points = new List<HexPointData>();
 
         foreach (var hex in hexes)
@@ -61,7 +61,7 @@ public class SpawnPointsCommand
                         continue;
                     }
 
-                    var neighbour = _hexDataLayer[owner];
+                    var neighbour = _hexesDataLayer[owner];
                     foreach (var neighbourPoint in neighbour.Points)
                     {
                         if (neighbourPoint.Type == PointType.Center)

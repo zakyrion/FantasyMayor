@@ -6,12 +6,12 @@ using Zenject;
 
 public class PathfindingSystem : IPathfindingAPI
 {
-    private readonly HexViewDataLayer _hexDataLayer;
+    private readonly HexesViewDataLayer _hexesDataLayer;
 
     [Inject]
-    public PathfindingSystem(HexViewDataLayer hexDataLayer)
+    public PathfindingSystem(HexesViewDataLayer hexesDataLayer)
     {
-        _hexDataLayer = hexDataLayer;
+        _hexesDataLayer = hexesDataLayer;
     }
 
     List<int2> IPathfindingAPI.GetPath(int2 start, int2 end)

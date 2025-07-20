@@ -28,8 +28,7 @@ namespace Atoms.TerrainGeneration.UI
 
         public void Initialize()
         {
-            _heightmapDataLayer.SubscribeOnUpdateAsync(HeightmapChangedAsync, 0, CancellationToken.None)
-                .ContinueWith(result => _subscriptionId = result.SubscriptionId).Forget();
+            _subscriptionId = _heightmapDataLayer.SubscribeOnUpdate(HeightmapChangedAsync, 0).SubscriptionId;
 
             _heightmapImage.gameObject.SetActive(false);
         }

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Core.DataLayer;
-using Core.EventDataBus;
 using Cysharp.Threading.Tasks;
 using JetBrains.Annotations;
 using Modules.Hexes.DataLayer;
@@ -18,12 +17,12 @@ namespace Modules.Hexes.Systems
     [UsedImplicitly]
     public class HexesSystem : IHexesAPI, IDisposable
     {
-        private readonly HexViewDataLayer _hexDataLayer;
+        private readonly HexesViewDataLayer _hexesDataLayer;
         private IDataContainer<HeightmapDataLayer> _dataContainer;
 
 
         [Inject]
-        private HexesSystem(IDataContainer<HeightmapDataLayer> dataContainer, IBus<HexesGenerateOperation> busGenerate, IBus<HexesCreateViewOperation> busCreateView)
+        private HexesSystem(IDataContainer<HeightmapDataLayer> dataContainer)
         {
             _dataContainer = dataContainer;
         }
@@ -72,7 +71,7 @@ namespace Modules.Hexes.Systems
         public async void SetHexLevel(HexId hexId, int level)
         {
             Debug.Log("[skh] call");
-            var hexData = _hexDataLayer.GetHex(hexId);
+            var hexData = _hexesDataLayer.GetHex(hexId);
             hexData.SetLevel(level);
 
             //var shape = SelectHexDataByLevel(hexData, SelectionType.SameAndHigher).Select(h=> h.Position).ToList();

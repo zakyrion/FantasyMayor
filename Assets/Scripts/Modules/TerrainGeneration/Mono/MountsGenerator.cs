@@ -12,19 +12,19 @@ public class MountsGenerator : ISurfaceGenerator
 {
     private readonly HeightMapsGenerator _heightMapsGenerator;
     private readonly HeightsGeneratorSettingsScriptable _heightsGeneratorSettings;
-    private readonly HexViewDataLayer _hexDataLayer;
+    private readonly HexesViewDataLayer _hexesDataLayer;
 
     private readonly IDataContainer<SeedDataLayer> _seedDataLayer;
     private readonly SpotGenerator _spotGenerator;
     private readonly TerrainGeneratorSettingsScriptable _terrainGeneratorSettingsScriptable;
 
     [Inject]
-    public MountsGenerator(IDataContainer<SeedDataLayer> seedDataLayer, HexViewDataLayer hexDataLayer,
+    public MountsGenerator(IDataContainer<SeedDataLayer> seedDataLayer, HexesViewDataLayer hexesDataLayer,
         TerrainGeneratorSettingsScriptable terrainGeneratorSettingsScriptable, HeightMapsGenerator heightMapsGenerator,
         HeightsGeneratorSettingsScriptable heightsGeneratorSettings, SpotGenerator spotGenerator)
     {
         _seedDataLayer = seedDataLayer;
-        _hexDataLayer = hexDataLayer;
+        _hexesDataLayer = hexesDataLayer;
         _terrainGeneratorSettingsScriptable = terrainGeneratorSettingsScriptable;
         _heightMapsGenerator = heightMapsGenerator;
         _heightsGeneratorSettings = heightsGeneratorSettings;
@@ -41,7 +41,7 @@ public class MountsGenerator : ISurfaceGenerator
 
         var seedData = seedResult.DataLayer;
 
-        var applyTextureCommand = new ApplyRectTextureToVectorFieldCommand(_hexDataLayer);
+        var applyTextureCommand = new ApplyRectTextureToVectorFieldCommand(_hexesDataLayer);
         var regionCommand = new CreateRegionForCommand(_terrainGeneratorSettingsScriptable.DecorationMapResolution);
         var blendCommand = new MapsCombineCommand();
 
@@ -87,11 +87,11 @@ public class MountsGenerator : ISurfaceGenerator
 
     public async void AddMount(List<HexId> shape)
     {
-        var applyTextureCommand = new ApplyRectTextureToVectorFieldCommand(_hexDataLayer);
+        var applyTextureCommand = new ApplyRectTextureToVectorFieldCommand(_hexesDataLayer);
         var regionCommand = new CreateRegionForCommand(1024);
         var blendCommand = new MapsCombineCommand();
-        var smoothCommand = new SmoothVectorFieldCommand(_hexDataLayer);
-        var toMeshCommand = new VectorFieldToMeshesCommand(_hexDataLayer);
+        var smoothCommand = new SmoothVectorFieldCommand(_hexesDataLayer);
+        var toMeshCommand = new VectorFieldToMeshesCommand(_hexesDataLayer);
 
         var shapeMount = GetSubShape(shape, SurfaceType.Mountain);
 
@@ -129,6 +129,6 @@ public class MountsGenerator : ISurfaceGenerator
 
     private List<HexId> GetSubShape(List<HexId> shape, SurfaceType type)
     {
-        return shape.Where(c => _hexDataLayer[c].SurfaceType == type).ToList();
+        return shape.Where(c => _hexesDataLayer[c].SurfaceType == type).ToList();
     }
 }

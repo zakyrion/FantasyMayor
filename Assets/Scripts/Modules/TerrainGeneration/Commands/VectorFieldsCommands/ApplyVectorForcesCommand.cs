@@ -6,11 +6,11 @@ using UnityEngine;
 
 public class ApplyVectorForcesCommand
 {
-    private readonly HexViewDataLayer _hexDataLayer;
+    private readonly HexesViewDataLayer _hexesDataLayer;
 
-    public ApplyVectorForcesCommand(HexViewDataLayer hexDataLayer)
+    public ApplyVectorForcesCommand(HexesViewDataLayer hexesDataLayer)
     {
-        _hexDataLayer = hexDataLayer;
+        _hexesDataLayer = hexesDataLayer;
     }
    
     public async UniTask<TerrainHeightmap> Execute(int resolution, NativeList<CircleEmitter> circleEmitters)

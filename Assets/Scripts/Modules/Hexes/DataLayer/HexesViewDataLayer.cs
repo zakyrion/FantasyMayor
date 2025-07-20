@@ -7,7 +7,7 @@ using Unity.Mathematics;
 namespace Modules.Hexes.DataLayer
 {
     [UsedImplicitly]
-    public struct HexViewDataLayer
+    public struct HexesViewDataLayer
     {
         public List<HexViewData> Hexes;
         private readonly Dictionary<HexId, HexViewData> _hexCache;

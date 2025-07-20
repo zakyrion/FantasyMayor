@@ -7,7 +7,7 @@ using Zenject;
 public class TerrainGeneratorService : MonoBehaviour, ITerrainGenerationAPI
 {
     private readonly TerrainGeneratorSettingsScriptable _terrainGeneratorSettingsScriptable;
-    private HexViewDataLayer _hexDataLayer;
+    private HexesViewDataLayer _hexesDataLayer;
     private MountsGenerator _mountsGeneratorService;
     private SpotGenerator _spotGenerator;
     private TerrainHexViewGenerator _surfaceGeneratorService;
@@ -19,7 +19,7 @@ public class TerrainGeneratorService : MonoBehaviour, ITerrainGenerationAPI
     {
         //TODO path from highest to lovest levels and build heightmaps for all clasters
         var levels = new HashSet<int>();
-        foreach (var hexData in _hexDataLayer.Hexes) levels.Add(hexData.Level.Value);
+        foreach (var hexData in _hexesDataLayer.Hexes) levels.Add(hexData.Level.Value);
 
         levels.Remove(0);
 
@@ -27,7 +27,7 @@ public class TerrainGeneratorService : MonoBehaviour, ITerrainGenerationAPI
         {
             var hexesAtLayer = new HashSet<HexId>();
 
-            foreach (var hexData in _hexDataLayer.Hexes)
+            foreach (var hexData in _hexesDataLayer.Hexes)
             {
                 if (hexData.Level.Value == level)
                     hexesAtLayer.Add(hexData.HexId);
@@ -49,7 +49,7 @@ public class TerrainGeneratorService : MonoBehaviour, ITerrainGenerationAPI
 
                     for (var i = 0; i < toCheck.Count; i++)
                     {
-                        var hex = _hexDataLayer[toCheck[i]];
+                        var hex = _hexesDataLayer[toCheck[i]];
                         spot.Add(hex.HexId);
                         hexesAtLayer.Remove(hex.HexId);
 
@@ -90,7 +90,7 @@ public class TerrainGeneratorService : MonoBehaviour, ITerrainGenerationAPI
     [Inject]
     private void Init(MountsGenerator mountsGeneratorService,
         TerrainHexViewGenerator surfaceGeneratorService,
-        SpotGenerator spotGenerator, HexViewDataLayer hexDataLayer, TerrainLevelGenerator terrainLevelGenerator)
+        SpotGenerator spotGenerator, HexesViewDataLayer hexesDataLayer, TerrainLevelGenerator terrainLevelGenerator)
     {
         Debug.Log("[skh] TerrainGeneratorService.Init()");
 
@@ -99,6 +99,6 @@ public class TerrainGeneratorService : MonoBehaviour, ITerrainGenerationAPI
         _terrainLevelGenerator = terrainLevelGenerator;
 
         _spotGenerator = spotGenerator;
-        _hexDataLayer = hexDataLayer;
+        _hexesDataLayer = hexesDataLayer;
     }
 }

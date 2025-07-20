@@ -2,11 +2,11 @@ using Modules.Hexes.DataLayer;
 
 public class VectorFieldToMeshesCommand
 {
-    private readonly HexViewDataLayer _hexDataLayer;
+    private readonly HexesViewDataLayer _hexesDataLayer;
 
-    public VectorFieldToMeshesCommand(HexViewDataLayer hexDataLayer)
+    public VectorFieldToMeshesCommand(HexesViewDataLayer hexesDataLayer)
     {
-        _hexDataLayer = hexDataLayer;
+        _hexesDataLayer = hexesDataLayer;
     }
 
     public void Execute()

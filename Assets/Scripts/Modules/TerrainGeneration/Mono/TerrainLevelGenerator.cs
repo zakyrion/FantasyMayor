@@ -12,15 +12,15 @@ using Random = UnityEngine.Random;
 public class TerrainLevelGenerator : ISurfaceGenerator
 {
     private readonly IDataContainer<HeightmapDataLayer> _heightmapDataLayer;
-    private readonly HexViewDataLayer _hexDataLayer;
+    private readonly HexesViewDataLayer _hexesDataLayer;
 
     private readonly TerrainGeneratorSettingsScriptable _terrainGeneratorSettingsScriptable;
 
     public TerrainLevelGenerator(
-        HexViewDataLayer hexDataLayer,
+        HexesViewDataLayer hexesDataLayer,
         TerrainGeneratorSettingsScriptable terrainGeneratorSettingsScriptable, IDataContainer<HeightmapDataLayer> heightmapDataLayer)
     {
-        _hexDataLayer = hexDataLayer;
+        _hexesDataLayer = hexesDataLayer;
         _terrainGeneratorSettingsScriptable = terrainGeneratorSettingsScriptable;
         _heightmapDataLayer = heightmapDataLayer;
     }
@@ -32,7 +32,7 @@ public class TerrainLevelGenerator : ISurfaceGenerator
         var region = BuildRect(shape);
 
         var resolution = (int)(region.width * pixelsPerUnit);
-        var forceCommand = new ApplyVectorForcesCommand(_hexDataLayer);
+        var forceCommand = new ApplyVectorForcesCommand(_hexesDataLayer);
 
         var circleEmitters = new NativeList<CircleEmitter>(Allocator.TempJob);
 
@@ -40,7 +40,7 @@ public class TerrainLevelGenerator : ISurfaceGenerator
 
         for (var i = 0; i < shape.Count; i++)
         {
-            var hexData = _hexDataLayer[shape[i]];
+            var hexData = _hexesDataLayer[shape[i]];
             var position = ToTextureSpace(region, resolution, hexData.Position3D.xz);
             var emittersCount = Random.Range(3, 7);
 
@@ -60,7 +60,7 @@ public class TerrainLevelGenerator : ISurfaceGenerator
             {
                 if (shape.Contains(neighbour) && !connectedHexes.Contains(neighbour))
                 {
-                    var neighbourData = _hexDataLayer[neighbour];
+                    var neighbourData = _hexesDataLayer[neighbour];
                     var lineBetween = hexData.Position3D.xz - neighbourData.Position3D.xz;
 
                     position = ToTextureSpace(region, resolution,
@@ -86,7 +86,7 @@ public class TerrainLevelGenerator : ISurfaceGenerator
             Texture = heightmap.ToTexture()
         }, CancellationToken.None);
 
-        var applyTextureCommand = new ApplyRectTextureToVectorFieldCommand(_hexDataLayer);
+        var applyTextureCommand = new ApplyRectTextureToVectorFieldCommand(_hexesDataLayer);
         await applyTextureCommand.Execute(region, heightmap, 1);
 
         /*var hexVectors = _hexDataLayer.HexVectors;
@@ -129,7 +129,7 @@ public class TerrainLevelGenerator : ISurfaceGenerator
         // Determine the bounding box coordinates
         for (var i = 0; i < shape.Count; i++)
         {
-            var hexViewData = _hexDataLayer.GetHex(shape[i]);
+            var hexViewData = _hexesDataLayer.GetHex(shape[i]);
             if (hexViewData == null)
             {
                 Debug.LogWarning($"HexViewData not found for index {i}, skipping.");

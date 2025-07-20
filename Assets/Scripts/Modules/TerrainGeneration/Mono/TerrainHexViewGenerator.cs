@@ -8,14 +8,14 @@ using UnityEngine;
 public class TerrainHexViewGenerator : ISurfaceGenerator
 {
     private TerrainGeneratorSettingsScriptable _terrainSettings;
-    private HexViewDataLayer _hexDataLayer;
+    private HexesViewDataLayer _hexesDataLayer;
     private IHexesAPI _hexesAPI;
     private int _waves;
     
-    public TerrainHexViewGenerator(TerrainGeneratorSettingsScriptable terrainSettings, HexViewDataLayer hexDataLayer, IHexesAPI hexesAPI)
+    public TerrainHexViewGenerator(TerrainGeneratorSettingsScriptable terrainSettings, HexesViewDataLayer hexesDataLayer, IHexesAPI hexesAPI)
     {
         _terrainSettings = terrainSettings;
-        _hexDataLayer = hexDataLayer;
+        _hexesDataLayer = hexesDataLayer;
         _hexesAPI = hexesAPI;
     }
     
@@ -24,9 +24,9 @@ public class TerrainHexViewGenerator : ISurfaceGenerator
         _waves = waves;
         Debug.Log("[skh] TerrainGeneratorService.CreateTerrain()");
 
-        var spawnHexesByWavesCommand = new SpawnHexesByWavesCommand(_hexDataLayer);
-        var spawnPointsCommand = new SpawnPointsCommand(_hexDataLayer);
-        var spawnHexesCommand = new SpawnHexesCommand(_hexDataLayer, _hexesAPI);
+        var spawnHexesByWavesCommand = new SpawnHexesByWavesCommand(_hexesDataLayer);
+        var spawnPointsCommand = new SpawnPointsCommand(_hexesDataLayer);
+        var spawnHexesCommand = new SpawnHexesCommand(_hexesDataLayer, _hexesAPI);
 
         spawnHexesByWavesCommand.Execute(_waves, _terrainSettings.HexSize);
 

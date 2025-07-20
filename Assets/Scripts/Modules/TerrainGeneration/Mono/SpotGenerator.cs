@@ -15,14 +15,14 @@ public class SpotGenerator : MonoBehaviour
 {
     [SerializeField] private SplineComputer _splineComputer;
 
-    private HexViewDataLayer _hexDataLayer;
+    private HexesViewDataLayer _hexesDataLayer;
     private TerrainGeneratorSettingsScriptable _terrainGeneratorSettingsScriptable;
 
     [Inject]
-    public void Init(HexViewDataLayer hexDataLayer,
+    public void Init(HexesViewDataLayer hexesDataLayer,
         TerrainGeneratorSettingsScriptable terrainGeneratorSettingsScriptable)
     {
-        _hexDataLayer = hexDataLayer;
+        _hexesDataLayer = hexesDataLayer;
         _terrainGeneratorSettingsScriptable = terrainGeneratorSettingsScriptable;
     }
 
@@ -56,7 +56,7 @@ public class SpotGenerator : MonoBehaviour
         {
             BorderLine = segments,
             Rect = new Rect(minX, minZ, maxX - minX, maxZ - minZ),
-            PointInside = _hexDataLayer[hexes[0]].Position3D
+            PointInside = _hexesDataLayer[hexes[0]].Position3D
         };
     }
 
@@ -85,7 +85,7 @@ public class SpotGenerator : MonoBehaviour
         {
             BorderLine = segments,
             Rect = rect,
-            PointInside = _hexDataLayer[hexes[0]].Position3D
+            PointInside = _hexesDataLayer[hexes[0]].Position3D
         };
     }
 
@@ -95,13 +95,13 @@ public class SpotGenerator : MonoBehaviour
 
         foreach (var hexPosition in hexes)
         {
-            var hex = _hexDataLayer[hexPosition];
+            var hex = _hexesDataLayer[hexPosition];
 
             for (var i = 0; i < 6; i++)
             {
                 var neighborPosition = HexUtil.Neighbour(i, hexPosition.Coords);
 
-                if (!_hexDataLayer.Exists(neighborPosition) ||
+                if (!_hexesDataLayer.Exists(neighborPosition) ||
                     !hexes.Contains(neighborPosition)) lines.Add(hex.GetLine(i));
             }
         }

@@ -3,12 +3,12 @@ using Modules.Hexes.DataLayer;
 
 public class SpawnHexesCommand
 {
-    private readonly HexViewDataLayer _hexDataLayer;
+    private readonly HexesViewDataLayer _hexesDataLayer;
     private readonly IHexesAPI _hexesAPI;
 
-    public SpawnHexesCommand(HexViewDataLayer hexDataLayer, IHexesAPI hexesAPI)
+    public SpawnHexesCommand(HexesViewDataLayer hexesDataLayer, IHexesAPI hexesAPI)
     {
-        _hexDataLayer = hexDataLayer;
+        _hexesDataLayer = hexesDataLayer;
         _hexesAPI = hexesAPI;
     }
 
