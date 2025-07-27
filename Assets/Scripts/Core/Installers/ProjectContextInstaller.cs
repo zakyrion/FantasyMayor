@@ -17,6 +17,7 @@ namespace Core.Installers
             Container.Bind(typeof(IBus<>)).To(typeof(Bus<>)).AsCached();
             Container.Bind(typeof(IConfigProvider<>)).To(typeof(ConfigProvider<>)).AsCached();
             Container.Bind(typeof(IDataContainer<>)).To(typeof(DataContainer<>)).AsCached();
+            Container.BindInterfacesTo<DataHub>().AsCached().NonLazy();
         }
     }
 }

@@ -21,13 +21,13 @@ namespace Modules.Hexes.ViewManagers
         private readonly DataSubscribeResult _hexesDataLayerSubscription;
         private readonly IDataContainer<HexesViewDataLayer> _hexesViewDataLayer;
 
-        public HexesViewManager(IDataContainer<HexesDataLayer> hexesDataLayer, IDataContainer<HexesViewDataLayer> hexesViewDataLayer, IHexesCreator hexesCreator)
+        public HexesViewManager(IDataHub dataHub, IHexesCreator hexesCreator)
         {
-            _hexesDataLayer = hexesDataLayer;
-            _hexesViewDataLayer = hexesViewDataLayer;
+            _hexesDataLayer = dataHub.GetDataLayer<HexesDataLayer>();
+            _hexesViewDataLayer = dataHub.GetDataLayer<HexesViewDataLayer>();
             _hexesCreator = hexesCreator;
 
-            _hexesDataLayerSubscription = hexesDataLayer.SubscribeOnUpdate(ProcessHexesDataLayer, 0);
+            _hexesDataLayerSubscription = _hexesDataLayer.SubscribeOnUpdate(ProcessHexesDataLayer, 0);
         }
 
         public void Dispose()
