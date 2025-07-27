@@ -11,7 +11,7 @@ namespace Modules.Hexes.DataLayer
     [UsedImplicitly]
     public struct HexesViewDataLayer
     {
-        public ImmutableArray<Box<HexView>> HexViews;
+        public ImmutableDictionary<HexId, Box<HexView>> HexViews;
         public ImmutableArray<HexViewData> Hexes;
         private readonly Dictionary<HexId, HexViewData> _hexCache;
         private NativeHashMap<int2, FieldsVector> _vectorField;

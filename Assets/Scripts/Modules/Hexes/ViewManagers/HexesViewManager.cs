@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
+using System.Linq;
 using System.Threading;
 using Core;
 using Core.Data;
@@ -9,6 +9,7 @@ using Cysharp.Threading.Tasks;
 using JetBrains.Annotations;
 using Modules.Hexes.Creators;
 using Modules.Hexes.DataLayer;
+using Modules.Hexes.DataTypes;
 using UnityEngine;
 
 namespace Modules.Hexes.ViewManagers
@@ -38,25 +39,10 @@ namespace Modules.Hexes.ViewManagers
             }
         }
 
-        private async UniTask<HexesViewDataLayer> CreateViewsAsync(DataContext<HexesDataLayer> context, CancellationToken token)
+        private async UniTask<Box<HexView>[]> CreateHexViewsAsync(IEnumerable<HexData> hexDatas, CancellationToken token)
         {
-            var hexesDataLayer = context.New.DataLayer;
-            var viewResult = await _hexesViewDataLayer.GetAsync(token);
-
-            if (viewResult.Exist && viewResult.DataLayer.HexViews.Length == context.New.DataLayer.Hexes.Length)
-            {
-                return default;
-            }
-
-            var hexViewDataLayer = viewResult.DataLayer;
-            if (viewResult.Exist && viewResult.DataLayer.HexViews.Length > hexesDataLayer.Hexes.Length)
-            {
-                return hexViewDataLayer;
-            }
-
-            var missingViewsCount = !viewResult.Exist ? hexesDataLayer.Hexes.Length : hexesDataLayer.Hexes.Length - viewResult.DataLayer.HexViews.Length;
-            var spawnTasks = new List<UniTask<Box<HexView>>>(missingViewsCount);
-            for (var i = 0; i < missingViewsCount; i++)
+            var spawnTasks = new List<UniTask<Box<HexView>>>();
+            foreach (var hex in hexDatas)
             {
                 spawnTasks.Add(_hexesCreator.CreateHexAsync(token));
             }
@@ -64,44 +50,61 @@ namespace Modules.Hexes.ViewManagers
             var views = await UniTask.WhenAll(spawnTasks);
             if (token.IsCancellationRequested)
             {
-                return hexViewDataLayer;
+                foreach (var view in views)
+                {
+                    view.Dispose();
+                }
+                return null;
             }
 
-            hexViewDataLayer.HexViews = viewResult.Exist ? hexViewDataLayer.HexViews.AddRange(views) : views.ToImmutableArray();
-
-            return hexViewDataLayer;
-        }
-
-        private HexesViewDataLayer DeleteViews(HexesViewDataLayer hexViewDataLayer, DataContext<HexesDataLayer> context)
-        {
-            var hexesDataLayer = context.New.DataLayer;
-            var missingViewsCount = hexViewDataLayer.HexViews.Length - hexesDataLayer.Hexes.Length;
-
-            if (hexesDataLayer.Hexes.Length >= hexViewDataLayer.HexViews.Length)
-            {
-                return hexViewDataLayer;
-            }
-
-            var views = hexViewDataLayer.HexViews;
-            for (var i = 1; i <= missingViewsCount; i++)
-            {
-                views[^i].Dispose();
-            }
-
-            hexViewDataLayer.HexViews = views.RemoveRange(views.Length - missingViewsCount, missingViewsCount);
-            return hexViewDataLayer;
+            return views;
         }
 
         private async UniTask ProcessHexesDataLayer(DataContext<HexesDataLayer> context, CancellationToken token)
         {
             Debug.Log($"[skh] process. Old: {context.Old.Exist}, New: {context.New.Exist}");
-            var viewDataLayer = await CreateViewsAsync(context, token);
-            if (token.IsCancellationRequested)
+
+            var viewDataLayerResult = await _hexesViewDataLayer.GetAsync(token);
+            if (token.IsCancellationRequested || !viewDataLayerResult.Exist)
             {
                 return;
             }
 
-            viewDataLayer = DeleteViews(viewDataLayer, context);
+            var viewDataLayer = viewDataLayerResult.DataLayer;
+
+            if (!context.Old.Exist)
+            {
+                var views = await CreateHexViewsAsync(context.New.DataLayer.Hexes, token);
+
+                for (var i = 0; i < views.Length; i++)
+                {
+                    viewDataLayer.HexViews = viewDataLayer.HexViews.Add(context.New.DataLayer.Hexes[i].HexId, views[i]);
+                }
+
+                await _hexesViewDataLayer.AddOrUpdateAsync(viewDataLayer, token);
+                return;
+            }
+
+            var newHexes = context.New.DataLayer.Hexes.Except(context.Old.DataLayer.Hexes);
+            var deletedHexes = context.Old.DataLayer.Hexes.Except(context.New.DataLayer.Hexes);
+
+            var newHexesViews = await CreateHexViewsAsync(newHexes, token);
+            var index = 0;
+            foreach (var hexData in newHexes)
+            {
+                viewDataLayer.HexViews = viewDataLayer.HexViews.Add(hexData.HexId, newHexesViews[index]);
+                index++;
+            }
+
+            foreach (var hexData in deletedHexes)
+            {
+                if (viewDataLayer.HexViews.TryGetValue(hexData.HexId, out var view))
+                {
+                    view.Dispose();
+                    viewDataLayer.HexViews = viewDataLayer.HexViews.Remove(hexData.HexId);
+                }
+            }
+
             await _hexesViewDataLayer.AddOrUpdateAsync(viewDataLayer, token);
         }
     }
