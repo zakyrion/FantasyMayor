@@ -107,11 +107,11 @@ namespace Core.DataLayer
         #endregion
 
         #region Get Methods
-        public UniTask<DataLayerResult<TData>> GetAsync(CancellationToken cancellationToken)
+        public TData Get()
         {
-            return UniTask.FromResult(_storage.TryGetNoIdValue(out var data)
-                ? new DataLayerResult<TData>(data, true)
-                : new DataLayerResult<TData>(default, false));
+            return _storage.TryGetNoIdValue(out var data)
+                ? data
+                : default;
         }
 
         public UniTask<DataLayerResult<TData>> GetAsync(int id, CancellationToken cancellationToken)

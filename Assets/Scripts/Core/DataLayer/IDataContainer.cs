@@ -14,7 +14,7 @@ namespace Core.DataLayer
         UniTask AddOrUpdateAsync(string id, TData data, CancellationToken cancellationToken);
 
         // Get methods
-        UniTask<DataLayerResult<TData>> GetAsync(CancellationToken cancellationToken);
+        TData Get();
         UniTask<DataLayerResult<TData>> GetAsync(int id, CancellationToken cancellationToken);
         UniTask<DataLayerResult<TData>> GetAsync(Guid id, CancellationToken cancellationToken);
         UniTask<DataLayerResult<TData>> GetAsync(string id, CancellationToken cancellationToken);

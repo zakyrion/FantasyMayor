@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using Modules.Hexes.DataLayer;
 using Unity.Mathematics;
 using Zenject;
@@ -12,6 +11,23 @@ public class PathfindingSystem : IPathfindingAPI
     public PathfindingSystem(HexesViewDataLayer hexesDataLayer)
     {
         _hexesDataLayer = hexesDataLayer;
+    }
+
+    private float HeuristicCostEstimate(int2 a, int2 b)
+    {
+        return math.distance(a, b);
+    }
+
+    private List<int2> ReconstructPath(Dictionary<int2, int2> cameFrom, int2 current)
+    {
+        if (cameFrom.ContainsKey(current))
+        {
+            var path = ReconstructPath(cameFrom, cameFrom[current]);
+            path.Add(current);
+            return path;
+        }
+
+        return new List<int2> { current };
     }
 
     List<int2> IPathfindingAPI.GetPath(int2 start, int2 end)
@@ -52,19 +68,5 @@ public class PathfindingSystem : IPathfindingAPI
         }*/
 
         return null;
-    }
-
-    private float HeuristicCostEstimate(int2 a, int2 b) => math.distance(a, b);
-
-    private List<int2> ReconstructPath(Dictionary<int2, int2> cameFrom, int2 current)
-    {
-        if (cameFrom.ContainsKey(current))
-        {
-            var path = ReconstructPath(cameFrom, cameFrom[current]);
-            path.Add(current);
-            return path;
-        }
-
-        return new List<int2> {current};
     }
 }

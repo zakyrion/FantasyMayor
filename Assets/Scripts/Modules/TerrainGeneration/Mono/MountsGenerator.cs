@@ -33,13 +33,7 @@ public class MountsGenerator : ISurfaceGenerator
 
     public async UniTask AddHillAsync(List<HexId> shape, CancellationToken cancellationToken)
     {
-        var seedResult = await _seedDataLayer.GetAsync(cancellationToken);
-        if (cancellationToken.IsCancellationRequested || !seedResult.Exist)
-        {
-            return;
-        }
-
-        var seedData = seedResult.DataLayer;
+        var seedData =  _seedDataLayer.Get();
 
         var applyTextureCommand = new ApplyRectTextureToVectorFieldCommand(_hexesDataLayer);
         var regionCommand = new CreateRegionForCommand(_terrainGeneratorSettingsScriptable.DecorationMapResolution);
