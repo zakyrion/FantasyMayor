@@ -8,17 +8,5 @@ public class DataLayerInstaller : ScriptableObjectInstaller<DataLayerInstaller>
 
     public override void InstallBindings()
     {
-        Container.Bind<DataLayer>().AsSingle();
-
-        InitDataLayers();
-    }
-
-    private void InitDataLayers()
-    {
-        Container.BindInterfacesAndSelfTo<HexViewDataLayer>().AsSingle();
-        Container.BindInterfacesAndSelfTo<SeedDataLayer>().AsSingle();
-        Container.BindInterfacesAndSelfTo<TerrainGeneratorSettingsScriptable>()
-            .FromInstance(_terrainGeneratorSettingsScriptable).AsSingle();
-        Container.BindInterfacesAndSelfTo<MountsGeneratorDataLayer>().AsSingle();
     }
 }

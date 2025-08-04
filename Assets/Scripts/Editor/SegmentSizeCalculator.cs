@@ -1,6 +1,7 @@
+using Modules.TerrainGeneration.Mono;
 using UnityEditor;
 
-[CustomEditor(typeof(StartService))]
+[CustomEditor(typeof(StartConfig))]
 public class SegmentSizeCalculator : Editor
 {
     public override void OnInspectorGUI()

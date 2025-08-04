@@ -1,8 +1,9 @@
 using System.Collections.Generic;
+using HW.Authoring;
 using Unity.Entities;
 using UnityEngine;
 
-namespace HW.Authoring
+namespace Spawner.Authoring
 {
     public abstract class SpawnerAuthoringBase : MonoBehaviour
     {
