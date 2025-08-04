@@ -1,12 +1,11 @@
 using System;
 using Modules.Hexes.DataTypes;
 using Sirenix.OdinInspector;
-using UniRx;
 using UnityEngine;
 
 public class HexView : DisposedMono
 {
-    [SerializeField] private IntReactiveProperty _level;
+    //[SerializeField] private IntReactiveProperty _level;
 
     private IDisposable[] _disposable;
     private HexViewData _hexData;
@@ -18,9 +17,9 @@ public class HexView : DisposedMono
         _hexData = hexData;
         _hexId = hexData.HexId;
 
-        AddDisposable(hexData.Mesh.Subscribe(ApplyMesh));
-        AddDisposable(hexData.Texture.Subscribe(ApplyTexture));
-        AddDisposable(_level.Skip(1).Subscribe(ApplyLevel));
+        //AddDisposable(hexData.Mesh.Subscribe(ApplyMesh));
+        //AddDisposable(hexData.Texture.Subscribe(ApplyTexture));
+        //AddDisposable(_level.Skip(1).Subscribe(ApplyLevel));
     }
 
     private void ApplyLevel(int level)

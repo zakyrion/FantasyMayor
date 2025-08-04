@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "com.codemaestroai.advancedunitymcp": "https://github.com/codemaestroai/advanced-unity-mcp.git?path=Unity6",
     "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
     "com.github-glitchenzo.nugetforunity": "https://github.com/GlitchEnzo/NuGetForUnity.git?path=/src/NuGetForUnity",
     "com.unity.addressables": "2.6.0",

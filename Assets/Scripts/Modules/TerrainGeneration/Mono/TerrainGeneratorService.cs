@@ -19,7 +19,7 @@ public class TerrainGeneratorService : MonoBehaviour, ITerrainGenerationAPI
     {
         //TODO path from highest to lovest levels and build heightmaps for all clasters
         var levels = new HashSet<int>();
-        foreach (var hexData in _hexesDataLayer.Hexes) levels.Add(hexData.Level.Value);
+        /*foreach (var hexData in _hexesDataLayer.Hexes) levels.Add(hexData.Level.Value);
 
         levels.Remove(0);
 
@@ -71,7 +71,7 @@ public class TerrainGeneratorService : MonoBehaviour, ITerrainGenerationAPI
 
                 _terrainLevelGenerator.Generate(spot, level);
             }
-        }
+        }*/
     }
 
     async void ITerrainGenerationAPI.GenerateMount()

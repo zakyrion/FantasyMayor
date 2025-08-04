@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using DataTypes;
-using UniRx;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -8,13 +7,13 @@ namespace Modules.Hexes.DataTypes
 {
     public class HexViewData
     {
-        private readonly IntReactiveProperty _level = new(0);
-        private readonly ReactiveProperty<Mesh> _mesh = new();
-        private readonly ReactiveProperty<Texture> _texture = new();
+        //private readonly IntReactiveProperty _level = new(0);
+        //private readonly ReactiveProperty<Mesh> _mesh = new();
+        //private readonly ReactiveProperty<Texture> _texture = new();
         public HexId HexId { get; set; }
-        public IReadOnlyReactiveProperty<int> Level => _level;
-        public int LevelValue => _level.Value;
-        public IReadOnlyReactiveProperty<Mesh> Mesh => _mesh;
+        //public IReadOnlyReactiveProperty<int> Level => _level;
+        //public int LevelValue => _level.Value;
+        //public IReadOnlyReactiveProperty<Mesh> Mesh => _mesh;
 
         /// <summary>
         ///     Read-only list of neighbors of the hex.
@@ -32,15 +31,14 @@ namespace Modules.Hexes.DataTypes
         public float Size { get; set; } = 1f;
 
         public SurfaceType SurfaceType { get; set; }
-        public IReadOnlyReactiveProperty<Texture> Texture => _texture;
+        //public IReadOnlyReactiveProperty<Texture> Texture => _texture;
 
-        public Vector3[] Vertices => _mesh.Value.vertices;
+        //public Vector3[] Vertices => _mesh.Value.vertices;
 
         public HexViewData(int level, HexId hexId, float size)
         {
             HexId = hexId;
             Size = size;
-            _level.Value = level;
             Position3D = CalculateTopAngleWorldPosition();
             Points.Add(new HexPointData
             {
@@ -87,22 +85,22 @@ namespace Modules.Hexes.DataTypes
 
         public void SetLevel(int level)
         {
-            _level.SetValueAndForceNotify(level);
+            //_level.SetValueAndForceNotify(level);
         }
 
         public void SetMesh(Mesh mesh)
         {
-            _mesh.SetValueAndForceNotify(mesh);
+            //_mesh.SetValueAndForceNotify(mesh);
         }
 
         public void SetTexture(Texture texture)
         {
-            _texture.SetValueAndForceNotify(texture);
+            //_texture.SetValueAndForceNotify(texture);
         }
 
         public void SetVertices(Vector3[] vertices)
         {
-            var mesh = new Mesh
+            /*var mesh = new Mesh
             {
                 vertices = vertices,
                 triangles = _mesh.Value.triangles,
@@ -115,7 +113,7 @@ namespace Modules.Hexes.DataTypes
             mesh.RecalculateNormals();
             mesh.RecalculateBounds();
             mesh.RecalculateTangents();
-            SetMesh(mesh);
+            SetMesh(mesh);*/
         }
 
         public BorderLine ToBorderLine()
