@@ -17,6 +17,7 @@ namespace Installers
 
             Container.BindInterfacesTo<HexesViewManager>().AsCached().NonLazy();
             Container.BindInterfacesTo<HexesCreator>().AsCached();
+            Container.BindInterfacesTo<HexesUICreator>().AsCached();
         }
     }
 }

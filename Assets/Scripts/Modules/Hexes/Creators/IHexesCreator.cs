@@ -7,5 +7,6 @@ namespace Modules.Hexes.Creators
     internal interface IHexesCreator
     {
         UniTask<Box<HexView>> CreateHexAsync(CancellationToken cancellationToken);
+        void CreateHex();
     }
 }

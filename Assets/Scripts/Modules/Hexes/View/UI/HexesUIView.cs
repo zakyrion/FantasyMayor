@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 namespace Modules.Hexes.View.UI
 {
-    public class HexesUI : MonoBehaviour
+    public class HexesUIView : MonoBehaviour
     {
         [SerializeField]
         private Button _generateButton;
@@ -23,7 +23,7 @@ namespace Modules.Hexes.View.UI
         private void Start()
         {
             var entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
-            _eventArchetype = entityManager.CreateArchetype(ComponentType.ReadOnly<GenerateHexButtonEvent>());
+            _eventArchetype = entityManager.CreateArchetype(ComponentType.ReadOnly<HexesGenerateButtonEvent>());
         }
 
         private void OnDestroy()

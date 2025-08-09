@@ -35,8 +35,6 @@ MonoBehaviour:
     - Dreamteck.Splines
     - Dreamteck.Utilities
     - Sirenix.OdinInspector.Modules.Unity.Addressables
-    - UniRx
-    - UniRx.Examples
     - UniTask
     - UniTask.Addressables
     - UniTask.DOTween

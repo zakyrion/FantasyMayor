@@ -37,5 +37,10 @@ namespace Modules.Hexes.Creators
 
             return Box<HexView>.Empty();
         }
+
+        public void CreateHex()
+        {
+            CreateHexAsync(CancellationToken.None).Forget();
+        }
     }
 }

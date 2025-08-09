@@ -2,7 +2,7 @@ using Unity.Entities;
 
 namespace Modules.Hexes.Components
 {
-    public struct GenerateHexButtonEvent : IComponentData
+    public struct HexesShowUIEvent : IComponentData
     {
     }
 }
