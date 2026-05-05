@@ -2,49 +2,67 @@ using System;
 
 namespace Core
 {
-    public struct Box<T>
+    public readonly struct Box<T>
     {
-        public T Value { get; init; }
-        public bool Exist { get; private set; }
+        public T Value => _handle != null
+            ? _handle.Value
+            : throw new InvalidOperationException($"Box<{typeof(T).Name}> is empty.");
+        public bool Exist => _handle != null && _handle.Exist;
 
-        private readonly Action<T> _dispose;
-        private bool _disposed;
+        private readonly BoxHandle<T> _handle;
 
-        private Box(T value, Action<T> dispose)
+        private Box(BoxHandle<T> handle)
         {
-            Value = value;
-            Exist = true;
-            _dispose = dispose;
-            _disposed = false;
-        }
-
-        public T Get()
-        {
-            return Value;
+            _handle = handle ?? throw new ArgumentNullException(nameof(handle));
         }
 
         public void Dispose()
         {
-            if (Exist && !_disposed)
-            {
-                Exist = false;
-                _dispose?.Invoke(Value);
-                _disposed = true;
-            }
-        }
-
-        public static Box<T> Empty()
-        {
-            return new Box<T>
-            {
-                Exist = false,
-                Value = default
-            };
+            _handle?.Dispose();
         }
 
         public static Box<T> Wrap(T value, Action<T> dispose)
         {
-            return new Box<T>(value, dispose);
+            return new Box<T>(new BoxHandle<T>(value, dispose));
         }
+
+        public static Box<T> Empty()
+        {
+            return new Box<T>(BoxHandle<T>.CreateEmpty());
+        }
+    }
+
+    internal sealed class BoxHandle<T>
+    {
+        public readonly T Value;
+
+        private readonly Action<T> _dispose;
+        private bool _disposed;
+        public bool Exist { get; private set; }
+
+        internal BoxHandle(T value, Action<T> dispose)
+        {
+            Value = value;
+            _dispose = dispose;
+            Exist = true;
+        }
+
+        private BoxHandle()
+        {
+            Exist = false;
+            _disposed = true;
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+                return;
+
+            _disposed = true;
+            Exist = false;
+            _dispose?.Invoke(Value);
+        }
+
+        internal static BoxHandle<T> CreateEmpty() => new BoxHandle<T>();
     }
 }

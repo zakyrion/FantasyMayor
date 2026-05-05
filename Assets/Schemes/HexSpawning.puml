@@ -1,0 +1,15 @@
+@startuml
+'https://plantuml.com/sequence-diagram
+
+autonumber
+
+HexesGenerateButtonEvent -> HexSpawnSystem: Spawn Hexes
+HexSpawnSystem -> HexEntities: Spawn
+HexSpawnSystem -> HexesSpawnComplete: call event
+
+HexesSpawnComplete -> HexTerrainGeneratorSystem : call event
+HexTerrainGeneratorSystem -> HexEntities: Set hexes level by preset
+HexesSpawnComplete -> HexTerrainGenerationComplete : Spawn
+HexTerrainGenerationComplete -> HexWaterSpawnSystem: Set some hexes as river
+HexTerrainGenerationComplete -> HexMountSpawnSystem: Set some hexes as mount
+@enduml

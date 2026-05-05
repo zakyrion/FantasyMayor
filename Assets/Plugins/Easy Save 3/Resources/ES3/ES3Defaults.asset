@@ -24,24 +24,48 @@ MonoBehaviour:
     bufferSize: 2048
     saveChildren: 1
     postprocessRawCachedData: 0
+    storeCacheAtEndOfEveryFrame: 1
+    storeCacheOnApplicationQuit: 1
+    storeCacheOnApplicationPause: 1
+    autoCacheDefaultFile: 1
+    autoCacheFileOnLoad: 1
     typeChecking: 1
     safeReflection: 1
     memberReferenceMode: 0
     referenceMode: 2
     serializationDepthLimit: 64
     assemblyNames:
+    - Addressables.Core
+    - Addressables.Implementations
     - Assembly-CSharp
     - Assembly-CSharp-firstpass
+    - AxialSystem
+    - Core
+    - CurveBuilders
     - Dreamteck.Splines
     - Dreamteck.Utilities
+    - glTFast
+    - glTFast.Documentation.Examples
+    - glTFast.dots
+    - glTFast.Export
+    - glTFast.Newtonsoft
+    - Hexes.Core
+    - Hexes.UI
+    - Installers
+    - Installers.Hexes
+    - Installers.UI
+    - Installers.World
+    - MainCanvas.Core
+    - MainCanvas.Implementation
     - Sirenix.OdinInspector.Modules.Unity.Addressables
+    - Terrain.Generator
+    - Terrain.View
     - UniTask
     - UniTask.Addressables
     - UniTask.DOTween
     - UniTask.Linq
     - UniTask.TextMeshPro
-    - Zenject
-    - Zenject-IntegrationTests
+    - VContainer
     showAdvancedSettings: 0
   addMgrToSceneAutomatically: 0
   autoUpdateReferences: 1

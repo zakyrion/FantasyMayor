@@ -1,0 +1,27 @@
+{
+    "name": "Hexes.UI",
+    "rootNamespace": "",
+    "references": [
+        "Core",
+        "Hexes.Core",
+        "Addressables.Core",
+        "MainCanvas.Core",
+        "Boot.Core",
+        "DefaultECS.Extensions",
+        "GUID:7e784b5d6c47f43bcbcfa41ac5321cce",
+        "Unity.Burst",
+        "Unity.Collections",
+        "Unity.Mathematics",
+        "UniTask",
+        "VContainer"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

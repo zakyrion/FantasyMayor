@@ -1,9 +1,9 @@
-using Unity.Entities;
+using UnityEngine;
 
 namespace HW.Authoring
 {
-    public interface IHexSpawnerComponent : IBufferElementData
+    public interface IHexSpawnerComponent
     {
-        Entity Prefab { get; set; }
+        GameObject Prefab { get; set; }
     }
 }

@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c65e7e9f96c3245338fcc8d99e716d2e, type: 3}
+  m_Name: TerrainGenerationConfig
+  m_EditorClassIdentifier: 
+  _waveCount: 7
+  _hillSizeFraction: 0.1
+  _seedCount: 3
+  _maxSeedDistance: 3
+  _minFoothillNeighbors: 3
+  _minFoothillCount: 3
+  _minFoothillDistance: 4
+  _waterType: 3
+  _riverConfig: {fileID: 11400000, guid: 97f4183b89854b8abca0ca04038f9c76, type: 2}
+  _lakeConfig: {fileID: 11400000, guid: cfc3126fec0ce4372baf1c6f68801c48, type: 2}
+  _seaConfig: {fileID: 11400000, guid: acac117e0db8d4b70bc5f4582235d3ea, type: 2}

@@ -28,6 +28,7 @@ namespace ES3Types
 
 		protected ES3Type(Type type)
 		{
+			// It's important the type is added here, otherwise it may cause a StackOverflow if the class has a field of the same type as itself (or collection).
 			ES3TypeMgr.Add(type, this);
 			this.type = type;
 			this.isValueType = ES3Reflection.IsValueType(type);

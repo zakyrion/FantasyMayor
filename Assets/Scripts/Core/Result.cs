@@ -1,15 +1,17 @@
+using System;
+
 namespace Core
 {
     public struct Result<T>
     {
-        public T Value { get; init; }
+        public Box<T> Box { get; init; }
         public Status Status { get; init; }
 
-        public static Result<T> Success(T value)
+        public static Result<T> Success(T value, Action<T> dispose = null)
         {
             return new Result<T>
             {
-                Value = value,
+                Box = Box<T>.Wrap(value, dispose),
                 Status = Status.Success
             };
         }
@@ -18,7 +20,7 @@ namespace Core
         {
             return new Result<T>
             {
-                Value = default,
+                Box = default,
                 Status = status
             };
         }

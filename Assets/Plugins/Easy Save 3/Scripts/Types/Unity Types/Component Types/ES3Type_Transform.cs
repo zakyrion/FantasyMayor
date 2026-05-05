@@ -29,6 +29,15 @@ namespace ES3Types
 		{
             var instance = (Transform)obj;
 
+            var characterController = instance.gameObject.GetComponent<CharacterController>();
+			var characterControllerState = false;
+
+			if (characterController != null)
+			{
+				characterControllerState = characterController.enabled;
+				characterController.enabled = false;
+			}
+
 			foreach(string propertyName in reader.Properties)
 			{
                 switch (propertyName)
@@ -53,6 +62,9 @@ namespace ES3Types
 						break;
 				}
 			}
-		}
+
+            if (characterController != null)
+                characterController.enabled = characterControllerState;
+        }
 	}
 }

@@ -15,13 +15,8 @@ MonoBehaviour:
   m_GroupName: Hexes
   m_GUID: 3f4c51f90e86d4589ac198fbd7aa9fba
   m_SerializeEntries:
-  - m_GUID: a60f84a8e21164888955eba7adcf30fa
-    m_Address: Hexes/HexView
-    m_ReadOnly: 0
-    m_SerializedLabels: []
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: edca9e99eec1f4a5b8141f58a53fe5f0
-    m_Address: UI/HexUI
+  - m_GUID: 19297580db1684663abcf52c1c587d33
+    m_Address: UI/HexGeneratorUI
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

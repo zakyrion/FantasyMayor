@@ -1,0 +1,20 @@
+{
+    "name": "Hexes.Core",
+    "rootNamespace": "",
+    "references": [
+        "Core",
+        "Unity.Mathematics",
+        "Unity.Burst",
+        "Unity.Collections",
+        "AxialSystem"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

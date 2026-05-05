@@ -14,7 +14,47 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_GroupName: Terrain
   m_GUID: f09099656fc444959ab829d4e44316df
-  m_SerializeEntries: []
+  m_SerializeEntries:
+  - m_GUID: 2a596c38987b64eb1b78334ba41ed1b9
+    m_Address: HeightSmoothingConfig
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 42b1bd44efda14a71b8d327b17c3316d
+    m_Address: OuterIsolineConfig
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 517a94d751f0040928b57c97a3e00280
+    m_Address: InnerIsolineConfig
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 7445a6f3dae524dd3bc3706c85cf1205
+    m_Address: TerrainGenerationConfig
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 9459459056ffc42a6be6fbc349d05dbf
+    m_Address: TerrainViewConfig
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: a60f84a8e21164888955eba7adcf30fa
+    m_Address: TerrainView
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: c89838ff668be4141915dd80ed71dc0d
+    m_Address: WindErosionConfig
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ee165eef8028147e3af2ed4e380d2446
+    m_Address: HydraulicErosionConfig
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: 0dd7b941080824acfb3df1f4871f8a9b, type: 2}
   m_SchemaSet:

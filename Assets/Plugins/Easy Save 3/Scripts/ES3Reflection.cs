@@ -1,9 +1,7 @@
-using System.Collections;
 using System.Collections.Generic;
 using System;
 using System.Linq;
 using System.Reflection;
-using System.ComponentModel;
 using UnityEngine;
 using ES3Types;
 
@@ -58,7 +56,9 @@ namespace ES3Internal
                         try
                         {
                             if (assemblyNames.Contains(assembly.GetName().Name))
+                            {
                                 assemblyList.Add(assembly);
+                            }
                         }
                         catch { }
                     }
@@ -67,6 +67,11 @@ namespace ES3Internal
                 }
                 return _assemblies;
             }
+        }
+
+        public static ConstructorInfo GetConstructor(Type type, Type[] parameters)
+        {
+            return type.GetTypeInfo().GetConstructor(parameters);
         }
 
         /*	
@@ -135,8 +140,8 @@ namespace ES3Internal
                 if (!TypeIsSerializable(field.FieldType))
                     continue;
 
-                // Don't serialize member fields.
-                if (safe && fieldName.StartsWith(memberFieldPrefix) && field.DeclaringType.Namespace != null && field.DeclaringType.Namespace.Contains("UnityEngine"))
+                // Don't serialize member fields of Unity classes unless they have the SerializeField attribute.
+                if (safe && field.DeclaringType.Namespace != null && fieldName.StartsWith(memberFieldPrefix) && !AttributeIsDefined(field, serializeFieldAttributeType) && field.DeclaringType.Namespace.Contains("UnityEngine"))
                     continue;
 
                 serializableFields.Add(field);

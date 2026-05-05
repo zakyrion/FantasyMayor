@@ -4,7 +4,7 @@ using UnityEngine;
 namespace ES3Internal
 {
     [CustomEditor(typeof(ES3GameObject))]
-    public class ES3GameObjectEditor : Editor
+    public class ES3GameObjectEditor : UnityEditor.Editor
     {
         public override void OnInspectorGUI()
         {
@@ -38,6 +38,9 @@ namespace ES3Internal
                     es3Go.components.Add(component);
                 }
             }
+
+            if (es3Go.components.RemoveAll(t => t == null) > 0)
+                Undo.RecordObject(es3Go, "Removed null Component from ES3GameObject");
         }
     }
 }

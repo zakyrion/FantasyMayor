@@ -1,0 +1,68 @@
+:root {
+    --accent-color: #000;
+}
+
+#TopPanel:disabled {
+    height: 0;
+    flex-direction: row;
+}
+
+#TopPanel:enabled {
+    height: 50px;
+    flex-direction: row;
+}
+
+.panel {
+    flex-direction: column;
+}
+
+#MiddlePanel {
+    flex-direction: row;
+}
+
+#LeftPanel {
+    width: 10%;
+}
+
+#CenterPanel{
+    width: 80%;
+    min-width: 50%;
+    flex-grow: 1;
+}
+
+#RightPanel {
+    width: auto;
+    max-width: 30%;
+    margin-right: 10px;
+    align-items: stretch;
+    flex-grow: 1;
+    flex-shrink: 0;
+}
+
+#SecondButton{
+}
+
+.buttons {
+    width: 500px;
+    max-width: 100%;
+    min-width: 100px;
+    height: 100px;
+    font-size: 30px;
+    border-radius: 10px;
+
+    transition-property: scale;
+    transition-duration: 0.2s;
+    transition-timing-function: ease-out;
+}
+
+.buttons:hover {
+    background-color: var(--accent-color);
+    color: #fff;
+    scale: 1.1;
+}
+
+.buttons:active {
+    background-color: var(--accent-color);
+    color: #fff;
+    scale: 0.9;
+}
