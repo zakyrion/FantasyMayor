@@ -13,8 +13,6 @@ namespace Modules.TerrainView.Components
         public float Persistence;
         public float Lacunarity;
         public int SmoothingPasses;
-        public float PreviewLengthMultiplier;
-        public int PreviewSamplesPerUnit;
 
         public static OuterIsolineConfigComponent FromConfig(IsolineConfig config)
         {
@@ -29,8 +27,6 @@ namespace Modules.TerrainView.Components
                 Persistence = config.persistence,
                 Lacunarity = config.lacunarity,
                 SmoothingPasses = config.smoothingPasses,
-                PreviewLengthMultiplier = config.previewLengthMultiplier,
-                PreviewSamplesPerUnit = config.previewSamplesPerUnit
             };
         }
     }

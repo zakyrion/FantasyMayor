@@ -60,6 +60,37 @@ namespace Modules.Addressable.Implementation
             return Result<GameObject>.Success(instance, releaseAction);
         }
 
+        public async UniTask<Result<T>> LoadAndInstanceAsync<T>(string asset, CancellationToken token, Transform root = null) where T : Component
+        {
+            var resultGO = await LoadAndInstanceAsync(asset, token, root);
+
+            if (resultGO.Status != Status.Success)
+            {
+                return Result<T>.Fail();
+            }
+
+            if (token.IsCancellationRequested)
+            {
+                resultGO.Box.Dispose();
+                return Result<T>.Cancelled();
+            }
+
+            var component = resultGO.Box.Value.GetComponent<T>();
+            if (component == null)
+            {
+                resultGO.Box.Dispose();
+                return Result<T>.Fail();
+            }
+
+            return Result<T>.Success(component, _ =>
+            {
+                if (resultGO.Box.Exist)
+                {
+                    resultGO.Box.Dispose();
+                }
+            });
+        }
+
         public async UniTask<Result<T>> LoadAsync<T>(string asset, CancellationToken token) where T : class
         {
             if (string.IsNullOrEmpty(asset) || typeof(T) == typeof(GameObject))

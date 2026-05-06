@@ -29,11 +29,11 @@ namespace Modules.TerrainView.Systems
         private const string TERRAIN_VIEW_ADDRESS = "TerrainView";
 
         private readonly IAddressable _addressable;
-        private readonly World _world;
-        private readonly EntitySet _hexSet;
         private readonly EntitySet _configSet;
+        private readonly EntitySet _hexSet;
         private readonly EntitySet _vertexGridSet;
         private readonly IReadOnlyList<ViewSubSystem> _viewSubSystems;
+        private readonly World _world;
 
         private CancellationTokenSource _cts;
         private Box<Views.TerrainView> _terrainViewBox;
@@ -68,7 +68,7 @@ namespace Modules.TerrainView.Systems
             _cts?.Dispose();
             _cts = new CancellationTokenSource();
 
-            LoadAndSetupAsync(state, _cts.Token).Forget();
+            LoadAndSetupAsync(state, CancellationTokenSource.CreateLinkedTokenSource(StatusMonitor.Token, _cts.Token).Token).Forget();
         }
 
         /// <inheritdoc />
@@ -88,6 +88,43 @@ namespace Modules.TerrainView.Systems
         }
 
         /// <summary>
+        ///     Allocates a <see cref="NativeHashSet{T}" /> and fills it with <see cref="HexCoord" /> values
+        ///     from all entities carrying a <see cref="HexIdComponent" />.
+        ///     Caller is responsible for disposing the returned set.
+        /// </summary>
+        private NativeHashSet<HexCoord> CollectHexCoords()
+        {
+            var entities = _hexSet.GetEntities();
+            var hexCoords = new NativeHashSet<HexCoord>(entities.Length, Allocator.TempJob);
+
+            foreach (ref readonly var entity in entities)
+                hexCoords.Add(entity.Get<HexIdComponent>().Coords);
+
+            return hexCoords;
+        }
+
+        /// <summary>
+        ///     Destroys the previously created <see cref="TerrainViewComponent" /> entity if it exists.
+        /// </summary>
+        private void DestroyTerrainViewEntity()
+        {
+            if (_terrainViewEntity == null || !_terrainViewEntity.Value.IsAlive)
+                return;
+
+            _terrainViewEntity.Value.Dispose();
+            _terrainViewEntity = null;
+        }
+
+        private void DisposeTerrainViewBox()
+        {
+            if (!_terrainViewBox.Exist)
+                return;
+
+            _terrainViewBox.Dispose();
+            _terrainViewBox = Box<Views.TerrainView>.Empty();
+        }
+
+        /// <summary>
         ///     Loads and instantiates the TerrainView prefab, generates the base mesh, runs all
         ///     view subsystems by priority, applies final heights, and creates the result entity.
         /// </summary>
@@ -97,7 +134,7 @@ namespace Modules.TerrainView.Systems
         {
             DisposeTerrainViewBox();
 
-            var result = await _addressable.LoadAndInstanceAsync(TERRAIN_VIEW_ADDRESS, cancellationToken);
+            var result = await _addressable.LoadAndInstanceAsync<Views.TerrainView>(TERRAIN_VIEW_ADDRESS, cancellationToken);
 
             if (cancellationToken.IsCancellationRequested || result.Status != Status.Success)
             {
@@ -107,15 +144,8 @@ namespace Modules.TerrainView.Systems
                 return;
             }
 
-            var terrainView = result.Box.Value.GetComponent<Views.TerrainView>();
-
-            if (terrainView == null)
-            {
-                result.Box.Dispose();
-                return;
-            }
-
-            _terrainViewBox = Box<Views.TerrainView>.Wrap(terrainView, _ => result.Box.Dispose());
+            _terrainViewBox = result.Box;
+            var terrainView = _terrainViewBox.Value;
 
             if (_configSet.Count == 0)
             {
@@ -175,43 +205,6 @@ namespace Modules.TerrainView.Systems
 
                 await subSystem.Update(state, cancellationToken);
             }
-        }
-
-        /// <summary>
-        ///     Allocates a <see cref="NativeHashSet{T}" /> and fills it with <see cref="HexCoord" /> values
-        ///     from all entities carrying a <see cref="HexIdComponent" />.
-        ///     Caller is responsible for disposing the returned set.
-        /// </summary>
-        private NativeHashSet<HexCoord> CollectHexCoords()
-        {
-            var entities = _hexSet.GetEntities();
-            var hexCoords = new NativeHashSet<HexCoord>(entities.Length, Allocator.TempJob);
-
-            foreach (ref readonly var entity in entities)
-                hexCoords.Add(entity.Get<HexIdComponent>().Coords);
-
-            return hexCoords;
-        }
-
-        /// <summary>
-        ///     Destroys the previously created <see cref="TerrainViewComponent" /> entity if it exists.
-        /// </summary>
-        private void DestroyTerrainViewEntity()
-        {
-            if (_terrainViewEntity == null || !_terrainViewEntity.Value.IsAlive)
-                return;
-
-            _terrainViewEntity.Value.Dispose();
-            _terrainViewEntity = null;
-        }
-
-        private void DisposeTerrainViewBox()
-        {
-            if (!_terrainViewBox.Exist)
-                return;
-
-            _terrainViewBox.Dispose();
-            _terrainViewBox = Box<Views.TerrainView>.Empty();
         }
     }
 }
