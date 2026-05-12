@@ -74,7 +74,7 @@ namespace Modules.AxialSystem
             var count = 0;
             for (var d = 0; d < AxialMath.NeighborCount; d++)
             {
-                var neighbor = CreateCoord(coord.Value + AxialMath.NeighborDirs[d]);
+                var neighbor = CreateCoord(coord.Value + AxialMath.NeighborsPointyTop[d]);
                 if (_cells.ContainsKey(neighbor))
                     result[count++] = neighbor;
             }

@@ -19,6 +19,7 @@ namespace Modules.TerrainView.Systems
         private const string HYDRAULIC_EROSION_CONFIG = "HydraulicErosionConfig";
         private const string INNER_ISOLINE_CONFIG = "InnerIsolineConfig";
         private const string OUTER_ISOLINE_CONFIG = "OuterIsolineConfig";
+        private const string TERRAIN_TEXTURE_CONFIG = "TerrainTextureConfig";
         private const string TERRAIN_VIEW_CONFIG = "TerrainViewConfig";
         private const string WIND_EROSION_CONFIG = "WindErosionConfig";
 
@@ -35,17 +36,19 @@ namespace Modules.TerrainView.Systems
             var windErosionConfig = Box<WindErosionConfig>.Empty();
             var hydraulicErosionConfig = Box<HydraulicErosionConfig>.Empty();
             var terrainViewConfig = Box<TerrainViewConfig>.Empty();
+            var terrainTextureConfig = Box<TerrainTextureConfig>.Empty();
 
             try
             {
-                (innerIsolineConfig, outerIsolineConfig, heightSmoothingConfig, windErosionConfig, hydraulicErosionConfig, terrainViewConfig) =
+                (innerIsolineConfig, outerIsolineConfig, heightSmoothingConfig, windErosionConfig, hydraulicErosionConfig, terrainViewConfig, terrainTextureConfig) =
                     await UniTask.WhenAll(
                         LoadConfigAsync<IsolineConfig>(INNER_ISOLINE_CONFIG, cancellationToken),
                         LoadConfigAsync<IsolineConfig>(OUTER_ISOLINE_CONFIG, cancellationToken),
                         LoadConfigAsync<HeightSmoothingConfig>(HEIGHT_SMOOTH_CONFIG, cancellationToken),
                         LoadConfigAsync<WindErosionConfig>(WIND_EROSION_CONFIG, cancellationToken),
                         LoadConfigAsync<HydraulicErosionConfig>(HYDRAULIC_EROSION_CONFIG, cancellationToken),
-                        LoadConfigAsync<TerrainViewConfig>(TERRAIN_VIEW_CONFIG, cancellationToken));
+                        LoadConfigAsync<TerrainViewConfig>(TERRAIN_VIEW_CONFIG, cancellationToken),
+                        LoadConfigAsync<TerrainTextureConfig>(TERRAIN_TEXTURE_CONFIG, cancellationToken));
 
                 if (cancellationToken.IsCancellationRequested)
                     return;
@@ -56,6 +59,7 @@ namespace Modules.TerrainView.Systems
                 World.CreateEntity().Set(WindErosionConfigComponent.FromConfig(windErosionConfig.Value));
                 World.CreateEntity().Set(HydraulicErosionConfigComponent.FromConfig(hydraulicErosionConfig.Value));
                 World.CreateEntity().Set(TerrainViewConfigComponent.FromConfig(terrainViewConfig.Value));
+                World.CreateEntity().Set(TerrainTextureConfigComponent.FromConfig(terrainTextureConfig.Value));
 
                 var vertexGrid = new VertexGrid(
                     terrainViewConfig.Value.CellSize,
@@ -72,6 +76,7 @@ namespace Modules.TerrainView.Systems
                 DisposeBox(ref windErosionConfig);
                 DisposeBox(ref hydraulicErosionConfig);
                 DisposeBox(ref terrainViewConfig);
+                DisposeBox(ref terrainTextureConfig);
             }
         }
     }

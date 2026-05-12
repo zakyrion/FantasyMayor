@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 113ab4de6d1084fb4806da95fcf31aba, type: 3}
+  m_Name: TerrainTextureConfig
+  m_EditorClassIdentifier: Terrain.View::Modules.TerrainView.Configs.TerrainTextureConfig
+  textureResolution: 2048
+  brushRadius: 3
+  centerWeight: 1
+  edgeWeight: 0.3
+  slopeThreshold: 0.5
+  hueJitterStrength: 0.05
+  plainColor: {r: 0.45, g: 0.68, b: 0.32, a: 1}
+  mountainFlatColor: {r: 0.62, g: 0.65, b: 0.35, a: 1}
+  mountainSteepColor: {r: 0.52, g: 0.48, b: 0.42, a: 1}
+  bedhillColor: {r: 0.55, g: 0.6, b: 0.38, a: 1}
+  coastlineColor: {r: 0.76, g: 0.7, b: 0.5, a: 1}
+  waterColor: {r: 0.2, g: 0.38, b: 0.58, a: 1}
+  fallbackColor: {r: 0.35, g: 0.45, b: 0.3, a: 1}

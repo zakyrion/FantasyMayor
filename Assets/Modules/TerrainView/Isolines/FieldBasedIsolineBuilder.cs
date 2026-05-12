@@ -196,7 +196,7 @@ namespace Modules.TerrainView.Isolines
 
                 for (var d = 0; d < AxialMath.NeighborCount; d++)
                 {
-                    var neighbor = current + AxialMath.NeighborDirs[d];
+                    var neighbor = current + AxialMath.NeighborsPointyTop[d];
                     if (depthMap.ContainsKey(neighbor))
                         continue;
                     if (!_vertexGrid.Contains(neighbor))
@@ -237,7 +237,7 @@ namespace Modules.TerrainView.Isolines
 
                 for (var d = 0; d < AxialMath.NeighborCount; d++)
                 {
-                    var neighbor = current.Coord + AxialMath.NeighborDirs[d];
+                    var neighbor = current.Coord + AxialMath.NeighborsPointyTop[d];
                     if (!domain.Contains(neighbor) || !result.Add(neighbor))
                         continue;
 
@@ -312,7 +312,7 @@ namespace Modules.TerrainView.Isolines
 
                 for (var d = 0; d < AxialMath.NeighborCount; d++)
                 {
-                    var neighbor = current + AxialMath.NeighborDirs[d];
+                    var neighbor = current + AxialMath.NeighborsPointyTop[d];
                     if (!regionSet.Contains(neighbor) || !visited.Add(neighbor))
                         continue;
 
@@ -356,7 +356,7 @@ namespace Modules.TerrainView.Isolines
                     var current = queue.Dequeue();
                     for (var d = 0; d < AxialMath.NeighborCount; d++)
                     {
-                        var neighbor = current + AxialMath.NeighborDirs[d];
+                        var neighbor = current + AxialMath.NeighborsPointyTop[d];
                         if (!vertices.Contains(neighbor) || !visited.Add(neighbor))
                             continue;
 
@@ -472,7 +472,7 @@ namespace Modules.TerrainView.Isolines
                 var degree = 0;
                 for (var d = 0; d < AxialMath.NeighborCount; d++)
                 {
-                    var neighbor = coord + AxialMath.NeighborDirs[d];
+                    var neighbor = coord + AxialMath.NeighborsPointyTop[d];
                     if (!contourSet.Contains(neighbor))
                         continue;
                     if (degree >= 2)
@@ -585,7 +585,7 @@ namespace Modules.TerrainView.Isolines
 
             for (var d = 0; d < AxialMath.NeighborCount; d++)
             {
-                var neighbor = coord + AxialMath.NeighborDirs[d];
+                var neighbor = coord + AxialMath.NeighborsPointyTop[d];
                 if (regionSet.Contains(neighbor))
                     insideCount++;
                 else

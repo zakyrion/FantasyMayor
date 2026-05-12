@@ -306,7 +306,7 @@ namespace Modules.TerrainView.Isolines
                     var nextDistance = current.Distance + DISTANCE_STEP;
                     for (var d = 0; d < AxialMath.NeighborCount; d++)
                     {
-                        var neighbor = current.Coord + AxialMath.NeighborDirs[d];
+                        var neighbor = current.Coord + AxialMath.NeighborsPointyTop[d];
                         if (!band.Contains(neighbor))
                             continue;
                         if (!dist.TryAdd(neighbor, nextDistance))
@@ -354,7 +354,7 @@ namespace Modules.TerrainView.Isolines
 
                     for (var d = 0; d < AxialMath.NeighborCount; d++)
                     {
-                        var neighbor = current + AxialMath.NeighborDirs[d];
+                        var neighbor = current + AxialMath.NeighborsPointyTop[d];
                         if (!vertexGrid.Contains(neighbor))
                             continue;
                         if (barriers.Contains(neighbor))
@@ -430,7 +430,7 @@ namespace Modules.TerrainView.Isolines
 
                     for (var d = 0; d < AxialMath.NeighborCount; d++)
                     {
-                        var neighbor = current + AxialMath.NeighborDirs[d];
+                        var neighbor = current + AxialMath.NeighborsPointyTop[d];
                         if (!vertexGrid.Contains(neighbor))
                             continue;
                         if (insideRegion.Contains(neighbor))

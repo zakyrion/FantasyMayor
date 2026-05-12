@@ -31,6 +31,7 @@ namespace Modules.TerrainView.Systems
         private readonly IAddressable _addressable;
         private readonly EntitySet _configSet;
         private readonly EntitySet _hexSet;
+        private readonly EntitySet _textureSet;
         private readonly EntitySet _vertexGridSet;
         private readonly IReadOnlyList<ViewSubSystem> _viewSubSystems;
         private readonly World _world;
@@ -56,6 +57,7 @@ namespace Modules.TerrainView.Systems
             _hexSet = world.GetEntities().With<HexIdComponent>().AsSet();
             _configSet = world.GetEntities().With<TerrainViewConfigComponent>().AsSet();
             _vertexGridSet = world.GetEntities().With<VertexGridComponent>().AsSet();
+            _textureSet = world.GetEntities().With<TerrainTextureComponent>().AsSet();
             _viewSubSystems = viewSubSystems
                 .OrderBy(s => s.Priority)
                 .ToArray();
@@ -83,6 +85,7 @@ namespace Modules.TerrainView.Systems
             _hexSet.Dispose();
             _configSet.Dispose();
             _vertexGridSet.Dispose();
+            _textureSet.Dispose();
 
             base.Dispose();
         }
@@ -173,6 +176,8 @@ namespace Modules.TerrainView.Systems
             if (cancellationToken.IsCancellationRequested)
                 return;
 
+            ApplyGeneratedTexture(terrainView);
+
             if (_vertexGridSet.Count == 0)
             {
                 Debug.LogError("[TerrainViewSystem] VertexGridComponent entity is missing.");
@@ -186,6 +191,22 @@ namespace Modules.TerrainView.Systems
             var entity = _world.CreateEntity();
             entity.Set(new TerrainViewComponent { ObjectRef = _terrainViewBox.Value });
             _terrainViewEntity = entity;
+        }
+
+        /// <summary>
+        ///     Reads the <see cref="TerrainTextureComponent" /> entity created by the texture subsystem,
+        ///     applies the texture to the terrain view material, then destroys the transient entity.
+        /// </summary>
+        /// <param name="terrainView">Target terrain view that receives the texture.</param>
+        private void ApplyGeneratedTexture(Views.TerrainView terrainView)
+        {
+            if (_textureSet.Count == 0)
+                return;
+
+            var textureEntity = _textureSet.GetEntities()[0];
+            var texture = textureEntity.Get<TerrainTextureComponent>().Texture;
+            terrainView.ApplyTexture(texture);
+            textureEntity.Dispose();
         }
 
         /// <summary>
