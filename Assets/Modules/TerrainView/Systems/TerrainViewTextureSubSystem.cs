@@ -149,11 +149,12 @@ namespace Modules.TerrainView.Systems
 
         /// <summary>
         ///     Generates the full pixel array on a background thread.
-        ///     Runs a global BFS over all non-ghost VertexGrid vertices. For each unvisited seed
-        ///     vertex it collects a BFS brush region, triangulates the region using consecutive
-        ///     flat-top neighbor pairs, and rasterizes each triangle directly into the pixel buffer.
-        ///     Guarantees full coverage with no holes — uncovered pixels fall back to
-        ///     <see cref="TerrainTextureConfigComponent.FallbackColor" />.
+        ///     Iterates all non-ghost VertexGrid vertices in a single global pass. For each vertex,
+        ///     classifies the owning hex and emits all flat-top triangles for which this vertex is
+        ///     the canonical (lex-smallest by q then r) of the three corners. This guarantees each
+        ///     triangle is rasterized exactly once with no seams between classification regions.
+        ///     Triangles where any corner is a ghost vertex (no owner) are excluded; the thin fringe
+        ///     at the terrain boundary falls back to <see cref="TerrainTextureConfigComponent.FallbackColor" />.
         /// </summary>
         /// <param name="vertexGrid">Vertex grid with positions and ownership data.</param>
         /// <param name="hexTypeMap">Pre-built hex classification lookup.</param>
@@ -167,26 +168,14 @@ namespace Modules.TerrainView.Systems
             float hexSize)
         {
             var resolution = config.TextureResolution;
-            var totalPixels = resolution * resolution;
 
             ComputeSquareUVRect(hexTypeMap, hexSize, out var squareMin, out var squareSize);
-
-            Debug.Log($"[skh] [Texture] size: {squareSize}x{squareSize}");
-
             if (squareSize <= 0f)
-            {
-                Debug.Log($"[skh] [Texture] size is not positive");
-                return BuildFallbackPixels(totalPixels, config.FallbackColor);
-            }
+                return BuildFallbackPixels(resolution * resolution, config.FallbackColor);
 
-            var pixels = BuildFallbackPixels(totalPixels, config.FallbackColor);
-            var globalVisited = new HashSet<VertexCoord>();
-
-            var brushRadius = config.BrushRadius;
+            var pixels = BuildFallbackPixels(resolution * resolution, config.FallbackColor);
             var slopeThreshold = config.SlopeThreshold;
             var hueJitter = config.HueJitterStrength;
-
-            int test = 0;
 
             foreach (var coord in vertexGrid.Coords)
             {
@@ -196,29 +185,39 @@ namespace Modules.TerrainView.Systems
                 if (vertex.OwnerCount == 0)
                     continue;
 
-                if (globalVisited.Contains(coord))
-                    continue;
-
-                test++;
-
-                if (test < 10)
-                {
-                    Debug.Log($"[skh] [Texture] test: {test}");
-                }
-
-                var hexType = ResolveHexType(vertex, hexTypeMap);
                 var slope = ComputeSlope(coord, vertex, vertexGrid, vertexGrid.CellSize);
-                var baseColor = PickColor(hexType, slope, slopeThreshold, config);
+                var baseColor = ComputeBlendedColor(vertex.Position.xz, vertex[0], slope, hexSize, slopeThreshold, config, hexTypeMap);
 
                 if (hueJitter > 0f)
                     baseColor = ApplyHueJitter(baseColor, vertex.Position.xz, hueJitter);
 
-                var collected = CollectBfsRegion(coord, vertexGrid, brushRadius, globalVisited);
+                var c32 = new Color32(
+                    (byte)(baseColor.r * 255f),
+                    (byte)(baseColor.g * 255f),
+                    (byte)(baseColor.b * 255f),
+                    255);
 
-                RasterizeBfsRegion(collected, vertexGrid, baseColor, squareMin, squareSize, resolution, pixels);
+                var p0 = WorldToPixel(vertex.Position.xz, squareMin, squareSize, resolution);
 
-                foreach (var v in collected)
-                    globalVisited.Add(v);
+                for (var d = 0; d < AxialMath.NeighborCount; d++)
+                {
+                    var ni = coord + AxialMath.NeighborsFlatTop[d];
+                    var ni1 = coord + AxialMath.NeighborsFlatTop[(d + 1) % AxialMath.NeighborCount];
+
+                    if (!vertexGrid.TryGet(ni, out var niVertex) || niVertex.OwnerCount == 0)
+                        continue;
+
+                    if (!vertexGrid.TryGet(ni1, out var ni1Vertex) || ni1Vertex.OwnerCount == 0)
+                        continue;
+
+                    if (!IsCanonical(coord, ni, ni1))
+                        continue;
+
+                    var p1 = WorldToPixel(niVertex.Position.xz, squareMin, squareSize, resolution);
+                    var p2 = WorldToPixel(ni1Vertex.Position.xz, squareMin, squareSize, resolution);
+
+                    RasterizeTriangle(p0, p1, p2, resolution, c32, pixels);
+                }
             }
 
             return pixels;
@@ -276,21 +275,6 @@ namespace Modules.TerrainView.Systems
         }
 
         /// <summary>
-        ///     Determines the terrain type for a vertex from its primary owner hex.
-        ///     Falls back to <see cref="HexType.Plain" /> when the owner is absent from the map.
-        /// </summary>
-        /// <param name="vertex">Vertex whose primary owner is inspected.</param>
-        /// <param name="hexTypeMap">Hex classification lookup.</param>
-        /// <returns>Terrain type for color classification.</returns>
-        private HexType ResolveHexType(in HexVertex vertex, Dictionary<HexCoord, HexType> hexTypeMap)
-        {
-            if (vertex.OwnerCount == 0)
-                return HexType.Plain;
-
-            return hexTypeMap.TryGetValue(vertex[0], out var hexType) ? hexType : HexType.Plain;
-        }
-
-        /// <summary>
         ///     Computes the normalized slope at a vertex by examining the maximum height delta
         ///     among its axial neighbors, divided by the vertex grid cell size.
         /// </summary>
@@ -319,6 +303,69 @@ namespace Modules.TerrainView.Systems
             }
 
             return cellSize > 0f ? maxDelta / cellSize : 0f;
+        }
+
+        /// <summary>
+        ///     Computes the terrain color at <paramref name="worldXZ" /> by blending the colors of
+        ///     the primary hex and its six pointy-top neighbors, weighted by linear distance falloff.
+        ///     The falloff radius equals <c>hexSize × √3</c> — the center-to-center distance between
+        ///     adjacent pointy-top hexes — so influence drops to zero exactly at the next hex center.
+        ///     A vertex at a hex center receives purely that hex's color; a vertex on the shared edge
+        ///     of two hexes receives a 50/50 blend; a vertex at a shared corner receives equal
+        ///     contributions from all three meeting hexes.
+        /// </summary>
+        /// <param name="worldXZ">Vertex world XZ position.</param>
+        /// <param name="primaryHex">The hex that owns this vertex.</param>
+        /// <param name="slope">Pre-computed slope at this vertex for steep/flat color selection.</param>
+        /// <param name="hexSize">Hex cell radius in world units (pointy-top).</param>
+        /// <param name="slopeThreshold">Threshold above which the steep color variant applies.</param>
+        /// <param name="config">Config holding all color definitions.</param>
+        /// <param name="hexTypeMap">Hex classification lookup.</param>
+        /// <returns>Blended terrain color at the given world position.</returns>
+        private Color ComputeBlendedColor(
+            float2 worldXZ,
+            HexCoord primaryHex,
+            float slope,
+            float hexSize,
+            float slopeThreshold,
+            in TerrainTextureConfigComponent config,
+            Dictionary<HexCoord, HexType> hexTypeMap)
+        {
+            var radius = hexSize * math.sqrt(3f);
+
+            var r = 0f;
+            var g = 0f;
+            var b = 0f;
+            var totalWeight = 0f;
+
+            // i = -1 → primary hex; i = 0..5 → six pointy-top neighbors.
+            for (var i = -1; i < AxialMath.NeighborCount; i++)
+            {
+                var hex = i < 0 ? primaryHex : primaryHex + AxialMath.NeighborsPointyTop[i];
+
+                if (!hexTypeMap.TryGetValue(hex, out var hexType))
+                    continue;
+
+                var center = AxialMath.AxialToWorld2D(hex.Value, hexSize);
+                var dist = math.length(worldXZ - center);
+                var weight = math.max(0f, radius - dist);
+                if (weight <= 0f)
+                    continue;
+
+                var c = PickColor(hexType, slope, slopeThreshold, config);
+                r += c.r * weight;
+                g += c.g * weight;
+                b += c.b * weight;
+                totalWeight += weight;
+            }
+
+            if (totalWeight <= 0f)
+            {
+                var fallbackType = hexTypeMap.TryGetValue(primaryHex, out var ft) ? ft : HexType.Plain;
+                return PickColor(fallbackType, slope, slopeThreshold, config);
+            }
+
+            return new Color(r / totalWeight, g / totalWeight, b / totalWeight);
         }
 
         /// <summary>
@@ -378,113 +425,6 @@ namespace Modules.TerrainView.Systems
             h = (h ^ (h >> 16)) * 0x45d9f3bu;
             h ^= h >> 16;
             return h / (float)uint.MaxValue;
-        }
-
-        /// <summary>
-        ///     BFS from <paramref name="origin" /> up to <paramref name="brushRadius" /> depth,
-        ///     collecting all non-ghost vertices that are not already in
-        ///     <paramref name="globalVisited" />. Ghost vertices are traversed for connectivity
-        ///     but are not included in the returned set.
-        /// </summary>
-        /// <param name="origin">Starting vertex coordinate.</param>
-        /// <param name="vertexGrid">Grid for neighbor lookups and existence checks.</param>
-        /// <param name="brushRadius">Maximum BFS depth.</param>
-        /// <param name="globalVisited">Global visited set; not mutated by this method.</param>
-        /// <returns>Set of collected non-ghost VertexCoords, including <paramref name="origin" />.</returns>
-        private HashSet<VertexCoord> CollectBfsRegion(
-            VertexCoord origin,
-            VertexGrid vertexGrid,
-            int brushRadius,
-            HashSet<VertexCoord> globalVisited)
-        {
-            var collected = new HashSet<VertexCoord> { origin };
-            var localVisited = new HashSet<VertexCoord> { origin };
-            var queue = new Queue<(VertexCoord Coord, int Depth)>();
-            queue.Enqueue((origin, 0));
-
-            while (queue.Count > 0)
-            {
-                var (current, depth) = queue.Dequeue();
-
-                if (depth >= brushRadius)
-                    continue;
-
-                for (var d = 0; d < AxialMath.NeighborCount; d++)
-                {
-                    var neighbor = current + AxialMath.NeighborsFlatTop[d];
-
-                    if (!vertexGrid.Contains(neighbor))
-                        continue;
-
-                    if (globalVisited.Contains(neighbor))
-                        continue;
-
-                    if (!localVisited.Add(neighbor))
-                        continue;
-
-                    if (vertexGrid.TryGet(neighbor, out var nv) && nv.OwnerCount > 0)
-                        collected.Add(neighbor);
-
-                    queue.Enqueue((neighbor, depth + 1));
-                }
-            }
-
-            return collected;
-        }
-
-        /// <summary>
-        ///     Builds triangles from the BFS region by examining consecutive flat-top neighbor pairs
-        ///     for each vertex, then rasterizes each triangle into <paramref name="pixels" />.
-        ///     Uses <see cref="IsCanonical" /> to emit each triangle exactly once.
-        /// </summary>
-        /// <param name="collectedSet">All non-ghost vertices in the BFS region.</param>
-        /// <param name="vertexGrid">Grid for world position lookup.</param>
-        /// <param name="color">Color to paint.</param>
-        /// <param name="squareMin">Lower-left corner of the square UV rect in world XZ.</param>
-        /// <param name="squareSize">Side length of the square UV rect in world units.</param>
-        /// <param name="resolution">Texture resolution (width == height).</param>
-        /// <param name="pixels">Output pixel buffer, modified in place.</param>
-        private void RasterizeBfsRegion(
-            HashSet<VertexCoord> collectedSet,
-            VertexGrid vertexGrid,
-            Color color,
-            float2 squareMin,
-            float squareSize,
-            int resolution,
-            Color32[] pixels)
-        {
-            var c32 = new Color32(
-                (byte)(color.r * 255f),
-                (byte)(color.g * 255f),
-                (byte)(color.b * 255f),
-                255);
-
-            foreach (var w in collectedSet)
-            {
-                if (!vertexGrid.TryGet(w, out var wVertex))
-                    continue;
-
-                for (var d = 0; d < AxialMath.NeighborCount; d++)
-                {
-                    var ni = w + AxialMath.NeighborsFlatTop[d];
-                    var ni1 = w + AxialMath.NeighborsFlatTop[(d + 1) % AxialMath.NeighborCount];
-
-                    if (!collectedSet.Contains(ni) || !collectedSet.Contains(ni1))
-                        continue;
-
-                    if (!IsCanonical(w, ni, ni1))
-                        continue;
-
-                    if (!vertexGrid.TryGet(ni, out var niVertex) || !vertexGrid.TryGet(ni1, out var ni1Vertex))
-                        continue;
-
-                    var p0 = WorldToPixel(wVertex.Position.xz, squareMin, squareSize, resolution);
-                    var p1 = WorldToPixel(niVertex.Position.xz, squareMin, squareSize, resolution);
-                    var p2 = WorldToPixel(ni1Vertex.Position.xz, squareMin, squareSize, resolution);
-
-                    RasterizeTriangle(p0, p1, p2, resolution, c32, pixels);
-                }
-            }
         }
 
         /// <summary>
