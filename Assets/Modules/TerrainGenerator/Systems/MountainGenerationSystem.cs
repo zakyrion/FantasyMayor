@@ -112,7 +112,7 @@ namespace Modules.TerrainGenerator.Systems
         {
             for (var d = 0; d < AxialMath.NeighborCount; d++)
             {
-                if (waterCoords.Contains(hex + AxialMath.NeighborDirs[d]))
+                if (waterCoords.Contains(hex + AxialMath.NeighborsPointyTop[d]))
                     return true;
             }
 
@@ -221,7 +221,7 @@ namespace Modules.TerrainGenerator.Systems
         {
             for (var d = 0; d < AxialMath.NeighborCount; d++)
             {
-                var neighbor = hex + AxialMath.NeighborDirs[d];
+                var neighbor = hex + AxialMath.NeighborsPointyTop[d];
                 if (!safeDomain.Contains(neighbor) || mountainCoords.Contains(neighbor))
                     continue;
 
@@ -241,7 +241,7 @@ namespace Modules.TerrainGenerator.Systems
 
             for (var d = 0; d < AxialMath.NeighborCount; d++)
             {
-                if (mountainCoords.Contains(hex + AxialMath.NeighborDirs[d]))
+                if (mountainCoords.Contains(hex + AxialMath.NeighborsPointyTop[d]))
                     count++;
             }
 
@@ -363,7 +363,7 @@ namespace Modules.TerrainGenerator.Systems
 
             for (var d = 0; d < AxialMath.NeighborCount; d++)
             {
-                var neighbor = hex + AxialMath.NeighborDirs[d];
+                var neighbor = hex + AxialMath.NeighborsPointyTop[d];
                 if (levelMap.TryGetValue(neighbor, out var neighborLevel) && neighborLevel == level)
                     count++;
             }
@@ -383,7 +383,7 @@ namespace Modules.TerrainGenerator.Systems
 
             for (var d = 0; d < AxialMath.NeighborCount; d++)
             {
-                if (levelMap.ContainsKey(hex + AxialMath.NeighborDirs[d]))
+                if (levelMap.ContainsKey(hex + AxialMath.NeighborsPointyTop[d]))
                     count++;
             }
 
@@ -494,7 +494,7 @@ namespace Modules.TerrainGenerator.Systems
 
                 for (var d = 0; d < AxialMath.NeighborCount; d++)
                 {
-                    var neighbor = coord + AxialMath.NeighborDirs[d];
+                    var neighbor = coord + AxialMath.NeighborsPointyTop[d];
                     if (!levelMap.TryGetValue(neighbor, out var nLevel) || nLevel != MountainLevel)
                     {
                         contour.Add(coord);
@@ -536,7 +536,7 @@ namespace Modules.TerrainGenerator.Systems
 
                 for (var d = 0; d < AxialMath.NeighborCount; d++)
                 {
-                    var neighbor = coord + AxialMath.NeighborDirs[d];
+                    var neighbor = coord + AxialMath.NeighborsPointyTop[d];
                     if (!contour.Contains(neighbor))
                         continue;
 
@@ -583,7 +583,7 @@ namespace Modules.TerrainGenerator.Systems
 
                     for (var d = 0; d < AxialMath.NeighborCount; d++)
                     {
-                        var neighbor = current + AxialMath.NeighborDirs[d];
+                        var neighbor = current + AxialMath.NeighborsPointyTop[d];
                         if (!contour.Contains(neighbor) || localDist.ContainsKey(neighbor))
                             continue;
 

@@ -29,11 +29,12 @@ namespace Modules.TerrainView.Systems
         private const string TERRAIN_VIEW_ADDRESS = "TerrainView";
 
         private readonly IAddressable _addressable;
-        private readonly World _world;
-        private readonly EntitySet _hexSet;
         private readonly EntitySet _configSet;
+        private readonly EntitySet _hexSet;
+        private readonly EntitySet _textureSet;
         private readonly EntitySet _vertexGridSet;
         private readonly IReadOnlyList<ViewSubSystem> _viewSubSystems;
+        private readonly World _world;
 
         private CancellationTokenSource _cts;
         private Box<Views.TerrainView> _terrainViewBox;
@@ -56,6 +57,7 @@ namespace Modules.TerrainView.Systems
             _hexSet = world.GetEntities().With<HexIdComponent>().AsSet();
             _configSet = world.GetEntities().With<TerrainViewConfigComponent>().AsSet();
             _vertexGridSet = world.GetEntities().With<VertexGridComponent>().AsSet();
+            _textureSet = world.GetEntities().With<TerrainTextureComponent>().AsSet();
             _viewSubSystems = viewSubSystems
                 .OrderBy(s => s.Priority)
                 .ToArray();
@@ -68,7 +70,7 @@ namespace Modules.TerrainView.Systems
             _cts?.Dispose();
             _cts = new CancellationTokenSource();
 
-            LoadAndSetupAsync(state, _cts.Token).Forget();
+            LoadAndSetupAsync(state, CancellationTokenSource.CreateLinkedTokenSource(StatusMonitor.Token, _cts.Token).Token).Forget();
         }
 
         /// <inheritdoc />
@@ -83,98 +85,9 @@ namespace Modules.TerrainView.Systems
             _hexSet.Dispose();
             _configSet.Dispose();
             _vertexGridSet.Dispose();
+            _textureSet.Dispose();
 
             base.Dispose();
-        }
-
-        /// <summary>
-        ///     Loads and instantiates the TerrainView prefab, generates the base mesh, runs all
-        ///     view subsystems by priority, applies final heights, and creates the result entity.
-        /// </summary>
-        /// <param name="state">Current game state passed to subsystems.</param>
-        /// <param name="cancellationToken">Token that aborts the pipeline when the system is re-triggered or disposed.</param>
-        private async UniTask LoadAndSetupAsync(GameState state, CancellationToken cancellationToken)
-        {
-            DisposeTerrainViewBox();
-
-            var result = await _addressable.LoadAndInstanceAsync(TERRAIN_VIEW_ADDRESS, cancellationToken);
-
-            if (cancellationToken.IsCancellationRequested || result.Status != Status.Success)
-            {
-                if (result.Status == Status.Success)
-                    result.Box.Dispose();
-
-                return;
-            }
-
-            var terrainView = result.Box.Value.GetComponent<Views.TerrainView>();
-
-            if (terrainView == null)
-            {
-                result.Box.Dispose();
-                return;
-            }
-
-            _terrainViewBox = Box<Views.TerrainView>.Wrap(terrainView, _ => result.Box.Dispose());
-
-            if (_configSet.Count == 0)
-            {
-                Debug.LogError("[TerrainViewSystem] TerrainViewConfigComponent entity is missing.");
-                return;
-            }
-
-            var config = _configSet.GetEntities()[0].Get<TerrainViewConfigComponent>();
-
-            var hexCoords = CollectHexCoords();
-            try
-            {
-                terrainView.Generate(hexCoords, config.CellSize, config.Subdivisions);
-            }
-            finally
-            {
-                hexCoords.Dispose();
-            }
-
-            if (cancellationToken.IsCancellationRequested)
-                return;
-
-            await RunViewSubSystemsAsync(state, cancellationToken);
-
-            if (cancellationToken.IsCancellationRequested)
-                return;
-
-            if (_vertexGridSet.Count == 0)
-            {
-                Debug.LogError("[TerrainViewSystem] VertexGridComponent entity is missing.");
-                return;
-            }
-
-            var vertexGrid = _vertexGridSet.GetEntities()[0].Get<VertexGridComponent>().Grid;
-            terrainView.ApplyHeightsFromVertexGrid(vertexGrid);
-
-            DestroyTerrainViewEntity();
-            var entity = _world.CreateEntity();
-            entity.Set(new TerrainViewComponent { ObjectRef = _terrainViewBox.Value });
-            _terrainViewEntity = entity;
-        }
-
-        /// <summary>
-        ///     Runs all enabled view subsystems in priority order, awaiting each before proceeding.
-        /// </summary>
-        /// <param name="state">Current game state forwarded to each subsystem.</param>
-        /// <param name="cancellationToken">Token that aborts the pipeline.</param>
-        private async UniTask RunViewSubSystemsAsync(GameState state, CancellationToken cancellationToken)
-        {
-            foreach (var subSystem in _viewSubSystems)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                    return;
-
-                if (!subSystem.IsEnabled)
-                    continue;
-
-                await subSystem.Update(state, cancellationToken);
-            }
         }
 
         /// <summary>
@@ -212,6 +125,107 @@ namespace Modules.TerrainView.Systems
 
             _terrainViewBox.Dispose();
             _terrainViewBox = Box<Views.TerrainView>.Empty();
+        }
+
+        /// <summary>
+        ///     Loads and instantiates the TerrainView prefab, generates the base mesh, runs all
+        ///     view subsystems by priority, applies final heights, and creates the result entity.
+        /// </summary>
+        /// <param name="state">Current game state passed to subsystems.</param>
+        /// <param name="cancellationToken">Token that aborts the pipeline when the system is re-triggered or disposed.</param>
+        private async UniTask LoadAndSetupAsync(GameState state, CancellationToken cancellationToken)
+        {
+            DisposeTerrainViewBox();
+
+            var result = await _addressable.LoadAndInstanceAsync<Views.TerrainView>(TERRAIN_VIEW_ADDRESS, cancellationToken);
+
+            if (cancellationToken.IsCancellationRequested || result.Status != Status.Success)
+            {
+                if (result.Status == Status.Success)
+                    result.Box.Dispose();
+
+                return;
+            }
+
+            _terrainViewBox = result.Box;
+            var terrainView = _terrainViewBox.Value;
+
+            if (_configSet.Count == 0)
+            {
+                Debug.LogError("[TerrainViewSystem] TerrainViewConfigComponent entity is missing.");
+                return;
+            }
+
+            var config = _configSet.GetEntities()[0].Get<TerrainViewConfigComponent>();
+
+            var hexCoords = CollectHexCoords();
+            try
+            {
+                terrainView.Generate(hexCoords, config.CellSize, config.Subdivisions);
+            }
+            finally
+            {
+                hexCoords.Dispose();
+            }
+
+            if (cancellationToken.IsCancellationRequested)
+                return;
+
+            await RunViewSubSystemsAsync(state, cancellationToken);
+
+            if (cancellationToken.IsCancellationRequested)
+                return;
+
+            ApplyGeneratedTexture(terrainView);
+
+            if (_vertexGridSet.Count == 0)
+            {
+                Debug.LogError("[TerrainViewSystem] VertexGridComponent entity is missing.");
+                return;
+            }
+
+            var vertexGrid = _vertexGridSet.GetEntities()[0].Get<VertexGridComponent>().Grid;
+            terrainView.ApplyHeightsFromVertexGrid(vertexGrid);
+
+            DestroyTerrainViewEntity();
+            var entity = _world.CreateEntity();
+            entity.Set(new TerrainViewComponent { ObjectRef = _terrainViewBox.Value });
+            _terrainViewEntity = entity;
+        }
+
+        /// <summary>
+        ///     Reads the <see cref="TerrainTextureComponent" /> entity created by the texture subsystem,
+        ///     applies the texture to the terrain view material, then destroys the transient entity.
+        /// </summary>
+        /// <param name="terrainView">Target terrain view that receives the texture.</param>
+        private void ApplyGeneratedTexture(Views.TerrainView terrainView)
+        {
+            if (_textureSet.Count == 0)
+                return;
+
+            var textureEntity = _textureSet.GetEntities()[0];
+            var texture = textureEntity.Get<TerrainTextureComponent>().Texture;
+            terrainView.ApplyTexture(texture);
+            textureEntity.Dispose();
+        }
+
+        /// <summary>
+        ///     Runs all enabled view subsystems in priority order, awaiting each before proceeding.
+        /// </summary>
+        /// <param name="state">Current game state forwarded to each subsystem.</param>
+        /// <param name="cancellationToken">Token that aborts the pipeline.</param>
+        private async UniTask RunViewSubSystemsAsync(GameState state, CancellationToken cancellationToken)
+        {
+            foreach (var subSystem in _viewSubSystems)
+            {
+                if (cancellationToken.IsCancellationRequested)
+                    return;
+
+                if (!subSystem.IsEnabled)
+                    continue;
+
+                await subSystem.Update(state, cancellationToken);
+            }
         }
     }
 }

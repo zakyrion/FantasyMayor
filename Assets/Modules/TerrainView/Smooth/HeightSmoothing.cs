@@ -228,17 +228,17 @@ namespace Modules.TerrainView.Smooth
                 for (var i = 0; i < verticesCount; i++)
                     for (var d = 0; d < nc; d++)
                     {
-                        var neighborCoord = simCoords[i] + AxialMath.NeighborDirs[d];
+                        var neighborCoord = simCoords[i] + AxialMath.NeighborsFlatTop[d];
                         neighborIndices[i * nc + d] = indexByCoord.TryGetValue(neighborCoord, out var idx) ? idx : -1;
                     }
 
                 // Opposite-direction lookup — needed to read a neighbor's flow back into us.
                 for (var d = 0; d < nc; d++)
                 {
-                    var dir = AxialMath.NeighborDirs[d];
+                    var dir = AxialMath.NeighborsFlatTop[d];
                     for (var k = 0; k < nc; k++)
                     {
-                        if (math.all(AxialMath.NeighborDirs[k] == -dir))
+                        if (math.all(AxialMath.NeighborsFlatTop[k] == -dir))
                         {
                             oppositeDir[d] = k;
                             break;
@@ -252,7 +252,7 @@ namespace Modules.TerrainView.Smooth
                 const float flatTopNeighborLen = 1.7320508f; // sqrt(3), exact for flat-top hex
                 for (var d = 0; d < nc; d++)
                 {
-                    var delta = AxialMath.NeighborDirs[d];
+                    var delta = AxialMath.NeighborsFlatTop[d];
                     var dx = 1.5f * delta.x;
                     var dz = math.sqrt(3f) * (delta.y + delta.x * 0.5f);
                     dirUnit[d] = new float2(dx / flatTopNeighborLen, dz / flatTopNeighborLen);
@@ -543,7 +543,7 @@ namespace Modules.TerrainView.Smooth
 
                 for (var d = 0; d < AxialMath.NeighborCount; d++)
                 {
-                    var neighbor = current.Coord + AxialMath.NeighborDirs[d];
+                    var neighbor = current.Coord + AxialMath.NeighborsFlatTop[d];
                     if (!vertexGrid.Contains(neighbor))
                         continue;
                     if (!visited.Add(neighbor))
@@ -674,7 +674,7 @@ namespace Modules.TerrainView.Smooth
         public struct WindErosionSettings
         {
             /// <summary>
-            ///     Axial neighbor direction of wind (must be one of AxialMath.NeighborDirs).
+            ///     Axial neighbor direction of wind (must be one of AxialMath.NeighborsFlatTop).
             ///     Example: new HexCoord(1, 0), new HexCoord(0, 1), etc.
             /// </summary>
             public HexCoord WindDirection;

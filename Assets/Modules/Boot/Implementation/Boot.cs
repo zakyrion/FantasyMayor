@@ -67,15 +67,6 @@ namespace Modules.Boot.Implementation
             IReadOnlyList<IUniTaskSystem<FirstUIStep>> firstUISystems,
             IReadOnlyList<IUpdatedSystem> updatedSystems)
         {
-            Debug.Log($"[skh] construct {configLoadSystems.Count} config-load systems");
-            Debug.Log($"[skh] construct {firstUISystems.Count} first-UI systems");
-            Debug.Log($"[skh] construct {updatedSystems.Count} updated systems");
-
-            foreach (var system in updatedSystems)
-            {
-                Debug.Log($"[skh] construct {system.GetType().Name}");
-            }
-
             _configLoadSystems = configLoadSystems;
             _firstUISystems = firstUISystems;
             _updatedSystems = updatedSystems

@@ -30,11 +30,6 @@
 - Terrain generator internals are considered complete for now.
 - No more detail-level polishing is required in this milestone unless it fixes a clear bug.
 
-## Next Roadmap
-1. River channel workflow (riverbed/flow path as next major system).
-2. Macro landscape look and composition (global shape/readability first, details second).
-3. First gameplay mechanics on top of stable terrain baseline.
-
 ## Non-Goals Right Now
 - Shader-only fake rain erosion.
 - Micro detail polishing before river and macro landscape decisions.

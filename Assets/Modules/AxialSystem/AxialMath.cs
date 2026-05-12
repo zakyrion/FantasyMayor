@@ -18,10 +18,11 @@ public enum AxialOrientation { PointyTop, FlatTop }
 public static class AxialMath
 {
     /// <summary>
-    /// The 6 axial neighbor directions.
-    /// Order: E, W, NE, SW, NW, SE (consistent with AxialGrid flat-array offsets).
+    /// The 6 axial neighbor directions for pointy-top orientation (coarse HexGrid).
+    /// Order: E, W, NE, SW, SE, NW (consistent with AxialGrid flat-array offsets).
+    /// Pairs are opposite directions — NOT circularly ordered.
     /// </summary>
-    public static readonly int2[] NeighborDirs =
+    public static readonly int2[] NeighborsPointyTop =
     {
         new int2(1, 0),   // E
         new int2(-1, 0),  // W
@@ -29,6 +30,22 @@ public static class AxialMath
         new int2(0, -1),  // SW
         new int2(1, -1),  // SE
         new int2(-1, 1)   // NW
+    };
+
+    /// <summary>
+    /// The 6 axial neighbor directions for flat-top orientation (fine VertexGrid),
+    /// in circular CCW order. Consecutive entries are always mutually adjacent,
+    /// enabling correct triangle formation when triangulating the flat-top lattice.
+    /// Order: upper-right → top → upper-left → lower-left → bottom → lower-right.
+    /// </summary>
+    public static readonly int2[] NeighborsFlatTop =
+    {
+        new int2(1, 0),   // upper-right
+        new int2(0, 1),   // top
+        new int2(-1, 1),  // upper-left
+        new int2(-1, 0),  // lower-left
+        new int2(0, -1),  // bottom
+        new int2(1, -1)   // lower-right
     };
 
     public const int NeighborCount = 6;
@@ -135,12 +152,12 @@ public static class AxialMath
     /// <summary>
     /// Get the i-th neighbor direction (0..5).
     /// </summary>
-    public static int2 GetNeighborDir(int index) => NeighborDirs[index];
+    public static int2 GetNeighborDir(int index) => NeighborsPointyTop[index];
 
     /// <summary>
     /// Get the axial coordinate of the i-th neighbor of the given position.
     /// </summary>
-    public static int2 GetNeighbor(int2 position, int index) => position + NeighborDirs[index];
+    public static int2 GetNeighbor(int2 position, int index) => position + NeighborsPointyTop[index];
 
     /// <summary>
     /// Check if two axial coordinates are neighbors (distance = 1 in hex grid).
@@ -149,7 +166,7 @@ public static class AxialMath
     {
         var d = a - b;
         for (var i = 0; i < 6; i++)
-            if (math.all(d == NeighborDirs[i]))
+            if (math.all(d == NeighborsPointyTop[i]))
                 return true;
         return false;
     }

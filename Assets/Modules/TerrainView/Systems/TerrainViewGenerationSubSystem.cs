@@ -245,7 +245,7 @@ namespace Modules.TerrainView.Systems
                     var waterHex = entity.Get<HexIdComponent>().Coords;
                     for (var direction = 0; direction < AxialMath.NeighborCount; direction++)
                     {
-                        var neighbor = waterHex + AxialMath.NeighborDirs[direction];
+                        var neighbor = waterHex + AxialMath.NeighborsPointyTop[direction];
                         if (hexDomain.Contains(neighbor) || !uniqueGhostHexes.Add(neighbor))
                             continue;
 
@@ -415,7 +415,7 @@ namespace Modules.TerrainView.Systems
             for (var pass = 0; pass < directions.Length; pass++)
             {
                 var directionIndex = Random.Range(0, AxialMath.NeighborCount);
-                directions[pass] = new HexCoord(AxialMath.NeighborDirs[directionIndex]);
+                directions[pass] = new HexCoord(AxialMath.NeighborsPointyTop[directionIndex]);
             }
 
             await UniTask.RunOnThreadPool(() =>

@@ -16,6 +16,25 @@ namespace Modules.TerrainView.Views
         private float _hexSize = 1f;
         private int _subdivisions = 2;
 
+        /// <summary>
+        ///     Applies a generated texture to the terrain mesh material.
+        ///     Takes ownership of the texture — it will be destroyed when this view is disposed.
+        /// </summary>
+        /// <param name="texture">Procedurally generated terrain texture. Ownership transfers to this view.</param>
+        public void ApplyTexture(Texture2D texture)
+        {
+            var meshRenderer = _meshFilter.GetComponent<MeshRenderer>();
+            if (meshRenderer == null)
+            {
+                Debug.LogError("[TerrainView] MeshRenderer not found on the terrain mesh object.");
+                Object.Destroy(texture);
+                return;
+            }
+
+            meshRenderer.material.mainTexture = texture;
+            AddDisposable(() => Object.Destroy(texture));
+        }
+
         public void ApplyHeightsFromVertexGrid(VertexGrid vertexGrid)
         {
             var mesh = _meshFilter.mesh;
@@ -45,20 +64,52 @@ namespace Modules.TerrainView.Views
             _meshFilter.mesh = GenerateMesh(hexCoords);
         }
 
-        private static Bounds CalculateBounds(IEnumerable<Vector2> positions)
+        /// <summary>
+        ///     Computes a square UV rect that encloses all hex centers plus their six pointy-top
+        ///     corner positions. Using the same side length for both axes produces an isotropic
+        ///     (homogeneous) mapping — equal world-space distances stay equal in UV space.
+        /// </summary>
+        /// <param name="hexCoords">Set of hex coordinates to cover.</param>
+        /// <param name="squareMin">Lower-left corner of the square rect in world XZ.</param>
+        /// <param name="squareSize">Side length of the square in world units (same for X and Z).</param>
+        private void ComputeSquareUVRect(NativeHashSet<HexCoord> hexCoords, out Vector2 squareMin, out float squareSize)
         {
-            var min = new Vector2(float.MaxValue, float.MaxValue);
-            var max = new Vector2(float.MinValue, float.MinValue);
+            var minX = float.MaxValue;
+            var minZ = float.MaxValue;
+            var maxX = float.MinValue;
+            var maxZ = float.MinValue;
 
-            foreach (var pos in positions)
+            foreach (var hex in hexCoords)
             {
-                min = Vector2.Min(min, pos);
-                max = Vector2.Max(max, pos);
+                var (center, corners) = GetHexGeometry(hex);
+
+                if (center.x < minX) minX = center.x;
+                if (center.x > maxX) maxX = center.x;
+                if (center.y < minZ) minZ = center.y;
+                if (center.y > maxZ) maxZ = center.y;
+
+                for (var i = 0; i < 6; i++)
+                {
+                    if (corners[i].x < minX) minX = corners[i].x;
+                    if (corners[i].x > maxX) maxX = corners[i].x;
+                    if (corners[i].y < minZ) minZ = corners[i].y;
+                    if (corners[i].y > maxZ) maxZ = corners[i].y;
+                }
             }
 
-            var center = (min + max) * 0.5f;
-            var size = max - min;
-            return new Bounds(new Vector3(center.x, 0, center.y), new Vector3(size.x, 0, size.y));
+            var sizeX = maxX - minX;
+            var sizeZ = maxZ - minZ;
+            squareSize = Mathf.Max(sizeX, sizeZ);
+
+            if (squareSize <= 0f)
+            {
+                Debug.LogError("[TerrainView] Degenerate terrain bounds — square UV size is zero.");
+                squareSize = 1f;
+            }
+
+            var centerX = (minX + maxX) * 0.5f;
+            var centerZ = (minZ + maxZ) * 0.5f;
+            squareMin = new Vector2(centerX - squareSize * 0.5f, centerZ - squareSize * 0.5f);
         }
 
         private static Vector3Int RoundToKey(Vector2 worldPos)
@@ -129,10 +180,8 @@ namespace Modules.TerrainView.Views
                     CollectSubdividedVertices(center, corners[i], corners[(i + 1) % 6], vertexData);
             }
 
-            // Build vertex + UV arrays
-            var bounds = CalculateBounds(vertexData.Values);
-            var boundsMin = new Vector2(bounds.min.x, bounds.min.z);
-            var boundsSize = new Vector2(bounds.size.x, bounds.size.z);
+            // Build vertex + UV arrays — isotropic square UV rect
+            ComputeSquareUVRect(hexCoords, out var squareMin, out var squareSize);
 
             var vertices = new List<Vector3>();
             var uvs = new List<Vector2>();
@@ -142,7 +191,9 @@ namespace Modules.TerrainView.Views
             {
                 var pos = kvp.Value;
                 vertices.Add(new Vector3(pos.x, 0f, pos.y));
-                uvs.Add(new Vector2((pos.x - boundsMin.x) / boundsSize.x, (pos.y - boundsMin.y) / boundsSize.y));
+                uvs.Add(new Vector2(
+                    (pos.x - squareMin.x) / squareSize,
+                    (pos.y - squareMin.y) / squareSize));
                 vertexIndexMap[kvp.Key] = vertices.Count - 1;
             }
 

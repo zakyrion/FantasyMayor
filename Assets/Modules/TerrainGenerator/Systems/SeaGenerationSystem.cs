@@ -153,7 +153,7 @@ namespace Modules.TerrainGenerator.Systems
 
             for (var direction = 0; direction < AxialMath.NeighborCount; direction++)
             {
-                var neighbor = hex + AxialMath.NeighborDirs[direction];
+                var neighbor = hex + AxialMath.NeighborsPointyTop[direction];
                 if (seaCoords.Contains(neighbor))
                     count++;
             }
@@ -176,7 +176,7 @@ namespace Modules.TerrainGenerator.Systems
         {
             for (var direction = 0; direction < AxialMath.NeighborCount; direction++)
             {
-                var neighbor = hex + AxialMath.NeighborDirs[direction];
+                var neighbor = hex + AxialMath.NeighborsPointyTop[direction];
                 if (!mapCoords.Contains(neighbor) || seaCoords.Contains(neighbor))
                     continue;
 

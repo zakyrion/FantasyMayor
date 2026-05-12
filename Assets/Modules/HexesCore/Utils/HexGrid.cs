@@ -95,7 +95,7 @@ namespace Modules.HexesCore.Utils
 
                         for (var d = 0; d < AxialMath.NeighborCount; d++)
                         {
-                            var neighbor = coord + AxialMath.NeighborDirs[d];
+                            var neighbor = coord + AxialMath.NeighborsPointyTop[d];
                             if (visited.Add(neighbor))
                                 next.Add(neighbor);
                         }

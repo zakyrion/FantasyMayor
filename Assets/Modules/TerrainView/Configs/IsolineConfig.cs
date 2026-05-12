@@ -24,9 +24,5 @@ namespace Modules.TerrainView.Data
         public float persistence = 0.55f;
         public float lacunarity = 2f;
         public int smoothingPasses = 1;
-
-        [Header("Curve Preview")]
-        public float previewLengthMultiplier = 3f;
-        public int previewSamplesPerUnit = 48;
     }
 }
