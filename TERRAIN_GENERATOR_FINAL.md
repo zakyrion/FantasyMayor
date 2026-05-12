@@ -30,9 +30,6 @@
 - Terrain generator internals are considered complete for now.
 - No more detail-level polishing is required in this milestone unless it fixes a clear bug.
 
-## Next Roadmap
-1. Terrain texture generation (Gaussian brush splatting, vertex color classification).
-
 ## Non-Goals Right Now
 - Shader-only fake rain erosion.
 - Micro detail polishing before river and macro landscape decisions.
