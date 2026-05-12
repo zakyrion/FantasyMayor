@@ -4,167 +4,147 @@
 
 Generate a procedural terrain texture in `TerrainViewTextureSubSystem` (Priority 200). The texture is a single baked `Texture2D` applied to the terrain mesh material. No custom shader required — standard URP Lit/Unlit with `_MainTex`.
 
-## Chosen Approach: Brush-based Gaussian Splatting (Nadaraya-Watson Kernel Regression)
+---
 
-Each vertex in `VertexGrid` acts as a "brush center". The brush paints its classified color onto the output texture with Gaussian falloff. Overlapping brushes blend naturally — transitions between terrain zones emerge automatically from geometry without explicit blending code.
+## Implementation Status (2026-05-11)
 
-### Mathematical Foundation
+### What Is Done
 
-**Nadaraya-Watson kernel regression (1964):**
+**Infrastructure (working):**
+- `TerrainTextureConfig.cs` — ScriptableObject with colors, brush, slope, resolution
+- `TerrainTextureConfigComponent.cs` — flattened ECS struct + `FromConfig()`
+- `TerrainTextureComponent.cs` — transient ECS component carrying generated `Texture2D`
+- `TerrainViewConfigLoaderSystem.cs` — loads `TerrainTextureConfig` via `IAddressable` (address: `"TerrainTextureConfig"`)
+- `TerrainTextureConfig.asset` — lives in `Assets/Addressables/Configs/TerrainViewConfigs/`, registered in Terrain addressable group
+- `TerrainViewInstaller` — already registers `TerrainViewTextureSubSystem` as `ViewSubSystem`
+- `TerrainView.ApplyTexture(Texture2D)` — sets `material.mainTexture`, registers `Object.Destroy` in `AddDisposable`
+- `TerrainViewSystem.ApplyGeneratedTexture()` — after `RunViewSubSystemsAsync`, reads `TerrainTextureComponent`, applies to TerrainView, destroys entity
 
+**Pipeline flow (working):**
 ```
-                 Σ  K(distance(pixel, vertex_i)) × color_i
-finalColor = ─────────────────────────────────────────────────
-                 Σ  K(distance(pixel, vertex_i))
+TerrainViewConfigLoaderSystem → loads TerrainTextureConfig, creates TerrainTextureConfigComponent entity
+TerrainViewSystem.LoadAndSetupAsync:
+  1. Load TerrainView prefab
+  2. terrainView.Generate(hexCoords) — mesh + UVs
+  3. RunViewSubSystemsAsync:
+     - TerrainViewGenerationSubSystem (Priority 100) — isolines, erosion → heights in VertexGrid
+     - TerrainViewTextureSubSystem (Priority 200) — classify + splat → Texture2D → TerrainTextureComponent entity
+  4. ApplyGeneratedTexture(terrainView) — reads TerrainTextureComponent, applies texture
+  5. ApplyHeightsFromVertexGrid — final mesh heights
+  6. Create TerrainViewComponent entity
 ```
 
-`K` is a kernel function (Gaussian): `K(d) = exp(-d² / 2σ²)`
+**Splatting algorithm (implemented, NOT working correctly):**
+- Hex type map: HexMountTag → Mountain, HexBedhillTag → Bedhill, HexWaterTag → Water, else Plain; second pass detects Coastline (plain adjacent to water)
+- For each VertexGrid vertex (skip OwnerCount == 0): classify by owner hex type + slope → pick color → hue jitter → BFS splat to nearby pixels with linear weight falloff
+- Normalize accumulated colors → Color32[] → Texture2D on main thread
 
-Division by the sum of weights (normalization) guarantees the result stays within the range of input colors.
+### What Is Broken — UV / Coordinate Mismatch
 
-**Splatting (object-order) vs Nadaraya-Watson (image-order):**
+**The core problem:** the mesh UV space and the texture pixel space use different coordinate systems.
 
-Both are mathematically equivalent, just different iteration order:
-- **NW (image-order):** outer loop over pixels → find nearby vertices. Better when pixels << vertices.
-- **Splatting (object-order):** outer loop over vertices → paint nearby pixels. Better when vertices << pixels. **This is our case.**
+**Mesh UVs** (in `TerrainView.GenerateMesh()`):
+- Positions from `AxialMath.AxialToWorld2D(hex, hexSize)` — **pointy-top** orientation
+- Corners: `center + hexSize * (cos(60°i + 30°), sin(60°i + 30°))`
+- Subdivided via barycentric interpolation
+- Bounds computed from ALL mesh vertex positions (Vector2 XY where X=worldX, Y=worldZ)
+- UV: `((pos.x - boundsMin.x) / boundsSize.x, (pos.y - boundsMin.y) / boundsSize.y)`
 
-### Why This Works for Transitions
+**Texture pixels** (in `TerrainViewTextureSubSystem`):
+- Vertex positions from `VertexGrid` — uses **flat-top** axial orientation internally
+- `VertexGrid.AxialToWorld(coord)` uses `AxialToWorldFlatTop(coord, vertexCellSize)`
+- Bounds: attempted hex-geometry-based (pointy-top corners) but vertex world positions come from flat-top grid
+- Pixel: `px = (vertex.Position.x - worldMin.x) / worldSize.x * (res-1)`
 
-At a border between plains and mountain slope:
-- Plain vertices splat green with Gaussian falloff
-- Mountain vertices splat grey with Gaussian falloff
-- In the overlap zone: green + grey blend proportionally to distance
-- Result: organic gradient without any explicit transition logic
+**Why they don't match:**
+1. The mesh vertex positions and VertexGrid vertex positions are in the same world XZ space, but at DIFFERENT positions. The mesh uses barycentric subdivision of hex triangles; the VertexGrid uses BFS expansion on a flat-top axial grid. They are not 1:1.
+2. `ApplyHeightsFromVertexGrid` bridges this gap by doing `vertexGrid.WorldToAxial(meshVertex.xz)` lookup — but for texture generation we go the other direction (VertexGrid positions → texture pixels), and those positions don't correspond to mesh UV positions.
+3. VertexGrid also includes ghost water edge padding hexes that extend beyond the mesh boundary.
 
-This is analogous to how `HeightSmoothing` (Gaussian blur) already works in the project, but applied to color instead of height.
+**Problem 2: Sparse pixel coverage (holes in texture).**
+The splatting writes ONLY to pixels that correspond to VertexGrid vertex positions. At 2048×2048 = ~4M pixels vs ~10-30k vertices, the vast majority of pixels receive zero weight and get the fallback color. Between splatted pixels there are gaps ("holes") that appear as fallback-colored dots or patches. Bilinear filtering smooths this at the GPU level during rendering, but only if splatted pixels are dense enough — with large resolution-to-vertex ratios the holes dominate.
+
+**Possible fixes to explore:**
+- **Option A (pixel-centric):** Iterate ALL texture pixels, convert pixel→world→axial, BFS from nearest vertex, accumulate colors. Every pixel gets a value — no holes. Slower (4M iterations), but simple and guaranteed full coverage. Can be optimized by lowering resolution or caching BFS results.
+- **Option B (mesh vertex iteration):** Iterate MESH vertices (not VertexGrid). Read vertex positions + UVs from the mesh, look up hex type from VertexGrid via `WorldToAxial`, splat at UV-derived pixel positions. Guarantees UV alignment, but still has the hole problem (mesh vertices are also sparse relative to 2048²).
+- **Option C (lower resolution):** Match texture resolution to vertex density. If ~30k vertices, a 256×256 or 512×512 texture with bilinear filtering may look fine without holes.
+- **Option D (post-process fill):** After splatting, flood-fill or dilate pixels with zero weight from their nearest non-zero neighbors. Covers holes but adds a pass.
+- **Option E (pixel-radius splat):** Instead of BFS over vertex neighbors, for each vertex splat to ALL pixels within a world-space radius. Converts the problem to pixel-space coverage. Guarantees full coverage if radius is large enough relative to vertex spacing.
+
+### Bugs Found and Fixed
+- `HexVertex.MeshIndex` is NEVER set anywhere in the codebase (always -1). Filtering `MeshIndex == -1` skipped ALL vertices → solid fallback color. Fixed: use `OwnerCount == 0` to detect ghost vertices.
 
 ---
 
-## Algorithm
+## Files
 
-### Input
-- `VertexGrid` — all vertices with positions (heights in `Position.y`), owner hex coords
-- Hex entities with tags: `HexMountTag`, `HexBedhillTag`, `HexWaterTag`
-- Config: texture resolution, brush radius, Gaussian sigma, hue jitter strength
+| File | Purpose |
+|------|---------|
+| `Configs/TerrainTextureConfig.cs` | ScriptableObject: resolution, brush, slope, colors |
+| `Components/TerrainTextureConfigComponent.cs` | Flattened ECS struct + `FromConfig()` |
+| `Components/TerrainTextureComponent.cs` | Transient Texture2D carrier between subsystem and orchestrator |
+| `Systems/TerrainViewTextureSubSystem.cs` | Main splatting logic (needs UV fix) |
+| `Systems/TerrainViewConfigLoaderSystem.cs` | Loads TerrainTextureConfig (modified) |
+| `Systems/TerrainViewSystem.cs` | Applies texture after subsystems (modified) |
+| `Views/TerrainView.cs` | `ApplyTexture()` method (modified) |
+| `Addressables/.../TerrainTextureConfig.asset` | Config asset with default colors |
 
-### Output
-- `Texture2D` (RGBA32) — single texture covering the entire terrain mesh
+---
 
-### Steps
+## Algorithm (Current — Linear Falloff BFS Splatting)
 
-```
-1. BUILD hex type map:
-   For each hex entity:
-     - Has<HexMountTag>()     → Mountain
-     - Has<HexBedhillTag>()   → Bedhill
-     - Has<HexWaterTag>()     → Water
-     - None of the above      → Plain
-   
-   Coastline detection (second pass):
-     For each Plain hex:
-       If any axial neighbor has HexWaterTag → reclassify as Coastline
-     (Use AxialMath.NeighborDirs for coarse hex neighbors)
-
-2. COMPUTE world bounds from VertexGrid:
-   worldMin = AxialToWorld(MinCoord)
-   worldMax = AxialToWorld(MaxCoord)
-
-3. ALLOCATE accumulators:
-   float3[] colorAccum = new[resolution × resolution]   // RGB
-   float[]  weightAccum = new[resolution × resolution]  // normalization weights
-
-4. SPLAT (runs on background thread):
-   For each vertex coord in VertexGrid.Coords:
-     a. vertex = vertexGrid.TryGet(coord)
-     b. Skip if MeshIndex == -1 (ghost vertex)
-     c. Compute slope from neighbors (see Slope Computation below)
-     d. Determine hex type from hexTypeMap via vertex owner
-     e. Classify → baseColor (see Classification Table below)
-     f. Apply micro-variation via hash (see Hash Function below)
-     g. BFS within brushRadius from this vertex coord:
-        For each visited neighbor vertex within radius:
-          - worldDistance = |neighbor.Position.xz - vertex.Position.xz|
-          - weight = exp(-worldDistance² / (2σ²))
-          - Convert neighbor world pos → pixel coords:
-            px = (pos.x - worldMin.x) / (worldMax.x - worldMin.x) × resolution
-            py = (pos.z - worldMin.z) / (worldMax.z - worldMin.z) × resolution
-          - colorAccum[px, py] += baseColor × weight
-          - weightAccum[px, py] += weight
-
-5. NORMALIZE:
-   For each pixel:
-     if weightAccum[i] > 0:
-       finalColor[i] = colorAccum[i] / weightAccum[i]
-     else:
-       finalColor[i] = fallback color
-
-6. UPLOAD (must run on main thread):
-   Texture2D tex = new(resolution, resolution, TextureFormat.RGBA32, false)
-   tex.SetPixels32(finalColors)
-   tex.Apply()
-   Apply to mesh material
-```
-
-### Alternative: Pixel-Centric Approach (Nadaraya-Watson Direct)
-
-If vertex-centric splatting is complex for pixel coverage mapping:
+Simplified from original NW kernel regression to linear BFS wave falloff:
 
 ```
-For each pixel (px, py):
-  worldPos = pixelToWorld(px, py)
-  axialCoord = vertexGrid.WorldToAxial(worldPos)
+For each vertex V in VertexGrid (skip OwnerCount == 0):
+  hexType = hexTypeMap[V.owner[0]]
+  slope = max(|V.y - neighbor.y|) / vertexGrid.CellSize
+  color = PickColor(hexType, slope, slopeThreshold)
+  color = ApplyHueJitter(color, V.Position.xz)
   
-  BFS from axialCoord within brushRadius:
-    For each visited vertex:
-      distance = |vertex.Position.xz - worldPos.xz|
-      weight = gaussian(distance, sigma)
-      Classify vertex → color
-      accumColor += color × weight
-      accumWeight += weight
-  
-  finalColor = accumColor / accumWeight
-```
+  BFS from V, depth 0..brushRadius:
+    For each visited vertex N at depth d:
+      weight = lerp(centerWeight, edgeWeight, d / brushRadius)
+      pixel = worldToPixel(N.Position.xz)
+      colorAccum[pixel] += color * weight
+      weightAccum[pixel] += weight
 
-Simpler logic but more iterations when resolution > vertex count.
+Normalize: pixel[i] = colorAccum[i] / weightAccum[i]  (or fallback if weight == 0)
+```
 
 ---
 
 ## Classification Table
 
-| Hex Type | Slope | Surface | Color (RGB approx) |
-|----------|-------|---------|-------------------|
-| Plain | Low (< threshold) | Soft pastel grassland | (0.55, 0.78, 0.45) |
-| Mountain | Low (plateau top) | Yellow-green highland | (0.72, 0.75, 0.38) |
-| Mountain / Bedhill | High (steep) | Rocky slope | (0.58, 0.55, 0.50) |
-| Coastline (plain adj. to water) | Low | Sandy shore | (0.82, 0.76, 0.55) |
-| Water | Any | Water surface | (0.28, 0.45, 0.62) |
-
-Colors are starting points — to be tuned visually via config.
-
----
-
-## Slope Computation
-
-For vertex at coord `c`:
-
-```
-neighbors = vertexGrid.GetNeighbors(c, span6)
-maxDelta = 0
-for each neighbor n in neighbors:
-  if vertexGrid.TryGet(n, out nv):
-    delta = abs(vertex.Position.y - nv.Position.y)
-    maxDelta = max(maxDelta, delta)
-slope = maxDelta / vertexGrid.CellSize   // normalize by cell spacing
-```
-
-Slope threshold for "steep" vs "flat" should be a config parameter.
+| Hex Type | Slope | Color field |
+|----------|-------|-------------|
+| Plain | any | `plainColor` |
+| Mountain | ≤ threshold | `mountainFlatColor` |
+| Mountain | > threshold | `mountainSteepColor` |
+| Bedhill | ≤ threshold | `bedhillColor` |
+| Bedhill | > threshold | `mountainSteepColor` |
+| Coastline | any | `coastlineColor` |
+| Water | any | `waterColor` |
 
 ---
 
-## Micro-Variation (No Noise)
+## Config Parameters
 
-Project constraint: no Perlin/simplex/any noise functions. Use deterministic spatial hash instead.
+| Parameter | Default | Purpose |
+|-----------|---------|---------|
+| `textureResolution` | 2048 | Output texture size |
+| `brushRadius` | 3 | BFS depth for splatting |
+| `centerWeight` | 1.0 | Weight at BFS depth 0 |
+| `edgeWeight` | 0.3 | Weight at BFS depth = brushRadius |
+| `slopeThreshold` | 0.5 | Steep vs flat cutoff |
+| `hueJitterStrength` | 0.05 | Per-vertex hue variation |
+| Colors | see asset | Per-type base colors |
 
+---
+
+## Micro-Variation (No Noise — project constraint)
+
+Deterministic spatial hash:
 ```
 uint Hash(float2 p):
   uint x = asuint(p.x)
@@ -174,77 +154,29 @@ uint Hash(float2 p):
   return h ^ (h >> 16)
 
 float HashFloat01(float2 p):
-  return Hash(p) / (float)uint.MaxValue   // range [0, 1]
+  return Hash(p) / (float)uint.MaxValue
 ```
-
-Apply as hue shift: rotate base color hue by `(HashFloat01(vertex.xz) - 0.5) * hueJitterStrength`.
-
----
-
-## Configurable Parameters
-
-| Parameter | Default | Purpose |
-|-----------|---------|---------|
-| `enabled` | true | Enable/disable texture generation |
-| `textureResolution` | 2048 | Output texture size (width = height) |
-| `brushRadius` | 3 | BFS depth for vertex brush (vertex-grid steps) |
-| `gaussianSigma` | 1.5 | Gaussian falloff sigma (larger = softer transitions) |
-| `hueJitterStrength` | 0.05 | Per-vertex random hue variation magnitude |
-| `slopeThreshold` | 0.5 | Slope value separating "flat" from "steep" |
+Hue shift: `(HashFloat01(vertex.xz) - 0.5) * hueJitterStrength`
 
 ---
 
-## Falloff Function Options
+## Key Coordinate Systems
 
-| Function | Formula | Character |
-|----------|---------|-----------|
-| Gaussian | `exp(-d²/(2σ²))` | Soft center, natural falloff |
-| Linear | `max(0, 1 - d/r)` | Uniform fade |
-| Smoothstep | `smoothstep(r, 0, d)` | Plateau in center, soft edge |
-| Cosine | `(1 + cos(π·d/r)) / 2` | Between linear and Gaussian |
+| System | Orientation | Conversion | Used by |
+|--------|-------------|------------|---------|
+| Hex grid (coarse) | Pointy-top | `AxialToWorldPointTop(hex, hexSize)` | Mesh generation, hex entities |
+| VertexGrid (fine) | Flat-top | `AxialToWorldFlatTop(coord, vertexCellSize)` | Height field, erosion, texture splatting |
+| Mesh UVs | — | `(worldX - boundsMin.x) / boundsSize.x` | GPU texture sampling |
 
-Recommended start: **Gaussian** — most natural for terrain painting.
-
----
-
-## Pipeline Integration
-
-```
-TerrainViewConfigLoaderSystem
-  → Loads TerrainTextureConfig via IAddressable
-  → Creates TerrainTextureConfigComponent entity
-
-TerrainViewGenerationSubSystem (Priority 100)
-  → Mesh generated, heights in VertexGrid
-
-TerrainViewTextureSubSystem (Priority 200)
-  → Reads VertexGrid + hex tags + config from ECS
-  → Background thread: classify vertices + splat colors
-  → Main thread: create Texture2D, apply to material
-
-TerrainViewSystem (orchestrator)
-  → ApplyHeightsFromVertexGrid
-  → (texture already applied by subsystem)
-  → Create TerrainViewComponent entity
-```
-
----
-
-## Architecture Notes
-
-- Brush abstraction `(vertex) → (color, radius, falloff)` allows future swap to texture-based brushes without changing the splatting pipeline
-- Splatting with normalization is order-independent (commutative) — can be parallelized
-- Follows existing patterns: BFS neighbor iteration from `HeightSmoothing`, config loading from `TerrainViewConfigLoaderSystem`, DI from `TerrainViewGenerationSubSystem`
-- All methods must be instance methods (project constraint)
-- Heavy computation on background thread via `UniTask.RunOnThreadPool`; `Texture2D` creation/upload on main thread
+Both coordinate systems produce positions in the same world XZ space, but at different grid points. `VertexGrid.WorldToAxial()` bridges mesh→vertex lookup (used by `ApplyHeightsFromVertexGrid`).
 
 ---
 
 ## Future Extensions
 
-- **Texture-based brushes:** replace `classify() → color` with `sampleTexture(vertex.uv) → color`, same pipeline
-- **Ambient occlusion bake:** darken vertices where neighbors are higher (valley darkening)
-- **Edge highlighting:** darken along steep height transitions (isoline emphasis)
-- **Per-hex hue variation:** `hash(hexCoord)` shifts hue per hex for variety within same type
-- **Adaptive brush radius:** larger on plains, smaller on steep slopes for detail preservation
-- **Multi-pass painting:** first pass = base color, second pass = detail overlay
+- Texture-based brushes: replace `classify() → color` with `sampleTexture(vertex.uv) → color`
+- Ambient occlusion bake: darken vertices where neighbors are higher
+- Edge highlighting: darken along steep height transitions
+- Per-hex hue variation: `hash(hexCoord)` shifts hue per hex
+- Adaptive brush radius: larger on plains, smaller on steep slopes
+- Multi-pass painting: first pass = base color, second pass = detail overlay

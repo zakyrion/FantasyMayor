@@ -1,0 +1,4 @@
+interface:
+  display_name: "FantasyMayor Start"
+  short_description: "Resume FantasyMayor session context"
+  default_prompt: "Use $fantasymayor-session-start to load project context, summarize where work paused, and ask what to do next."
