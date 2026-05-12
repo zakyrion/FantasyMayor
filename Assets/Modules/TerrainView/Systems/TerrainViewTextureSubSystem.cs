@@ -75,7 +75,11 @@ namespace Modules.TerrainView.Systems
 
             Color32[] pixels = null;
             await UniTask.RunOnThreadPool(
-                () => { pixels = GeneratePixels(vertexGrid, hexTypeMap, config, hexSize); },
+                () =>
+                {
+                    pixels = GeneratePixels(vertexGrid, hexTypeMap, config, hexSize);
+                    pixels = ApplyBoxBlur(pixels, config.TextureResolution, config.TextureBlurRadius);
+                },
                 cancellationToken: cancellationToken);
 
             if (cancellationToken.IsCancellationRequested)
@@ -507,6 +511,65 @@ namespace Modules.TerrainView.Systems
                         pixels[py * resolution + px] = color;
                 }
             }
+        }
+
+        /// <summary>
+        ///     Applies a box blur to <paramref name="pixels" /> using a square kernel of side
+        ///     <c>(2 × radius + 1)²</c>. Each output pixel is the integer average of all source
+        ///     pixels within the radius in both X and Y. Clamps at texture borders so edge pixels
+        ///     are averaged over a smaller (but valid) window. Returns <paramref name="pixels" />
+        ///     unchanged when <paramref name="radius" /> is zero.
+        ///     Must be called on a background thread — allocates a second buffer equal in size to
+        ///     the input.
+        /// </summary>
+        /// <param name="pixels">Source pixel buffer (not modified).</param>
+        /// <param name="resolution">Texture width and height in pixels (square texture assumed).</param>
+        /// <param name="radius">Blur radius in pixels. Kernel covers (2r+1)² samples.</param>
+        /// <returns>New blurred pixel buffer, or the original array when radius is zero.</returns>
+        private Color32[] ApplyBoxBlur(Color32[] pixels, int resolution, int radius)
+        {
+            if (radius <= 0)
+                return pixels;
+
+            var result = new Color32[pixels.Length];
+
+            for (var py = 0; py < resolution; py++)
+            {
+                var minY = math.max(0, py - radius);
+                var maxY = math.min(resolution - 1, py + radius);
+
+                for (var px = 0; px < resolution; px++)
+                {
+                    var minX = math.max(0, px - radius);
+                    var maxX = math.min(resolution - 1, px + radius);
+
+                    var sumR = 0;
+                    var sumG = 0;
+                    var sumB = 0;
+                    var count = 0;
+
+                    for (var sy = minY; sy <= maxY; sy++)
+                    {
+                        var rowOffset = sy * resolution;
+                        for (var sx = minX; sx <= maxX; sx++)
+                        {
+                            var c = pixels[rowOffset + sx];
+                            sumR += c.r;
+                            sumG += c.g;
+                            sumB += c.b;
+                            count++;
+                        }
+                    }
+
+                    result[py * resolution + px] = new Color32(
+                        (byte)(sumR / count),
+                        (byte)(sumG / count),
+                        (byte)(sumB / count),
+                        255);
+                }
+            }
+
+            return result;
         }
 
         /// <summary>

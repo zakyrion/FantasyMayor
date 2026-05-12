@@ -11,6 +11,7 @@ namespace Modules.TerrainView.Components
     {
         public int TextureResolution;
         public int BrushRadius;
+        public int TextureBlurRadius;
         public float CenterWeight;
         public float EdgeWeight;
         public float SlopeThreshold;
@@ -35,6 +36,7 @@ namespace Modules.TerrainView.Components
             {
                 TextureResolution = config.textureResolution,
                 BrushRadius = config.brushRadius,
+                TextureBlurRadius = config.textureBlurRadius,
                 CenterWeight = config.centerWeight,
                 EdgeWeight = config.edgeWeight,
                 SlopeThreshold = config.slopeThreshold,

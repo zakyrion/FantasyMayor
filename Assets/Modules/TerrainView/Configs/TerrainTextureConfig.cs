@@ -18,6 +18,11 @@ namespace Modules.TerrainView.Configs
         [Range(1, 10)]
         public int brushRadius = 3;
 
+        [Tooltip("Box-blur radius applied to the final pixel buffer on a background thread. " +
+                 "0 = no blur. Kernel size = (2 * radius + 1)².")]
+        [Range(0, 20)]
+        public int textureBlurRadius = 4;
+
         [Tooltip("Color weight at the brush center (BFS depth 0).")]
         [Range(0f, 2f)]
         public float centerWeight = 1f;
