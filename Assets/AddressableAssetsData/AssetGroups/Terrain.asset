@@ -30,6 +30,16 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 541916a4017b64081a07f07905a9ae2a
+    m_Address: WaterView
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 72ce73c5766b4b57810ce06058115bba
+    m_Address: TerrainTextureConfig
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 7445a6f3dae524dd3bc3706c85cf1205
     m_Address: TerrainGenerationConfig
     m_ReadOnly: 0
@@ -55,8 +65,8 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 72ce73c5766b4b57810ce06058115bba
-    m_Address: TerrainTextureConfig
+  - m_GUID: f0414836f56d8432f8aa623ee066eb99
+    m_Address: WaterViewConfig
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

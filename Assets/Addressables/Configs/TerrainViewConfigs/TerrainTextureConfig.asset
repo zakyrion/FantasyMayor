@@ -14,9 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Terrain.View::Modules.TerrainView.Configs.TerrainTextureConfig
   textureResolution: 2048
   brushRadius: 3
+  textureBlurRadius: 4
   centerWeight: 1
   edgeWeight: 0.3
-  slopeThreshold: 0.5
+  slopeThreshold: 0.2
   hueJitterStrength: 0.05
   plainColor: {r: 0.45, g: 0.68, b: 0.32, a: 1}
   mountainFlatColor: {r: 0.62, g: 0.65, b: 0.35, a: 1}
@@ -24,4 +25,4 @@ MonoBehaviour:
   bedhillColor: {r: 0.55, g: 0.6, b: 0.38, a: 1}
   coastlineColor: {r: 0.76, g: 0.7, b: 0.5, a: 1}
   waterColor: {r: 0.2, g: 0.38, b: 0.58, a: 1}
-  fallbackColor: {r: 0.35, g: 0.45, b: 0.3, a: 1}
+  fallbackColor: {r: 0.5450981, g: 0, b: 0, a: 1}

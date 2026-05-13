@@ -26,6 +26,8 @@ namespace Installers.TerrainView
                 .As<TerrainViewGenerationSubSystem, ViewSubSystem>();
             builder.Register<TerrainViewTextureSubSystem>(Lifetime.Singleton)
                 .As<TerrainViewTextureSubSystem, ViewSubSystem>();
+            builder.Register<WaterViewSubSystem>(Lifetime.Singleton)
+                .As<WaterViewSubSystem, ViewSubSystem>();
         }
     }
 }

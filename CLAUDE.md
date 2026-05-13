@@ -6,7 +6,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Start Working
 - Read ARCHITECTURE.md
-- Read SESSION_START.md
 
 ## Stack
 Engine: Unity | ECS: DefaultEcs (DoD, NOT Unity DOTS) | DI: VContainer | Async: UniTask | Assets: Addressables

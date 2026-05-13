@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 539dc2076fd9a429e9e6118b3b890197, type: 3}
+  m_Name: WaterViewConfig
+  m_EditorClassIdentifier: Terrain.View::Modules.TerrainView.Configs.WaterViewConfig
+  waterYOffset: 0.05
+  subdivisions: 1
+  shallowColor: {r: 0.35, g: 0.72, b: 0.85, a: 0.65}
+  deepColor: {r: 0.1, g: 0.28, b: 0.58, a: 0.92}
+  waveNormalMap: {fileID: 0}
+  waveSpeed: 0.4
+  waveScale: {x: 2, y: 2}
+  waveScale2: {x: 1.5, y: 1.5}
+  flowDirection: {x: 1, y: 0}
+  flowSpeed: 0.2
+  foamStrength: 0.75
+  foamWidth: 0.4
+  fresnelPower: 4
+  transparency: 0.82
