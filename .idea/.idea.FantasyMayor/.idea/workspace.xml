@@ -3,31 +3,32 @@
   <component name="AutoImportSettings">
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
+  <component name="CMakeProjectFlavorService">
+    <option name="flavorId" value="CMakePlainProjectFlavor" />
+  </component>
+  <component name="CMakeSettings">
+    <configurations />
+  </component>
   <component name="ChangeListManager">
     <list default="true" id="7b826948-54b7-4574-9c0d-7dde0e17b8dc" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.claude/commands/fantasymayor-session-start.md" beforeDir="false" afterPath="$PROJECT_DIR$/.claude/commands/fantasymayor-session-start.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.FantasyMayor/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.FantasyMayor/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ARCHITECTURE.md" beforeDir="false" afterPath="$PROJECT_DIR$/ARCHITECTURE.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/DefaultVolumeProfile.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/DefaultVolumeProfile.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/AddressableAssetsData/AddressableAssetSettings.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/AddressableAssetsData/AddressableAssetSettings.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/AddressableAssetsData/AssetGroups/Configs.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/AddressableAssetsData/AssetGroups/Configs.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Materials/m_hex.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Materials/m_hex.mat" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/Materials/m_water.mat" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Materials/m_water.mat" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Modules/Boot/Implementation/Boot.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Modules/Boot/Implementation/Boot.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Modules/HexesUI/HexesUI.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Modules/HexesUI/HexesUI.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Modules/TerrainGenerator/Installer/TerrainGeneratorInstaller.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Modules/TerrainGenerator/Installer/TerrainGeneratorInstaller.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Modules/TerrainGenerator/Systems/TerrainGenerationSystem.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Modules/TerrainGenerator/Systems/TerrainGenerationSystem.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Modules/TerrainView/Configs/TerrainViewConfig.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Modules/TerrainView/Configs/TerrainViewConfig.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Modules/TerrainView/Systems/TerrainViewConfigLoaderSystem.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Modules/TerrainView/Systems/TerrainViewConfigLoaderSystem.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Modules/TerrainView/Systems/TerrainViewSystem.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Modules/TerrainView/Systems/TerrainViewSystem.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Modules/TerrainView/Terrain.View.asmdef" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Modules/TerrainView/Terrain.View.asmdef" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Modules/TerrainView/Views/TerrainView.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Modules/TerrainView/Views/TerrainView.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Plugins/Easy Save 3/Resources/ES3/ES3Defaults.asset" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Plugins/Easy Save 3/Resources/ES3/ES3Defaults.asset" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Scenes/SampleScene.unity" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scenes/SampleScene.unity" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/BootstrapSdfHex.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/BootstrapSdfHex.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Installers/TerrainView.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Installers/TerrainView/Installers.TerrainView.asmdef" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Installers/TerrainView/Installers.TerrainView.asmdef.meta" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Installers/TerrainView/TerrainViewInstaller.cs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/Scripts/Installers/TerrainView/TerrainViewInstaller.cs.meta" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Scripts/Installers/World/Installers.World.asmdef" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Installers/World/Installers.World.asmdef" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Assets/Scripts/Installers/World/WorldInstaller.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Assets/Scripts/Installers/World/WorldInstaller.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CODEX.md" beforeDir="false" afterPath="$PROJECT_DIR$/CODEX.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CODEX.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Packages/manifest.json" beforeDir="false" afterPath="$PROJECT_DIR$/Packages/manifest.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Packages/packages-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/Packages/packages-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ProjectSettings/EditorBuildSettings.asset" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/EditorBuildSettings.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ProjectSettings/ProjectSettings.asset" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/ProjectSettings.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ProjectSettings/URPProjectSettings.asset" beforeDir="false" afterPath="$PROJECT_DIR$/ProjectSettings/URPProjectSettings.asset" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/skills/fantasymayor-session-start/SKILL.md" beforeDir="false" afterPath="$PROJECT_DIR$/skills/fantasymayor-session-start/SKILL.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -38,7 +39,7 @@
     <option name="firstShow" value="false" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="5" />
+    <option name="cachedIndexableFilesCount" value="27" />
     <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
   </component>
   <component name="FileTemplateManagerImpl">
@@ -57,6 +58,7 @@
     <setting file="file://$PROJECT_DIR$/Assets/Modules/AxialSystem/HexCoord.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Modules/Boot/Core/FirstUIStep.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Modules/Boot/Core/TerrainGenerationStep.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Modules/Boot/Implementation/Boot.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Modules/CurveBuilders/ICurveBuilder.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Modules/HexesCore/Components/HexIdComponent.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Modules/HexesCore/Components/HexLevelComponent.cs" root0="FORCE_HIGHLIGHTING" />
@@ -66,8 +68,13 @@
     <setting file="file://$PROJECT_DIR$/Assets/Modules/MainCanvas/Installer/MainCanvasInstaller.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Modules/TerrainGenerator/Components/TerrainGenerationGenerateEventComponent.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Modules/TerrainGenerator/Data/WaterType.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Modules/TerrainGenerator/Installer/TerrainGeneratorInstaller.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Modules/TerrainGenerator/Systems/TerrainGenerationConfigLoaderSystem.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Modules/TerrainGenerator/Systems/TerrainGenerationSystem.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Modules/TerrainView/Components/HydraulicErosionConfigComponent.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Modules/TerrainView/Components/ShowTerrainViewEventComponent.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Modules/TerrainView/Components/TerrainViewComponent.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Modules/TerrainView/Components/TerrainViewConfigComponent.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Modules/TerrainView/Configs/HeightSmoothingConfig.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Modules/TerrainView/Configs/IsolineConfig.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Modules/TerrainView/Configs/TerrainViewConfig.cs" root0="FORCE_HIGHLIGHTING" />
@@ -76,9 +83,12 @@
     <setting file="file://$PROJECT_DIR$/Assets/Modules/TerrainView/Data/IsolineBuilderData.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Modules/TerrainView/Data/IsolineData.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Modules/TerrainView/Data/TraversalSideData.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Modules/TerrainView/Installer/TerrainViewInstaller.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Modules/TerrainView/Isolines/FieldBasedIsolineBuilder.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Modules/TerrainView/Systems/TerrainViewConfigLoaderSystem.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Modules/TerrainView/Systems/TerrainViewSystem.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Modules/TerrainView/Views/TerrainView.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$PROJECT_DIR$/Assets/Scripts/BootstrapSdfHex.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/Scripts/Core/Box.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Scripts/DefaultECSExtensions/ConfigLoaderSystem.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Scripts/Extentions/SegmentSizeAttribute.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Assets/Scripts/Installers/Addressable/AddressableInstaller.cs" root0="FORCE_HIGHLIGHTING" />
@@ -89,6 +99,7 @@
     <setting file="file://$PROJECT_DIR$/Library/PackageCache/com.unity.addressables@8460f1c9c927/Runtime/Addressables.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Library/PackageCache/com.unity.addressables@8460f1c9c927/Runtime/ResourceManager/AsyncOperations/AsyncOperationHandle.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Library/PackageCache/com.unity.mathematics@19a9377c4ffa/Unity.Mathematics/math.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Library/PackageCache/com.unity.ugui@d8a2716f3013/Runtime/UGUI/EventSystem/InputModules/BaseInput.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Library/PackageCache/jp.hadashikick.vcontainer@0cb993cc4615/Runtime/Annotations/IStartable.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Library/PackageCache/jp.hadashikick.vcontainer@0cb993cc4615/Runtime/Internal/InstanceProviders/InstanceProvider.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Library/PackageCache/jp.hadashikick.vcontainer@0cb993cc4615/Runtime/Internal/ReflectionInjector.cs" root0="FORCE_HIGHLIGHTING" />
@@ -96,19 +107,11 @@
     <setting file="file://$PROJECT_DIR$/Library/PackageCache/jp.hadashikick.vcontainer@0cb993cc4615/Runtime/Unity/ContainerBuilderUnityExtensions.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Library/PackageCache/jp.hadashikick.vcontainer@0cb993cc4615/Runtime/Unity/LifetimeScope.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Library/PackageCache/jp.hadashikick.vcontainer@0cb993cc4615/Runtime/Unity/ObjectResolverUnityExtensions.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/051455af556b4c109936c29ef42f8d2e1f7200/12/6b57ecbf/Vector2Int.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/08bbde0717c941bb815c748c7a9fe703214200/ce/bd8f76b1/IJobForExtensions.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/08bbde0717c941bb815c748c7a9fe703214200/eb/73b71db5/NativeArray`1.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/5a41d6b7189842eca409fd0b1c3e3dcf17bf78/26/cb522a47/IDisposable.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/5a41d6b7189842eca409fd0b1c3e3dcf17bf78/55/ddc32d82/IEnumerable`1.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/105d632ce394ea674af2a3dde9a6fdb4bd8256a3b73e046a15efa9c35f8072/EntityQueryBuilder.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/2f6cc420294904050ecf879d067346e8616f585a43e2963dd9b4871da6/World.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/ILViewer/ab63f1e5d2d847a58f092d249f58efb410a00/e5/77c7a474/0200000Dpdb6.il" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/DecompilerCache/decompiler/14184025e75a4dc8afc84eb384fe0e5d214600/bc/22e11ee4/Component.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/358fceb28f732c13a2220b1cb7aa3a2017c2854fb4aca9d9deae4839ca1da4/Entity.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/397b2b49fd214c89e65777a9393b7d51e911dc36895ec1d317b88189886ff/ISystem.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/4ed7e89b86db35f6bc27b5a5773d97d8890b7b022eded34c2122a9d2db583aa/AEntitySetSystem.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/8a522b806eac9bb894e6e4c5fe87f353457535e769447e79c6b396beecb5d0/System.Threading.cs" root0="FORCE_HIGHLIGHTING" />
-    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/cc12dfbb82ca9dda9c75d6e48cbce88bdaec3de07f9d6dfc4ea1b89f735f6a/SequentialSystem.cs" root0="SKIP_HIGHLIGHTING" />
-    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/d44b17e136d09081da1e8fd0e8c83fde60e11818b9f2442d7ed8cb733fae895e/System.Collections.Generic.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/9d928fb96abab46dc13cffc38736f4672af25b0516ab260211f3582aac54a3d/Publisher.cs" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
@@ -134,11 +137,15 @@
     &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
     &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
     &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;Tasks/FM-2-terrain-generation&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;Tasks/FM-5-camera-movement-and-click&quot;,
     &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
@@ -147,6 +154,7 @@
     &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
     &quot;settings.editor.selected.configurable&quot;: &quot;ml.llm.LLMConfigurable&quot;,
     &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;unity.profiler.toolWindow.autoShown&quot;: &quot;true&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
@@ -503,6 +511,11 @@
       <workItem from="1777387858640" duration="6315000" />
       <workItem from="1777469183221" duration="8095000" />
       <workItem from="1777484190873" duration="3274000" />
+      <workItem from="1778053219353" duration="3946000" />
+      <workItem from="1778517117882" duration="2086000" />
+      <workItem from="1778588924758" duration="4188000" />
+      <workItem from="1778684970630" duration="3149000" />
+      <workItem from="1778792924533" duration="2454000" />
     </task>
     <servers />
   </component>

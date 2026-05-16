@@ -3,7 +3,10 @@
     "rootNamespace": "",
     "references": [
         "VContainer",
-        "DefaultECS.Extensions"
+        "DefaultECS.Extensions",
+        "UserInput",
+        "Unity.InputSystem",
+        "Boot.Core"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

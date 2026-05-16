@@ -13,13 +13,17 @@ Follow the repository process exactly. Do not skip startup documents, do not inv
 
 ## Workflow
 
+### 0. Ask the task, what we will to do
+
+Bofore start any other actions you need to ask the developer what task we will do today
+Only after provided asnwer you must to continue this skill.
+
 ### 1. Load startup instructions first
 
 Read `CLAUDE.md` before anything else.
 
 Execute the instructions inside `CLAUDE.md`, not just summarize them. At minimum this means reading:
 - `ARCHITECTURE.md`
-- `SESSION_START.md`
 
 If `CLAUDE.md` points to additional mandatory startup material, read that too.
 
@@ -34,11 +38,6 @@ Do not preload optional deep-dive files unless the current startup flow or the u
 ### 2. Read the remaining root Markdown files
 
 After completing the startup documents, read the other Markdown files in the repository root.
-
-Prioritize project-status and roadmap files such as:
-- `CODEX.md`
-- `TERRAIN_GENERATOR_FINAL.md`
-- `ISOLINE_APPROACHES.md`
 
 Ignore nested package/plugin READMEs during this startup pass unless a root file explicitly sends you there or the user asks for work in that area.
 
@@ -72,16 +71,16 @@ Respond in the user's language. Keep the summary short and operational.
 Use this structure:
 
 1. `Read`
-List the startup and root files you loaded.
+   List the startup and root files you loaded.
 
 2. `Current state`
-State where the project appears to have stopped and what is already considered done.
+   State where the project appears to have stopped and what is already considered done.
 
 3. `Possible next work`
-State the next roadmap item or the competing candidates if the docs disagree.
+   State the next roadmap item or the competing candidates if the docs disagree.
 
 4. `Question`
-Ask the user directly what to do next.
+   Ask the user directly what to do next.
 
 ## Guardrails
 

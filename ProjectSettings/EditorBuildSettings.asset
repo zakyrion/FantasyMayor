@@ -13,3 +13,5 @@ EditorBuildSettings:
       type: 2}
     com.unity.dt.app-ui: {fileID: 11400000, guid: e22fbd530c7784d3a84b1b8d39ab13ee,
       type: 2}
+    com.unity.input.settings: {fileID: 11400000, guid: 93109dd5ae05a47e3ac8cea300cacd01,
+      type: 2}

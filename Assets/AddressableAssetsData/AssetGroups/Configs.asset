@@ -14,7 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_GroupName: Configs
   m_GUID: 07ffff7bfc07441f59b19dc5bf4d99ce
-  m_SerializeEntries: []
+  m_SerializeEntries:
+  - m_GUID: 5d7894a0dc6a4644b83a0b32c7dc5667
+    m_Address: CameraMovementConfig
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   m_ReadOnly: 0
   m_Settings: {fileID: 11400000, guid: 0dd7b941080824acfb3df1f4871f8a9b, type: 2}
   m_SchemaSet:

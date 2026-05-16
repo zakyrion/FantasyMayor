@@ -19,6 +19,7 @@ namespace Modules.Boot.Implementation
         private IReadOnlyList<IUniTaskSystem<ConfigLoadStep>> _configLoadSystems;
         private IReadOnlyList<IUniTaskSystem<FirstUIStep>> _firstUISystems;
         private bool _isBootComplete;
+        private IReadOnlyList<ILateUpdatedSystem> _lateUpdatedSystems;
         private IReadOnlyList<IUpdatedSystem> _updatedSystems;
 
         private async UniTask Start()
@@ -47,29 +48,48 @@ namespace Modules.Boot.Implementation
                 updatedSystem.Update(state);
         }
 
-        private void OnDestroy()
+        private void LateUpdate()
         {
-            if (_updatedSystems == null)
+            if (!_isBootComplete)
                 return;
 
-            foreach (var updatedSystem in _updatedSystems)
-                updatedSystem.Dispose();
+            var state = new GameState(Time.deltaTime);
+
+            foreach (var lateUpdatedSystem in _lateUpdatedSystems)
+                lateUpdatedSystem.Update(state);
         }
 
-        /// <summary>Receives all systems bound to each boot phase and the runtime update loop via VContainer.</summary>
+        private void OnDestroy()
+        {
+            if (_updatedSystems != null)
+                foreach (var updatedSystem in _updatedSystems)
+                    updatedSystem.Dispose();
+
+            if (_lateUpdatedSystems != null)
+                foreach (var lateUpdatedSystem in _lateUpdatedSystems)
+                    lateUpdatedSystem.Dispose();
+        }
+
+        /// <summary>Receives all systems bound to each boot phase and the runtime update loops via VContainer.</summary>
+        /// <param name="world">The ECS world (resolved to satisfy DefaultEcs dependency).</param>
         /// <param name="configLoadSystems">Systems for the config-load boot phase.</param>
         /// <param name="firstUISystems">Systems for the first-UI boot phase.</param>
-        /// <param name="updatedSystems">Per-frame systems, sorted ascending by <see cref="IUpdatedSystem.Priority" />.</param>
+        /// <param name="updatedSystems">Per-frame Update systems, sorted ascending by <see cref="IUpdatedSystem.Priority" />.</param>
+        /// <param name="lateUpdatedSystems">Per-frame LateUpdate systems, sorted ascending by <see cref="ILateUpdatedSystem.Priority" />.</param>
         [Inject]
         public void Construct(
             World world,
             IReadOnlyList<IUniTaskSystem<ConfigLoadStep>> configLoadSystems,
             IReadOnlyList<IUniTaskSystem<FirstUIStep>> firstUISystems,
-            IReadOnlyList<IUpdatedSystem> updatedSystems)
+            IReadOnlyList<IUpdatedSystem> updatedSystems,
+            IReadOnlyList<ILateUpdatedSystem> lateUpdatedSystems)
         {
             _configLoadSystems = configLoadSystems;
             _firstUISystems = firstUISystems;
             _updatedSystems = updatedSystems
+                .OrderBy(s => s.Priority)
+                .ToArray();
+            _lateUpdatedSystems = lateUpdatedSystems
                 .OrderBy(s => s.Priority)
                 .ToArray();
         }

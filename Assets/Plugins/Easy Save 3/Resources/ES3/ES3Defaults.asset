@@ -40,8 +40,11 @@ MonoBehaviour:
     - Assembly-CSharp
     - Assembly-CSharp-firstpass
     - AxialSystem
+    - Boot.Core
+    - Boot.Implementation
     - Core
     - CurveBuilders
+    - DefaultECS.Extensions
     - Dreamteck.Splines
     - Dreamteck.Utilities
     - glTFast
@@ -52,11 +55,12 @@ MonoBehaviour:
     - Hexes.Core
     - Hexes.UI
     - Installers
-    - Installers.Hexes
-    - Installers.UI
     - Installers.World
     - MainCanvas.Core
     - MainCanvas.Implementation
+    - MainCanvas.Installer
+    - Pathfinding
+    - Pathfinding.Installer
     - Sirenix.OdinInspector.Modules.Unity.Addressables
     - Terrain.Generator
     - Terrain.View
@@ -65,6 +69,7 @@ MonoBehaviour:
     - UniTask.DOTween
     - UniTask.Linq
     - UniTask.TextMeshPro
+    - UserInput
     - VContainer
     showAdvancedSettings: 0
   addMgrToSceneAutomatically: 0

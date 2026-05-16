@@ -17,14 +17,14 @@ namespace Modules.TerrainGenerator.Installer
             builder.Register<TerrainGenerationSystem>(Lifetime.Singleton)
                 .As<TerrainGenerationSystem, IUpdatedSystem>();
 
-            builder.Register<MountainGenerationSystem>(Lifetime.Singleton)
-                .As<MountainGenerationSystem, GenerationSystem>();
-            builder.Register<RiverGenerationSystem>(Lifetime.Singleton)
-                .As<RiverGenerationSystem, GenerationSystem>();
-            builder.Register<LakeGenerationSystem>(Lifetime.Singleton)
-                .As<LakeGenerationSystem, GenerationSystem>();
-            builder.Register<SeaGenerationSystem>(Lifetime.Singleton)
-                .As<SeaGenerationSystem, GenerationSystem>();
+            builder.Register<MountainGenerationSubSystem>(Lifetime.Singleton)
+                .As<MountainGenerationSubSystem, TerrainGenerationSubSystem>();
+            builder.Register<RiverGenerationSubSystem>(Lifetime.Singleton)
+                .As<RiverGenerationSubSystem, TerrainGenerationSubSystem>();
+            builder.Register<LakeGenerationSubSystem>(Lifetime.Singleton)
+                .As<LakeGenerationSubSystem, TerrainGenerationSubSystem>();
+            builder.Register<SeaGenerationSubSystem>(Lifetime.Singleton)
+                .As<SeaGenerationSubSystem, TerrainGenerationSubSystem>();
         }
     }
 }

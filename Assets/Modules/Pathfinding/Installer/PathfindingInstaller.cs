@@ -1,4 +1,3 @@
-using Modules.Pathfinding.Systems;
 using VContainer;
 using VContainer.Unity;
 
@@ -8,8 +7,8 @@ namespace Modules.Pathfinding.Installer
     {
         protected override void Configure(IContainerBuilder builder)
         {
-            builder.Register<HexPathfindingSystem>(Lifetime.Singleton)
-                .As<HexPathfindingSystem, IHexPathfindingSystem>();
+            builder.Register<HexPathfindingUtility>(Lifetime.Singleton)
+                .As<HexPathfindingUtility, IHexPathfindingUtility>();
         }
     }
 }

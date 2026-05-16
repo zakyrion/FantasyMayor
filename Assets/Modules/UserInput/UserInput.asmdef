@@ -1,0 +1,26 @@
+{
+    "name": "UserInput",
+    "rootNamespace": "",
+    "references": [
+        "Core",
+        "VContainer",
+        "DefaultECS.Extensions",
+        "Unity.InputSystem",
+        "Addressables.Core",
+        "UniTask",
+        "Boot.Core",
+        "Hexes.Core",
+        "Terrain.View",
+        "AxialSystem",
+        "Unity.Mathematics"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

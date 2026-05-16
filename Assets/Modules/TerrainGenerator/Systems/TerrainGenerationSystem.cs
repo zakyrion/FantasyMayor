@@ -23,14 +23,14 @@ namespace Modules.TerrainGenerator.Systems
         private const int WaterLevel = -1;
 
         private readonly EntitySet _configSet;
-        private readonly IReadOnlyList<GenerationSystem> _generationSystems;
+        private readonly IReadOnlyList<TerrainGenerationSubSystem> _generationSubSystems;
         private readonly EntitySet _hexSet;
 
         /// <inheritdoc />
         public override int Priority => ExecutionPriority;
 
         /// <param name="world">The ECS world to query.</param>
-        public TerrainGenerationSystem(World world, IReadOnlyList<GenerationSystem> generationSystems)
+        public TerrainGenerationSystem(World world, IReadOnlyList<TerrainGenerationSubSystem> generationSubSystems)
             : base(world.GetEntities()
                 .WhenAdded<TerrainGenerationGenerateEventComponent>()
                 .AsSet())
@@ -44,11 +44,11 @@ namespace Modules.TerrainGenerator.Systems
                 .With<HexLevelComponent>()
                 .AsSet();
 
-            _generationSystems = generationSystems
+            _generationSubSystems = generationSubSystems
                 .OrderBy(system => system.Priority)
                 .ToArray();
 
-            Debug.Log($"[skh] generation sub systems: {_generationSystems.Count}");
+            Debug.Log($"[skh] generation sub systems: {_generationSubSystems.Count}");
         }
 
         /// <inheritdoc />
@@ -64,7 +64,7 @@ namespace Modules.TerrainGenerator.Systems
                 .Get<TerrainGenerationConfigComponent>();
 
             Generate(entity.World, in config);
-            RunGenerationSystems(state);
+            RunGenerationSubSystems(state);
             SyncHexTags();
         }
 
@@ -93,14 +93,14 @@ namespace Modules.TerrainGenerator.Systems
             }
         }
 
-        private void RunGenerationSystems(in GameState state)
+        private void RunGenerationSubSystems(in GameState state)
         {
-            foreach (var generationSystem in _generationSystems)
+            foreach (var generationSubSystem in _generationSubSystems)
             {
-                if (!generationSystem.IsEnabled)
+                if (!generationSubSystem.IsEnabled)
                     continue;
 
-                generationSystem.Update(state);
+                generationSubSystem.Update(state);
             }
         }
 
