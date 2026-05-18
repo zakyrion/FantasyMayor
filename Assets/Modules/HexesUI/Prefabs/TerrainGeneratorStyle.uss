@@ -2,6 +2,10 @@
     --accent-color: #000;
 }
 
+.raycast-transparent {
+    /* picking disabled via EnablePicking(false) in HexesUI.ApplyRaycastTransparent */
+}
+
 #TopPanel:disabled {
     height: 0;
     flex-direction: row;

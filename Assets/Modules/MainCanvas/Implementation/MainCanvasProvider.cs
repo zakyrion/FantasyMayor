@@ -12,7 +12,6 @@ namespace Modules.MainCanvas.Implementation
 
         public MainCanvasProvider(GameObject rootGo)
         {
-            Debug.Log($"[skh] CanvasProviderModel.ctor({rootGo})");
             RootGO = rootGo;
             RootTransform = RootGO.GetComponent<Transform>();
         }

@@ -1,14 +1,14 @@
 <ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
-    <Style src="project://database/Assets/Modules/HexesUI/Prefabs/TerrainGeneratorStyle.uss?fileID=7433441132597879392&amp;guid=1b59fba0914664fac954564d91e91a64&amp;type=3#TerrainGeneratorStyle" />
-    <ui:VisualElement name="MainContainer">
-        <ui:VisualElement name="TopPanel" />
-        <ui:VisualElement name="MiddlePanel">
-            <ui:VisualElement name="LeftPanel" class="panel" />
-            <ui:VisualElement name="CenterPanel" class="panel" />
+    <Style src="project://database/Assets/Modules/HexesUI/Prefabs/TerrainGeneratorStyle.uss?fileID=7433441132597879392&amp;guid=1b59fba0914664fac954564d91e91a64&amp;type=3#TerrainGeneratorStyle"/>
+    <ui:VisualElement name="MainContainer" class="raycast-transparent">
+        <ui:VisualElement name="TopPanel" class="raycast-transparent"/>
+        <ui:VisualElement name="MiddlePanel" class="raycast-transparent">
+            <ui:VisualElement name="LeftPanel" enabled="true" class="panel raycast-transparent"/>
+            <ui:VisualElement name="CenterPanel" enabled="true" class="panel raycast-transparent"/>
             <ui:VisualElement name="RightPanel" class="panel">
-                <ui:Button name="GenerateButton" text="Generate" class="buttons" />
-                <ui:Button name="SecondButton" text="Second step" class="buttons" />
-                <ui:Button name="GenerateMeshButton" text="Generate mesh" class="buttons" />
+                <ui:Button name="GenerateButton" text="Generate" class="buttons"/>
+                <ui:Button name="SecondButton" text="Second step" class="buttons"/>
+                <ui:Button name="GenerateMeshButton" text="Generate mesh" class="buttons"/>
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

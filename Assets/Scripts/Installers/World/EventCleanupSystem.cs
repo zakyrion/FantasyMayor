@@ -27,7 +27,6 @@ namespace Installers.World
         /// <inheritdoc />
         protected override void Update(GameState state, in Entity entity)
         {
-            Debug.Log("[skh] Updating event cleanup");
             entity.Dispose();
         }
     }

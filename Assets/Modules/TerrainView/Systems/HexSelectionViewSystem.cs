@@ -1,0 +1,156 @@
+using System;
+using System.Collections.Generic;
+using DefaultEcs;
+using DefaultECSExtensions;
+using JetBrains.Annotations;
+using Modules.AxialSystem;
+using Modules.HexesCore.Utils;
+using Modules.TerrainView.Components;
+using Modules.TerrainView.Views;
+using Unity.Collections;
+using Unity.Mathematics;
+
+namespace Modules.TerrainView.Systems
+{
+    /// <summary>
+    ///     Synchronizes <see cref="SelectedHexComponent" /> state into the runtime selection view.
+    ///     Hides the border when selection disappears and regenerates it when selection changes.
+    /// </summary>
+    [UsedImplicitly]
+    internal sealed class HexSelectionViewSystem : UpdatedSystem
+    {
+        private const int ExecutionPriority = HexSelectionViewLoadingSystem.ExecutionPriority + 1;
+        private const int BorderBfsDepth = 3;
+        private const float BorderLift = 0.08f;
+
+        private readonly EntitySet _selectedHexSet;
+        private readonly EntitySet _vertexGridSet;
+
+        private bool _hadSelection;
+        private SelectedHexComponent _lastSelection;
+        private HexSelectionView _lastView;
+
+        /// <inheritdoc />
+        public override int Priority => ExecutionPriority;
+
+        public HexSelectionViewSystem(World world)
+            : base(world.GetEntities()
+                .With<HexSelectionViewComponent>()
+                .AsSet())
+        {
+            _selectedHexSet = world.GetEntities()
+                .With<SelectedHexComponent>()
+                .AsSet();
+            _vertexGridSet = world.GetEntities()
+                .With<VertexGridComponent>()
+                .AsSet();
+        }
+
+        /// <inheritdoc />
+        protected override void Update(GameState state, in Entity entity)
+        {
+            var view = entity.Get<HexSelectionViewComponent>().ObjectRef;
+            if (view == null)
+                return;
+
+            var viewChanged = _lastView != view;
+
+            if (_selectedHexSet.Count == 0)
+            {
+                if (_hadSelection || viewChanged)
+                    view.HideSelectionMesh();
+
+                _hadSelection = false;
+                _lastView = view;
+                return;
+            }
+
+            if (_vertexGridSet.Count == 0)
+                return;
+
+            var selected = _selectedHexSet.GetEntities()[0].Get<SelectedHexComponent>();
+            if (!viewChanged && _hadSelection && _lastSelection.Coords == selected.Coords)
+                return;
+
+            VertexGrid vertexGrid = _vertexGridSet.GetEntities()[0].Get<VertexGridComponent>().Grid;
+            ComputeSelectionRings(selected.Coords, vertexGrid, out var outerRing, out var innerRing);
+
+            view.ShowSelectionBorder(outerRing, innerRing);
+
+            outerRing.Dispose();
+            innerRing.Dispose();
+
+            _hadSelection = true;
+            _lastSelection = selected;
+            _lastView = view;
+        }
+
+        private void ComputeSelectionRings(
+            HexCoord selectedHex,
+            VertexGrid grid,
+            out NativeArray<float3> outerRing,
+            out NativeArray<float3> innerRing)
+        {
+            var allOwned = new HashSet<VertexCoord>(grid.GetOwnedVertexCoords(selectedHex));
+            var outerList = new List<VertexCoord>(allOwned.Count / 4);
+            Span<VertexCoord> neighborBuffer = stackalloc VertexCoord[6];
+
+            foreach (var coord in allOwned)
+            {
+                var vertex = grid.Get(coord);
+                if (vertex.OwnerCount > 1)
+                {
+                    outerList.Add(coord);
+                    continue;
+                }
+
+                var neighborCount = grid.GetNeighbors(coord, neighborBuffer);
+                if (neighborCount < AxialMath.NeighborCount)
+                    outerList.Add(coord);
+            }
+
+            var visited = new HashSet<VertexCoord>(outerList);
+            var current = new List<VertexCoord>(outerList);
+            var next = new List<VertexCoord>();
+
+            for (var step = 0; step < BorderBfsDepth; step++)
+            {
+                foreach (var coord in current)
+                {
+                    var count = grid.GetNeighbors(coord, neighborBuffer);
+                    for (var d = 0; d < count; d++)
+                    {
+                        var neighbor = neighborBuffer[d];
+                        if (allOwned.Contains(neighbor) && visited.Add(neighbor))
+                            next.Add(neighbor);
+                    }
+                }
+
+                (current, next) = (next, current);
+                next.Clear();
+            }
+
+            outerRing = new NativeArray<float3>(outerList.Count, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+            for (var i = 0; i < outerList.Count; i++)
+            {
+                var pos = grid.Get(outerList[i]).Position;
+                outerRing[i] = new float3(pos.x, pos.y + BorderLift, pos.z);
+            }
+
+            innerRing = new NativeArray<float3>(current.Count, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+            for (var i = 0; i < current.Count; i++)
+            {
+                var pos = grid.Get(current[i]).Position;
+                innerRing[i] = new float3(pos.x, pos.y + BorderLift, pos.z);
+            }
+        }
+
+        /// <inheritdoc />
+        public override void Dispose()
+        {
+            _selectedHexSet.Dispose();
+            _vertexGridSet.Dispose();
+            base.Dispose();
+        }
+    }
+}

@@ -38,8 +38,6 @@ namespace Modules.TerrainView.Systems
 
         protected override void Update(GameState state, in Entity entity)
         {
-            Debug.Log($"[skh] Call TerrainViewDebugSystem Update: {entity}");
-
             if (_configSet.Count == 0)
             {
                 entity.Dispose();

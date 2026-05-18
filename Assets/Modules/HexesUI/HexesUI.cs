@@ -4,6 +4,7 @@ using Modules.TerrainGenerator.Components;
 using UnityEngine;
 using UnityEngine.UIElements;
 using VContainer;
+using static Unity.AppUI.UI.VisualElementExtensions;
 
 namespace Modules.HexesUI
 {
@@ -16,9 +17,16 @@ namespace Modules.HexesUI
 
         private World _world;
 
-        private void Awake()
+        private void Start()
         {
             _document.rootVisualElement.Q<Button>(GENERATE_BUTTON_ID).clicked += GenerateHexes;
+            ApplyRaycastTransparent();
+        }
+
+        private void ApplyRaycastTransparent()
+        {
+            foreach (var element in _document.rootVisualElement.Query(className: "raycast-transparent").ToList())
+                element.EnablePicking(false);
         }
 
         [Inject]
@@ -29,7 +37,6 @@ namespace Modules.HexesUI
 
         private void GenerateHexes()
         {
-            Debug.Log("[skh] Generating hexes");
             var entity = _world.CreateEntity();
             entity.Set(new TerrainGenerationGenerateEventComponent());
             entity.Set(new EventMarkerComponent());

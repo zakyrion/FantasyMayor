@@ -29,6 +29,7 @@ namespace Installers.World
             playerInputEntity.Set(new PlayerInputComponent { PlayerInput = _playerInput });
 
             builder.Register<EventCleanupSystem>(Lifetime.Singleton).As<UpdatedSystem, IUpdatedSystem>();
+            builder.Register<HexSelectionSystem>(Lifetime.Singleton).As<UpdatedSystem, IUpdatedSystem>();
             builder.Register<CameraMovementConfigLoaderSystem>(Lifetime.Singleton)
                 .As<CameraMovementConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
             builder.Register<CameraMovementSystem>(Lifetime.Singleton).As<LateUpdatedSystem, ILateUpdatedSystem>();

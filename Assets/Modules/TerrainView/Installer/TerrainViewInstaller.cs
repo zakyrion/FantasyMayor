@@ -19,6 +19,10 @@ namespace Installers.TerrainView
                 .As<TerrainViewConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
             builder.Register<TerrainViewSystem>(Lifetime.Singleton)
                 .As<TerrainViewSystem, IUpdatedSystem>();
+            builder.Register<HexSelectionViewLoadingSystem>(Lifetime.Singleton)
+                .As<HexSelectionViewLoadingSystem, IUpdatedSystem>();
+            builder.Register<HexSelectionViewSystem>(Lifetime.Singleton)
+                .As<HexSelectionViewSystem, IUpdatedSystem>();
             builder.Register<TerrainViewDebugSystem>(Lifetime.Singleton)
                 .As<TerrainViewDebugSystem, IUpdatedSystem>();
 

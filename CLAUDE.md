@@ -36,6 +36,8 @@ Before modifying terrain transitions, read these files first:
 - Do not run Unity project builds from the agent side.
 - Do not run `dotnet build`, `msbuild`, `xbuild`, or Unity CLI build commands for this repository.
 - If compile validation is needed, request a Unity-side check from the user.
+- Do not read Unity scene files such as `.unity` or other scene-serialized assets unless the user explicitly allows it in the current task.
+- Never generate or hand-write Unity `.meta` files under any circumstances. If a `.meta` file is needed, stop and ask the user.
 
 ## Code Quality And Review Bar
 - Write code that is ready to pass strict review.

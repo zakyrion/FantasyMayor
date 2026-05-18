@@ -60,6 +60,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: ce4dcb4f589a54297b431c3fde5bf759
+    m_Address: HexSelectionView
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: ee165eef8028147e3af2ed4e380d2446
     m_Address: HydraulicErosionConfig
     m_ReadOnly: 0

@@ -35,7 +35,6 @@ namespace Modules.TerrainGenerator.Systems
                 .WhenAdded<TerrainGenerationGenerateEventComponent>()
                 .AsSet())
         {
-            Debug.Log("[skh] init terrain generation system");
             _configSet = world.GetEntities()
                 .With<TerrainGenerationConfigComponent>()
                 .AsSet();
@@ -47,8 +46,6 @@ namespace Modules.TerrainGenerator.Systems
             _generationSubSystems = generationSubSystems
                 .OrderBy(system => system.Priority)
                 .ToArray();
-
-            Debug.Log($"[skh] generation sub systems: {_generationSubSystems.Count}");
         }
 
         /// <inheritdoc />
@@ -80,7 +77,6 @@ namespace Modules.TerrainGenerator.Systems
         /// <param name="config">Terrain generation parameters.</param>
         private void Generate(World world, in TerrainGenerationConfigComponent config)
         {
-            Debug.Log($"[skh] generate config: {config}");
             var hexCount = HexesUtil.GetTotalHexCountForWaves(config.WaveCount);
 
             for (var index = 0; index < hexCount; index++)
