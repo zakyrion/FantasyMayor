@@ -37,7 +37,7 @@ namespace Modules.UserInput.Systems
                 if (cancellationToken.IsCancellationRequested)
                     return;
 
-                World.CreateEntity().Set(CameraMovementConfigComponent.FromConfig(cameraMovementConfig.Value));
+                World.Set(CameraMovementConfigComponent.FromConfig(cameraMovementConfig.Value));
                 MarkAsLoaded();
             }
             finally

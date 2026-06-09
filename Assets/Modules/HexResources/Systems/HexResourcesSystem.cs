@@ -1,0 +1,54 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using DefaultECSExtensions;
+using JetBrains.Annotations;
+using Modules.Boot.Core;
+
+namespace Modules.HexResources.Systems
+{
+    /// <summary>
+    ///     World-init pipeline step (priority 200). Runs all registered resource generation subsystems
+    ///     in priority order. Driven by the Boot world-init orchestrator, not by an event subscription.
+    /// </summary>
+    [UsedImplicitly]
+    internal sealed class HexResourcesSystem : IPrioritizedUniTaskSystem<TerrainGenerationStep>
+    {
+        private const int ExecutionPriority = 200;
+
+        private readonly IReadOnlyList<HexResourcesSubSystem> _resourceSubSystems;
+
+        /// <inheritdoc />
+        public int Priority => ExecutionPriority;
+
+        public HexResourcesSystem(IReadOnlyList<HexResourcesSubSystem> resourceSubSystems)
+        {
+            _resourceSubSystems = resourceSubSystems
+                .OrderBy(system => system.Priority)
+                .ToArray();
+        }
+
+        /// <inheritdoc />
+        public UniTask Update(TerrainGenerationStep state, CancellationToken cancellationToken)
+        {
+            // Resource generation is one-shot; deltaTime is irrelevant, so a default GameState is passed through.
+            var gameState = default(GameState);
+
+            foreach (var resourceSubSystem in _resourceSubSystems)
+            {
+                if (!resourceSubSystem.IsEnabled)
+                    continue;
+
+                resourceSubSystem.Update(gameState);
+            }
+
+            return UniTask.CompletedTask;
+        }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+        }
+    }
+}

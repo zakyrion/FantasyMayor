@@ -3,9 +3,9 @@ using VContainer.Unity;
 
 namespace Modules.Pathfinding.Installer
 {
-    public class PathfindingInstaller : LifetimeScope
+    public sealed class PathfindingInstaller : IInstaller
     {
-        protected override void Configure(IContainerBuilder builder)
+        public void Install(IContainerBuilder builder)
         {
             builder.Register<HexPathfindingUtility>(Lifetime.Singleton)
                 .As<HexPathfindingUtility, IHexPathfindingUtility>();

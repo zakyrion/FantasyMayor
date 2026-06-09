@@ -1,14 +1,15 @@
-using System.Collections.Generic;
+using System;
 using DefaultEcs;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
-using Modules.HexesCore.Components;
+using Modules.HexCore.Components;
 using Modules.HexesCore.Utils;
 using Modules.Pathfinding;
 using Modules.TerrainGenerator.Components;
 using Modules.TerrainGenerator.Data;
 using Unity.Collections;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace Modules.TerrainGenerator.Systems
 {
@@ -22,9 +23,21 @@ namespace Modules.TerrainGenerator.Systems
         private const int RiverLevel = -1;
         private const int SideCount = 6;
 
-        private readonly EntitySet _configSet;
+        /// <summary>Range of a single perimeter side inside the flattened side-hex buffer.</summary>
+        private readonly struct SideRange
+        {
+            public readonly int Start;
+            public readonly int Count;
+
+            public SideRange(int start, int count)
+            {
+                Start = start;
+                Count = count;
+            }
+        }
+
+        private readonly World _world;
         private readonly EntitySet _hexSet;
-        private readonly EntitySet _riverConfigSet;
         private readonly IHexPathfindingUtility _pathfindingUtility;
 
         public override int Priority => ExecutionPriority;
@@ -32,12 +45,7 @@ namespace Modules.TerrainGenerator.Systems
         public RiverGenerationSubSystem(World world, IHexPathfindingUtility pathfindingUtility)
         {
             _pathfindingUtility = pathfindingUtility;
-            _configSet = world.GetEntities()
-                .With<TerrainGenerationConfigComponent>()
-                .AsSet();
-            _riverConfigSet = world.GetEntities()
-                .With<RiverConfigComponent>()
-                .AsSet();
+            _world = world;
             _hexSet = world.GetEntities()
                 .With<HexIdComponent>()
                 .With<HexLevelComponent>()
@@ -46,20 +54,18 @@ namespace Modules.TerrainGenerator.Systems
 
         public override void Update(DefaultECSExtensions.GameState state)
         {
-            if (_configSet.Count == 0)
+            if (!_world.Has<TerrainGenerationConfigComponent>())
                 return;
 
-            ref readonly var config = ref _configSet.GetEntities()[0]
-                .Get<TerrainGenerationConfigComponent>();
+            ref readonly var config = ref _world.Get<TerrainGenerationConfigComponent>();
 
             if (config.WaterType != WaterType.River)
                 return;
 
-            if (_riverConfigSet.Count == 0)
+            if (!_world.Has<RiverConfigComponent>())
                 return;
 
-            ref readonly var riverConfig = ref _riverConfigSet.GetEntities()[0]
-                .Get<RiverConfigComponent>();
+            ref readonly var riverConfig = ref _world.Get<RiverConfigComponent>();
 
             Generate(config.WaveCount, riverConfig.CornerOffsetTiles);
         }
@@ -67,123 +73,158 @@ namespace Modules.TerrainGenerator.Systems
         public override void Dispose()
         {
             base.Dispose();
-            _configSet.Dispose();
-            _riverConfigSet.Dispose();
             _hexSet.Dispose();
         }
 
         private void Generate(int waveCount, int cornerOffsetTiles)
         {
-            var sideHexes = BuildPerimeterSideHexes(waveCount, cornerOffsetTiles);
-            if (!TrySelectEndpoints(sideHexes, out var start, out var end))
-                return;
-
-            NativeList<HexCoord> path = default;
+            var sideHexes = new NativeList<HexCoord>(Allocator.Temp);
+            var sideRanges = new NativeArray<SideRange>(SideCount, Allocator.Temp);
             try
             {
-                if (!_pathfindingUtility.TryFindPath(_hexSet, start, end, Allocator.Temp, out path))
+                BuildPerimeterSideHexes(waveCount, cornerOffsetTiles, sideHexes, sideRanges);
+                if (!TrySelectEndpoints(sideHexes, sideRanges, out var start, out var end))
                     return;
 
-                ApplyRiver(path);
+                NativeList<HexCoord> path = default;
+                try
+                {
+                    if (!_pathfindingUtility.TryFindPath(_hexSet, start, end, Allocator.Temp, out path))
+                        return;
+
+                    ApplyRiver(path);
+                }
+                finally
+                {
+                    if (path.IsCreated)
+                        path.Dispose();
+                }
             }
             finally
             {
-                if (path.IsCreated)
-                    path.Dispose();
+                sideHexes.Dispose();
+                if (sideRanges.IsCreated)
+                    sideRanges.Dispose();
             }
         }
 
-        private static IReadOnlyList<List<HexCoord>> BuildPerimeterSideHexes(int waveCount, int cornerOffsetTiles)
+        /// <summary>
+        ///     Fills <paramref name="sideHexes" /> with the perimeter hexes of all six sides, concatenated,
+        ///     and records each side's range in <paramref name="sideRanges" />. Empty ranges when the radius
+        ///     is too small or fully consumed by the corner offset.
+        /// </summary>
+        private void BuildPerimeterSideHexes(
+            int waveCount,
+            int cornerOffsetTiles,
+            NativeList<HexCoord> sideHexes,
+            NativeArray<SideRange> sideRanges)
         {
-            var radius = waveCount - 1;
-            var result = new List<List<HexCoord>>(SideCount);
-
             for (var side = 0; side < SideCount; side++)
-                result.Add(new List<HexCoord>());
+                sideRanges[side] = new SideRange(0, 0);
 
+            var radius = waveCount - 1;
             if (radius < 2)
-                return result;
+                return;
 
             var clampedOffset = Mathf.Max(0, cornerOffsetTiles);
             var startStep = clampedOffset;
             var endStep = radius - clampedOffset;
 
             if (startStep > endStep)
-                return result;
+                return;
 
-            HexCoord[] corners =
-            {
-                new(radius, 0),
-                new(radius, -radius),
-                new(0, -radius),
-                new(-radius, 0),
-                new(-radius, radius),
-                new(0, radius)
-            };
+            Span<HexCoord> corners = stackalloc HexCoord[SideCount];
+            corners[0] = new HexCoord(radius, 0);
+            corners[1] = new HexCoord(radius, -radius);
+            corners[2] = new HexCoord(0, -radius);
+            corners[3] = new HexCoord(-radius, 0);
+            corners[4] = new HexCoord(-radius, radius);
+            corners[5] = new HexCoord(0, radius);
 
             for (var side = 0; side < SideCount; side++)
             {
+                var rangeStart = sideHexes.Length;
                 for (var step = startStep; step <= endStep; step++)
-                    result[side].Add(corners[side] + HexesUtil.Neighbour(side) * step);
-            }
+                    sideHexes.Add(corners[side] + HexesUtil.Neighbour(side) * step);
 
-            return result;
+                sideRanges[side] = new SideRange(rangeStart, sideHexes.Length - rangeStart);
+            }
         }
 
-        private static bool TrySelectEndpoints(IReadOnlyList<List<HexCoord>> sideHexes, out HexCoord start, out HexCoord end)
+        private bool TrySelectEndpoints(
+            NativeList<HexCoord> sideHexes,
+            NativeArray<SideRange> sideRanges,
+            out HexCoord start,
+            out HexCoord end)
         {
             start = default;
             end = default;
 
-            var validSides = new List<int>(SideCount);
-            for (var side = 0; side < sideHexes.Count; side++)
+            var validSides = new NativeList<int>(SideCount, Allocator.Temp);
+            var candidateSides = new NativeList<int>(SideCount, Allocator.Temp);
+            try
             {
-                if (sideHexes[side].Count > 0)
-                    validSides.Add(side);
+                for (var side = 0; side < sideRanges.Length; side++)
+                    if (sideRanges[side].Count > 0)
+                        validSides.Add(side);
+
+                if (validSides.Length < 2)
+                    return false;
+
+                var firstSide = validSides[Random.Range(0, validSides.Length)];
+
+                for (var i = 0; i < validSides.Length; i++)
+                {
+                    var side = validSides[i];
+                    if (side == firstSide || CircularSideDistance(firstSide, side) < 2)
+                        continue;
+
+                    candidateSides.Add(side);
+                }
+
+                if (candidateSides.Length == 0)
+                    return false;
+
+                var secondSide = candidateSides[Random.Range(0, candidateSides.Length)];
+                var firstRange = sideRanges[firstSide];
+                var secondRange = sideRanges[secondSide];
+
+                start = sideHexes[firstRange.Start + Random.Range(0, firstRange.Count)];
+                end = sideHexes[secondRange.Start + Random.Range(0, secondRange.Count)];
+                return true;
             }
-
-            if (validSides.Count < 2)
-                return false;
-
-            var firstSide = validSides[Random.Range(0, validSides.Count)];
-            var candidateSides = new List<int>(SideCount - 1);
-
-            foreach (var side in validSides)
+            finally
             {
-                if (side == firstSide || CircularSideDistance(firstSide, side) < 2)
-                    continue;
-
-                candidateSides.Add(side);
+                validSides.Dispose();
+                candidateSides.Dispose();
             }
-
-            if (candidateSides.Count == 0)
-                return false;
-
-            var secondSide = candidateSides[Random.Range(0, candidateSides.Count)];
-            start = sideHexes[firstSide][Random.Range(0, sideHexes[firstSide].Count)];
-            end = sideHexes[secondSide][Random.Range(0, sideHexes[secondSide].Count)];
-            return true;
         }
 
         private void ApplyRiver(NativeList<HexCoord> path)
         {
             var entities = _hexSet.GetEntities();
-            var entityByCoord = new Dictionary<HexCoord, Entity>(entities.Length);
-
-            foreach (var entity in entities)
-                entityByCoord[entity.Get<HexIdComponent>().Coords] = entity;
-
-            for (var index = 0; index < path.Length; index++)
+            var entityByCoord = new NativeParallelHashMap<HexCoord, Entity>(entities.Length, Allocator.Temp);
+            try
             {
-                var coord = path[index];
-                if (!entityByCoord.TryGetValue(coord, out var entity))
-                    continue;
+                foreach (ref readonly var entity in entities)
+                    entityByCoord[entity.Get<HexIdComponent>().Coords] = entity;
 
-                entity.Set(new HexLevelComponent { Level = RiverLevel });
+                for (var index = 0; index < path.Length; index++)
+                {
+                    var coord = path[index];
+                    if (!entityByCoord.TryGetValue(coord, out var entity))
+                        continue;
+
+                    entity.Set(new HexLevelComponent { Level = RiverLevel });
+                }
+            }
+            finally
+            {
+                entityByCoord.Dispose();
             }
         }
 
-        private static int CircularSideDistance(int first, int second)
+        private int CircularSideDistance(int first, int second)
         {
             var distance = Mathf.Abs(first - second);
             return Mathf.Min(distance, SideCount - distance);

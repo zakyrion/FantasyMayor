@@ -3,7 +3,7 @@ using Modules.TerrainGenerator.Data;
 
 namespace Modules.TerrainGenerator.Components
 {
-    internal struct TerrainGenerationConfigComponent
+    public struct TerrainGenerationConfigComponent
     {
         public int WaveCount;
         public WaterType WaterType;

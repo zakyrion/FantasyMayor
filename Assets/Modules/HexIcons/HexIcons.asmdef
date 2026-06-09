@@ -1,0 +1,29 @@
+{
+    "name": "HexIcons",
+    "rootNamespace": "",
+    "references": [
+        "Core",
+        "Cameras",
+        "DefaultECS.Extensions",
+        "Addressables.Core",
+        "Boot.Core",
+        "VContainer",
+        "UniTask",
+        "Terrain.Generator",
+        "Terrain.View",
+        "Hexes.Core",
+        "HexResources",
+        "AxialSystem",
+        "Unity.AppUI",
+        "Unity.Mathematics"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

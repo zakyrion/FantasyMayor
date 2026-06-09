@@ -5,7 +5,13 @@
         "VContainer",
         "Boot.Core",
         "DefaultECS.Extensions",
-        "UniTask"
+        "UniTask",
+        "Terrain.Generator",
+        "Hexes.UI",
+        "UserInput",
+        "Terrain.View",
+        "HexResourcesView",
+        "HexIcons"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

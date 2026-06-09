@@ -1,0 +1,4 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="HexIconsView.uss" />
+    <ui:VisualElement name="hex-icons-root" class="hex-icons-root raycast-transparent" />
+</ui:UXML>

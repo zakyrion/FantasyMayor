@@ -4,7 +4,8 @@ using DefaultEcs;
 using DefaultECSExtensions;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
-using Modules.HexesCore.Components;
+using Modules.HexCore.Components;
+using Modules.HexCore.Tags;
 using Modules.HexesCore.Utils;
 using Modules.TerrainView.Components;
 using Modules.TerrainView.CurveBuilders;
@@ -29,13 +30,8 @@ namespace Modules.TerrainView.Systems
         private const int ExecutionPriority = 100;
 
         private readonly EntitySet _hexSet;
-        private readonly EntitySet _configSet;
         private readonly EntitySet _vertexGridSet;
-        private readonly EntitySet _innerIsolineSet;
-        private readonly EntitySet _outerIsolineSet;
-        private readonly EntitySet _heightSmoothingSet;
-        private readonly EntitySet _hydraulicErosionSet;
-        private readonly EntitySet _windErosionSet;
+        private readonly World _world;
 
         /// <inheritdoc />
         public override int Priority => ExecutionPriority;
@@ -46,14 +42,9 @@ namespace Modules.TerrainView.Systems
         /// <param name="world">World used to query terrain configs and hex entities.</param>
         public TerrainViewGenerationSubSystem(World world)
         {
+            _world = world;
             _hexSet = world.GetEntities().With<HexIdComponent>().AsSet();
-            _configSet = world.GetEntities().With<TerrainViewConfigComponent>().AsSet();
             _vertexGridSet = world.GetEntities().With<VertexGridComponent>().AsSet();
-            _innerIsolineSet = world.GetEntities().With<InnerIsolineConfigComponent>().AsSet();
-            _outerIsolineSet = world.GetEntities().With<OuterIsolineConfigComponent>().AsSet();
-            _heightSmoothingSet = world.GetEntities().With<HeightSmoothingConfigComponent>().AsSet();
-            _hydraulicErosionSet = world.GetEntities().With<HydraulicErosionConfigComponent>().AsSet();
-            _windErosionSet = world.GetEntities().With<WindErosionConfigComponent>().AsSet();
         }
 
         /// <inheritdoc />
@@ -63,12 +54,12 @@ namespace Modules.TerrainView.Systems
                 return;
 
             var vertexGrid = _vertexGridSet.GetEntities()[0].Get<VertexGridComponent>().Grid;
-            var config = _configSet.GetEntities()[0].Get<TerrainViewConfigComponent>();
-            var innerConfig = _innerIsolineSet.GetEntities()[0].Get<InnerIsolineConfigComponent>();
-            var outerConfig = _outerIsolineSet.GetEntities()[0].Get<OuterIsolineConfigComponent>();
-            var heightSmoothingConfig = _heightSmoothingSet.GetEntities()[0].Get<HeightSmoothingConfigComponent>();
-            var hydraulicConfig = _hydraulicErosionSet.GetEntities()[0].Get<HydraulicErosionConfigComponent>();
-            var windConfig = _windErosionSet.GetEntities()[0].Get<WindErosionConfigComponent>();
+            var config = _world.Get<TerrainViewConfigComponent>();
+            var innerConfig = _world.Get<InnerIsolineConfigComponent>();
+            var outerConfig = _world.Get<OuterIsolineConfigComponent>();
+            var heightSmoothingConfig = _world.Get<HeightSmoothingConfigComponent>();
+            var hydraulicConfig = _world.Get<HydraulicErosionConfigComponent>();
+            var windConfig = _world.Get<WindErosionConfigComponent>();
 
             await BuildIsolinesAsync(vertexGrid, config, innerConfig, outerConfig, cancellationToken);
 
@@ -92,13 +83,7 @@ namespace Modules.TerrainView.Systems
         public override void Dispose()
         {
             _hexSet.Dispose();
-            _configSet.Dispose();
             _vertexGridSet.Dispose();
-            _innerIsolineSet.Dispose();
-            _outerIsolineSet.Dispose();
-            _heightSmoothingSet.Dispose();
-            _hydraulicErosionSet.Dispose();
-            _windErosionSet.Dispose();
             base.Dispose();
         }
 
@@ -108,13 +93,14 @@ namespace Modules.TerrainView.Systems
         /// <returns><c>true</c> if all config sets are populated; <c>false</c> with a logged error otherwise.</returns>
         private bool HasRequiredConfigEntities()
         {
-            if (_configSet.Count > 0 && _vertexGridSet.Count > 0 &&
-                _innerIsolineSet.Count > 0 && _outerIsolineSet.Count > 0 &&
-                _heightSmoothingSet.Count > 0 && _hydraulicErosionSet.Count > 0 &&
-                _windErosionSet.Count > 0)
+            if (_vertexGridSet.Count > 0 &&
+                _world.Has<TerrainViewConfigComponent>() &&
+                _world.Has<InnerIsolineConfigComponent>() && _world.Has<OuterIsolineConfigComponent>() &&
+                _world.Has<HeightSmoothingConfigComponent>() && _world.Has<HydraulicErosionConfigComponent>() &&
+                _world.Has<WindErosionConfigComponent>())
                 return true;
 
-            Debug.LogError("[TerrainViewGenerationSubSystem] One or more required config entities are missing.");
+            Debug.LogError("[TerrainViewGenerationSubSystem] One or more required configs are missing.");
             return false;
         }
 

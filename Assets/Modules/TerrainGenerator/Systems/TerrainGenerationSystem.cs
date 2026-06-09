@@ -1,43 +1,44 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using DefaultEcs;
 using DefaultECSExtensions;
 using JetBrains.Annotations;
-using Modules.HexesCore.Components;
+using Modules.Boot.Core;
+using Modules.HexCore.Components;
+using Modules.HexCore.Tags;
 using Modules.HexesCore.Utils;
 using Modules.TerrainGenerator.Components;
-using UnityEngine;
 
 namespace Modules.TerrainGenerator.Systems
 {
     /// <summary>
-    ///     Reacts to <see cref="TerrainGenerationGenerateEventComponent" /> entities and runs terrain generation.
-    ///     Consumes the event entity after processing.
+    ///     World-init pipeline step (priority 100). Creates the hex grid, runs generation subsystems
+    ///     by priority, and synchronizes terrain tags with the final level of each hex.
+    ///     Driven by the Boot world-init orchestrator, not by an event subscription.
     /// </summary>
     [UsedImplicitly]
-    internal sealed class TerrainGenerationSystem : UpdatedSystem
+    internal sealed class TerrainGenerationSystem : IPrioritizedUniTaskSystem<TerrainGenerationStep>
     {
-        private const int FoothillLevel = 1;
         private const int ExecutionPriority = 100;
+        private const int FoothillLevel = 1;
         private const int MountainLevel = 2;
+        private const int PlainLevel = 0;
         private const int WaterLevel = -1;
 
-        private readonly EntitySet _configSet;
         private readonly IReadOnlyList<TerrainGenerationSubSystem> _generationSubSystems;
         private readonly EntitySet _hexSet;
+        private readonly World _world;
 
         /// <inheritdoc />
-        public override int Priority => ExecutionPriority;
+        public int Priority => ExecutionPriority;
 
-        /// <param name="world">The ECS world to query.</param>
+        /// <param name="world">The ECS world to query and populate.</param>
+        /// <param name="generationSubSystems">Generation subsystems executed in priority order.</param>
         public TerrainGenerationSystem(World world, IReadOnlyList<TerrainGenerationSubSystem> generationSubSystems)
-            : base(world.GetEntities()
-                .WhenAdded<TerrainGenerationGenerateEventComponent>()
-                .AsSet())
         {
-            _configSet = world.GetEntities()
-                .With<TerrainGenerationConfigComponent>()
-                .AsSet();
+            _world = world;
             _hexSet = world.GetEntities()
                 .With<HexIdComponent>()
                 .With<HexLevelComponent>()
@@ -49,33 +50,29 @@ namespace Modules.TerrainGenerator.Systems
         }
 
         /// <inheritdoc />
-        protected override void Update(GameState state, in Entity entity)
+        public UniTask Update(TerrainGenerationStep state, CancellationToken cancellationToken)
         {
-            if (_configSet.Count == 0)
-            {
-                entity.Dispose();
-                return;
-            }
+            if (!_world.Has<TerrainGenerationConfigComponent>())
+                return UniTask.CompletedTask;
 
-            ref readonly var config = ref _configSet.GetEntities()[0]
-                .Get<TerrainGenerationConfigComponent>();
+            ref readonly var config = ref _world.Get<TerrainGenerationConfigComponent>();
 
-            Generate(entity.World, in config);
-            RunGenerationSubSystems(state);
+            Generate(in config);
+            RunGenerationSubSystems();
             SyncHexTags();
+
+            return UniTask.CompletedTask;
         }
 
         /// <inheritdoc />
-        public override void Dispose()
+        public void Dispose()
         {
-            base.Dispose();
-            _configSet.Dispose();
             _hexSet.Dispose();
         }
 
-        /// <summary>Runs the terrain generation pipeline using the loaded config.</summary>
+        /// <summary>Creates the flat hex grid for the configured number of waves.</summary>
         /// <param name="config">Terrain generation parameters.</param>
-        private void Generate(World world, in TerrainGenerationConfigComponent config)
+        private void Generate(in TerrainGenerationConfigComponent config)
         {
             var hexCount = HexesUtil.GetTotalHexCountForWaves(config.WaveCount);
 
@@ -83,14 +80,18 @@ namespace Modules.TerrainGenerator.Systems
             {
                 var hexCoords = HexesUtil.IndexToAxialCoords(index);
 
-                var entity = world.CreateEntity();
+                var entity = _world.CreateEntity();
                 entity.Set(new HexIdComponent { Coords = hexCoords });
                 entity.Set(new HexLevelComponent { Level = 0 });
+                entity.Set(new HexTag());
             }
         }
 
-        private void RunGenerationSubSystems(in GameState state)
+        private void RunGenerationSubSystems()
         {
+            // Generation is one-shot; deltaTime is irrelevant, so a default GameState is passed through.
+            var state = default(GameState);
+
             foreach (var generationSubSystem in _generationSubSystems)
             {
                 if (!generationSubSystem.IsEnabled)
@@ -109,6 +110,7 @@ namespace Modules.TerrainGenerator.Systems
             {
                 var level = entity.Get<HexLevelComponent>().Level;
 
+                SyncTag<HexPlainTag>(entity, level == PlainLevel);
                 SyncTag<HexMountTag>(entity, level == MountainLevel);
                 SyncTag<HexWaterTag>(entity, level == WaterLevel);
                 SyncTag<HexBedhillTag>(entity, level == FoothillLevel);

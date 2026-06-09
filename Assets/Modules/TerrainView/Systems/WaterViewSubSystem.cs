@@ -6,7 +6,8 @@ using DefaultECSExtensions;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using Modules.AxialSystem;
-using Modules.HexesCore.Components;
+using Modules.HexCore.Components;
+using Modules.HexCore.Tags;
 using Modules.TerrainView.Components;
 using Modules.TerrainView.Views;
 using Unity.Collections;
@@ -28,8 +29,6 @@ namespace Modules.TerrainView.Systems
 
         private readonly IAddressable _addressable;
         private readonly EntitySet _hexSet;
-        private readonly EntitySet _terrainConfigSet;
-        private readonly EntitySet _waterConfigSet;
         private readonly World _world;
 
         private Box<WaterView> _waterViewBox;
@@ -46,8 +45,6 @@ namespace Modules.TerrainView.Systems
             _addressable = addressable;
             _waterViewBox = Box<WaterView>.Empty();
             _hexSet = world.GetEntities().With<HexIdComponent>().AsSet();
-            _terrainConfigSet = world.GetEntities().With<TerrainViewConfigComponent>().AsSet();
-            _waterConfigSet = world.GetEntities().With<WaterViewConfigComponent>().AsSet();
         }
 
         /// <inheritdoc />
@@ -58,8 +55,8 @@ namespace Modules.TerrainView.Systems
             if (!HasRequiredConfigEntities())
                 return;
 
-            var terrainConfig = _terrainConfigSet.GetEntities()[0].Get<TerrainViewConfigComponent>();
-            var waterConfig = _waterConfigSet.GetEntities()[0].Get<WaterViewConfigComponent>();
+            var terrainConfig = _world.Get<TerrainViewConfigComponent>();
+            var waterConfig = _world.Get<WaterViewConfigComponent>();
 
             var result = await _addressable.LoadAndInstanceAsync(WATER_VIEW_ADDRESS, cancellationToken);
 
@@ -113,8 +110,6 @@ namespace Modules.TerrainView.Systems
         {
             DisposeWaterView();
             _hexSet.Dispose();
-            _terrainConfigSet.Dispose();
-            _waterConfigSet.Dispose();
             base.Dispose();
         }
 
@@ -172,10 +167,10 @@ namespace Modules.TerrainView.Systems
         /// <summary>Validates that all singleton config entity sets are populated.</summary>
         private bool HasRequiredConfigEntities()
         {
-            if (_terrainConfigSet.Count > 0 && _waterConfigSet.Count > 0)
+            if (_world.Has<TerrainViewConfigComponent>() && _world.Has<WaterViewConfigComponent>())
                 return true;
 
-            Debug.LogError("[WaterViewSubSystem] One or more required config entities are missing.");
+            Debug.LogError("[WaterViewSubSystem] One or more required configs are missing.");
             return false;
         }
 

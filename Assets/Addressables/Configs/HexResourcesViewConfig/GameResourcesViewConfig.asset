@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 22f2dae7a08454694a8c821113d45425, type: 3}
+  m_Name: GameResourcesViewConfig
+  m_EditorClassIdentifier: GameResourcesView::Modules.GameResourcesView.Configs.GameResourcesViewConfig
+  _resources:
+  - Type: 0
+    Prefab: {fileID: 231923670769809129, guid: c9b3546c82f63c94e8bde9ebd3f859f8, type: 3}
+    ScaleRange: {x: 0.05, y: 0.075}
+    Radius: 0.1
+    GroundTint: {r: 0, g: 0, b: 0, a: 0}
+  - Type: 0
+    Prefab: {fileID: 4372043385601356926, guid: 948097c46b7b63e439261e925a602106,
+      type: 3}
+    ScaleRange: {x: 0.05, y: 0.075}
+    Radius: 0.1
+    GroundTint: {r: 0, g: 0, b: 0, a: 0}
+  - Type: 0
+    Prefab: {fileID: 1638888196610916009, guid: b71b5f2e3c7c04b42a3fe94a9b52a373,
+      type: 3}
+    ScaleRange: {x: 0.05, y: 0.075}
+    Radius: 0.1
+    GroundTint: {r: 0, g: 0, b: 0, a: 0}

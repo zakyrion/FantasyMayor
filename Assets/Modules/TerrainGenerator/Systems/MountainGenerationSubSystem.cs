@@ -1,7 +1,7 @@
 using DefaultEcs;
 using DefaultECSExtensions;
 using JetBrains.Annotations;
-using Modules.HexesCore.Components;
+using Modules.HexCore.Components;
 using Modules.TerrainGenerator.Components;
 using Unity.Collections;
 using Unity.Mathematics;
@@ -27,7 +27,7 @@ namespace Modules.TerrainGenerator.Systems
         private const float CohesionWeight = 1.5f;
         private const float GrowthJitter = 0.5f;
 
-        private readonly EntitySet _configSet;
+        private readonly World _world;
         private readonly EntitySet _hexSet;
 
         /// <inheritdoc />
@@ -39,9 +39,7 @@ namespace Modules.TerrainGenerator.Systems
         /// <param name="world">World used to query mountain config and generated hexes.</param>
         public MountainGenerationSubSystem(World world)
         {
-            _configSet = world.GetEntities()
-                .With<MountainConfigComponent>()
-                .AsSet();
+            _world = world;
             _hexSet = world.GetEntities()
                 .With<HexIdComponent>()
                 .With<HexLevelComponent>()
@@ -51,11 +49,10 @@ namespace Modules.TerrainGenerator.Systems
         /// <inheritdoc />
         public override void Update(GameState state)
         {
-            if (_configSet.Count == 0)
+            if (!_world.Has<MountainConfigComponent>())
                 return;
 
-            ref readonly var config = ref _configSet.GetEntities()[0]
-                .Get<MountainConfigComponent>();
+            ref readonly var config = ref _world.Get<MountainConfigComponent>();
 
             Generate(in config);
         }
@@ -64,7 +61,6 @@ namespace Modules.TerrainGenerator.Systems
         public override void Dispose()
         {
             base.Dispose();
-            _configSet.Dispose();
             _hexSet.Dispose();
         }
 

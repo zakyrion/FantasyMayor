@@ -42,6 +42,7 @@ MonoBehaviour:
     - AxialSystem
     - Boot.Core
     - Boot.Implementation
+    - Cameras
     - Core
     - CurveBuilders
     - DefaultECS.Extensions
@@ -54,11 +55,13 @@ MonoBehaviour:
     - glTFast.Newtonsoft
     - Hexes.Core
     - Hexes.UI
+    - HexIcons
+    - HexResources
+    - HexResourcesView
     - Installers
     - Installers.World
     - MainCanvas.Core
     - MainCanvas.Implementation
-    - MainCanvas.Installer
     - Pathfinding
     - Pathfinding.Installer
     - Sirenix.OdinInspector.Modules.Unity.Addressables

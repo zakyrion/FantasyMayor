@@ -1,7 +1,7 @@
 using DefaultEcs;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
-using Modules.HexesCore.Components;
+using Modules.HexCore.Components;
 using Modules.HexesCore.Utils;
 using Unity.Collections;
 using Unity.Mathematics;

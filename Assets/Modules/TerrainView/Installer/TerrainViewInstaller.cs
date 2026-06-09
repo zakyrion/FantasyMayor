@@ -10,21 +10,21 @@ namespace Installers.TerrainView
     ///     Configures the hex-related services, config-load systems, and per-frame view systems
     ///     that belong to the TerrainView module.
     /// </summary>
-    public class TerrainViewInstaller : LifetimeScope
+    public sealed class TerrainViewInstaller : IInstaller
     {
-        protected override void Configure(IContainerBuilder builder)
+        public void Install(IContainerBuilder builder)
         {
-            base.Configure(builder);
             builder.Register<TerrainViewConfigLoaderSystem>(Lifetime.Singleton)
                 .As<TerrainViewConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
             builder.Register<TerrainViewSystem>(Lifetime.Singleton)
-                .As<TerrainViewSystem, IUpdatedSystem>();
+                .As<TerrainViewSystem, IPrioritizedUniTaskSystem<TerrainGenerationStep>>();
             builder.Register<HexSelectionViewLoadingSystem>(Lifetime.Singleton)
-                .As<HexSelectionViewLoadingSystem, IUpdatedSystem>();
+                .As<HexSelectionViewLoadingSystem, IPrioritizedUniTaskSystem<TerrainGenerationStep>>();
+            // Concrete registration: Boot wires this per-frame system into game states by hand.
             builder.Register<HexSelectionViewSystem>(Lifetime.Singleton)
-                .As<HexSelectionViewSystem, IUpdatedSystem>();
+                .As<HexSelectionViewSystem>();
             builder.Register<TerrainViewDebugSystem>(Lifetime.Singleton)
-                .As<TerrainViewDebugSystem, IUpdatedSystem>();
+                .As<TerrainViewDebugSystem, IPrioritizedUniTaskSystem<TerrainGenerationStep>>();
 
             builder.Register<TerrainViewGenerationSubSystem>(Lifetime.Singleton)
                 .As<TerrainViewGenerationSubSystem, ViewSubSystem>();

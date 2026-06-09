@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Modules.TerrainGenerator.Configs
 {
     [CreateAssetMenu(fileName = "TerrainGenerationConfig", menuName = "FantasyMayor/Terrain/TerrainGenerationConfig")]
-    internal class TerrainGenerationConfig : ScriptableObject
+    public class TerrainGenerationConfig : ScriptableObject
     {
         [Header("Spawn Settings")]
         [SerializeField] private int _waveCount = 5;

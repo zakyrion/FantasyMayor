@@ -6,16 +6,14 @@ using VContainer.Unity;
 
 namespace Modules.TerrainGenerator.Installer
 {
-    public class TerrainGeneratorInstaller : LifetimeScope
+    public sealed class TerrainGeneratorInstaller : IInstaller
     {
-        protected override void Configure(IContainerBuilder builder)
+        public void Install(IContainerBuilder builder)
         {
-            base.Configure(builder);
-
             builder.Register<TerrainGenerationConfigLoaderSystem>(Lifetime.Singleton)
                 .As<TerrainGenerationConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
             builder.Register<TerrainGenerationSystem>(Lifetime.Singleton)
-                .As<TerrainGenerationSystem, IUpdatedSystem>();
+                .As<TerrainGenerationSystem, IPrioritizedUniTaskSystem<TerrainGenerationStep>>();
 
             builder.Register<MountainGenerationSubSystem>(Lifetime.Singleton)
                 .As<MountainGenerationSubSystem, TerrainGenerationSubSystem>();

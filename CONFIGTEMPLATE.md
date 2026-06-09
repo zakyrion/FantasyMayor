@@ -99,7 +99,7 @@ public sealed class [SystemName]ConfigLoaderSystem : ConfigLoaderSystem
                 if (cancellationToken.IsCancellationRequested)
                     return;
 
-                World.CreateEntity().Set([ComponentName]ConfigComponent.FromConfig([ConfigType]Config.Value));
+                World.Set([ComponentName]ConfigComponent.FromConfig([ConfigType]Config.Value));
                 //optional: create additional runtime setup entities or derived data for module initialization
                 MarkAsLoaded();
             }
@@ -109,6 +109,16 @@ public sealed class [SystemName]ConfigLoaderSystem : ConfigLoaderSystem
             }
         }
 }
+
+STORAGE RULE:
+The flattened config component is stored as a WORLD component via
+`World.Set<[ComponentName]ConfigComponent>(...)` — not on a created entity.
+- Consumers read it with `World.Get<[ComponentName]ConfigComponent>()`, guarded by `World.Has<...>()`.
+- A world component is NOT an entity: it never appears in `world.GetEntities()` and cannot be matched
+  by `With<T>` / `WhenAdded<T>` / `WhenChanged<T>`. If a config must trigger reactive systems, raise an
+  explicit event component on an entity instead.
+- Use `World.CreateEntity().Set(...)` only for the optional DERIVED runtime entities a loader may also
+  create, never for the config component itself.
 
 `CONFIGTEMPLATE.md` is the canonical source of truth for `ConfigLoaderSystem` templates.
 `SYSTEMTEMPLATE.md` should only reference this section instead of duplicating it.

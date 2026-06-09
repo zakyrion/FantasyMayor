@@ -56,14 +56,14 @@ namespace Modules.TerrainView.Systems
                 if (cancellationToken.IsCancellationRequested)
                     return;
 
-                World.CreateEntity().Set(InnerIsolineConfigComponent.FromConfig(innerIsolineConfig.Value));
-                World.CreateEntity().Set(OuterIsolineConfigComponent.FromConfig(outerIsolineConfig.Value));
-                World.CreateEntity().Set(HeightSmoothingConfigComponent.FromConfig(heightSmoothingConfig.Value));
-                World.CreateEntity().Set(WindErosionConfigComponent.FromConfig(windErosionConfig.Value));
-                World.CreateEntity().Set(HydraulicErosionConfigComponent.FromConfig(hydraulicErosionConfig.Value));
-                World.CreateEntity().Set(TerrainViewConfigComponent.FromConfig(terrainViewConfig.Value));
-                World.CreateEntity().Set(TerrainTextureConfigComponent.FromConfig(terrainTextureConfig.Value));
-                World.CreateEntity().Set(WaterViewConfigComponent.FromConfig(waterViewConfig.Value));
+                World.Set(InnerIsolineConfigComponent.FromConfig(innerIsolineConfig.Value));
+                World.Set(OuterIsolineConfigComponent.FromConfig(outerIsolineConfig.Value));
+                World.Set(HeightSmoothingConfigComponent.FromConfig(heightSmoothingConfig.Value));
+                World.Set(WindErosionConfigComponent.FromConfig(windErosionConfig.Value));
+                World.Set(HydraulicErosionConfigComponent.FromConfig(hydraulicErosionConfig.Value));
+                World.Set(TerrainViewConfigComponent.FromConfig(terrainViewConfig.Value));
+                World.Set(TerrainTextureConfigComponent.FromConfig(terrainTextureConfig.Value));
+                World.Set(WaterViewConfigComponent.FromConfig(waterViewConfig.Value));
 
                 var vertexGrid = new VertexGrid(
                     terrainViewConfig.Value.CellSize,

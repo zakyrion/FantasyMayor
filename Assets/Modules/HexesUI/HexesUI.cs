@@ -39,7 +39,7 @@ namespace Modules.HexesUI
         {
             var entity = _world.CreateEntity();
             entity.Set(new TerrainGenerationGenerateEventComponent());
-            entity.Set(new EventMarkerComponent());
+            entity.Set(new EventTag());
         }
     }
 }

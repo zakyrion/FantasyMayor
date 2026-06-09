@@ -2,6 +2,7 @@ using DefaultEcs;
 using DefaultECSExtensions;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
+using Modules.Cameras.Components;
 using Modules.TerrainView.Components;
 using Modules.UserInput.Components;
 using UnityEngine;
@@ -22,7 +23,6 @@ namespace Modules.UserInput.Systems
 
         private readonly EntitySet _playerInputSet;
         private readonly EntitySet _selectedHexSet;
-        private readonly EntitySet _terrainViewConfigSet;
         private readonly World _world;
 
         private InputAction _clickAction;
@@ -33,14 +33,13 @@ namespace Modules.UserInput.Systems
 
         /// <param name="world">The ECS world used to query camera, config, and selection state.</param>
         public HexSelectionSystem(World world)
-            : base(world.GetEntities().With<CameraComponent>().AsSet())
+            // Anchored on the single PlayerInputComponent entity so Update ticks once per frame;
+            // the camera itself is a world component (CameraComponent), read via world.Get below.
+            : base(world.GetEntities().With<PlayerInputComponent>().AsSet())
         {
             _world = world;
             _playerInputSet = world.GetEntities()
                 .With<PlayerInputComponent>()
-                .AsSet();
-            _terrainViewConfigSet = world.GetEntities()
-                .With<TerrainViewConfigComponent>()
                 .AsSet();
             _selectedHexSet = world.GetEntities()
                 .With<SelectedHexComponent>()
@@ -58,7 +57,7 @@ namespace Modules.UserInput.Systems
                     return;
             }
 
-            if (_terrainViewConfigSet.Count == 0)
+            if (!_world.Has<TerrainViewConfigComponent>())
                 return;
 
             if (!_clickAction.WasPressedThisFrame())
@@ -67,16 +66,19 @@ namespace Modules.UserInput.Systems
             if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
                 return;
 
-            ref var cameraComponent = ref entity.Get<CameraComponent>();
-            if (cameraComponent.Camera == null)
+            if (!_world.Has<CameraComponent>())
                 return;
 
-            var cellSize = _terrainViewConfigSet.GetEntities()[0].Get<TerrainViewConfigComponent>().CellSize;
+            var camera = _world.Get<CameraComponent>().Camera;
+            if (camera == null)
+                return;
+
+            var cellSize = _world.Get<TerrainViewConfigComponent>().CellSize;
             if (cellSize <= 0f)
                 return;
 
             var clickScreenPosition = _pointAction.ReadValue<Vector2>();
-            var clickRay = cameraComponent.Camera.ScreenPointToRay(clickScreenPosition);
+            var clickRay = camera.ScreenPointToRay(clickScreenPosition);
             if (!TryIntersectPlane(clickRay, out var hit))
                 return;
 
@@ -89,7 +91,6 @@ namespace Modules.UserInput.Systems
         {
             UnbindInputActions();
             _playerInputSet.Dispose();
-            _terrainViewConfigSet.Dispose();
             _selectedHexSet.Dispose();
             base.Dispose();
         }
@@ -111,15 +112,14 @@ namespace Modules.UserInput.Systems
                 selectedEntities[index].Dispose();
 
             var selectedEntity = selectedEntities[0];
-            ref var selectedHex = ref selectedEntity.Get<SelectedHexComponent>();
-
-            if (selectedHex.Coords == coord)
+            if (selectedEntity.Get<SelectedHexComponent>().Coords == coord)
             {
                 selectedEntity.Dispose();
                 return;
             }
 
-            selectedHex.Coords = coord;
+            // Write through Set (publishing path), never in-place ref-mutation — see ARCHITECTURE.md.
+            selectedEntity.Set(new SelectedHexComponent { Coords = coord });
         }
 
         /// <summary>

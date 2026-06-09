@@ -6,14 +6,15 @@ Single source of truth for addressable loading. Read this; do not grep.
 - `Assets/Modules/Addressable/Core/IAddressable.cs` — interface
 - `Assets/Modules/Addressable/Implementation/Addressable.cs` — impl, VContainer-aware (`IObjectResolver.Instantiate`)
 - `Assets/Scripts/Core/{Result,Box,Status}.cs` — return types
-- `Assets/Scripts/Installers/Addressable/AddressableInstaller.cs` — DI (`Lifetime.Scoped`)
+- `Assets/Scripts/Installers/Addressable/AddressableInstaller.cs` — app-root installer that registers `IAddressable` with `Lifetime.Scoped`
 
 ## API
 ```csharp
 namespace Modules.Addressable.Core;
 interface IAddressable {
-    UniTask<Result<GameObject>> LoadAndInstanceAsync(string asset, CancellationToken token, Transform root = null);
-    UniTask<Result<T>>          LoadAsync<T>       (string asset, CancellationToken token) where T : class; // T != GameObject
+    UniTask<Result<GameObject>> LoadAndInstanceAsync       (string asset, CancellationToken token, Transform root = null);
+    UniTask<Result<T>>          LoadAndInstanceAsync<T>    (string asset, CancellationToken token, Transform root = null) where T : Component; // instantiates prefab, returns typed component
+    UniTask<Result<T>>          LoadAsync<T>               (string asset, CancellationToken token) where T : class; // T != GameObject
 }
 
 namespace Core;
@@ -102,8 +103,9 @@ static void DisposeBox<T>(ref Box<T> b) {
 
 ### ECS handoff
 Loader system retains `Box<T>` ownership; component carries `Value` only.
+Config components are stored as **world components** (see CONFIGTEMPLATE.md), not on an entity:
 ```csharp
-_world.CreateEntity().Set(new MyConfigComponent { Value = _config.Value });
+_world.Set(new MyConfigComponent { Value = _config.Value });
 ```
 
 ## Anti-patterns

@@ -641,13 +641,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1691002361}
-  - component: {fileID: 1691002362}
-  - component: {fileID: 1691002367}
-  - component: {fileID: 1691002363}
   - component: {fileID: 1691002365}
-  - component: {fileID: 1691002368}
-  - component: {fileID: 1691002366}
-  - component: {fileID: 1691002364}
   m_Layer: 0
   m_Name: Installers
   m_TagString: Untagged
@@ -670,55 +664,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1691002362
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1691002359}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1cbf5f92905794095b61fbcf5dea3037, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Installers::Installers.AddressableInstallers
-  parentReference:
-    TypeName: 
-  autoRun: 1
-  autoInjectGameObjects: []
---- !u!114 &1691002363
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1691002359}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c542d9ab1c50049ed8f9097ba834037c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Installers.UI::Installers.UI.UIInstaller
-  parentReference:
-    TypeName: Modules.MainCanvas.Installer.MainCanvasInstaller
-  autoRun: 1
-  autoInjectGameObjects: []
---- !u!114 &1691002364
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1691002359}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6492a66a311e84937ab11544aaac9c37, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Installers.Hexes::Installers.Hexes.HexesInstaller
-  parentReference:
-    TypeName: Modules.TerrainGenerator.Installer.TerrainGeneratorInstaller
-  autoRun: 1
-  autoInjectGameObjects:
-  - {fileID: 1617825961}
 --- !u!114 &1691002365
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -734,58 +679,11 @@ MonoBehaviour:
   parentReference:
     TypeName: Modules.HexesUI.Installer.UIInstaller
   autoRun: 1
-  autoInjectGameObjects: []
+  autoInjectGameObjects:
+  - {fileID: 1617825961}
   _mainCamera: {fileID: 330585545}
   _playerInput: {fileID: 2025015967}
---- !u!114 &1691002366
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1691002359}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c5f48461e02b0407aadc75851e99b80d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Installers.TerraingGenerator::Installers.TerrainGenerator.TerrainGeneratorInstaller
-  parentReference:
-    TypeName: Modules.Pathfinding.Installer.PathfindingInstaller
-  autoRun: 1
-  autoInjectGameObjects: []
---- !u!114 &1691002367
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1691002359}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a4e836b0d27484b65aa8cdb2e4b8e4a5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: MainCanvas.Installer::Modules.MainCanvas.Installer.MainCanvasInstaller
-  parentReference:
-    TypeName: Installers.Addressable.AddressableInstaller
-  autoRun: 1
-  autoInjectGameObjects: []
   _uiRoot: {fileID: 823491147}
---- !u!114 &1691002368
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1691002359}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 619bdb237362e4f3c84610929f42da38, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Pathfinding.Installer::Modules.Pathfinding.Installer.PathfindingInstaller
-  parentReference:
-    TypeName: Installers.World.WorldInstaller
-  autoRun: 1
-  autoInjectGameObjects: []
 --- !u!114 &1905450842
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -891,7 +789,7 @@ MonoBehaviour:
   m_ActionEvents: []
   m_NeverAutoSwitchControlSchemes: 0
   m_DefaultControlScheme: 
-  m_DefaultActionMap: 69277e64-ff13-4814-b2fe-3e68fa9da462
+  m_DefaultActionMap: Player
   m_SplitScreenIndex: -1
   m_Camera: {fileID: 330585545}
 --- !u!114 &2025015968

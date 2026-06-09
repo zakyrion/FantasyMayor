@@ -1,0 +1,7 @@
+.hex-icons-root {
+    background-color: rgba(0, 0, 0, 0);
+}
+
+.raycast-transparent {
+    /* picking disabled via EnablePicking(false) in HexIconsView.ApplyRaycastTransparent */
+}

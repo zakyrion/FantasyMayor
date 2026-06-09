@@ -2,6 +2,14 @@
 #
 # Get latest from https://github.com/github/gitignore/blob/main/Unity.gitignore
 #
+
+# graphify knowledge graph — local-only, regenerated on demand, never tracked
+/graphify-out/
+
+# Local editor / OS noise (solo dev, one machine)
+.idea/
+.DS_Store
+
 /[Ll]ibrary/
 /[Tt]emp/
 /[Oo]bj/

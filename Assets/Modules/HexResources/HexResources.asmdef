@@ -1,0 +1,25 @@
+{
+    "name": "HexResources",
+    "rootNamespace": "",
+    "references": [
+        "Core",
+        "VContainer",
+        "DefaultECS.Extensions",
+        "Addressables.Core",
+        "UniTask",
+        "Boot.Core",
+        "Hexes.Core",
+        "AxialSystem",
+        "Unity.Collections",
+        "Unity.Mathematics"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

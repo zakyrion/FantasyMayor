@@ -4,7 +4,7 @@ namespace Modules.TerrainGenerator.Configs
 {
     /// <summary>Controls the placement and size of a lake on the terrain.</summary>
     [CreateAssetMenu(fileName = "LakeConfig", menuName = "FantasyMayor/Terrain/Water/LakeConfig")]
-    internal class LakeConfig : ScriptableObject
+    public class LakeConfig : ScriptableObject
     {
         [Header("Placement")]
         [Tooltip("Minimum distance in tiles from the map edge within which the lake centre cannot spawn.")]

@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using DefaultEcs;
 using DefaultECSExtensions;
 using JetBrains.Annotations;
@@ -17,7 +16,7 @@ namespace Modules.TerrainView.Systems
     ///     Hides the border when selection disappears and regenerates it when selection changes.
     /// </summary>
     [UsedImplicitly]
-    internal sealed class HexSelectionViewSystem : UpdatedSystem
+    public sealed class HexSelectionViewSystem : UpdatedSystem
     {
         private const int ExecutionPriority = HexSelectionViewLoadingSystem.ExecutionPriority + 1;
         private const int BorderBfsDepth = 3;
@@ -91,8 +90,11 @@ namespace Modules.TerrainView.Systems
             out NativeArray<float3> outerRing,
             out NativeArray<float3> innerRing)
         {
-            var allOwned = new HashSet<VertexCoord>(grid.GetOwnedVertexCoords(selectedHex));
-            var outerList = new List<VertexCoord>(allOwned.Count / 4);
+            var allOwned = new NativeHashSet<VertexCoord>(64, Allocator.Temp);
+            foreach (var coord in grid.GetOwnedVertexCoords(selectedHex))
+                allOwned.Add(coord);
+
+            var outerList = new NativeList<VertexCoord>(Allocator.Temp);
             Span<VertexCoord> neighborBuffer = stackalloc VertexCoord[6];
 
             foreach (var coord in allOwned)
@@ -109,15 +111,21 @@ namespace Modules.TerrainView.Systems
                     outerList.Add(coord);
             }
 
-            var visited = new HashSet<VertexCoord>(outerList);
-            var current = new List<VertexCoord>(outerList);
-            var next = new List<VertexCoord>();
+            var visited = new NativeHashSet<VertexCoord>(64, Allocator.Temp);
+            var current = new NativeList<VertexCoord>(Allocator.Temp);
+            var next = new NativeList<VertexCoord>(Allocator.Temp);
+
+            for (var i = 0; i < outerList.Length; i++)
+            {
+                visited.Add(outerList[i]);
+                current.Add(outerList[i]);
+            }
 
             for (var step = 0; step < BorderBfsDepth; step++)
             {
-                foreach (var coord in current)
+                for (var c = 0; c < current.Length; c++)
                 {
-                    var count = grid.GetNeighbors(coord, neighborBuffer);
+                    var count = grid.GetNeighbors(current[c], neighborBuffer);
                     for (var d = 0; d < count; d++)
                     {
                         var neighbor = neighborBuffer[d];
@@ -130,19 +138,25 @@ namespace Modules.TerrainView.Systems
                 next.Clear();
             }
 
-            outerRing = new NativeArray<float3>(outerList.Count, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
-            for (var i = 0; i < outerList.Count; i++)
+            outerRing = new NativeArray<float3>(outerList.Length, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+            for (var i = 0; i < outerList.Length; i++)
             {
                 var pos = grid.Get(outerList[i]).Position;
                 outerRing[i] = new float3(pos.x, pos.y + BorderLift, pos.z);
             }
 
-            innerRing = new NativeArray<float3>(current.Count, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
-            for (var i = 0; i < current.Count; i++)
+            innerRing = new NativeArray<float3>(current.Length, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+            for (var i = 0; i < current.Length; i++)
             {
                 var pos = grid.Get(current[i]).Position;
                 innerRing[i] = new float3(pos.x, pos.y + BorderLift, pos.z);
             }
+
+            allOwned.Dispose();
+            outerList.Dispose();
+            visited.Dispose();
+            current.Dispose();
+            next.Dispose();
         }
 
         /// <inheritdoc />

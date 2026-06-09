@@ -1,7 +1,7 @@
 using DefaultEcs;
 using DefaultECSExtensions;
 using JetBrains.Annotations;
-using Modules.HexesCore.Components;
+using Modules.HexCore.Components;
 using Modules.TerrainGenerator.Components;
 using Modules.TerrainGenerator.Data;
 using Unity.Collections;
@@ -25,9 +25,8 @@ namespace Modules.TerrainGenerator.Systems
         private const float NeighbourWeight = 1f;
         private const float NoiseAmplitude = 0.5f;
 
-        private readonly EntitySet _configSet;
+        private readonly World _world;
         private readonly EntitySet _hexSet;
-        private readonly EntitySet _terrainConfigSet;
 
         /// <inheritdoc />
         public override int Priority => ExecutionPriority;
@@ -38,12 +37,7 @@ namespace Modules.TerrainGenerator.Systems
         /// <param name="world">World used to query terrain config, sea config, and generated hexes.</param>
         public SeaGenerationSubSystem(World world)
         {
-            _terrainConfigSet = world.GetEntities()
-                .With<TerrainGenerationConfigComponent>()
-                .AsSet();
-            _configSet = world.GetEntities()
-                .With<SeaConfigComponent>()
-                .AsSet();
+            _world = world;
             _hexSet = world.GetEntities()
                 .With<HexIdComponent>()
                 .With<HexLevelComponent>()
@@ -56,17 +50,15 @@ namespace Modules.TerrainGenerator.Systems
         /// <param name="state">Current game state.</param>
         public override void Update(GameState state)
         {
-            if (_terrainConfigSet.Count == 0 || _configSet.Count == 0)
+            if (!_world.Has<TerrainGenerationConfigComponent>() || !_world.Has<SeaConfigComponent>())
                 return;
 
-            ref readonly var terrainConfig = ref _terrainConfigSet.GetEntities()[0]
-                .Get<TerrainGenerationConfigComponent>();
+            ref readonly var terrainConfig = ref _world.Get<TerrainGenerationConfigComponent>();
 
             if (terrainConfig.WaterType != WaterType.Sea)
                 return;
 
-            ref readonly var config = ref _configSet.GetEntities()[0]
-                .Get<SeaConfigComponent>();
+            ref readonly var config = ref _world.Get<SeaConfigComponent>();
 
             Generate(in terrainConfig, in config);
         }
@@ -75,8 +67,6 @@ namespace Modules.TerrainGenerator.Systems
         public override void Dispose()
         {
             base.Dispose();
-            _terrainConfigSet.Dispose();
-            _configSet.Dispose();
             _hexSet.Dispose();
         }
 

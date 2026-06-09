@@ -1,14 +1,15 @@
-using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using DefaultEcs;
 using DefaultECSExtensions;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
-using Modules.HexesCore.Components;
+using Modules.HexCore.Components;
+using Modules.HexCore.Tags;
 using Modules.HexesCore.Data;
 using Modules.HexesCore.Utils;
 using Modules.TerrainView.Components;
+using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -39,8 +40,6 @@ namespace Modules.TerrainView.Systems
         }
 
         private readonly EntitySet _hexSet;
-        private readonly EntitySet _terrainConfigSet;
-        private readonly EntitySet _textureConfigSet;
         private readonly EntitySet _vertexGridSet;
         private readonly World _world;
 
@@ -52,57 +51,62 @@ namespace Modules.TerrainView.Systems
         {
             _world = world;
             _hexSet = world.GetEntities().With<HexIdComponent>().AsSet();
-            _terrainConfigSet = world.GetEntities().With<TerrainViewConfigComponent>().AsSet();
-            _textureConfigSet = world.GetEntities().With<TerrainTextureConfigComponent>().AsSet();
             _vertexGridSet = world.GetEntities().With<VertexGridComponent>().AsSet();
         }
 
         /// <inheritdoc />
         public override async UniTask Update(GameState state, CancellationToken cancellationToken)
         {
-            if (_textureConfigSet.Count == 0 || _vertexGridSet.Count == 0 || _terrainConfigSet.Count == 0)
+            if (!_world.Has<TerrainTextureConfigComponent>() || _vertexGridSet.Count == 0 || !_world.Has<TerrainViewConfigComponent>())
             {
-                Debug.LogError("[TerrainViewTextureSubSystem] Required config or vertex grid entity is missing.");
+                Debug.LogError("[TerrainViewTextureSubSystem] Required config or vertex grid is missing.");
                 return;
             }
 
-            var config = _textureConfigSet.GetEntities()[0].Get<TerrainTextureConfigComponent>();
-            var terrainConfig = _terrainConfigSet.GetEntities()[0].Get<TerrainViewConfigComponent>();
+            var config = _world.Get<TerrainTextureConfigComponent>();
+            var terrainConfig = _world.Get<TerrainViewConfigComponent>();
             var vertexGrid = _vertexGridSet.GetEntities()[0].Get<VertexGridComponent>().Grid;
 
+            // Persistent (not Temp): the map is read inside RunOnThreadPool, so it must outlive the await.
+            // NativeParallelHashMap is the thread-safe-read container; disposed on every exit path below.
             var hexTypeMap = BuildHexTypeMap();
-            var hexSize = terrainConfig.CellSize;
-
-            Color32[] pixels = null;
-            await UniTask.RunOnThreadPool(
-                () =>
-                {
-                    pixels = GeneratePixels(vertexGrid, hexTypeMap, config, hexSize);
-                    pixels = ApplyBoxBlur(pixels, config.TextureResolution, config.TextureBlurRadius);
-                },
-                cancellationToken: cancellationToken);
-
-            if (cancellationToken.IsCancellationRequested)
-                return;
-
-            var resolution = config.TextureResolution;
-            var texture = new Texture2D(resolution, resolution, TextureFormat.RGBA32, false)
+            try
             {
-                filterMode = FilterMode.Bilinear,
-                wrapMode = TextureWrapMode.Clamp
-            };
-            texture.SetPixels32(pixels);
-            texture.Apply(false);
+                var hexSize = terrainConfig.CellSize;
 
-            _world.CreateEntity().Set(new TerrainTextureComponent { Texture = texture });
+                Color32[] pixels = null;
+                await UniTask.RunOnThreadPool(
+                    () =>
+                    {
+                        pixels = GeneratePixels(vertexGrid, hexTypeMap, config, hexSize);
+                        pixels = ApplyBoxBlur(pixels, config.TextureResolution, config.TextureBlurRadius);
+                    },
+                    cancellationToken: cancellationToken);
+
+                if (cancellationToken.IsCancellationRequested)
+                    return;
+
+                var resolution = config.TextureResolution;
+                var texture = new Texture2D(resolution, resolution, TextureFormat.RGBA32, false)
+                {
+                    filterMode = FilterMode.Bilinear,
+                    wrapMode = TextureWrapMode.Clamp
+                };
+                texture.SetPixels32(pixels);
+                texture.Apply(false);
+
+                _world.CreateEntity().Set(new TerrainTextureComponent { Texture = texture });
+            }
+            finally
+            {
+                hexTypeMap.Dispose();
+            }
         }
 
         /// <inheritdoc />
         public override void Dispose()
         {
             _hexSet.Dispose();
-            _terrainConfigSet.Dispose();
-            _textureConfigSet.Dispose();
             _vertexGridSet.Dispose();
             base.Dispose();
         }
@@ -112,10 +116,10 @@ namespace Modules.TerrainView.Systems
         ///     First pass classifies by tag; second pass detects coastline (plain hex adjacent to water).
         /// </summary>
         /// <returns>Dictionary mapping each hex coordinate to its terrain type.</returns>
-        private Dictionary<HexCoord, HexType> BuildHexTypeMap()
+        private NativeParallelHashMap<HexCoord, HexType> BuildHexTypeMap()
         {
             var entities = _hexSet.GetEntities();
-            var map = new Dictionary<HexCoord, HexType>(entities.Length);
+            var map = new NativeParallelHashMap<HexCoord, HexType>(entities.Length, Allocator.Persistent);
 
             foreach (ref readonly var entity in entities)
             {
@@ -167,7 +171,7 @@ namespace Modules.TerrainView.Systems
         /// <returns>Pixel array ready for <see cref="Texture2D.SetPixels32" />.</returns>
         private Color32[] GeneratePixels(
             VertexGrid vertexGrid,
-            Dictionary<HexCoord, HexType> hexTypeMap,
+            NativeParallelHashMap<HexCoord, HexType> hexTypeMap,
             TerrainTextureConfigComponent config,
             float hexSize)
         {
@@ -237,7 +241,7 @@ namespace Modules.TerrainView.Systems
         /// <param name="squareMin">Output: lower-left corner of the square in world XZ.</param>
         /// <param name="squareSize">Output: side length of the square in world units (same for X and Z).</param>
         private void ComputeSquareUVRect(
-            Dictionary<HexCoord, HexType> hexTypeMap,
+            NativeParallelHashMap<HexCoord, HexType> hexTypeMap,
             float hexSize,
             out float2 squareMin,
             out float squareSize)
@@ -247,8 +251,9 @@ namespace Modules.TerrainView.Systems
             var maxX = float.MinValue;
             var maxZ = float.MinValue;
 
-            foreach (var hexCoord in hexTypeMap.Keys)
+            foreach (var pair in hexTypeMap)
             {
+                var hexCoord = pair.Key;
                 var center = AxialMath.AxialToWorld2D(hexCoord.Value, hexSize);
 
                 if (center.x < minX) minX = center.x;
@@ -333,7 +338,7 @@ namespace Modules.TerrainView.Systems
             float hexSize,
             float slopeThreshold,
             in TerrainTextureConfigComponent config,
-            Dictionary<HexCoord, HexType> hexTypeMap)
+            NativeParallelHashMap<HexCoord, HexType> hexTypeMap)
         {
             var radius = hexSize * math.sqrt(3f);
 

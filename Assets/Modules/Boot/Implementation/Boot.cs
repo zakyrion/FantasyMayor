@@ -1,97 +1,105 @@
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using DefaultEcs;
 using DefaultECSExtensions;
 using Modules.Boot.Core;
+using Modules.Boot.Implementation.States;
+using Modules.HexIcons.Systems;
+using Modules.HexResourcesView.Systems;
+using Modules.HexesUI.Systems;
+using Modules.TerrainView.Systems;
+using Modules.UserInput.Systems;
 using UnityEngine;
 using VContainer;
 
 namespace Modules.Boot.Implementation
 {
     /// <summary>
-    ///     Entry point MonoBehaviour. Runs boot phases sequentially on startup,
-    ///     then drives the per-frame <see cref="IUpdatedSystem" /> loop each Unity Update tick.
+    ///     Entry point MonoBehaviour. Runs the one-time config bootstrap, then hands control to a
+    ///     <see cref="GameModeMachine" /> whose states are wired here by hand: Boot knows every module and
+    ///     decides which systems belong to which <see cref="GameMode" />. Systems remain DI singletons —
+    ///     only their grouping into states is manual.
     /// </summary>
     public class Boot : MonoBehaviour
     {
         private IReadOnlyList<IUniTaskSystem<ConfigLoadStep>> _configLoadSystems;
-        private IReadOnlyList<IUniTaskSystem<FirstUIStep>> _firstUISystems;
-        private bool _isBootComplete;
-        private IReadOnlyList<ILateUpdatedSystem> _lateUpdatedSystems;
-        private IReadOnlyList<IUpdatedSystem> _updatedSystems;
+        private GameModeMachine _machine;
+        private bool _configsLoaded;
 
         private async UniTask Start()
         {
             Debug.Log($"Starting {GetType().Name}");
-
             Application.targetFrameRate = 60;
 
             var loadConfigs = new UniTaskSequentialSystem<ConfigLoadStep>(_configLoadSystems);
             await loadConfigs.Update(new ConfigLoadStep(), CancellationToken.None);
 
-            var firstUI = new UniTaskSequentialSystem<FirstUIStep>(_firstUISystems);
-            await firstUI.Update(new FirstUIStep(), CancellationToken.None);
-
-            _isBootComplete = true;
+            _configsLoaded = true;
+            _machine.Switch(GameMode.MainMenu);
         }
 
         private void Update()
         {
-            if (!_isBootComplete)
+            if (!_configsLoaded)
                 return;
 
-            var state = new GameState(Time.deltaTime);
-
-            foreach (var updatedSystem in _updatedSystems)
-                updatedSystem.Update(state);
+            _machine.Tick(new GameState(Time.deltaTime));
         }
 
         private void LateUpdate()
         {
-            if (!_isBootComplete)
+            if (!_configsLoaded)
                 return;
 
-            var state = new GameState(Time.deltaTime);
-
-            foreach (var lateUpdatedSystem in _lateUpdatedSystems)
-                lateUpdatedSystem.Update(state);
+            _machine.LateTick(new GameState(Time.deltaTime));
         }
 
         private void OnDestroy()
         {
-            if (_updatedSystems != null)
-                foreach (var updatedSystem in _updatedSystems)
-                    updatedSystem.Dispose();
-
-            if (_lateUpdatedSystems != null)
-                foreach (var lateUpdatedSystem in _lateUpdatedSystems)
-                    lateUpdatedSystem.Dispose();
+            _machine?.Dispose();
         }
 
-        /// <summary>Receives all systems bound to each boot phase and the runtime update loops via VContainer.</summary>
-        /// <param name="world">The ECS world (resolved to satisfy DefaultEcs dependency).</param>
-        /// <param name="configLoadSystems">Systems for the config-load boot phase.</param>
-        /// <param name="firstUISystems">Systems for the first-UI boot phase.</param>
-        /// <param name="updatedSystems">Per-frame Update systems, sorted ascending by <see cref="IUpdatedSystem.Priority" />.</param>
-        /// <param name="lateUpdatedSystems">Per-frame LateUpdate systems, sorted ascending by <see cref="ILateUpdatedSystem.Priority" />.</param>
+        /// <summary>
+        ///     Receives the config-load bootstrap, the generation pipeline, and every per-frame system as
+        ///     concrete singletons, then manually composes the state machine.
+        /// </summary>
         [Inject]
         public void Construct(
-            World world,
             IReadOnlyList<IUniTaskSystem<ConfigLoadStep>> configLoadSystems,
-            IReadOnlyList<IUniTaskSystem<FirstUIStep>> firstUISystems,
-            IReadOnlyList<IUpdatedSystem> updatedSystems,
-            IReadOnlyList<ILateUpdatedSystem> lateUpdatedSystems)
+            IReadOnlyList<IPrioritizedUniTaskSystem<TerrainGenerationStep>> generationPipeline,
+            ShowHexesUISystem showHexesUI,
+            HexSelectionSystem hexSelection,
+            HexSelectionViewSystem hexSelectionView,
+            ForestViewSyncSystem forestViewSync,
+            HexIconsContainerPositionSystem hexIconsContainerPosition,
+            HexIconsVisibilitySystem hexIconsVisibility,
+            EventCleanupSystem eventCleanup,
+            CameraMovementSystem cameraMovement,
+            World world)
         {
             _configLoadSystems = configLoadSystems;
-            _firstUISystems = firstUISystems;
-            _updatedSystems = updatedSystems
-                .OrderBy(s => s.Priority)
-                .ToArray();
-            _lateUpdatedSystems = lateUpdatedSystems
-                .OrderBy(s => s.Priority)
-                .ToArray();
+
+            var mainMenu = new MainMenuState(world, showHexesUI);
+
+            // Forest sync + event cleanup must run during the generation settle frames.
+            var mapCreation = new MapCreationState(generationPipeline, forestViewSync, eventCleanup);
+
+            var gameplay = new GameplayState(
+                world,
+                new IUpdatedSystem[]
+                    { hexSelection, hexSelectionView, forestViewSync, hexIconsVisibility, eventCleanup },
+                new ILateUpdatedSystem[] { cameraMovement, hexIconsContainerPosition });
+
+            var mapLoading = new MapLoadingState();
+
+            _machine = new GameModeMachine(new Dictionary<GameMode, IAppState>
+            {
+                [GameMode.MainMenu] = mainMenu,
+                [GameMode.MapCreation] = mapCreation,
+                [GameMode.MapLoading] = mapLoading,
+                [GameMode.Gameplay] = gameplay
+            });
         }
     }
 }

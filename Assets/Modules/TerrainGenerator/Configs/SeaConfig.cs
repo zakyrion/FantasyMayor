@@ -4,7 +4,7 @@ namespace Modules.TerrainGenerator.Configs
 {
     /// <summary>Controls how much of the terrain is covered by sea.</summary>
     [CreateAssetMenu(fileName = "SeaConfig", menuName = "FantasyMayor/Terrain/Water/SeaConfig")]
-    internal class SeaConfig : ScriptableObject
+    public class SeaConfig : ScriptableObject
     {
         [Header("Size")]
         [Tooltip("Sea area as a fraction of the total tile count (0–1).")]

@@ -1,7 +1,8 @@
 using DefaultEcs;
 using DefaultECSExtensions;
 using JetBrains.Annotations;
-using Modules.HexesCore.Components;
+using Modules.Cameras.Components;
+using Modules.HexCore.Components;
 using Modules.TerrainView.Components;
 using Modules.UserInput.Components;
 using UnityEngine;
@@ -23,10 +24,9 @@ namespace Modules.UserInput.Systems
         /// <summary>World-space Y of the horizontal plane used for the center-ray bounds check.</summary>
         private const float BoundsPlaneHeight = 1f;
 
-        private readonly EntitySet _cameraMovementConfigSet;
         private readonly EntitySet _hexIdSet;
         private readonly EntitySet _playerInputSet;
-        private readonly EntitySet _terrainViewConfigSet;
+        private readonly World _world;
 
         private Rect _bounds;
         private bool _boundsValid;
@@ -43,19 +43,16 @@ namespace Modules.UserInput.Systems
 
         /// <param name="world">The ECS world used to build the entity set.</param>
         public CameraMovementSystem(World world)
-            : base(world.GetEntities().With<CameraComponent>().AsSet())
+            // Anchored on the single PlayerInputComponent entity so Update ticks once per frame;
+            // the camera itself is a world component (CameraComponent), read via world.Get below.
+            : base(world.GetEntities().With<PlayerInputComponent>().AsSet())
         {
+            _world = world;
             _playerInputSet = world.GetEntities()
                 .With<PlayerInputComponent>()
                 .AsSet();
-            _cameraMovementConfigSet = world.GetEntities()
-                .With<CameraMovementConfigComponent>()
-                .AsSet();
             _hexIdSet = world.GetEntities()
                 .With<HexIdComponent>()
-                .AsSet();
-            _terrainViewConfigSet = world.GetEntities()
-                .With<TerrainViewConfigComponent>()
                 .AsSet();
 
             TryBindInputActions();
@@ -70,19 +67,19 @@ namespace Modules.UserInput.Systems
                     return;
             }
 
-            if (_cameraMovementConfigSet.Count == 0)
+            if (!_world.Has<CameraMovementConfigComponent>() || !_world.Has<CameraComponent>())
                 return;
 
-            ref var cameraComponent = ref entity.Get<CameraComponent>();
-            if (cameraComponent.Camera == null)
+            var camera = _world.Get<CameraComponent>().Camera;
+            if (camera == null)
                 return;
 
-            var config = _cameraMovementConfigSet.GetEntities()[0].Get<CameraMovementConfigComponent>();
-            var cameraTransform = cameraComponent.Camera.transform;
+            var config = _world.Get<CameraMovementConfigComponent>();
+            var cameraTransform = camera.transform;
 
             MoveCamera(cameraTransform, config, state.DeltaTime);
-            ApplyZoom(cameraComponent.Camera, config, state.DeltaTime);
-            ClampCameraPosition(cameraTransform, cameraComponent.Camera);
+            ApplyZoom(camera, config, state.DeltaTime);
+            ClampCameraPosition(cameraTransform, camera);
         }
 
         /// <inheritdoc />
@@ -90,9 +87,7 @@ namespace Modules.UserInput.Systems
         {
             UnbindInputActions();
             _playerInputSet.Dispose();
-            _cameraMovementConfigSet.Dispose();
             _hexIdSet.Dispose();
-            _terrainViewConfigSet.Dispose();
             base.Dispose();
         }
 
@@ -103,10 +98,10 @@ namespace Modules.UserInput.Systems
         /// <returns><c>true</c> when bounds were successfully computed and cached.</returns>
         private bool TryComputeBounds()
         {
-            if (_terrainViewConfigSet.Count == 0 || _hexIdSet.Count == 0)
+            if (!_world.Has<TerrainViewConfigComponent>() || _hexIdSet.Count == 0)
                 return false;
 
-            var cellSize = _terrainViewConfigSet.GetEntities()[0].Get<TerrainViewConfigComponent>().CellSize;
+            var cellSize = _world.Get<TerrainViewConfigComponent>().CellSize;
 
             var minX = float.MaxValue;
             var maxX = float.MinValue;

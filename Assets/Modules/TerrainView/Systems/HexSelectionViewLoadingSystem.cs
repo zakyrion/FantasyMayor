@@ -5,37 +5,33 @@ using DefaultEcs;
 using DefaultECSExtensions;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
-using Modules.TerrainGenerator.Components;
+using Modules.Boot.Core;
 using Modules.TerrainView.Components;
 using Modules.TerrainView.Views;
 
 namespace Modules.TerrainView.Systems
 {
     /// <summary>
-    ///     Loads the addressable <see cref="HexSelectionView" /> prefab and publishes
-    ///     the runtime singleton view entity.
-     ///     Owns the <c>Box&lt;HexSelectionView&gt;</c>; disposal destroys the instantiated carrier object.
+    ///     World-init pipeline step (priority 500). Loads the addressable <see cref="HexSelectionView" /> prefab
+    ///     and publishes the runtime singleton view entity. Runs after the terrain view exists.
+    ///     Owns the <c>Box&lt;HexSelectionView&gt;</c>; disposal destroys the instantiated carrier object.
     /// </summary>
     [UsedImplicitly]
-    internal sealed class HexSelectionViewLoadingSystem : UpdatedSystem
+    internal sealed class HexSelectionViewLoadingSystem : IPrioritizedUniTaskSystem<TerrainGenerationStep>
     {
-        internal const int ExecutionPriority = TerrainViewSystem.ExecutionPriority + 1;
+        public const int ExecutionPriority = 500;
         private const string HEX_SELECTION_VIEW_ADDRESS = "HexSelectionView";
 
         private readonly IAddressable _addressable;
         private readonly World _world;
 
-        private CancellationTokenSource _cts;
-        private Entity? _hexSelectionViewEntity;
         private Box<HexSelectionView> _hexSelectionViewBox;
+        private Entity? _hexSelectionViewEntity;
 
         /// <inheritdoc />
-        public override int Priority => ExecutionPriority;
+        public int Priority => ExecutionPriority;
 
         public HexSelectionViewLoadingSystem(World world, IAddressable addressable)
-            : base(world.GetEntities()
-                .WhenAdded<TerrainGenerationGenerateEventComponent>()
-                .AsSet())
         {
             _world = world;
             _addressable = addressable;
@@ -43,25 +39,16 @@ namespace Modules.TerrainView.Systems
         }
 
         /// <inheritdoc />
-        protected override void Update(GameState state, in Entity entity)
+        public UniTask Update(TerrainGenerationStep state, CancellationToken cancellationToken)
         {
-            _cts?.Cancel();
-            _cts?.Dispose();
-            _cts = new CancellationTokenSource();
-
-            LoadViewAsync(CancellationTokenSource.CreateLinkedTokenSource(StatusMonitor.Token, _cts.Token).Token).Forget();
+            return LoadViewAsync(cancellationToken);
         }
 
         /// <inheritdoc />
-        public override void Dispose()
+        public void Dispose()
         {
-            _cts?.Cancel();
-            _cts?.Dispose();
-            _cts = null;
-
             DestroyHexSelectionViewEntity();
             DisposeHexSelectionViewBox();
-            base.Dispose();
         }
 
         private void DestroyHexSelectionViewEntity()

@@ -34,7 +34,7 @@ namespace Modules.TerrainGenerator.Systems
 
                 var config = terrainGenerationConfig.Value;
 
-                World.CreateEntity().Set(TerrainGenerationConfigComponent.FromConfig(config));
+                World.Set(TerrainGenerationConfigComponent.FromConfig(config));
                 CreateMountainConfigComponent(config);
                 CreateWaterConfigComponent(config);
 
@@ -48,7 +48,7 @@ namespace Modules.TerrainGenerator.Systems
 
         private void CreateMountainConfigComponent(TerrainGenerationConfig config)
         {
-            World.CreateEntity().Set(new MountainConfigComponent
+            World.Set(new MountainConfigComponent
             {
                 SizeFraction         = config.HillSizeFraction,
                 SeedCount            = config.SeedCount,
@@ -89,7 +89,7 @@ namespace Modules.TerrainGenerator.Systems
             if (riverConfig == null)
                 throw new InvalidOperationException($"{nameof(RiverConfig)} is not assigned in TerrainGenerationConfig but WaterType is River.");
 
-            World.CreateEntity().Set(new RiverConfigComponent
+            World.Set(new RiverConfigComponent
             {
                 CornerOffsetTiles = riverConfig.CornerOffsetTiles
             });
@@ -100,7 +100,7 @@ namespace Modules.TerrainGenerator.Systems
             if (lakeConfig == null)
                 throw new InvalidOperationException($"{nameof(LakeConfig)} is not assigned in TerrainGenerationConfig but WaterType is Lake.");
 
-            World.CreateEntity().Set(new LakeConfigComponent
+            World.Set(new LakeConfigComponent
             {
                 EdgeMarginTiles = lakeConfig.EdgeMarginTiles,
                 SizeFraction = lakeConfig.SizeFraction
@@ -112,7 +112,7 @@ namespace Modules.TerrainGenerator.Systems
             if (seaConfig == null)
                 throw new InvalidOperationException($"{nameof(SeaConfig)} is not assigned in TerrainGenerationConfig but WaterType is Sea.");
 
-            World.CreateEntity().Set(new SeaConfigComponent
+            World.Set(new SeaConfigComponent
             {
                 SizeFraction = seaConfig.SizeFraction
             });

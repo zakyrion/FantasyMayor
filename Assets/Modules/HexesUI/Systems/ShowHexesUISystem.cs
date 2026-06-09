@@ -72,6 +72,20 @@ namespace Modules.HexesUI.Systems
             _isLoaded = true;
         }
 
+        /// <summary>Makes the instantiated UI visible. No-op until the UI is loaded.</summary>
+        public void Show()
+        {
+            if (_uiBox.Exist)
+                _uiBox.Value.gameObject.SetActive(true);
+        }
+
+        /// <summary>Hides the instantiated UI. No-op until the UI is loaded.</summary>
+        public void Hide()
+        {
+            if (_uiBox.Exist)
+                _uiBox.Value.gameObject.SetActive(false);
+        }
+
         /// <summary>Releases the instantiated UI and its underlying addressable handle.</summary>
         public void Dispose()
         {

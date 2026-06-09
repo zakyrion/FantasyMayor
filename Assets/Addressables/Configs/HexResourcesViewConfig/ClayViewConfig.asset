@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf6fef0d074be4814871ec6a5d7becdb, type: 3}
+  m_Name: ClayViewConfig
+  m_EditorClassIdentifier: GameResourcesView::Modules.GameResourcesView.Configs.ClayViewConfig
+  _depressionRadius: 0.6
+  _depressionDepth: 0.15
+  _footprintAspect: {x: 1, y: 0.7}
+  _pearFactor: 0.3
+  _noiseAmplitude: 0.3
+  _noiseFrequency: 4
+  _clayCenterColor: {r: 0.369, g: 0.18, b: 0.11, a: 1}
+  _clayRimColor: {r: 0.788, g: 0.475, b: 0.294, a: 1}

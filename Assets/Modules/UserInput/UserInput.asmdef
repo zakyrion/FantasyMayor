@@ -3,6 +3,7 @@
     "rootNamespace": "",
     "references": [
         "Core",
+        "Cameras",
         "VContainer",
         "DefaultECS.Extensions",
         "Unity.InputSystem",

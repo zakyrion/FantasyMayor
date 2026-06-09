@@ -1,0 +1,40 @@
+# graphify scan exclusions for FantasyMayor.
+# Goal: graph only game code + project docs. Everything below is tooling churn,
+# Unity-generated state, or immutable third-party — never architecturally meaningful.
+
+# --- Unity generated / editor state ---
+Library/
+Temp/
+Obj/
+obj/
+Build/
+Builds/
+Logs/
+UserSettings/
+MemoryCaptures/
+ProjectSettings/
+AddressableAssetsData/
+*.meta
+*.unity
+mono_crash*
+
+# --- Tooling / agent state ---
+.cmaestro/
+.vscode/
+.idea/
+.claude/
+.ai/
+.bezisidekick/
+.maestro/
+skills/
+.DS_Store
+
+# --- Unity Package Manager (immutable third-party) ---
+Packages/
+
+# --- Third-party assets (immutable per CLAUDE.md) ---
+Assets/Plugins/
+Assets/ThirdParty/
+Assets/Packages/
+Assets/TextMesh Pro/
+Assets/TutorialInfo/

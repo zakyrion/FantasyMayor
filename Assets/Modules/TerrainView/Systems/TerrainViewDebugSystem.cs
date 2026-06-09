@@ -1,52 +1,49 @@
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using DefaultEcs;
 using DefaultECSExtensions;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
-using Modules.HexesCore.Components;
-using Modules.TerrainGenerator.Components;
+using Modules.Boot.Core;
+using Modules.HexCore.Components;
 using Modules.TerrainView.Components;
 using UnityEngine;
 
 namespace Modules.TerrainView.Systems
 {
+    /// <summary>
+    ///     World-init pipeline step (priority 600). Draws debug rays per hex coloured by terrain level.
+    ///     Runs last, after all view geometry exists.
+    /// </summary>
     [UsedImplicitly]
-    internal sealed class TerrainViewDebugSystem : UpdatedSystem
+    internal sealed class TerrainViewDebugSystem : IPrioritizedUniTaskSystem<TerrainGenerationStep>
     {
-        private const int ExecutionPriority = TerrainViewSystem.ExecutionPriority + 1;
+        private const int ExecutionPriority = 600;
         private const float RayHeight = 5f;
         private const float RayDuration = 5f;
 
-        private readonly EntitySet _configSet;
+        private readonly World _world;
         private readonly EntitySet _hexSet;
 
-        public override int Priority => ExecutionPriority;
+        /// <inheritdoc />
+        public int Priority => ExecutionPriority;
 
         public TerrainViewDebugSystem(World world)
-            : base(world.GetEntities()
-                .WhenAdded<TerrainGenerationGenerateEventComponent>()
-                .AsSet())
         {
+            _world = world;
             _hexSet = world.GetEntities()
                 .With<HexIdComponent>()
                 .With<HexLevelComponent>()
                 .AsSet();
-
-            _configSet = world.GetEntities()
-                .With<TerrainViewConfigComponent>()
-                .AsSet();
         }
 
-        protected override void Update(GameState state, in Entity entity)
+        /// <inheritdoc />
+        public UniTask Update(TerrainGenerationStep state, CancellationToken cancellationToken)
         {
-            if (_configSet.Count == 0)
-            {
-                entity.Dispose();
-                return;
-            }
+            if (!_world.Has<TerrainViewConfigComponent>())
+                return UniTask.CompletedTask;
 
-            var cellSize = _configSet.GetEntities()[0]
-                .Get<TerrainViewConfigComponent>()
-                .CellSize;
+            var cellSize = _world.Get<TerrainViewConfigComponent>().CellSize;
 
             foreach (ref readonly var hexEntity in _hexSet.GetEntities())
             {
@@ -67,14 +64,13 @@ namespace Modules.TerrainView.Systems
                 Debug.DrawRay(new Vector3(center.x, center.y, center.z), Vector3.up * RayHeight, rayColor, RayDuration);
             }
 
-            entity.Dispose();
+            return UniTask.CompletedTask;
         }
 
-        public override void Dispose()
+        /// <inheritdoc />
+        public void Dispose()
         {
             _hexSet.Dispose();
-            _configSet.Dispose();
-            base.Dispose();
         }
     }
 }

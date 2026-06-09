@@ -4,9 +4,9 @@ using VContainer.Unity;
 
 namespace Installers.Addressable
 {
-    public class AddressableInstaller : LifetimeScope
+    public sealed class AddressableInstaller : IInstaller
     {
-        protected override void Configure(IContainerBuilder builder)
+        public void Install(IContainerBuilder builder)
         {
             builder.Register<IAddressable, Modules.Addressable.Implementation.Addressable>(Lifetime.Scoped);
         }
