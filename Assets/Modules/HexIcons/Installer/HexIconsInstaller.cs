@@ -16,7 +16,7 @@ namespace Modules.HexIcons.Installer
             builder.Register<HexIconsSpawnSystem>(Lifetime.Singleton)
                 .As<HexIconsSpawnSystem, IPrioritizedUniTaskSystem<TerrainGenerationStep>>();
 
-            // Per-frame positioner — a concrete singleton wired into GameplayState by Boot (like ForestViewSyncSystem).
+            // Per-frame positioner — a concrete singleton wired into GameplayState by Boot (like ForestSpawnSystem).
             builder.Register<HexIconsContainerPositionSystem>(Lifetime.Singleton)
                 .As<HexIconsContainerPositionSystem>();
 

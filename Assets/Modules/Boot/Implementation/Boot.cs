@@ -71,9 +71,14 @@ namespace Modules.Boot.Implementation
             ShowHexesUISystem showHexesUI,
             HexSelectionSystem hexSelection,
             HexSelectionViewSystem hexSelectionView,
-            ForestViewSyncSystem forestViewSync,
+            ForestSpawnSystem forestSpawn,
+            ForestDespawnSystem forestDespawn,
             HexIconsContainerPositionSystem hexIconsContainerPosition,
             HexIconsVisibilitySystem hexIconsVisibility,
+            HexInfoPanelSystem hexInfoPanel,
+            HexInfoPanelHeaderSystem hexInfoPanelHeader,
+            HexInfoPanelResourcesSystem hexInfoPanelResources,
+            HexInfoPanelDistrictPlaceholderSystem hexInfoPanelDistrict,
             EventCleanupSystem eventCleanup,
             CameraMovementSystem cameraMovement,
             World world)
@@ -82,13 +87,18 @@ namespace Modules.Boot.Implementation
 
             var mainMenu = new MainMenuState(world, showHexesUI);
 
-            // Forest sync + event cleanup must run during the generation settle frames.
-            var mapCreation = new MapCreationState(generationPipeline, forestViewSync, eventCleanup);
+            // Forest is built one-shot inside the generation pipeline now; only event cleanup needs to run
+            // during the settle frames.
+            var mapCreation = new MapCreationState(generationPipeline, eventCleanup);
 
             var gameplay = new GameplayState(
                 world,
                 new IUpdatedSystem[]
-                    { hexSelection, hexSelectionView, forestViewSync, hexIconsVisibility, eventCleanup },
+                {
+                    hexSelection, hexSelectionView, forestSpawn, forestDespawn, hexIconsVisibility,
+                    hexInfoPanel, hexInfoPanelHeader, hexInfoPanelResources, hexInfoPanelDistrict,
+                    eventCleanup
+                },
                 new ILateUpdatedSystem[] { cameraMovement, hexIconsContainerPosition });
 
             var mapLoading = new MapLoadingState();

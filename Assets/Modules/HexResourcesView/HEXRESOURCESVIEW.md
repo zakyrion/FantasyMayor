@@ -2,54 +2,74 @@
 
 Visualizes resource entities from `HexResources` by instantiating prefabs on terrain.
 
+## Trigger
+`ForestSpawnSystem` runs on a `ForestHexAppearedEvent` pulse; `ForestDespawnSystem` on a
+`ForestHexRemovedEvent` pulse (both **Reactive Systems**, Gameplay, base set = the event).
+**DORMANT** — no emitter raises either pulse yet (future planting/chopping gameplay). These reactive
+triggers are not visible in graphify — full event flow: `ECS_REFERENCE.md`.
+
 ## Init vs Reactive — who does what
 
-Two different mechanisms live here, on purpose. Do not confuse them:
+Two different mechanisms live here, on purpose. Do not confuse them
+(roles per `ARCHITECTURE.md` "System Taxonomy"):
 
-| System | Kind | Driven by | Responsibility |
+| System | Role | Driven by | Responsibility |
 |---|---|---|---|
-| `HexResourcesViewSystem` | one-shot pipeline step (priority 400) | `MapCreation` game state | runs **Clay/Fish** view subsystems once |
-| `ClayResourceViewSubSystem` | pipeline subsystem (priority 200) | `HexResourcesViewSystem` | sinks a clay depression into `VertexGrid` + paints a clay gradient into the terrain texture (implemented) |
-| `FishResourceViewSubSystem` | pipeline subsystem | `HexResourcesViewSystem` | scaffold-only, `Update()` empty |
-| `ForestViewSyncSystem` | reactive `UpdatedSystem` (per-frame) | Boot per-frame loop | owns the **whole forest view lifecycle** |
-| `ForestGroundPainter` | helper in `Helpers/` (not a system) | `ForestViewSyncSystem` | **stateless**: splats green ground into the terrain texture (append-only) |
+| `HexResourcesViewSystem` | Pipeline Orchestrator (priority 400) | `MapCreation` game state | runs **Forest/Clay/Fish** view subsystems once |
+| `ForestResourceViewSubSystem` | Pipeline SubSystem (priority 400) | `HexResourcesViewSystem` | **startup bulk**: plants every forest hex's trees + paints their ground, once |
+| `ClayResourceViewSubSystem` | Pipeline SubSystem (priority 200) | `HexResourcesViewSystem` | sinks a clay depression into `VertexGrid` + paints a clay gradient into the terrain texture (implemented) |
+| `FishResourceViewSubSystem` | Pipeline SubSystem (priority 300) | `HexResourcesViewSystem` | scaffold-only, `Update()` empty |
+| `ForestSpawnSystem` | Reactive System (Gameplay) | `ForestHexAppearedEvent` pulse | reconciles forest resources **without** a view → plant them (runtime; dormant — no emitter yet) |
+| `ForestDespawnSystem` | Reactive System (Gameplay) | `ForestHexRemovedEvent` pulse | reconciles views whose hex **lost** its forest resource → destroy them (runtime; dormant) |
+| `ForestPlanter` | helper in `Helpers/` (not a system) | the two spawners | **stateless**: places trees as view entities + collects ground splats; the shared spawn logic |
+| `ForestGroundPainter` | helper in `Helpers/` (not a system) | the spawners | **stateless**: splats green ground into the terrain texture (append-only) |
 | `ClayFootprint` / `ClayDepressionShaper` / `ClayGroundPainter` | helpers in `Helpers/` (not systems) | `ClayResourceViewSubSystem` | shared contour + mesh depression + texture gradient |
 
-**Naming marker:** `...SubSystem` = one-shot pipeline child; `...SyncSystem` = reactive per-frame
-maintainer. (`ForestView` = the per-tree MonoBehaviour on the prefab; `ForestViewComponent` = the ECS
-handle to it — both unchanged.)
+**Naming marker:** `...SubSystem` = one-shot pipeline child; `...SpawnSystem`/`...DespawnSystem` =
+reactive event-driven maintainers (anchored on a one-frame pulse, not per-frame diffing).
+(`ForestView` = the per-tree MonoBehaviour on the prefab; `ForestViewComponent` = the ECS handle to it
+— both unchanged.)
 
 **Folder marker:** plain non-system helper classes live in `Helpers/` (painters, the clay shaper, the
 footprint). ECS systems/subsystems stay in `Systems/`.
 
-### Why forest is reactive (and Clay/Fish are not, yet)
-The one-shot pipeline builds the view exactly once. That cannot reflect **runtime** changes — a chopped
-forest hex would leave its trees on the map forever, and ground paint contributed after the bake would
-never appear. `ForestViewSyncSystem` fixes both by maintaining the view every frame. Clay/Fish stay
-one-shot scaffolds until they need the same treatment.
+### Forest lifecycle: one-shot startup + two reactive runtime systems
+Forest is split by **when** the work happens, not by a per-frame god-system:
 
-There used to be a one-shot `ForestResourceViewSubSystem`; it was **deleted** and its spawn logic moved
-into `ForestViewSyncSystem`, so there is a single source of truth for forest spawning.
+- **Startup** — `ForestResourceViewSubSystem` runs once inside the `HexResourcesViewSystem` pipeline
+  (priority 400, after Clay 200 / Fish 300 so forest splats land on top, after `TerrainViewSystem` 300
+  baked the texture). It plants **all** forest hexes and paints their ground in one pass.
+- **Runtime** — `ForestSpawnSystem` and `ForestDespawnSystem` are reactive `UpdatedSystem`s in
+  `Gameplay`, each anchored on a one-frame **pulse** (`ForestHexAppearedEvent` / `ForestHexRemovedEvent`,
+  empty marker structs + `EventTag`, disposed each tick by `EventCleanupSystem`). They are a ready
+  scaffold: **no emitter raises either pulse yet** — runtime planting/chopping is future gameplay.
 
-## How `ForestViewSyncSystem` works
-- Based on (and gated by) the **persistent** `TerrainTextureComponent` — it is both the paint target and
-  the readiness signal. No texture ⇒ the system idles (its base set is empty).
-- **The ECS world is the single source of truth — the system holds no mirror state.** Each tree is a view
-  entity (`HexIdComponent` + `ForestViewComponent`). Every frame it diffs the **forest resource hexes**
-  against the **forest-view hexes**:
-  - hex appeared (resource, no view) ⇒ spawn trees + paint their green ground patches (once)
-  - hex vanished (view, no resource) ⇒ destroy that hex's view entities (+ their `GameObject`s). **Ground
-    paint is left in place** — a chopped forest leaves vegetated ground, not bare terrain.
-- **Painting is append-only.** A patch is splatted once when its hex appears and is never reverted, so the
-  painter keeps **no baseline** and there is no rebuild. Only the **newly spawned** patches are painted each
-  delta, blended over the texture's current pixels.
-- **Reactivity is per-frame diffing**, the same idiom as `TerrainView`'s `HexSelectionViewSystem` — *not*
-  DefaultEcs `WhenAdded`/`WhenRemoved` reactive buffers.
-- Per-frame scratch uses `Unity.Collections` (`NativeHashSet`/`NativeList`, `Allocator.Temp`) disposed
-  within the frame — per the ECS-system collections rule. The only managed state is the irreducible interop:
-  `GameObject`/`ForestView` references. The painter itself is **stateless**.
-- Painting runs **only on an appeared-delta**, never every frame. A frame with no new forest does a cheap
-  diff and returns.
+This replaces the old per-frame `ForestViewSyncSystem`, which diffed forest resources against forest
+views *every frame* and owned both spawn and despawn. The work it did is unchanged; it now happens
+on demand (pulse), not every tick.
+
+### How the reactive systems reconcile (state, not deltas)
+A pulse carries **no payload** — it only signals "forest changed". The reactive system then reconciles
+against **current world state**, which makes it idempotent (a second pulse in the same frame is a no-op):
+
+- `ForestSpawnSystem`: for each forest **resource** hex with no view (`!_forestViewsByHex.ContainsKey`),
+  plant trees (`ForestPlanter`) + collect green-ground splats, then paint the batch once.
+- `ForestDespawnSystem`: build the set of currently-forested hexes, then for each forest **view** hex
+  **not** in that set, destroy its tree entities (+ `GameObject`s). It checks the **forest** resource
+  specifically (not "any resource"). **Ground paint is left in place** — a chopped forest leaves
+  vegetated ground, not bare terrain.
+
+### Invariants shared by all forest spawning
+- Each tree is a view entity (`HexIdComponent` + `ForestViewComponent`); the **ECS world is the single
+  source of truth** — no mirror state is held.
+- **Painting is append-only.** A patch is splatted once when its hex is planted and is never reverted, so
+  `ForestGroundPainter` keeps **no baseline** and there is no rebuild — only newly planted patches are
+  blended over the texture's current pixels. Not DefaultEcs `WhenAdded`/`WhenRemoved` buffers.
+- Scratch uses `Unity.Collections` (`NativeHashSet`/`NativeList`, `Allocator.Temp`) disposed within the
+  frame — per the ECS-system collections rule. The only managed state is the irreducible interop:
+  `GameObject`/`ForestView` references. `ForestPlanter` and `ForestGroundPainter` are both **stateless**.
+- Placement and prefab-pick logic (per-prefab radius/scale/tint, owned-vertex shuffle, overlap rejection)
+  lives in the shared `ForestPlanter.PlantHex`, so the one-shot and the reactive spawn behave identically.
 
 ## Non-Obvious Invariants
 - Resolves prefabs via `ResourceType` — does not read `Hex*ResourceTag` components.
@@ -111,20 +131,24 @@ uploads the texture **once** (`ClayGroundPainter.Apply`). Clay is persistent →
 - **Seam-safety.** Only vertices strictly inside the footprint move, and the falloff reaches 0 at the edge.
   Keep `DepressionRadius` within the hex inradius (~0.86·CellSize) so the shared boundary vertices are not
   pulled down — otherwise a seam appears with neighbours.
-- **Ordering vs forest.** Clay paints the texture during the pipeline, before `ForestViewSyncSystem`
-  captures its baseline (first Gameplay frame). So clay is part of that baseline and forest splats land on
-  top. Clay and forest never share a hex (one district per hex), so they do not overlap.
+- **Ordering vs forest.** Both run in the same pipeline: Clay at priority 200 paints before
+  `ForestResourceViewSubSystem` at 400, so forest splats land on top of clay. Clay and forest never share
+  a hex (one district per hex), so they do not overlap anyway.
 - **`VertexGrid.GetOwnedVertexCoords` returns the live owner-cache `HashSet`.** `VertexGrid.Set` mutates
   that same set, so you must **snapshot the coords first** (e.g. into a `NativeList`) before looping and
   calling `Set` — otherwise it throws "Collection was modified". `ClayDepressionShaper` does this; the
   forest spawn copies the coords for the same reason.
-- `ClayResourceViewSubSystem` reads the cross-module config `TerrainViewConfigComponent` (CellSize) as a
-  **world component** via `world.Get`, and reads runtime singletons via entity sets:
-  `TerrainTextureComponent` (paint target), `TerrainViewComponent` (mesh re-apply), `VertexGridComponent`
-  (depression). It disposes its own extra entity sets in `Dispose()`.
+- `ClayResourceViewSubSystem` reads **world components** via `world.Get`: `TerrainViewConfigComponent`
+  (CellSize), `VertexGridComponent` (depression — through the base `TryGetVertexGrid`, backed by
+  `world.Has`/`world.Get`), and `TerrainTextureComponent` (paint target — also a world component, guarded
+  by `world.Has`). Only `TerrainViewComponent` (mesh re-apply) is still read via an entity set, which it
+  disposes in `Dispose()`. The forest subsystems (`ForestResourceViewSubSystem`/`ForestSpawnSystem`) read
+  `TerrainTextureComponent` the same way — `world.Get`, no entity set.
 
 ## Current State
-Forest view fully implemented end-to-end and reactive (spawn + append-only ground paint + tree removal;
-ground paint is intentionally not reverted).
+Forest view fully implemented end-to-end: startup spawn + append-only ground paint via the one-shot
+`ForestResourceViewSubSystem`. Runtime spawn/despawn (`ForestSpawnSystem`/`ForestDespawnSystem`) is wired
+and reconciliation-complete but **dormant** — no gameplay emitter raises the pulses yet. Ground paint is
+intentionally not reverted on removal.
 **Clay implemented** — organic depression in `VertexGrid` + clay-palette texture gradient (one-shot
 pipeline). Fish subsystem is scaffold-only — `Update()` is empty.

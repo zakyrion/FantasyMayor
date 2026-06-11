@@ -8,10 +8,7 @@ Follow the repository process exactly. Do not skip startup documents, do not inv
 
 ## Workflow
 
-### 0. Ask the task, what we will to do
-
-Bofore start any other actions you need to ask the developer what task we will do today
-Only after provided asnwer you must to continue this skill.
+Read all startup documents first. Ask the user what to do only at the very end, after the context is fully reconstructed (see step 4).
 
 ### 1. Load startup instructions first
 

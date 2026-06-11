@@ -31,17 +31,22 @@ FantasyMayor/
 │  ├─ Schemes/
 │  └─ TutorialInfo/
 ├─ Packages/                  # Unity package manifest and lock file
-├─ CLAUDE.md
-├─ SYSTEMTEMPLATE.md
-└─ CONFIGTEMPLATE.md
+├─ CLAUDE.md                  # Agent process rules
+├─ ARCHITECTURE.md            # This file — project-wide architecture policy
+├─ ECS_REFERENCE.md           # Central entity / world-component / event registry
+├─ SYSTEMTEMPLATE.md          # Template catalog for new systems
+├─ CONFIGTEMPLATE.md          # Template catalog for config flows
+├─ DOC_STANDARD.md            # How every MD file is written
+├─ GAMEPLAY_FOUNDATION.md     # GD doc — target gameplay cycles
+└─ GENERAL_UI_STYLE.md        # UI design language (read fully only for UI work)
 ```
 
 ## Source Of Truth
 | What | Where |
 |---|---|
 | Feature and domain runtime code | `Assets/Modules/*` |
-| Shared runtime primitives | `Assets/Scripts/Core` |
-| Shared ECS base systems | `Assets/Scripts/DefaultECSExtensions` |
+| Shared utility primitives (`Box<T>`, `Result<T>`, `FrameBox<T>`, `StateAllowedAttribute`) | `Assets/Scripts/Core` |
+| Shared ECS base systems and loop contracts | `Assets/Scripts/DefaultECSExtensions` |
 | App-root DI composition | `Assets/Scripts/Installers/*` |
 | Authored config assets | `Assets/Addressables/Configs/*` |
 | Scenes | `Assets/Scenes/*` |
@@ -61,10 +66,10 @@ FantasyMayor/
 
 | Assembly | Path | Responsibility |
 |---|---|---|
-| `Core` | `Assets/Scripts/Core` | Shared utility primitives such as `Box<T>`, `Result<T>`, disposal helpers, status primitives |
-| `DefaultECS.Extensions` | `Assets/Scripts/DefaultECSExtensions` | ECS base system types such as `UpdatedSystem`, `LateUpdatedSystem`, `ConfigLoaderSystem`, `IUniTaskSystem<T>` |
+| `Core` | `Assets/Scripts/Core` | Shared utility primitives: `Box<T>`, `Result<T>`, `FrameBox<T>` (frame-bounded state), `StateAllowedAttribute` (deliberate statefulness marker), disposal helpers, status primitives |
+| `DefaultECS.Extensions` | `Assets/Scripts/DefaultECSExtensions` | ECS loop contracts and base systems: `IUpdatedSystem`/`UpdatedSystem`, `ILateUpdatedSystem`/`LateUpdatedSystem`, `ConfigLoaderSystem`, `IUniTaskSystem<T>`, `IPrioritizedUniTaskSystem<T>`, `UniTaskSequentialSystem<T>`, `EventCleanupSystem`, `EventTag`, `GameState` |
 | `Installers` | `Assets/Scripts/Installers/Addressable` | App-root `IInstaller` implementations such as `AddressableInstaller` |
-| `Installers.World` | `Assets/Scripts/Installers/World` | Root `LifetimeScope`, world composition, input wiring, event cleanup, installer orchestration |
+| `Installers.World` | `Assets/Scripts/Installers/World` | Root `LifetimeScope`, world composition, input wiring, installer orchestration |
 
 ## Current Modules
 
@@ -72,19 +77,20 @@ FantasyMayor/
 |---|---|---|
 | `Addressable` | `Addressables.Core`, `Addressables.Implementations` | Public addressable loading contract and implementation |
 | `AxialSystem` | `AxialSystem` | Axial hex math, coordinates, generic axial grid primitives |
-| `Boot` | `Boot.Core`, `Boot.Implementation` | Boot pipeline step markers and boot MonoBehaviour orchestration |
-| `Cameras` | `Cameras` | Owns the active scene camera as a single-instance world component (`CameraComponent`), decoupled from consumers |
+| `Boot` | `Boot.Core`, `Boot.Implementation` | Boot phase markers, boot MonoBehaviour, and the hand-wired `GameModeMachine` (per-state system composition) |
+| `Cameras` | `Cameras` | Owns the active scene camera as a world component (`CameraComponent`), decoupled from consumers |
 | `Configs` | no dedicated asmdef | Generic config provider abstractions used by runtime code |
 | `CurveBuilders` | `CurveBuilders` | Shared curve builder contract |
 | `HexCore` | `Hex.Core` | Hex domain data, tags, grid and utility operations |
-| `HexesUI` | `Hexes.UI` | UI Toolkit based controls and first-step UI flow |
+| `HexIcons` | `HexIcons` | Screen-space per-hex icon overlay: container entities, per-frame projection, event-driven icon rebuild |
+| `HexesUI` | `Hexes.UI` | UI Toolkit screens: generator menu (MainMenu state) and the selection-driven hex info panel (Gameplay) |
 | `MainCanvas` | `MainCanvas.Core`, `MainCanvas.Implementation` | Root canvas abstraction and provider implementation; DI registration lives in `WorldInstaller` |
 | `Pathfinding` | `Pathfinding`, `Pathfinding.Installer` | Hex pathfinding utility and its DI registration |
-| `TerrainGenerator` | `Terrain.Generator` | Terrain generation configs, event trigger, generation systems for mountains, rivers, lakes, sea |
+| `TerrainGenerator` | `Terrain.Generator` | Terrain generation configs, generation trigger event, generation systems for mountains, rivers, lakes, sea |
 | `TerrainView` | `Terrain.View` | Terrain mesh, textures, water view, isolines, smoothing, runtime view systems |
 | `UserInput` | `UserInput` | Camera and player input ECS bridge plus camera movement config flow |
-| `HexResources` | `HexResources` | Resource tag components, generation systems, config flow for Forest, Clay, Fish |
-| `HexResourcesView` | `HexResourcesView` | Resource visualization. Forest is a **reactive** per-frame `UpdatedSystem` (`ForestViewSyncSystem`: trees + green ground painted into the persistent terrain texture); Clay/Fish are one-shot pipeline scaffolds |
+| `HexResources` | `HexResources` | Resource components, generation systems, config flow for Forest, Clay, Fish |
+| `HexResourcesView` | `HexResourcesView` | Resource visualization: one-shot startup build per resource (Forest planted + ground painted; Clay depression + gradient; Fish scaffold) plus dormant reactive runtime upkeep for forest (`ForestSpawnSystem`/`ForestDespawnSystem`) |
 
 ## Module Layout Rules
 
@@ -93,11 +99,12 @@ Every new feature should still prefer `Assets/Modules/<FeatureName>/` and use th
 ```text
 <FeatureName>/
 ├─ Components/   # Pure data structs
-├─ Tags/         # tags conponents for Entities
-├─ Events/       # event conponents for systems
+├─ Tags/         # tag components for entities
+├─ Events/       # one-frame event components for systems
 ├─ Configs/      # ScriptableObject class definitions
 ├─ Data/         # Collections, records, enums, helper types
 ├─ Systems/      # ECS systems and runtime orchestration
+├─ Helpers/      # Stateless computation helpers used by systems
 ├─ Views/        # MonoBehaviour view layer
 ├─ Prefabs/      # Module-scoped prefabs, uxml, uss
 └─ Installer/    # Feature-specific VContainer registration
@@ -117,6 +124,8 @@ Placement rules:
 - Use a plain class for an installer when it has no serialized data.
 - Use `MonoBehaviour + IInstaller` only when an installer must own `[SerializeField]` data.
 - Installer execution order is explicit in `WorldInstaller.Configure()`; dependencies must be installed before dependents.
+- Per-frame systems are registered with their **concrete** type (`.As<TheSystem>()`), not as
+  `IUpdatedSystem`/`ILateUpdatedSystem` — `Boot` injects concretes and wires them into game states by hand.
 
 Folder contract:
 | Folder | Never contains |
@@ -125,43 +134,185 @@ Folder contract:
 | `Configs/` | Runtime logic or config assets |
 | `Data/` | ECS systems or MonoBehaviours |
 | `Systems/` | View logic or config definitions |
+| `Helpers/` | Cross-frame state or entity ownership |
 | `Views/` | Business logic |
 | `Installer/` | Anything except DI registration |
 
 ## Current Structure Notes And Exceptions
 - The repository is partially standardized, not fully uniform.
 - `TerrainGenerator` and `TerrainView` are the closest matches to the full module template.
-- `HexesUI` currently uses `Installer`, `Systems`, and `Prefabs`, but does not have the full standard folder set.
 - `AxialSystem`, `CurveBuilders`, and `Configs` are flatter utility-style modules rather than full feature modules.
 - `Boot`, `Addressable`, and `MainCanvas` use explicit contract and implementation splits.
 - `Pathfinding` has a root runtime assembly plus a separate installer assembly that exposes an `IInstaller`.
 - `UserInput` currently has `Components`, `Configs`, and `Systems`, but no module-local installer folder.
 - `Assets/Scripts/Extentions` is a legacy typo-named folder and should be treated as existing structure, not a naming standard.
 
+## Domains And Modules (PLANNED — not started)
+Status: planned direction only. No code has moved. The Module Layout Rules above stay in force
+until the first domain lands.
+
+- **Domain** = the game-rule layer from `GAMEPLAY_FOUNDATION.md`: owns domain entity tables and
+  turn-phase logic (actors, districts, economy, population, turn flow).
+- **Module** = infrastructure and engine-facing features: rendering, input, addressables,
+  UI plumbing.
+- Target shape: a separate root `Assets/Domains/<DomainName>/`, parallel to `Assets/Modules/`,
+  with the boundary enforced by asmdef references.
+- Some existing modules will become domains, some stay modules. The concrete split is deliberately
+  NOT named yet — it is decided at the District design session.
+- Cross-domain component reads are expected (domain logic is cross-cutting) and MUST be declared
+  in `ECS_REFERENCE.md` (Cross-Module Component Reads).
+- The Repository Map above intentionally does not list `Assets/Domains/` — the root does not
+  exist yet.
+
 ## Public Contract Split
 - When a module exposes a reusable public API, prefer a `Core/` contract assembly plus an `Implementation/` assembly.
 - Current canonical examples are `Addressable`, `MainCanvas`, and `Boot`.
 
+---
+
+## System Taxonomy
+
+Canonical vocabulary. Every system in the project plays exactly ONE of these roles. Use these names
+in docs, reviews, and design discussions. `SYSTEMTEMPLATE.md` carries the concrete template for each.
+
+| Role | Base type | Driven by | Lifecycle |
+|---|---|---|---|
+| **Config Loader** | `ConfigLoaderSystem` (`IUniTaskSystem<ConfigLoadStep>`) | Boot bootstrap, once at startup | one-shot; `MarkAsLoaded()` guards re-entry |
+| **Pipeline Stage** | `IPrioritizedUniTaskSystem<TerrainGenerationStep>` | `MapCreation` state, sequential, ascending `Priority` | one-shot async |
+| **Pipeline Orchestrator** | a Pipeline Stage that fans out into SubSystems | `MapCreation` state | one-shot; NO domain logic of its own |
+| **Pipeline SubSystem** | per-orchestrator abstract base (async `ViewSubSystem : IUniTaskSystem<GameState>` or sync `HexResourcesViewSubSystem : ISystem<GameState>`) | its orchestrator, ascending `Priority`, `IsEnabled` honored | one-shot |
+| **Per-frame System** | `UpdatedSystem` / `LateUpdatedSystem` (`AEntitySetSystem<GameState>`) | the ACTIVE game state only | every frame; must justify why it cannot be reactive |
+| **Reactive System** | `UpdatedSystem` whose base set is `With<SomeEvent>` | a one-frame pulse; zero idle cost | pulse → reconcile against current state, idempotent |
+| **Cleanup** | `EventCleanupSystem`, `Priority = int.MaxValue` | every active state, runs last | disposes all `EventTag` entities each tick |
+
+**Apply via:** choosing a role for a new system, and the per-role skeleton + mechanics (orchestrator
+sorting, subsystem query ownership, pulse + reconcile shape) → `SYSTEMTEMPLATE.md` → Step 0 and
+Templates 1–4; Config Loader → `CONFIGTEMPLATE.md`. This file owns the *taxonomy and invariants*; the
+templates own the *procedure*.
+
+Role invariants (policy — hold regardless of the template you follow):
+- One-frame events DO NOT survive the async `MapCreation` pipeline (`EventCleanupSystem` disposes them
+  at end of tick) — startup bulk work is always a Pipeline Stage/SubSystem, never event-driven.
+- A **Reactive System** is the DEFAULT for runtime logic. A **Per-frame System** must justify in
+  writing why it cannot be reactive; no justification = a decomposition smell (see Decomposition Rules).
+- An **Orchestrator** contains no domain logic of its own; a **SubSystem** exists only under an
+  orchestrator.
+- Naming: orchestrators and stages are named `…System`, subsystems `…SubSystem`. Reactive systems carry
+  intent names (`ForestSpawnSystem`, `HexIconsVisibilitySystem`) — there is no mandated
+  `…ReactiveSystem` suffix.
+
+## State Storage Taxonomy
+
+Four storages. Pick by answering: how many instances, and does anything need to FIND it via an
+entity query?
+
+**Apply via:** a loaded config is always a world component — the config-loader procedure that does it
+is `CONFIGTEMPLATE.md` → STORAGE RULE.
+
+| Storage | Use when | Access | Registry |
+|---|---|---|---|
+| **Entity table** | N rows of the same shape (hexes, resources, views, icon containers) | query = key + discriminator (Table Rule); `EntitySet` / `EntityMap` / `EntityMultiMap` | `ECS_REFERENCE.md` Entity Registry |
+| **World component** | exactly ONE instance, and NO consumer needs it in an entity query | `world.Set` / `world.Get`, guarded by `world.Has` | `ECS_REFERENCE.md` World Component Registry |
+| **One-frame event entity** | a signal that something changed; consumed by a Reactive System this same frame | marker component + `EventTag`; `EventCleanupSystem` disposes at end of tick | `ECS_REFERENCE.md` Event Registry |
+| **Singleton entity** | exactly ONE instance, but it MUST appear in entity queries (a per-frame system anchors on it, or reactive filters watch it) | `With<TheComponent>` set with `Count`-guard | `ECS_REFERENCE.md` Entity Registry |
+
+World component contract:
+- A world component is **not an entity**: it never appears in `world.GetEntities()` and cannot be
+  matched by `With<T>` / `WhenAdded<T>` / `WhenChanged<T>`. If its change must drive reactive
+  consumers, raise an explicit one-frame event entity alongside the `world.Set`.
+- All loaded configs are world components (`CONFIGTEMPLATE.md`). Runtime singletons follow the same
+  storage: `CameraComponent`, `VertexGridComponent`, `TerrainTextureComponent`,
+  `HexIconsViewComponent`, `HexIconsVisibilityComponent`.
+- A world component carrying a **reference type** (`VertexGrid`, `Texture2D`) is set ONCE at
+  creation; the payload object is then mutated in place by its writers. `world.Set` is never
+  re-called after a mutation — readers always see the live object via `world.Get`.
+- Singleton entities are the exception, not the default. Current ones exist because systems anchor
+  per-frame ticks on them or query them: `TerrainViewComponent`, `SelectedHexComponent`,
+  `WaterViewComponent`, `HexSelectionViewComponent`, `HexInfoPanelViewComponent`,
+  `PlayerInputComponent`. When adding new single-instance state, default to a world component;
+  create a singleton entity only when an entity-query consumer exists from day one.
+
+## Decomposition Rules
+
+The project moved from per-frame "god-systems" to decomposed role-pure systems. Apply these rules
+when designing or reviewing any system.
+
+**Apply via:** the reactive-split skeleton and the point-of-use "split when" checklist are in
+`SYSTEMTEMPLATE.md` → Template 1 and its Responsibility warnings.
+
+**God-system smell — split it when a system:**
+- both **creates and destroys** the same kind of content;
+- **diffs world state every frame** to find out "what changed" (multi-filter scans, sorts,
+  per-frame set comparisons);
+- holds **more than two unrelated query families** (it serves several masters);
+- runs in **multiple game states** for different reasons.
+
+**The split recipe** (worked example: `ForestViewSyncSystem` → 3 systems):
+1. The startup bulk becomes a **Pipeline SubSystem** (one-shot, runs once inside `MapCreation`):
+   `ForestResourceViewSubSystem` plants every forest hex and paints ground once.
+2. Each runtime responsibility becomes its own **Reactive System** in `Gameplay`:
+   `ForestSpawnSystem` (on `ForestHexAppearedEvent`) and `ForestDespawnSystem`
+   (on `ForestHexRemovedEvent`).
+3. Shared computation moves to a stateless **helper** (`Helpers/`): `ForestPlanter`.
+
+**Reactive = generic pulse + reconcile:**
+- The event is a **payload-less one-frame pulse** ("something changed"), not a per-entity delta.
+  No coordinates, no lists in the event.
+- On the pulse, the system **reconciles against current world state**: build the current set, diff
+  it, act on the difference. Work with state, not with transitivity.
+- Reconciliation makes the system **idempotent**: a second pulse in the same frame finds nothing to
+  do. Missed or coalesced pulses are harmless — the next pulse repairs everything.
+- The consumer is an `UpdatedSystem` whose base set is `With<TheEvent>` → zero cost while no pulse
+  exists. The pulse entity itself is ignored inside `Update`.
+- Emitters may be deferred: build the reactive consumer as a dormant scaffold first, wire emitters
+  when the gameplay mechanic lands.
+
 ## ECS And Runtime Conventions
+
 - **Component naming by role (suffix):**
   - a component **carrying data** → `…Component` (e.g. `HexIdComponent`, `HexIconsVisibilityComponent`)
   - a **tag / marker** component (empty, presence-only) → `…Tag` (e.g. `HexTag`, `EventTag`)
-  - a **one-frame event** component → `…Event` (e.g. `HexIconsVisibilityChangedEvent`)
+  - a **one-frame event** component → `…Event` (e.g. `ForestHexAppearedEvent`, `HexInfoPanelRefreshEvent`)
 
   Pre-existing `…EventComponent` names (e.g. `TerrainGenerationGenerateEventComponent`) predate this rule;
   they stay until a deliberate rename, but new events use the `…Event` suffix.
 - Single-component entity creation may chain: `world.CreateEntity().Set(...)`
 - Once more than one component is assigned, stop chaining and use a local entity variable
-- In `MonoBehaviour` code, prefer `System.Collections.Generic`
-- In ECS systems, prefer `Unity.Collections` and dispose persistent allocations explicitly
-  - **Exception — managed elements:** a collection whose elements are managed types (`GameObject`,
-    `MonoBehaviour`/view references, `Entity`-wrapping records, etc.) stays `System.Collections.Generic`,
-    because `NativeContainer` only holds `unmanaged` types. Mark such cases with a short comment.
-  - Enums can't be `NativeHashSet`/`NativeParallelHashMap` **keys** (no `IEquatable<T>`) — key on the
-    underlying `int`. As a **value** an enum is fine (`unmanaged`).
-  - Use `Allocator.Temp` for within-frame scratch; use `Allocator.Persistent` (with explicit dispose)
-    when a container must outlive an `await` / cross a `RunOnThreadPool` boundary.
-- Prefer instance-based design; use `static` only when a type is truly stateless utility infrastructure
+- Prefer instance-based design; use `static` only when a type is truly stateless utility
+  infrastructure (e.g. `ForestGroundPainter`).
+
+### Statelessness And Collections (the two hard bans)
+
+These two bans are machine-checked by `/arch-check`. They apply to every system.
+
+**Apply via:** the applied per-template form is in `SYSTEMTEMPLATE.md` → Global rules.
+
+**Ban 1 — no stateful systems.** A system holds no mutable per-instance state. Instance fields must
+be `readonly` handles: DI dependencies, `World`, query caches. What does NOT count as state:
+- query caches (`EntitySet`, `EntityMap<T>`, `EntityMultiMap<T>`) — they are declarative,
+  self-maintaining views of world state;
+- `const` / `static readonly` configuration values.
+
+What DOES count as state: any reassignable field, and any `readonly` field whose CONTENTS mutate
+across frames (collections, arrays, `StringBuilder`, `Native*` buffers held between ticks).
+
+Escape hatches, in order of preference:
+1. Move the state where it belongs — onto an entity (a component) or into a world component.
+2. `FrameBox<T>` (`Core`) for state valid only within a bounded number of frames (e.g. a per-frame
+   cache resolved in `PreUpdate`): it is frame-stamped and fails loud on a stale read.
+3. `[StateAllowed("reason")]` (`Core`) on the field — a deliberate, reviewed exception that
+   `/arch-check` skips. Always pass the reason.
+
+**Ban 2 — no `System.Collections.Generic` in systems.** Use `Unity.Collections`
+(`NativeList`, `NativeHashSet`, `NativeParallelHashMap`, …) and dispose explicitly.
+- `Allocator.Temp` for within-frame scratch; `Allocator.Persistent` (explicit dispose) when a
+  container must outlive an `await` or cross a `RunOnThreadPool` boundary.
+- **Exception — managed elements:** a collection whose elements are managed types (`GameObject`,
+  view references, `Entity`-wrapping records) stays `System.Collections.Generic`, because a
+  `NativeContainer` only holds `unmanaged` types. Mark such cases with a short comment.
+- Enums can't be `NativeHashSet`/`NativeParallelHashMap` **keys** (no `IEquatable<T>`) — key on the
+  underlying `int`. As a **value** an enum is fine (`unmanaged`).
+- In `MonoBehaviour` (view) code, `System.Collections.Generic` is fine.
 
 ### Component Writes And Reactivity (DefaultEcs)
 Project rule: **always write components through `entity.Set<T>(value)`** — the publishing write path.
@@ -177,8 +328,9 @@ This is mandatory: any component can gain a reactive consumer without auditing e
 - DefaultEcs tracks the write **call**, not the value — no built-in value-diff. `With<T>` / `Without<T>`
   filters track component presence only.
 - **Entity set-membership diffs are a separate case.** Reacting to which *entities* enter or leave a set
-  uses `WhenAdded` / `WhenRemoved`, not `WhenChanged`. Migrating such a system is a deliberate per-case
-  refactor. See `Assets/Modules/HexResourcesView/HEXRESOURCESVIEW.md`.
+  uses `WhenAdded` / `WhenRemoved`, not `WhenChanged`. The project's chosen alternative for view upkeep
+  is the pulse + reconcile pattern (Decomposition Rules) — prefer it over `WhenAdded`/`WhenRemoved`
+  buffers for new code.
 
 ### Collector And Output Methods
 - A method that produces a value or fills a collection MUST report success/validity through a `bool`
@@ -190,12 +342,69 @@ This is mandatory: any component can gain a reactive consumer without auditing e
   `NativeList` still aliases the same native memory, so the mutation is invisible at the call site.
 - A producer with exactly one output **and** guaranteed success may simply **return** the value. Use the
   `Try…` + `ref`/`out` + `bool` form when success is not guaranteed, or when there are multiple outputs.
-- Reference example: `ForestViewSyncSystem.TryPickForestEntry` — input as a parameter, result via `out`,
+- Reference example: `ForestPlanter.TryPickForestEntry` — input as a parameter, result via `out`,
   `bool` return.
 - A single-use private helper that reads class fields and just unfolds the caller's linear flow does **not**
   earn extraction — inline it into the caller. Extract only when the method is signature-complete (inputs
   as parameters) and is either reused or a self-contained operation. `Update` (a system's orchestration
   root) may read the system's own fields directly.
+
+### Relational Modeling — Table Rule
+An entity "table" is defined by its query, and a query MUST name the table, not just the key.
+
+- **Table = key component + discriminator component.** A bare `With<KeyComponent>` query is
+  **forbidden** — it is a UNION of every table sharing that key space, not a table.
+- The same key component is the **primary key** on the owner table and a **foreign key** on the
+  parallel tables. The hex key space (key: `HexIdComponent`) currently holds four tables:
+
+  | Table | Discriminator | Key role |
+  |---|---|---|
+  | Hex | `HexTag` | PK — one entity per coordinate |
+  | HexResource | `HexResourcesComponent` | FK — N per coordinate (one per `ResourceType`) |
+  | ResourceView | `ForestViewComponent` / `FishViewComponent` | FK — N per coordinate |
+  | HexIconContainer | `HexIconContainerComponent` | FK — one per coordinate |
+
+- One query definition has three materializations — pick by access pattern:
+
+  ```csharp
+  // PK table → unique index. TryGetEntity(key, out Entity).
+  EntityMap<HexIdComponent> hexByCoord =
+      world.GetEntities().With<HexTag>().AsMap<HexIdComponent>();
+
+  // FK 1:N table → non-unique index. TryGetEntities(key, out ReadOnlySpan<Entity>).
+  EntityMultiMap<HexIdComponent> resourcesByCoord =
+      world.GetEntities().With<HexResourcesComponent>().AsMultiMap<HexIdComponent>();
+
+  // The same table as a sweep set.
+  EntitySet resources =
+      world.GetEntities().With<HexIdComponent>().With<HexResourcesComponent>().AsSet();
+  ```
+
+- `EntityMap` / `EntityMultiMap` are self-maintaining: they update on `Set` / `Remove`. This works
+  ONLY because of the "always write through `entity.Set<T>(value)`" rule above — a single
+  ref-mutation silently desyncs every maintained index.
+- Query caches held as system fields (`EntitySet`, `EntityMap`, `EntityMultiMap`) are declarative.
+  They do NOT count as forbidden system state under the stateless-systems ban.
+- The map API is Try-pattern (`bool` return + `out` result) — the same contract as the Collector
+  convention above. Branch on the `bool`.
+- **Key equality:** a key component MUST implement `IEquatable<T>` + `GetHashCode`, or an
+  `IEqualityComparer<T>` MUST be passed to the `AsMap` / `AsMultiMap` overload.
+  `HexIdComponent` (delegates to `HexCoord`) and `HexResourcesComponent` (keys on its `Type` enum)
+  implement this — follow their shape for new key components.
+- **Join = a lookup by key value at the point of use.** Never store an `Entity` reference from one
+  table's row to another table's row.
+- Maintained indexes are for hot joins (read every frame or many times per turn). A
+  click-frequency query may linearly scan an `EntitySet` instead — do not build a map for it.
+- Legacy bare-key queries exist and are flagged `⚠ BARE-KEY LEGACY` in `ECS_REFERENCE.md`
+  (pending audit). Do NOT copy that pattern into new code.
+
+### Link Convention — Domain ID vs Entity Handle
+- A **domain / persistent relationship** is expressed as a stable domain ID component
+  (e.g. `HexIdComponent`), never as a stored `Entity` handle.
+- A **runtime-only link** — non-serialized, lifetime-coupled, typically view-layer (a view
+  component holding its `MonoBehaviour`) — may hold a direct reference or an `Entity` handle.
+- Rationale: a stable ID survives save/load and map regeneration; a stale ID fails loud at
+  resolution (`Try…` + throw), a stale `Entity` handle fails silent.
 
 ### Error Handling — Fail Loud
 - A step that cannot do its job correctly MUST throw, not silently succeed. Missing or invalid
@@ -212,33 +421,29 @@ This is mandatory: any component can gain a reactive consumer without auditing e
 - Exception type is not critical; `InvalidOperationException` with a message is the codebase default
   (see `TerrainGenerationConfigLoaderSystem`).
 
-### Config Component Storage
-- A loaded config's flattened ECS component is stored as a **world component** —
-  `world.Set<TConfigComponent>(value)` — **not** on a created singleton entity. Read it with
-  `world.Get<TConfigComponent>()`, guarded by `world.Has<TConfigComponent>()`.
-- Rationale: a config is load-once, single-instance state. The world component is the one
-  canonical slot for it — there is no singleton entity to locate, and no second copy can be
-  created by accident.
-- A world component is **not an entity**. It never appears in `world.GetEntities()` and cannot be
-  matched by entity-query filters (`With<T>`, `WhenAdded<T>`, `WhenChanged<T>`) — those operate on
-  entities only. Consumers read it directly via `world.Get<T>()`. If a config change must drive
-  reactive consumers, publish an explicit event component on an entity; do not expect a world
-  component to surface in an `EntitySet`.
-- The same applies to other genuinely single-instance world state, not only configs.
-- `CONFIGTEMPLATE.md` is the canonical template for the loader that performs this write.
-
 ## Boot And System Flow
-- Boot step markers live in `Boot.Core` as `ConfigLoadStep`, `FirstUIStep`, and `TerrainGenerationStep`
-- `ConfigLoadStep` is the one-time config bootstrap driven by `Boot` at startup. After it, `Boot` hands off to a hand-wired `GameModeMachine` (states: `MainMenu`, `MapCreation`, `MapLoading`, `Gameplay`); only the active state's systems run.
-- `TerrainGenerationStep` is the generation pipeline (`IPrioritizedUniTaskSystem<TerrainGenerationStep>` stages: terrain gen → resources → terrain view → resource view → selection → debug). It is now run by the **`MapCreation` state** (the old `WorldInitSystem` was removed). `FirstUIStep` is no longer a boot phase — the generator UI belongs to the `MainMenu` state. Per-frame systems are registered as concrete singletons and wired into states by hand in `Boot`. See `Assets/Modules/Boot/BOOT.md`.
-- Config initialization systems should derive from `ConfigLoaderSystem`
-- Regular per-frame logic should derive from `UpdatedSystem`
-- Late-frame logic should derive from `LateUpdatedSystem`
-- Ordered async subsystem pipelines can use `IUniTaskSystem<T>` and `UniTaskSequentialSystem<T>`
+
+- Boot phase markers live in `Boot.Core`: `ConfigLoadStep` (the one-time config bootstrap driven by
+  `Boot` at startup) and `TerrainGenerationStep` (the world-init pipeline). `FirstUIStep` survives
+  only as a marker argument — it is not a boot phase.
+- After the bootstrap, `Boot` hands off to the hand-wired `GameModeMachine`
+  (states: `MainMenu`, `MapCreation`, `MapLoading`, `Gameplay`). **Only the active state's systems
+  run.** Each state lists its Update / LateUpdate systems explicitly in `Boot.Construct` —
+  composition is manual and visible in one place. See `Assets/Modules/Boot/BOOT.md`.
+- The world-init pipeline (`IPrioritizedUniTaskSystem<TerrainGenerationStep>`) is run by the
+  `MapCreation` state: stages execute sequentially in ascending priority (terrain gen → resources →
+  terrain view → resource views → selection view → debug → icon containers → info panel).
+- Within a state, per-frame systems tick in ascending `Priority`; `EventCleanupSystem`
+  (`int.MaxValue`) always runs last and disposes the frame's event entities.
+- System base choice: config init → `ConfigLoaderSystem`; per-frame → `UpdatedSystem`;
+  late-frame → `LateUpdatedSystem`; ordered async pipelines → `IPrioritizedUniTaskSystem<T>`
+  (or `IUniTaskSystem<T>` + `UniTaskSequentialSystem<T>` when DI order suffices).
+  See System Taxonomy above and `SYSTEMTEMPLATE.md`.
 
 ## On-Demand References
+- For UI/UX visual style, component patterns, placement, and USS token mapping, read `GENERAL_UI_STYLE.md` (root) — read it **fully only when working on the UI / design part**
 - For how to write any `.md` file in this project, read `DOC_STANDARD.md` (root)
-- For ECS entity archetypes (runtime component compositions) and component read/write maps, read `ECS_REFERENCE.md` (root)
+- For ECS entity archetypes, world components, and event flows, read `ECS_REFERENCE.md` (root)
 - For `IAddressable`, `Box<T>`, `Result<T>`, or addressable ownership rules, read `Assets/Modules/Addressable/ADDRESSABLE_PATTERNS.md`
 - For terrain transition work, pre-read:
   - `Assets/Modules/TerrainView/Isolines/FieldBasedIsolineBuilder.cs`
@@ -256,6 +461,7 @@ Each module has an MD file in its root folder. Read it before touching any code 
 | `Cameras` | `Assets/Modules/Cameras/CAMERAS.md` |
 | `Configs` | `Assets/Modules/Configs/CONFIGS.md` |
 | `CurveBuilders` | `Assets/Modules/CurveBuilders/CURVE_BUILDERS.md` |
+| `HexIcons` | `Assets/Modules/HexIcons/HEXICONS.md` |
 | `HexResources` | `Assets/Modules/HexResources/HEXRESOURCES.md` |
 | `HexResourcesView` | `Assets/Modules/HexResourcesView/HEXRESOURCESVIEW.md` |
 | `HexCore` | `Assets/Modules/HexCore/HEX_CORE.md` |

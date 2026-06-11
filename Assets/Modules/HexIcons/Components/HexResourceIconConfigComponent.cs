@@ -3,7 +3,7 @@ using Modules.HexIcons.Configs;
 
 namespace Modules.HexIcons.Components
 {
-    internal readonly struct HexResourceIconConfigComponent
+    public readonly struct HexResourceIconConfigComponent
     {
         private readonly Box<HexResourceIconConfig> _config;
 

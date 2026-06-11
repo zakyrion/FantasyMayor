@@ -7,7 +7,7 @@ namespace Modules.HexIcons.Configs
 {
     [CreateAssetMenu(fileName = "HexResourceIconConfig",
         menuName = "FantasyMayor/HexIcons/HexResourceIconConfig")]
-    internal sealed class HexResourceIconConfig : ScriptableObject
+    public sealed class HexResourceIconConfig : ScriptableObject
     {
         [Serializable]
         public struct ResourceIconEntry

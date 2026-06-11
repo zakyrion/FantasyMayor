@@ -17,7 +17,6 @@ namespace Modules.HexResourcesView.Systems
     {
         private readonly World _world;
         private readonly EntitySet _resourceSet;
-        private readonly EntitySet _vertexGridSet;
 
         public bool IsEnabled { get; set; } = true;
 
@@ -30,9 +29,6 @@ namespace Modules.HexResourcesView.Systems
             _resourceSet = world.GetEntities()
                 .With<HexIdComponent>()
                 .With<HexResourcesComponent>()
-                .AsSet();
-            _vertexGridSet = world.GetEntities()
-                .With<VertexGridComponent>()
                 .AsSet();
         }
 
@@ -83,10 +79,10 @@ namespace Modules.HexResourcesView.Systems
         {
             vertexGrid = default;
 
-            if (_vertexGridSet.Count == 0)
+            if (!_world.Has<VertexGridComponent>())
                 return false;
 
-            vertexGrid = _vertexGridSet.GetEntities()[0].Get<VertexGridComponent>().Grid;
+            vertexGrid = _world.Get<VertexGridComponent>().Grid;
             return true;
         }
 
@@ -121,7 +117,6 @@ namespace Modules.HexResourcesView.Systems
         public virtual void Dispose()
         {
             _resourceSet.Dispose();
-            _vertexGridSet.Dispose();
         }
     }
 }

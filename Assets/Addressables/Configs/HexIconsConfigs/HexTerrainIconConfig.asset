@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 26e1b98e7e4e7445a9dd2c72da5ce741, type: 3}
+  m_Name: HexTerrainIconConfig
+  m_EditorClassIdentifier: Hexes.UI::Modules.HexesUI.Configs.HexTerrainIconConfig
+  _entries:
+  - _terrainType: 0
+    _sprite: {fileID: 1833303288, guid: 7af4982ce72ff43639a0f6d51aac5e00, type: 3}
+    _displayName: Plain
+  - _terrainType: 1
+    _sprite: {fileID: 300124816, guid: 7af4982ce72ff43639a0f6d51aac5e00, type: 3}
+    _displayName: Mount
+  - _terrainType: 2
+    _sprite: {fileID: -1582784191, guid: 7af4982ce72ff43639a0f6d51aac5e00, type: 3}
+    _displayName: Bedhill
+  - _terrainType: 3
+    _sprite: {fileID: -340660782, guid: 7af4982ce72ff43639a0f6d51aac5e00, type: 3}
+    _displayName: Water

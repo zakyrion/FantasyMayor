@@ -18,5 +18,10 @@ namespace Modules.HexIcons.Configs
         // Per-hex icon square size in panel pixels (world size = IconSize / PixelsPerUnit).
         [SerializeField] private float _iconSize = 64f;
         public float IconSize => _iconSize;
+
+        // World-space upward (Y) offset applied to the hex center before projection, so the icon "floats"
+        // above the hex instead of sitting on it. Lifted in world space → foreshortens with perspective.
+        [SerializeField] private float _worldYOffset = 1.5f;
+        public float WorldYOffset => _worldYOffset;
     }
 }

@@ -1,522 +1,401 @@
 # ECS_REFERENCE.md
 
-Reference for ECS and DoD architecture in FantasyMayor.
-**Do not load into context by default** — use for targeted lookup via Graphify or grep.
+Central registry of ECS state in FantasyMayor: every unique entity (archetype), every world
+component, every event. **Do not load into context by default** — use for targeted lookup via
+Graphify or grep.
 
 Grep hints:
-- Component consumers: `grep "READS:" ECS_REFERENCE.md`
+- Unique entities: `grep "ENTITY:" ECS_REFERENCE.md`
+- World components: `grep "WORLD:" ECS_REFERENCE.md`
+- Events: `grep "EVENT:" ECS_REFERENCE.md`
 - Component producers: `grep "WRITES:" ECS_REFERENCE.md`
-- Entity archetypes: `grep "ARCHETYPE:" ECS_REFERENCE.md`
-- System queries: `grep "QUERY:" ECS_REFERENCE.md`
+- Component consumers: `grep "READS:" ECS_REFERENCE.md`
+- Table Rule violations: `grep "BARE-KEY" ECS_REFERENCE.md`
+
+Storage taxonomy (entity table / world component / event entity / singleton entity) and the rules
+for choosing between them: `ARCHITECTURE.md` → "State Storage Taxonomy".
 
 ---
 
 ## Modeling Rule — Normalization: Columns on the Hex vs a Separate Table
 
-How you attach data to a hex is a deliberate choice. Use the DB-normalization analogy as the mental model
-(an analogy, not a literal equality):
+How you attach data to a hex is a deliberate choice. Use the DB-normalization analogy as the mental
+model (an analogy, not a literal equality):
 
 - **Entity ≈ a table row.** Its identity is the **primary key**.
 - **Component ≈ a column** on that row.
-- **`HexIdComponent` (its `HexCoord`) ≈ a foreign key.** Parallel entity sets carry it to point back at the
-  hex they belong to. It is the ONLY link between the parallel sets — there is no parent/child reference.
+- **`HexIdComponent` (its `HexCoord`) ≈ a foreign key.** Parallel entity sets carry it to point back
+  at the hex they belong to. It is the ONLY link between the parallel sets — there is no
+  parent/child reference.
 
 Two ways to model per-hex data:
 
 - **Approach A — a column on the hex row** (a component/tag on the hex entity itself). Use when the
-  attribute is **single-valued and intrinsic to the cell (1:1)**: terrain level, terrain type tag. The
-  identity is the hex itself. Terrain hexes use this.
-- **Approach B — a separate table with a foreign key** (a dedicated entity set that shares the `HexCoord`
-  via `HexIdComponent`). Use when the relationship is **1:N / multi-valued**:
-  - more than one instance of the same kind of data can sit on one hex (you cannot put two columns of the
-    same type on one row), or
-  - the count is variable/many (many trees on one forest hex), or
-  - the data has a **different lifecycle** than the hex (a resource is added/chopped at runtime; views
-    spawn/despawn reactively).
+  attribute is **single-valued and intrinsic to the cell (1:1)**: terrain level, terrain type tag.
+- **Approach B — a separate table with a foreign key** (a dedicated entity set sharing the
+  `HexCoord` via `HexIdComponent`). Use when the relationship is **1:N / multi-valued**, the count
+  is variable (many trees on one forest hex), or the data has a **different lifecycle** than the hex
+  (resources are added/chopped at runtime; views spawn/despawn reactively).
 
-  This is normalization: a repeating group is pulled out into its own entity set instead of being crammed
-  onto the hex row.
+**Consequence — several parallel tables, not one list.** A hex is described across multiple sets
+joined by the foreign key `HexIdComponent.Coords`: Hex, HexResource, ResourceView, HexIconContainer.
 
-**Consequence — several parallel tables, not one list.** A hex is described across multiple sets joined by
-the foreign key `HexIdComponent.Coords`: the terrain-hex set, the logical-resource set (`HexResource`), the
-visual set (`ResourceView`), and the UI-overlay set (`HexIconContainer`).
-
-**Common mistake:** do not look for a resource as a column (component) on the terrain-hex row. It is NOT
+**Common mistake:** do not look for a resource as a component on the terrain-hex row. It is NOT
 there — it lives in a separate table (entity set) with the same `HexCoord` foreign key.
 
+### Table Rule — key + discriminator
+
+A query MUST name its table: the key component PLUS the table's discriminator component. A bare
+`With<HexIdComponent>` query is a cross-table UNION — it matches all four hex-keyed tables, NOT
+"all hexes". Normative rule + the `EntityMap` / `EntityMultiMap` / `EntitySet` materializations:
+`ARCHITECTURE.md` → "Relational Modeling — Table Rule". Violations are flagged
+`⚠ BARE-KEY LEGACY` below and collected in the audit list at the end of this file.
+
 ---
 
-## Entity Archetypes
+## Entity Registry
 
-Each archetype is a stable component combination that exists at runtime.
+Every unique entity that exists at runtime. `Tables` hold N rows; `Singletons` hold exactly one.
+Event entities live in the Event Registry below.
+
+### Tables (N rows)
 
 ```
-ARCHETYPE: Hex
-  Components: HexIdComponent, HexLevelComponent, HexTag
-               (+ Hex{Plain,Mount,Water,Bedhill}Tag added later by SyncHexTags in the pipeline)
-  Owner: TerrainGenerationSystem (creates), HexesCore (defines)
-  Note: One entity per hex cell. Core data entity — read by almost every terrain system.
-        APPROACH A example: single-valued, cell-intrinsic data (HexTag + type tag) lives as
-        components/tags directly ON this entity. Resources do NOT — see the Modeling Rule above.
+ENTITY: Hex  (table — one row per map cell)
+  Components: HexIdComponent (PK), HexLevelComponent, HexTag
+              (+ Hex{Plain,Mount,Water,Bedhill}Tag added by SyncHexTags at the end of generation)
+  Discriminator: HexTag
+  WRITES: TerrainGenerationSystem (creates rows, pipeline 100; sets levels),
+          Mountain/River/Lake/Sea GenerationSubSystem (mutate HexLevelComponent via Set),
+          SyncHexTags (adds the type tag)
+  READS (by table query With<HexTag> + With<HexIdComponent>):
+          ForestResourceViewSubSystem, ForestSpawnSystem (square UV rect),
+          HexInfoPanelSystem, HexInfoPanelHeaderSystem
+  READS (by With<HexIdComponent> + With<HexLevelComponent>):
+          TerrainGenerationSystem, Lake/Mountain/River/Sea GenerationSubSystem, TerrainViewDebugSystem
+  READS (⚠ BARE-KEY LEGACY — see audit list):
+          TerrainViewSystem, TerrainViewGenerationSubSystem, TerrainViewTextureSubSystem,
+          WaterViewSubSystem, TerrainViewDebugSystem (primary), CameraMovementSystem,
+          ClayResourceViewSubSystem
+  Lifecycle: created once per map generation; never destroyed (no teardown/regeneration flow yet).
+  Note: APPROACH A example — single-valued cell-intrinsic data lives directly on this entity.
+        Resources do NOT (see Modeling Rule).
 
-ARCHETYPE: PlayerInput
+ENTITY: HexResource  (table — logical resource layer)
+  Components: HexIdComponent (FK), HexResourcesComponent (carries ResourceType)
+  Discriminator: HexResourcesComponent
+  WRITES: HexResources generation subsystems (create rows, pipeline 200)
+  READS: HexResourcesViewSubSystem base (EntitySet; per-type filter via GetTargetResourceEntities),
+         ForestSpawnSystem / ForestDespawnSystem (EntityMultiMap<HexResourcesComponent> — the
+         Forest bucket by discriminator value),
+         HexIconsVisibilitySystem (EntitySet; per-hex match by Coords),
+         HexInfoPanelResourcesSystem (EntitySet; selected-hex match)
+  Lifecycle: created during generation; nothing destroys rows yet (future chop/deplete mechanics).
+  Note: DEDICATED entity, NOT a component on the hex row. One per (hex, ResourceType): a hex with
+        several resource kinds has SEVERAL rows sharing one HexCoord — the 1:N case that forces a
+        separate table. HexResourcesComponent implements IEquatable (keys on its Type enum) so it
+        can serve as a MultiMap key.
+
+ENTITY: ResourceView  (table — visual layer)
+  Components: HexIdComponent (FK), ForestViewComponent | FishViewComponent
+  Discriminator: ForestViewComponent / FishViewComponent
+  WRITES: ForestResourceViewSubSystem (startup bulk) and ForestSpawnSystem (runtime, reactive),
+          both via the shared ForestPlanter helper; FishResourceViewSubSystem (scaffold — empty)
+  DESTROYS: ForestDespawnSystem (reactive reconcile — destroys the GameObject and disposes the row)
+  READS: ForestSpawnSystem / ForestDespawnSystem (EntityMultiMap<HexIdComponent> — views by hex)
+  Lifecycle: forest rows created at startup (one-shot) and at runtime on a pulse; destroyed at
+        runtime on a pulse. Dormant today — no emitter raises the pulses yet.
+  Note: one row per spawned visual instance — a single forest hex spawns MANY tree rows (second 1:N
+        normalization: resource→views). ForestViewComponent holds { ResourceType, ForestView } —
+        the MonoBehaviour reference kept so the GameObject can be destroyed on despawn. No
+        ground-splat data is stored: forest ground paint is append-only into the terrain texture and
+        never rebuilt from entities. Clay creates NO view rows — it mutates VertexGrid + the terrain
+        texture directly (ClayViewComponent is UNUSED). Fish is scaffold.
+
+ENTITY: HexIconContainer  (table — UI overlay layer)
+  Components: HexIdComponent (FK), HexIconContainerComponent
+  Discriminator: HexIconContainerComponent
+  WRITES: HexIconsSpawnSystem (creates one EMPTY container per hex, pipeline 700);
+          HexIconsVisibilitySystem (clears/rebuilds the container's icons on the visibility event)
+  READS: HexIconsContainerPositionSystem (base set — per-frame panel-space projection, LateUpdate),
+         HexIconsVisibilitySystem (EntitySet — all containers, on event)
+  Lifecycle: created once per map; containers persist, their icon CONTENT is cleared/refilled.
+  Note: exactly one row per hex. Holds a managed UI Toolkit VisualElement (the per-hex icon
+        container) inside the screen-space overlay. See HexIcons/HEXICONS.md.
+```
+
+### Singletons (exactly one row; justified by entity-query consumers)
+
+```
+ENTITY: SelectedHex  (singleton)
+  Components: SelectedHexComponent (carries HexCoord)
+  WRITES: HexSelectionSystem (on click — creates/updates)
+  READS: HexSelectionViewSystem (selection highlight), HexSelectionSystem (avoid re-selecting the
+         same hex), HexInfoPanelSystem (drives panel show/hide + refresh)
+  Note: entity (not a world component) because consumers query its PRESENCE — the info panel hides
+        when the set is empty.
+
+ENTITY: PlayerInput  (singleton)
   Components: PlayerInputComponent
-  Owner: UserInput module
+  WRITES: UserInput installer (creates at composition)
+  READS: CameraMovementSystem, HexSelectionSystem (tick anchor + input binding)
 
-ARCHETYPE: SelectedHex
-  Components: SelectedHexComponent
-  Owner: HexSelectionSystem (creates/updates), one entity max
-  Note: Recreated on each selection change.
+ENTITY: TerrainViewSingleton  (singleton)
+  Components: TerrainViewComponent (ObjectRef → the TerrainView MonoBehaviour)
+  WRITES: TerrainViewSystem (creates after the prefab loads; destroys + recreates on re-run)
+  READS: TerrainViewSystem, ClayResourceViewSubSystem (EntitySet — mesh re-apply after depression)
+  Note: stays an entity while EntitySet consumers exist.
 
-ARCHETYPE: VertexGridSingleton
-  Components: VertexGridComponent
-  Owner: TerrainViewConfigLoaderSystem (creates)
-  Note: Singleton. Shared fine vertex grid used by all terrain view subsystems.
-
-ARCHETYPE: TerrainViewSingleton
-  Components: TerrainViewComponent
-  Owner: TerrainViewSystem (creates after the prefab loads)
-  Note: TerrainViewConfigComponent is NOT here anymore — configs are world components (see below).
-
-ARCHETYPE: HexSelectionViewSingleton
-  Components: HexSelectionViewComponent
-  Owner: HexSelectionViewLoadingSystem
-
-ARCHETYPE: WaterViewSingleton
+ENTITY: WaterViewSingleton  (singleton)
   Components: WaterViewComponent
-  Owner: WaterViewSubSystem
-  Note: WaterViewConfigComponent is NOT here anymore — configs are world components (see below).
+  WRITES: WaterViewSubSystem (creates; re-reads its own row on later runs)
+  READS: WaterViewSubSystem
 
-// --- Resource entities (APPROACH B: parallel tables, joined to the hex by HexCoord FK) ---
-// Two normalized layers sit beside the terrain hex, never on it: the logical-resource layer
-// (HexResource) and the visual layer (ResourceView). Both carry HexIdComponent as the foreign
-// key back to the hex. See the Modeling Rule above.
+ENTITY: HexSelectionViewSingleton  (singleton)
+  Components: HexSelectionViewComponent
+  WRITES: HexSelectionViewLoadingSystem (pipeline 500, async prefab load)
+  READS: HexSelectionViewSystem (base/anchor set)
 
-ARCHETYPE: HexResource
-  Components: HexIdComponent, HexResourcesComponent
-  Owner: HexResources module
-  Note: LOGICAL-RESOURCE layer. DEDICATED entity, NOT a component on the terrain hex entity —
-        a separate row that shares the hex's HexCoord (the foreign key). One per (hex, ResourceType),
-        so a hex carrying several resource kinds has SEVERAL HexResource entities with the same
-        HexCoord — exactly the 1:N case that forces a separate table. Lifecycle is independent of
-        the hex (a resource can be added/chopped at runtime).
-
-ARCHETYPE: ResourceView
-  Components: HexIdComponent, {Forest|Fish}ViewComponent
-  Owner: ForestViewSyncSystem (Forest, reactive); FishResourceViewSubSystem (Fish, scaffold)
-  Note: VISUAL layer — one row per spawned visual instance, sharing the hex's HexCoord (FK).
-        A single HexResource can spawn MANY ResourceView entities (one forest hex → several tree
-        instances), so multiple ResourceView rows share one HexCoord — a second 1:N normalization,
-        this time resource→views. Forest entities are created/destroyed REACTIVELY by
-        ForestViewSyncSystem as forest HexResource entities appear/vanish. Fish scaffold.
-        Clay creates NO view entities (the visual table is empty for clay): it mutates the shared
-        VertexGrid (depression) and the terrain texture (clay gradient) directly — see
-        HexResourcesView/HEXRESOURCESVIEW.md.
-
-ARCHETYPE: HexIconContainer
-  Components: HexIdComponent, HexIconContainerComponent
-  Owner: HexIconsSpawnSystem (creates one EMPTY container per hex, eagerly);
-         HexIconsContainerPositionSystem (positions); HexIconsVisibilitySystem (fills/clears icons on event)
-  Note: UI OVERLAY layer — APPROACH B parallel table joined to the hex by HexCoord FK, exactly one row per
-        hex. Holds a managed UI Toolkit VisualElement (the per-hex icon container) inside the screen-space
-        overlay. HexIconsContainerPositionSystem iterates this set every frame (Gameplay) and projects each
-        hex's vertex-grid center to panel space. See HexIcons/HEXICONS.md.
-
-ARCHETYPE: HexIconsVisibilityChangedEvent (one-frame event)
-  Components: HexIconsVisibilityChangedEvent, EventTag
-  Owner: GameplayState.EnterAsync (creates it; later a UI toggle); EventCleanupSystem disposes it
-  Note: payload-less "re-render icons" signal. Consumed by HexIconsVisibilitySystem, which reads the
-        HexIconsVisibilityComponent WORLD component for the actual show/hide state (variant B).
-
-// --- Config components are WORLD components, NOT entities (there is NO ConfigSingleton archetype) ---
-// Stored via world.Set<TConfigComponent>(), read via world.Get<T>() (guard with world.Has<T>()).
-// A world component is not an entity: it never appears in world.GetEntities() and cannot be matched
-// by With<T> / WhenAdded<T> / WhenChanged<T>. See ARCHITECTURE.md "Config Component Storage" and
-// CONFIGTEMPLATE.md. The 17 world config components:
-//   TerrainGenerationConfigComponent, TerrainViewConfigComponent, TerrainTextureConfigComponent,
-//   InnerIsolineConfigComponent, OuterIsolineConfigComponent, HeightSmoothingConfigComponent,
-//   HydraulicErosionConfigComponent, WindErosionConfigComponent, WaterViewConfigComponent,
-//   CameraMovementConfigComponent, LakeConfigComponent, MountainConfigComponent,
-//   RiverConfigComponent, SeaConfigComponent, HexResourcesConfigComponent,
-//   HexResourcesViewConfigComponent, ClayViewConfigComponent
-//
-// Non-config world components (same world.Set / world.Get storage, not entities):
-//   CameraComponent (module Cameras) — the active scene camera, set by WorldInstaller.
-//   HexIconsViewComponent (module HexIcons) — the screen-space icon overlay view, set by HexIconsSpawnSystem.
-//   HexIconsVisibilityComponent (module HexIcons) — mutable bool, "are icons shown"; set by GameplayState
-//     (and later UI), read by HexIconsVisibilitySystem.
+ENTITY: HexInfoPanelView  (singleton)
+  Components: HexInfoPanelViewComponent (View → the HexInfoPanelView MonoBehaviour)
+  WRITES: HexInfoPanelSpawnSystem (pipeline 800 — loads the panel under the main canvas, owns the
+          addressable handle; idempotent after first load)
+  READS: HexInfoPanelSystem (base/anchor set — per-frame selection watcher),
+         HexInfoPanelHeaderSystem / HexInfoPanelResourcesSystem /
+         HexInfoPanelDistrictPlaceholderSystem (EntitySet — resolve the view on each refresh pulse)
+  Note: the panel starts hidden (USS default); HexInfoPanelSystem shows it on selection and raises
+        the one-frame HexInfoPanelRefreshEvent that the per-block systems consume.
 ```
 
 ---
 
-## Component Registry
+## World Component Registry
 
-Each component with all known readers and writers.
+World components are NOT entities: stored via `world.Set<T>()`, read via `world.Get<T>()` (guard
+with `world.Has<T>()`), invisible to `With<T>` / `WhenAdded<T>` / `WhenChanged<T>`. Contract and
+decision rule: `ARCHITECTURE.md` → "State Storage Taxonomy".
+
+### Runtime world components (5)
 
 ```
-COMPONENT: HexIdComponent
-  Module: HexesCore
-  WRITES: TerrainGenerationSystem (initial creation)
-  READS: LakeGenerationSubSystem, MountainGenerationSubSystem, RiverGenerationSubSystem,
-         SeaGenerationSubSystem, TerrainGenerationSystem, TerrainViewSystem,
-         TerrainViewGenerationSubSystem, TerrainViewTextureSubSystem,
-         WaterViewSubSystem, TerrainViewDebugSystem, CameraMovementSystem,
-         HexResourcesViewSubSystem
-  Note: Present on every hex entity. Acts as identity marker.
+WORLD: CameraComponent  (module Cameras)
+  Fields: Camera (live scene camera) + ReferenceFieldOfView (authored startup FOV = neutral 1x zoom baseline)
+  WRITES: WorldInstaller (world.Set at startup; ReferenceFieldOfView snapshotted from the camera)
+  READS: CameraMovementSystem, HexSelectionSystem, HexIconsContainerPositionSystem (zoom baseline)
 
-COMPONENT: HexLevelComponent
-  Module: HexesCore / TerrainGenerator
-  WRITES: TerrainGenerationSystem (sets levels during generation)
-  READS: LakeGenerationSubSystem, MountainGenerationSubSystem, RiverGenerationSubSystem,
-         SeaGenerationSubSystem, TerrainGenerationSystem, TerrainViewDebugSystem
-  Note: Carries terrain height/level data per hex.
+WORLD: VertexGridComponent  (module TerrainView)
+  WRITES: TerrainViewConfigLoaderSystem (world.Set ONCE at ConfigLoadStep)
+  READS: TerrainViewSystem, TerrainViewGenerationSubSystem, TerrainViewTextureSubSystem,
+         HexSelectionViewSystem, HexResourcesViewSubSystem (TryGetVertexGrid Try-pattern),
+         ForestSpawnSystem, HexIconsContainerPositionSystem
+  Note: carries the shared VertexGrid (a REFERENCE type). The grid object is mutated IN PLACE by the
+        generation pipeline (isolines/erosion) and Clay; world.Set is never re-called after a
+        mutation — readers always see the live grid. Not reactive. Direct readers throw on a missing
+        component (fail-loud); the Try-method reports the miss as a bool.
 
-COMPONENT: SelectedHexComponent
-  Module: UserInput
-  WRITES: HexSelectionSystem (on click — sets HexCoord)
-  READS: HexSelectionViewSystem, HexSelectionSystem
-  Note: Singleton entity. HexSelectionSystem also reads it to avoid re-selecting same hex.
+WORLD: TerrainTextureComponent  (module TerrainView)
+  WRITES: TerrainViewTextureSubSystem (world.Set once in the view pipeline)
+  READS: TerrainViewSystem (applies the Texture2D to the mesh material),
+         ClayResourceViewSubSystem (clay gradient paint target),
+         ForestResourceViewSubSystem / ForestSpawnSystem (forest ground paint target, append-only)
+  Note: carries the generated terrain Texture2D (a REFERENCE type) — created readable
+        (Apply(false)) precisely so it can be repainted later. Painters mutate pixels in place
+        (SetPixels32 + Apply); the material keeps reflecting mutations without re-applying.
+        PERSISTENT — never disposed.
 
-COMPONENT: VertexGridComponent
-  Module: TerrainView
-  WRITES: TerrainViewConfigLoaderSystem (creates singleton)
-  READS: TerrainViewSystem, TerrainViewGenerationSubSystem,
-         TerrainViewTextureSubSystem, HexSelectionViewSystem
-  Note: Singleton. Contains the shared VertexGrid struct.
+WORLD: HexIconsViewComponent  (module HexIcons)
+  WRITES: HexIconsSpawnSystem (the screen-space icon overlay view)
+  READS: HexIconsContainerPositionSystem, HexIconsVisibilitySystem
 
-COMPONENT: TerrainViewConfigComponent
-  Module: TerrainView
+WORLD: HexIconsVisibilityComponent  (module HexIcons)
+  WRITES: GameplayState.EnterAsync (initial IsVisible = true); later a UI toggle
+  READS: HexIconsVisibilitySystem (on a HexIconsVisibilityChangedEvent)
+  Note: mutable bool "are per-hex icons shown" — the single source of truth. The paired event is a
+        payload-less pulse; the state lives HERE, not in the event.
+```
+
+### Config world components (20)
+
+All written ONCE by their module's Config Loader at `ConfigLoadStep` (`CONFIGTEMPLATE.md`).
+Reader lists name the consuming systems.
+
+```
+WORLD: TerrainGenerationConfigComponent  (TerrainGenerator)
+  WRITES: TerrainGenerationConfigLoaderSystem
+  READS: TerrainGenerationSystem, Lake/River/Sea GenerationSubSystem
+
+WORLD: LakeConfigComponent / MountainConfigComponent / RiverConfigComponent / SeaConfigComponent  (TerrainGenerator)
+  WRITES: TerrainGenerator config loaders
+  READS: the matching GenerationSubSystem
+
+WORLD: TerrainViewConfigComponent  (TerrainView)
   WRITES: TerrainViewConfigLoaderSystem
-  READS: TerrainViewSystem, TerrainViewGenerationSubSystem,
-         TerrainViewTextureSubSystem, WaterViewSubSystem,
-         TerrainViewDebugSystem, CameraMovementSystem, HexSelectionSystem
-  Note: Cross-module read — UserInput reads CellSize for raycast plane size.
+  READS: TerrainViewSystem, TerrainViewGenerationSubSystem, TerrainViewTextureSubSystem,
+         WaterViewSubSystem, TerrainViewDebugSystem, ClayResourceViewSubSystem,
+         ForestResourceViewSubSystem, ForestSpawnSystem (CellSize),
+         CameraMovementSystem, HexSelectionSystem (cross-module — see Cross-Module Reads)
 
-COMPONENT: TerrainTextureComponent
-  Module: TerrainView
-  WRITES: TerrainViewTextureSubSystem (creates, publishes)
-  READS: TerrainViewSystem (applies Texture2D to material, keeps entity alive),
-         ForestViewSyncSystem / ForestGroundPainter (mutate the Texture2D pixels at runtime)
-  Lifetime: PERSISTENT — kept alive past world-init; the same readable Texture2D instance
-            stays on the material so reactive systems can repaint it (SetPixels32 + Apply)
-
-COMPONENT: TerrainViewComponent
-  Module: TerrainView
-  WRITES: TerrainViewSystem (creates, holds ObjectRef to MonoBehaviour)
-  READS: TerrainViewSystem
-
-COMPONENT: HexSelectionViewComponent
-  Module: TerrainView
-  WRITES: HexSelectionViewLoadingSystem
-  READS: HexSelectionViewSystem
-
-COMPONENT: InnerIsolineConfigComponent
-  Module: TerrainView
+WORLD: TerrainTextureConfigComponent / InnerIsolineConfigComponent / OuterIsolineConfigComponent /
+       HeightSmoothingConfigComponent / HydraulicErosionConfigComponent / WindErosionConfigComponent  (TerrainView)
   WRITES: TerrainViewConfigLoaderSystem
-  READS: TerrainViewGenerationSubSystem
+  READS: TerrainViewTextureSubSystem (texture config); TerrainViewGenerationSubSystem (the rest)
 
-COMPONENT: OuterIsolineConfigComponent
-  Module: TerrainView
-  WRITES: TerrainViewConfigLoaderSystem
-  READS: TerrainViewGenerationSubSystem
-
-COMPONENT: HeightSmoothingConfigComponent
-  Module: TerrainView
-  WRITES: TerrainViewConfigLoaderSystem
-  READS: TerrainViewGenerationSubSystem
-
-COMPONENT: HydraulicErosionConfigComponent
-  Module: TerrainView
-  WRITES: TerrainViewConfigLoaderSystem
-  READS: TerrainViewGenerationSubSystem
-
-COMPONENT: WindErosionConfigComponent
-  Module: TerrainView
-  WRITES: TerrainViewConfigLoaderSystem
-  READS: TerrainViewGenerationSubSystem
-
-COMPONENT: WaterViewConfigComponent
-  Module: TerrainView
+WORLD: WaterViewConfigComponent  (TerrainView)
   WRITES: TerrainViewConfigLoaderSystem
   READS: WaterViewSubSystem
 
-COMPONENT: WaterViewComponent
-  Module: TerrainView
-  WRITES: WaterViewSubSystem
-  READS: WaterViewSubSystem
-
-COMPONENT: CameraComponent
-  Module: Cameras
-  Storage: WORLD component (world.Set / world.Get), NOT an entity
-  WRITES: WorldInstaller (world.Set at startup)
-  READS: CameraMovementSystem, HexSelectionSystem, HexIconsSpawnSystem (all via world.Get)
-
-COMPONENT: PlayerInputComponent
-  Module: UserInput
-  WRITES: UserInput installer
-  READS: CameraMovementSystem, HexSelectionSystem
-
-COMPONENT: CameraMovementConfigComponent
-  Module: UserInput
+WORLD: CameraMovementConfigComponent  (UserInput)
   WRITES: UserInput config loader
   READS: CameraMovementSystem
 
-COMPONENT: TerrainGenerationConfigComponent
-  Module: TerrainGenerator
-  WRITES: TerrainGenerator config loader
-  READS: TerrainGenerationSystem, LakeGenerationSubSystem,
-         RiverGenerationSubSystem, SeaGenerationSubSystem
-
-COMPONENT: LakeConfigComponent
-  Module: TerrainGenerator
-  WRITES: TerrainGenerator config loader
-  READS: LakeGenerationSubSystem
-
-COMPONENT: MountainConfigComponent
-  Module: TerrainGenerator
-  WRITES: TerrainGenerator config loader
-  READS: MountainGenerationSubSystem
-
-COMPONENT: RiverConfigComponent
-  Module: TerrainGenerator
-  WRITES: TerrainGenerator config loader
-  READS: RiverGenerationSubSystem
-
-COMPONENT: SeaConfigComponent
-  Module: TerrainGenerator
-  WRITES: TerrainGenerator config loader
-  READS: SeaGenerationSubSystem
-
-COMPONENT: HexResourcesComponent
-  Module: HexResources
-  WRITES: HexResources generation subsystems
-  READS: HexResourcesViewSubSystem
-  Note: Lives on a DEDICATED resource entity (HexIdComponent + HexResourcesComponent),
-        not on the terrain hex entity.
-
-COMPONENT: HexResourcesConfigComponent
-  Module: HexResources
+WORLD: HexResourcesConfigComponent  (HexResources)
   WRITES: HexResourcesConfigLoaderSystem
   READS: HexResourcesSubSystem
 
-COMPONENT: HexResourcesViewConfigComponent
-  Module: HexResourcesView
+WORLD: HexResourcesViewConfigComponent  (HexResourcesView)
   WRITES: HexResourcesViewConfigLoaderSystem
-  READS: HexResourcesViewSubSystem
+  READS: HexResourcesViewSubSystem base (prefab lookup), ForestResourceViewSubSystem, ForestSpawnSystem
 
-COMPONENT: ClayViewConfigComponent
-  Module: HexResourcesView
+WORLD: ClayViewConfigComponent  (HexResourcesView)
   WRITES: ClayViewConfigLoaderSystem (flattened from ClayViewConfig SO; SO not retained)
   READS: ClayResourceViewSubSystem
-  Note: Dedicated clay config singleton — clay is prefab-less and does NOT live in
-        HexResourcesViewConfig (whose entries require a prefab). Carries the footprint
-        (radius/depth/aspect/pear/noise) and the center/rim clay colors.
+  Note: dedicated clay config — clay is prefab-less and does NOT live in HexResourcesViewConfig
+        (whose entries require a prefab). Carries the footprint and the center/rim clay colors.
 
-COMPONENT: ForestViewComponent / ClayViewComponent / FishViewComponent
-  Module: HexResourcesView
-  WRITES: ForestViewComponent → ForestViewSyncSystem (on view entity creation);
-          FishViewComponent → FishResourceViewSubSystem (scaffold)
-  READS: (held for later show/hide of the view MonoBehaviour; ForestViewSyncSystem disposes
-          forest view entities when their hex stops being a forest)
-  Note: ForestViewComponent holds only { ResourceType, ForestView } — the view MonoBehaviour reference,
-        kept so the GameObject can be destroyed when the hex stops being a forest. No ground-splat data is
-        stored: forest ground paint is append-only and never rebuilt from the entities. Lives on
-        ResourceView entities, never on HexResource entities. ClayViewComponent is currently UNUSED — clay
-        deforms VertexGrid + paints the texture directly and creates no view entity. Fish is scaffold.
+WORLD: HexIconsConfigComponent  (HexIcons)
+  WRITES: HexIconsConfigLoaderSystem
+  READS: HexIconsContainerPositionSystem, HexIconsVisibilitySystem
 
-COMPONENT: HexIconContainerComponent
-  Module: HexIcons
-  WRITES: HexIconsSpawnSystem (on container entity creation, one per hex)
-  READS: HexIconsContainerPositionSystem (per-frame, to position the container);
-         HexIconsVisibilitySystem (on visibility event, to clear/rebuild the container's icons)
-  Note: Holds a managed UI Toolkit VisualElement (the per-hex icon container). Lives on HexIconContainer
-        entities alongside the HexIdComponent FK, never on the terrain hex entity.
+WORLD: HexResourceIconConfigComponent  (HexIcons)
+  WRITES: HexIconsConfigLoaderSystem
+  READS: HexIconsVisibilitySystem (icon rebuild), HexInfoPanelResourcesSystem (cross-module —
+         resource rows in the info panel)
 
-COMPONENT: HexIconsVisibilityComponent (WORLD component, not an entity)
-  Module: HexIcons
-  WRITES: GameplayState.EnterAsync (initial IsVisible = true); later a UI toggle
-  READS: HexIconsVisibilitySystem (on a HexIconsVisibilityChangedEvent)
-  Note: Mutable bool "are per-hex icons shown" — single source of truth (variant B). Stored via world.Set.
-
-COMPONENT: EventTag
-  Module: Scripts/DefaultECSExtensions
-  WRITES: any system that emits an event entity (alongside the event component)
-  READS: EventCleanupSystem (destroys entity after 1 frame)
-  Lifetime: EVENT — 1 frame
+WORLD: HexTerrainIconConfigComponent  (HexesUI)
+  WRITES: HexTerrainIconConfigLoaderSystem
+  READS: HexInfoPanelHeaderSystem (terrain icon + name in the panel header)
 ```
 
 ---
 
-## System Query Map
+## Event Registry
 
-EntitySet queries per system. **Config components are world components** (read via `world.Get<T>()`,
-guarded by `world.Has<T>()`), NOT EntitySet queries — every `With<*ConfigComponent>` line below is
-historical shorthand and now means a `world.Get<*ConfigComponent>()` read. The cited line numbers are
-indicative only.
+One-frame event entities: a marker component + `EventTag`, disposed by `EventCleanupSystem`
+(`Priority = int.MaxValue`, runs LAST in every active state). Contract: events are **payload-less
+pulses**; the consumer reconciles against current world state (idempotent) — see `ARCHITECTURE.md`
+→ "Decomposition Rules". Events DO NOT survive the async `MapCreation` pipeline — never use them
+for startup orchestration.
 
 ```
-SYSTEM: TerrainGenerationSystem
-  QUERY: primary = With<HexIdComponent> + With<HexLevelComponent>  [TerrainGenerationSystem.cs:35]
-  QUERY: config  = With<TerrainGenerationConfigComponent>          [TerrainGenerationSystem.cs:39]
-  QUERY: hexSet  = With<HexIdComponent> + With<HexLevelComponent>  [TerrainGenerationSystem.cs:42]
+EVENT: TerrainGenerationGenerateEventComponent
+  Producer: HexesUI Generate button (later: save/load)
+  Consumer: MainMenu game state — detects it and switches to MapCreation (which runs the pipeline)
+  Lifetime: 1 frame (cleaned once MapCreation ticks EventCleanupSystem)
+  Note: the ONLY world-init trigger. Naming predates the …Event suffix rule — kept until a
+        deliberate rename.
 
-SYSTEM: LakeGenerationSubSystem
-  QUERY: terrainConfig = With<TerrainGenerationConfigComponent>    [L41]
-  QUERY: lakeConfig    = With<LakeConfigComponent>                 [L44]
-  QUERY: hexSet        = With<HexIdComponent> + With<HexLevelComponent> [L47]
+EVENT: HexIconsVisibilityChangedEvent
+  Producer: GameplayState.EnterAsync (writes HexIconsVisibilityComponent, then raises this);
+            later a UI toggle
+  Consumer: HexIconsVisibilitySystem — clears every HexIconContainer, rebuilds icons from each
+            hex's resources if visible
+  Lifetime: 1 frame
+  Note: payload-less pulse — the truth is the HexIconsVisibilityComponent WORLD component.
 
-SYSTEM: MountainGenerationSubSystem
-  QUERY: config  = With<MountainConfigComponent>                   [L42]
-  QUERY: hexSet  = With<HexIdComponent> + With<HexLevelComponent>  [L45]
+EVENT: HexInfoPanelRefreshEvent
+  Producer: HexInfoPanelSystem (when the selected hex changes)
+  Consumers: HexInfoPanelHeaderSystem (560), HexInfoPanelResourcesSystem (561),
+             HexInfoPanelDistrictPlaceholderSystem (562) — each rebuilds its panel block from
+             current world state
+  Lifetime: 1 frame
+  Note: one pulse fans out to several per-block reactive systems; ordering before
+        EventCleanupSystem guarantees same-frame consumption.
 
-SYSTEM: RiverGenerationSubSystem
-  QUERY: terrainConfig = With<TerrainGenerationConfigComponent>    [L35]
-  QUERY: riverConfig   = With<RiverConfigComponent>                [L38]
-  QUERY: hexSet        = With<HexIdComponent> + With<HexLevelComponent> [L41]
+EVENT: ForestHexAppearedEvent / ForestHexRemovedEvent
+  Producer: NO emitter yet (future gameplay: planting / chopping)
+  Consumers: ForestSpawnSystem (Appeared) / ForestDespawnSystem (Removed) — each reconciles forest
+             ResourceView rows against current HexResource state (spawn missing / destroy orphaned;
+             ground paint append-only, never reverted)
+  Lifetime: 1 frame
+  Note: DORMANT scaffold. The startup forest is built one-shot by ForestResourceViewSubSystem —
+        these pulses cover runtime changes only.
 
-SYSTEM: SeaGenerationSubSystem
-  QUERY: terrainConfig = With<TerrainGenerationConfigComponent>    [L41]
-  QUERY: seaConfig     = With<SeaConfigComponent>                  [L44]
-  QUERY: hexSet        = With<HexIdComponent> + With<HexLevelComponent> [L47]
-
-SYSTEM: TerrainViewSystem
-  QUERY: primary    = With<ShowTerrainViewEventComponent>          [L50]
-  QUERY: hexSet     = With<HexIdComponent>                         [L57]
-  QUERY: configSet  = With<TerrainViewConfigComponent>             [L58]
-  QUERY: vertexGrid = With<VertexGridComponent>                    [L59]
-  QUERY: texture    = With<TerrainTextureComponent>                [L60]
-
-SYSTEM: TerrainViewGenerationSubSystem
-  QUERY: hexSet         = With<HexIdComponent>                     [L49]
-  QUERY: config         = With<TerrainViewConfigComponent>         [L50]
-  QUERY: vertexGrid     = With<VertexGridComponent>                [L51]
-  QUERY: innerIsoline   = With<InnerIsolineConfigComponent>        [L52]
-  QUERY: outerIsoline   = With<OuterIsolineConfigComponent>        [L53]
-  QUERY: heightSmooth   = With<HeightSmoothingConfigComponent>     [L54]
-  QUERY: hydraulic      = With<HydraulicErosionConfigComponent>    [L55]
-  QUERY: wind           = With<WindErosionConfigComponent>         [L56]
-
-SYSTEM: TerrainViewTextureSubSystem
-  QUERY: hexSet        = With<HexIdComponent>                      [L54]
-  QUERY: terrainConfig = With<TerrainViewConfigComponent>          [L55]
-  QUERY: textureConfig = With<TerrainTextureConfigComponent>       [L56]
-  QUERY: vertexGrid    = With<VertexGridComponent>                 [L57]
-
-SYSTEM: WaterViewSubSystem
-  QUERY: hexSet        = With<HexIdComponent>                      [L48]
-  QUERY: terrainConfig = With<TerrainViewConfigComponent>          [L49]
-  QUERY: waterConfig   = With<WaterViewConfigComponent>            [L50]
-
-SYSTEM: TerrainViewDebugSystem
-  QUERY: primary = With<HexIdComponent>                            [L25]
-  QUERY: hexSet  = With<HexIdComponent> + With<HexLevelComponent>  [L29]
-  QUERY: config  = With<TerrainViewConfigComponent>                [L34]
-
-SYSTEM: HexSelectionViewSystem
-  QUERY: primary      = With<HexSelectionViewComponent>            [L37]
-  QUERY: selectedHex  = With<SelectedHexComponent>                 [L41]
-  QUERY: vertexGrid   = With<VertexGridComponent>                  [L44]
-
-SYSTEM: CameraMovementSystem
-  QUERY: primary       = With<PlayerInputComponent>   (tick anchor)
-  QUERY: playerInput   = With<PlayerInputComponent>   (input binding)
-  QUERY: cameraConfig  = With<CameraMovementConfigComponent>
-  QUERY: hexIdSet      = With<HexIdComponent>
-  QUERY: terrainConfig = With<TerrainViewConfigComponent>
-  READ:  CameraComponent via world.Get (world component, not a query)
-
-SYSTEM: HexSelectionSystem
-  QUERY: primary       = With<PlayerInputComponent>   (tick anchor)
-  QUERY: playerInput   = With<PlayerInputComponent>   (input binding)
-  QUERY: terrainConfig = With<TerrainViewConfigComponent>
-  QUERY: selectedHex   = With<SelectedHexComponent>
-  READ:  CameraComponent via world.Get (world component, not a query)
-
-SYSTEM: HexResourcesSubSystem
-  QUERY: config = With<HexResourcesConfigComponent>               [L21]
-
-SYSTEM: HexResourcesViewSubSystem (base; Clay/Fish)
-  QUERY: config       = With<HexResourcesViewConfigComponent>
-  QUERY: resourceSet  = With<HexIdComponent> + With<HexResourcesComponent>
-  QUERY: vertexGrid   = With<VertexGridComponent>
-
-SYSTEM: ClayResourceViewSubSystem (extends base, one-shot)
-  QUERY: clayConfig    = With<ClayViewConfigComponent>      (footprint + palette)
-  QUERY: terrainConfig = With<TerrainViewConfigComponent>   (CellSize)
-  QUERY: texture       = With<TerrainTextureComponent>      (clay paint target)
-  QUERY: terrainView   = With<TerrainViewComponent>         (mesh re-apply)
-  QUERY: hexSet        = With<HexIdComponent>               (square UV rect, like the texture bake)
-
-SYSTEM: ForestViewSyncSystem (reactive, IUpdatedSystem)
-  BASE:  texture      = With<TerrainTextureComponent>   (paint target + readiness gate)
-  QUERY: resourceSet  = With<HexIdComponent> + With<HexResourcesComponent>
-  QUERY: vertexGrid   = With<VertexGridComponent>
-  QUERY: viewConfig   = With<HexResourcesViewConfigComponent>
-  QUERY: terrainConfig= With<TerrainViewConfigComponent>
-  QUERY: hexSet       = With<HexIdComponent>             (square UV rect, like the texture bake)
-
-SYSTEM: HexIconsContainerPositionSystem (per-frame, ILateUpdatedSystem, Gameplay)
-  BASE:  containers  = With<HexIdComponent> + With<HexIconContainerComponent>  (the set it positions each frame)
-  QUERY: vertexGrid  = With<VertexGridComponent>         (PreUpdate, hex center for projection)
-  Note: reads HexIconsViewComponent + CameraComponent via world.Get in PreUpdate. LateUpdate, priority 700 —
-        after CameraMovementSystem (priority 0) so containers track the camera without a one-frame lag.
-
-SYSTEM: HexIconsVisibilitySystem (event-driven, IUpdatedSystem, Gameplay, priority 800)
-  BASE:  events     = With<HexIconsVisibilityChangedEvent>   (only fires the frame an event exists → zero idle cost)
-  QUERY: containers = With<HexIdComponent> + With<HexIconContainerComponent>  (all containers — clear/rebuild)
-  QUERY: resources  = With<HexIdComponent> + With<HexResourcesComponent>      (per hex, matched by Coords)
-  Note: reads HexIconsVisibilityComponent + HexIconsViewComponent + HexIconsConfigComponent +
-        HexResourceIconConfigComponent via world.Get (fail-loud). Sprite lookup is a linear scan of
-        HexResourceIconConfig.Entries; missing/null sprite is a skip. No cached render state.
-
-SYSTEM: EventCleanupSystem
-  QUERY: events = With<EventTag>                                  [L22]
+EVENT: EventTag
+  Producer: any system emitting an event (Set on the event entity alongside the event component)
+  Consumer: EventCleanupSystem (disposes the entity at end of tick)
+  Lifetime: 1 frame
+  Note: the universal cleanup marker — every event entity above carries it.
 ```
 
 ---
 
-## Data Flow by Boot Phase
+## Bare-Key Legacy Audit
+
+Bare `With<HexIdComponent>` queries violating the Table Rule (they match all four hex-keyed tables).
+Written before the parallel tables existed; pending audit/fix. Do NOT copy this pattern.
 
 ```
-ConfigLoadStep (one-time boot bootstrap)
-  → TerrainViewConfigLoaderSystem  → creates VertexGridComponent singleton
-  → [all config loaders]           → set config WORLD components (world.Set), not entities
+⚠ BARE-KEY LEGACY (7):
+  TerrainViewSystem            — hexSet
+  TerrainViewGenerationSubSystem — hexSet
+  TerrainViewTextureSubSystem  — hexSet
+  WaterViewSubSystem           — hexSet
+  TerrainViewDebugSystem       — primary set
+  CameraMovementSystem         — hexIdSet
+  ClayResourceViewSubSystem    — hexSet (square UV rect)
+```
 
-MainMenu state (entered after bootstrap)
+---
+
+## Data Flow by Phase
+
+```
+ConfigLoadStep (one-time boot bootstrap, before the state machine)
+  → all Config Loaders → world.Set config WORLD components (20)
+  → TerrainViewConfigLoaderSystem additionally → world.Set VertexGridComponent (runtime WORLD component)
+
+MainMenu state
   → ShowHexesUISystem → loads + shows the HexGeneratorUI (Generate button)
+  → Generate click → TerrainGenerationGenerateEventComponent → state switch to MapCreation
 
-World-init pipeline (run by the MapCreation game state, NOT a boot phase)
-  Trigger: TerrainGenerationGenerateEventComponent (HexesUI Generate button) is detected by the MainMenu
-  state, which switches to MapCreation. MapCreation.EnterAsync awaits every
-  IPrioritizedUniTaskSystem<TerrainGenerationStep> stage sequentially, in ascending priority, then ticks
-  its reactive systems for a few settle frames and switches to Gameplay:
+World-init pipeline (run by the MapCreation state; IPrioritizedUniTaskSystem<TerrainGenerationStep>
+stages awaited sequentially in ascending priority, then settle frames, then switch to Gameplay):
 
-  → TerrainGenerationSystem (100) → creates Hex entities (HexIdComponent + HexLevelComponent)
+  → TerrainGenerationSystem (100)        → creates Hex rows (HexIdComponent + HexLevelComponent)
       → Mountain / River / Lake / Sea GenerationSubSystem → mutate HexLevelComponent
-      → then SyncHexTags → adds Hex{Plain,Mount,Water,Bedhill}Tag from final level
-  → HexResourcesSystem (200) → resource gen subsystems → create HexResource entities
-  → TerrainViewSystem (300) async:
-      → TerrainViewGenerationSubSystem → mutates VertexGrid in place
-      → TerrainViewTextureSubSystem    → writes PERSISTENT TerrainTextureComponent
-      → WaterViewSubSystem             → writes WaterViewComponent
-  → HexResourcesViewSystem (400) → Clay/Fish view subsystems (scaffold) only
-  → HexSelectionViewLoadingSystem (500) async → creates HexSelectionViewComponent singleton
-  → TerrainViewDebugSystem (600) → debug rays per hex level
-  → HexIconsSpawnSystem (700) → spawns the screen-space overlay + creates EMPTY HexIconContainer entities
-      (one per hex, HexIdComponent FK + HexIconContainerComponent); no icons added here
+      → SyncHexTags → adds Hex{Plain,Mount,Water,Bedhill}Tag from the final level
+  → HexResourcesSystem (200)             → generation subsystems create HexResource rows
+  → TerrainViewSystem (300, orchestrator, async):
+      → TerrainViewGenerationSubSystem   → mutates VertexGrid in place
+      → TerrainViewTextureSubSystem      → world.Set TerrainTextureComponent (runtime WORLD component)
+      → WaterViewSubSystem               → creates WaterViewSingleton
+  → HexResourcesViewSystem (400, orchestrator):
+      → ClayResourceViewSubSystem (200)  → VertexGrid depression + clay texture gradient
+      → FishResourceViewSubSystem (300)  → scaffold
+      → ForestResourceViewSubSystem (400)→ plants ALL forest hexes (ResourceView rows) + paints
+                                            green ground once (append-only, on top of clay)
+  → HexSelectionViewLoadingSystem (500)  → creates HexSelectionViewSingleton (async prefab load)
+  → TerrainViewDebugSystem (600)         → debug rays per hex level
+  → HexIconsSpawnSystem (700)            → world.Set HexIconsViewComponent + creates EMPTY
+                                            HexIconContainer rows (one per hex)
+  → HexInfoPanelSpawnSystem (800)        → creates the HexInfoPanelView singleton (panel hidden)
 
 Gameplay state entry (GameplayState.EnterAsync):
-  → sets HexIconsVisibilityComponent (IsVisible = true) + raises a one-frame HexIconsVisibilityChangedEvent
-      (+ EventTag) → consumed on the first Gameplay tick by HexIconsVisibilitySystem
+  → world.Set HexIconsVisibilityComponent (IsVisible = true)
+  → raises HexIconsVisibilityChangedEvent → consumed on the first Gameplay tick
 
-Reactive (per-frame, after boot — NOT a pipeline stage):
-  → ForestViewSyncSystem (IUpdatedSystem) → diffs forest HexResource entities; spawns/removes
-      ResourceView (forest) entities + paints/erases green ground in TerrainTextureComponent
-  → HexIconsVisibilitySystem (IUpdatedSystem, Gameplay, priority 800) → on a HexIconsVisibilityChangedEvent,
-      clears every HexIconContainer and (if visible) rebuilds icons from each hex's resources via
-      HexResourceIconConfig
-  → HexIconsContainerPositionSystem (ILateUpdatedSystem, Gameplay, after CameraMovementSystem) → projects
-      each HexIconContainer's vertex-grid center to panel space every frame so containers track the camera
+Gameplay state, per-frame (Update, ascending priority):
+  → HexSelectionSystem / HexSelectionViewSystem        → selection write + highlight
+  → HexInfoPanelSystem (550)                           → watches SelectedHex; shows/hides the panel;
+                                                          raises HexInfoPanelRefreshEvent on change
+  → HexInfoPanelHeader/Resources/DistrictPlaceholder (560–562, reactive) → rebuild panel blocks on the pulse
+  → ForestSpawnSystem (600) / ForestDespawnSystem (601, reactive) → reconcile forest views on a pulse (dormant)
+  → HexIconsVisibilitySystem (800, reactive)           → clear/rebuild icon containers on the pulse
+  → EventCleanupSystem (int.MaxValue)                  → disposes all EventTag entities
+
+Gameplay state, per-frame (LateUpdate):
+  → CameraMovementSystem (0) → HexIconsContainerPositionSystem (700) — containers track the camera
+    without a one-frame lag
 ```
 
 ---
@@ -526,43 +405,14 @@ Reactive (per-frame, after boot — NOT a pipeline stage):
 Components read outside their owner module — potential coupling points.
 
 ```
-TerrainViewConfigComponent   read by UserInput (CameraMovementSystem, HexSelectionSystem)
-                             → CellSize used for raycast plane and camera bounds
-HexIdComponent               read by HexResourcesView
-                             → joins hex identity with resource data
-VertexGridComponent          read by HexSelectionViewSystem (TerrainView)
-                             → used to extract vertex rings for selection highlight
-```
-
----
-
-## Event Components
-
-One-frame components used for async signalling between systems.
-
-```
-TerrainGenerationGenerateEventComponent
-  Producer: HexesUI Generate button (later: save/load)
-  Consumer: MainMenu game state — detects it and switches to MapCreation (which runs the pipeline)
-  Lifetime: 1 frame (paired with EventTag; cleaned once MapCreation ticks EventCleanupSystem)
-  Note: This is the ONLY world-init trigger. The old per-stage events
-        (ShowTerrainViewEventComponent, HexResourcesGenerateEventComponent,
-        ShowHexResourcesViewEventComponent) were removed — stages are now pipeline-driven.
-  Naming: predates the …Event suffix rule (ARCHITECTURE.md) — kept until a deliberate rename.
-
-HexIconsVisibilityChangedEvent
-  Producer: GameplayState.EnterAsync (writes HexIconsVisibilityComponent, then raises this); later a UI toggle
-  Consumer: HexIconsVisibilitySystem — clears every HexIconContainer, rebuilds from each hex's resources if visible
-  Lifetime: 1 frame (paired with EventTag; cleaned by EventCleanupSystem)
-  Note: payload-less signal (variant B) — the truth is HexIconsVisibilityComponent, not the event.
-
-TerrainTextureComponent (NOT an event component — listed here only to correct the old assumption)
-  Producer: TerrainViewTextureSubSystem
-  Consumer: TerrainViewSystem (ApplyTexture, keeps entity alive); ForestViewSyncSystem paints into it (append-only)
-  Lifetime: PERSISTENT — see the Component Registry entry above
-
-EventTag
-  Producer: any system emitting an event (Set on the event entity alongside the event component)
-  Consumer: EventCleanupSystem (disposes the entity at end of tick, priority int.MaxValue)
-  Lifetime: 1 frame
+TerrainViewConfigComponent     read by UserInput (CameraMovementSystem, HexSelectionSystem)
+                               → CellSize used for raycast plane and camera bounds
+HexIdComponent                 read by HexResourcesView, HexIcons, HexesUI
+                               → the universal hex foreign key (joins across all hex-keyed tables)
+HexResourcesComponent          read by HexIcons (icon rebuild), HexesUI (info panel resource rows)
+VertexGridComponent            read by HexResourcesView (planting heights), HexIcons (projection),
+                               HexSelectionViewSystem (selection ring)
+TerrainTextureComponent        read by HexResourcesView (clay + forest ground painting)
+HexResourceIconConfigComponent read by HexesUI (HexInfoPanelResourcesSystem — shared icon set)
+SelectedHexComponent           read by HexesUI (HexInfoPanelSystem) and TerrainView (HexSelectionViewSystem)
 ```

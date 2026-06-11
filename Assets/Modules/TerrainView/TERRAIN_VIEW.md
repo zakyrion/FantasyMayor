@@ -13,17 +13,21 @@ For water: `WATER_VIEW_SETUP.md`.
 ## Non-Obvious Invariants
 
 ### How TerrainView is triggered
-- `TerrainViewSystem` is a **world-init pipeline step** (priority 300) — an
+- `TerrainViewSystem` is a **Pipeline Orchestrator** (world-init stage, priority 300) — an
   `IPrioritizedUniTaskSystem<TerrainGenerationStep>` run sequentially by the **`MapCreation` game state**,
-  after terrain and resource generation. It no longer listens to an event itself.
+  after terrain and resource generation. It fans out into async **Pipeline SubSystems**
+  (`ViewSubSystem` children: height field, texture, water) and contains no domain logic of its own.
+  It no longer listens to an event itself.
 - The pipeline runs once when the `MainMenu` state detects `TerrainGenerationGenerateEventComponent`
   (Generate button) and switches to `MapCreation`. Stage order: terrain gen (100) → resources (200) →
-  terrain view (300) → resource view (400) → selection-view load (500) → debug (600).
+  terrain view (300) → resource view (400) → selection-view load (500) → debug (600) →
+  icon containers (700) → info panel (800).
 - The `TerrainGenerationStep` marker drives this pipeline.
 - This module also owns two later pipeline stages: `HexSelectionViewLoadingSystem` (500) and
-  `TerrainViewDebugSystem` (600). `HexSelectionViewSystem` (the per-frame selection highlight)
-  stays a normal `UpdatedSystem`, wired by Boot into the `Gameplay` state — **not** part of the pipeline.
-- Full flow: `BOOT.md` / `ECS_REFERENCE.md`.
+  `TerrainViewDebugSystem` (600). `HexSelectionViewSystem` (the selection highlight) is a
+  **Per-frame System** (`UpdatedSystem`), wired by Boot into the `Gameplay` state — **not** part of
+  the pipeline.
+- Roles: `ARCHITECTURE.md` "System Taxonomy". Full flow: `BOOT.md` / `ECS_REFERENCE.md`.
 
 ### Async build pipeline order (contract)
 `TerrainViewSystem` runs this sequence; the order is significant:
@@ -34,14 +38,19 @@ For water: `WATER_VIEW_SETUP.md`.
 5. Apply heights from the shared `VertexGrid`.
 
 ### Lifetimes and ownership
-- `VertexGridComponent` is a **singleton** created by `TerrainViewConfigLoaderSystem`. The grid is
-  shared mutable state — the height subsystem mutates it in place.
-- `TerrainTextureComponent` is **persistent**: the texture subsystem creates it and `TerrainViewSystem`
-  applies its `Texture2D` to the material, but **the entity is intentionally kept alive**. The same
-  `Texture2D` instance stays on the material, so reactive runtime systems can mutate its pixels
-  (`SetPixels32` + `Apply`) and the material reflects the change without re-applying. The texture is
-  created readable (`Apply(false)`) precisely so it can be read back and repainted later.
-  Current consumer: `HexResourcesView`'s `ForestGroundPainter` (green ground under trees).
+- `VertexGridComponent` is a **world component** (`world.Set` / `world.Get`, not an entity), set once by
+  `TerrainViewConfigLoaderSystem` at config load. The grid is shared mutable state — the height subsystem
+  mutates it in place. Because the grid is a reference type, `world.Set` is called only at creation and
+  never re-called after a mutation; readers `world.Get` the live grid (guarded by `world.Has`, fail-loud).
+- `TerrainTextureComponent` is a **world component** (`world.Set` / `world.Get`, not an entity), set once
+  by `TerrainViewTextureSubSystem` in the view pipeline; `TerrainViewSystem` `world.Get`s it and applies
+  its `Texture2D` to the material. It is **persistent** — never disposed. The same `Texture2D` instance
+  stays on the material, so reactive runtime systems can mutate its pixels (`SetPixels32` + `Apply`) and
+  the material reflects the change without re-applying. The texture is created readable (`Apply(false)`)
+  precisely so it can be read back and repainted later. Like `VertexGridComponent`, the carried `Texture2D`
+  is a reference type, so `world.Set` happens only at creation, never after a paint mutation.
+  Current consumers: `HexResourcesView`'s `ClayGroundPainter` (clay gradient) and `ForestGroundPainter`
+  (green ground under trees).
 - `HexSelectionView.ShowSelectionBorder` receives `Allocator.Temp` NativeArrays. **The caller
   disposes them after the call** — the view does not take ownership.
 

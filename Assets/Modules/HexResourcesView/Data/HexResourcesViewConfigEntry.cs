@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Modules.HexResourcesView.Data
 {
     [Serializable]
-    internal struct HexResourcesViewConfigEntry
+    public struct HexResourcesViewConfigEntry
     {
         public ResourceType Type;
         public GameObject Prefab;

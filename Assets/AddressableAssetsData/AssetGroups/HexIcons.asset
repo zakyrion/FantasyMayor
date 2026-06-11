@@ -15,8 +15,18 @@ MonoBehaviour:
   m_GroupName: HexIcons
   m_GUID: 5599e717cf47b4204a9d1ebcfcf2ce47
   m_SerializeEntries:
+  - m_GUID: 318b1c1ac8a33453c9b74a21f6f5c3a6
+    m_Address: UI/HexInfoPanelView
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 7fc996e0b6a3f4127b65921392e45cc9
     m_Address: HexIconsConfig
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: e7c5cd5bf4dcd42edbf44606d26ffdd7
+    m_Address: HexTerrainIconConfig
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

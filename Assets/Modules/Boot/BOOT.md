@@ -35,11 +35,11 @@ MapLoading  : stub (no save/load flow yet)
 ```
 
 ### Why a "settle" frame pump in MapCreation
-The generation pipeline (`IPrioritizedUniTaskSystem<TerrainGenerationStep>`) builds logical data, but some
-view is built **reactively** over the next frames (e.g. `ForestViewSyncSystem` spawns trees + paints ground
-the frame after forest entities appear). So "pipeline awaited" ≠ "world complete". `MapCreation` ticks its
-per-frame systems for a small fixed number of frames (`SettleFrames`, 1–3) before declaring done. This is
-safe — those reactive systems are idempotent (diff-based), so extra ticks are no-ops.
+The generation pipeline (`IPrioritizedUniTaskSystem<TerrainGenerationStep>`) builds both logical data and
+the views synchronously (forest is now built one-shot by `ForestResourceViewSubSystem` inside the pipeline,
+not reactively over later frames). `MapCreation` still ticks its settle-frame systems (`EventCleanupSystem`)
+for a small fixed number of frames (`SettleFrames`, 1–3) to drain anything the pipeline raised before
+handing off to `Gameplay`. Safe — those systems are idempotent, so extra ticks are no-ops.
 
 ## Manual Wiring (deliberate)
 
@@ -47,14 +47,16 @@ safe — those reactive systems are idempotent (diff-based), so extra ticks are 
 — Boot explicitly knows which system belongs to which mode. This is a conscious move away from
 auto-collected `IReadOnlyList<IUpdatedSystem>` toward an explicit composition root. Consequence:
 `Boot.Implementation` references the module assemblies whose systems it wires (`Hexes.UI`, `UserInput`,
-`Terrain.View`, `HexResourcesView`).
+`Terrain.View`, `HexResourcesView`, `HexIcons`).
 
 Module installers register these systems with their **concrete** type (`.As<TheSystem>()`), not as
 `IUpdatedSystem`/`ILateUpdatedSystem`. Systems stay DI-constructed singletons; only their grouping is manual.
 
 A system may belong to several states — it is simply referenced from each. Current overlaps:
-- `ForestViewSyncSystem` → `MapCreation` (build) **and** `Gameplay` (runtime reactions).
 - `EventCleanupSystem` → `MapCreation` and `Gameplay`.
+
+(Forest no longer overlaps states: the startup build is a one-shot pipeline subsystem
+`ForestResourceViewSubSystem`, and `ForestSpawnSystem`/`ForestDespawnSystem` are `Gameplay`-only.)
 
 `EventCleanupSystem` lives in `DefaultECS.Extensions` (not the installer assembly) so Boot can wire it
 without an assembly cycle (`Installers.World` already references `Boot.Implementation`).
@@ -63,9 +65,14 @@ without an assembly cycle (`Installers.World` already references `Boot.Implement
 | State | Update systems | LateUpdate systems |
 |---|---|---|
 | MainMenu | — (waits for the Generate event) | — |
-| MapCreation | generation pipeline (async entry) + ForestViewSync, EventCleanup | — |
-| Gameplay | HexSelection, HexSelectionView, ForestViewSync, EventCleanup | CameraMovement |
+| MapCreation | generation pipeline (async entry) + EventCleanup (settle frames) | — |
+| Gameplay | HexSelection, HexSelectionView, ForestSpawn, ForestDespawn, HexIconsVisibility, HexInfoPanel, HexInfoPanelHeader, HexInfoPanelResources, HexInfoPanelDistrictPlaceholder, EventCleanup | CameraMovement, HexIconsContainerPosition |
 | MapLoading | — (stub) | — |
+
+Role mix (per `ARCHITECTURE.md` "System Taxonomy"): `MapCreation` drives one-shot **Pipeline
+Stages** (100–800) through its async entry; `Gameplay` ticks **Per-frame Systems** (HexSelection,
+HexSelectionView, HexInfoPanel, CameraMovement, HexIconsContainerPosition) and **Reactive Systems**
+(ForestSpawn/Despawn, HexIconsVisibility, the three HexInfoPanel block systems) plus the Cleanup.
 
 ## Non-Obvious Invariants
 - Boot phase markers are empty structs used only as generic type tags. `ConfigLoadStep` is driven by Boot;

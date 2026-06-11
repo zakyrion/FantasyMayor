@@ -13,10 +13,10 @@ namespace Modules.HexResourcesView.Helpers
     ///     duplicates the one used by <see cref="TerrainViewTextureSubSystem" /> so splats land in the same UV
     ///     space as the baked texture.
     /// </summary>
-    internal static class ForestGroundPainter
+    public static class ForestGroundPainter
     {
         /// <summary>A single ground patch request: a colored circle in world space.</summary>
-        internal readonly struct Splat
+        public readonly struct Splat
         {
             public readonly Vector3 WorldPosition;
             public readonly float Radius;
@@ -31,7 +31,7 @@ namespace Modules.HexResourcesView.Helpers
         }
 
         /// <summary>The square UV rect splats map into. A pure function of the hex set; holds no pixels.</summary>
-        internal readonly struct UvRect
+        public readonly struct UvRect
         {
             public readonly float2 Min;
             public readonly float Size;
@@ -47,7 +47,7 @@ namespace Modules.HexResourcesView.Helpers
         ///     Blends every splat into the texture's CURRENT pixels (terrain plus any earlier forest paint)
         ///     and uploads once. No-op for an empty batch. Called only on the appeared-delta, never per frame.
         /// </summary>
-        public static void Paint(NativeArray<Splat> splats, Texture2D texture, in UvRect uv)
+        public static void Paint(NativeList<Splat> splats, Texture2D texture, in UvRect uv)
         {
             if (splats.Length == 0 || uv.Size <= 0f)
                 return;

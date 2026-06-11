@@ -21,11 +21,15 @@ namespace Modules.HexResourcesView.Installer
             builder.Register<HexResourcesViewSystem>(Lifetime.Singleton)
                 .As<HexResourcesViewSystem, IPrioritizedUniTaskSystem<TerrainGenerationStep>>();
 
-            // Forest view is reactive (per-frame Update), not a one-shot pipeline subsystem — see ForestViewSyncSystem.
-            // Concrete registration: Boot wires it into the MapCreation and Gameplay states by hand.
-            builder.Register<ForestViewSyncSystem>(Lifetime.Singleton)
-                .As<ForestViewSyncSystem>();
+            // Reactive runtime forest systems are event-driven (idle until a pulse). Concrete registration:
+            // Boot wires them into the Gameplay state by hand.
+            builder.Register<ForestSpawnSystem>(Lifetime.Singleton)
+                .As<ForestSpawnSystem>();
+            builder.Register<ForestDespawnSystem>(Lifetime.Singleton)
+                .As<ForestDespawnSystem>();
 
+            builder.Register<ForestResourceViewSubSystem>(Lifetime.Singleton)
+                .As<ForestResourceViewSubSystem, HexResourcesViewSubSystem>();
             builder.Register<ClayResourceViewSubSystem>(Lifetime.Singleton)
                 .As<ClayResourceViewSubSystem, HexResourcesViewSubSystem>();
             builder.Register<FishResourceViewSubSystem>(Lifetime.Singleton)

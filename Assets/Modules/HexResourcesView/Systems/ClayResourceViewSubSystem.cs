@@ -31,7 +31,6 @@ namespace Modules.HexResourcesView.Systems
 
         private readonly ClayDepressionShaper _shaper = new();
         private readonly EntitySet _terrainViewSet;
-        private readonly EntitySet _textureSet;
 
         public override int Priority => ExecutionPriority;
         protected override ResourceType TargetResourceType => ResourceType.Clay;
@@ -40,7 +39,6 @@ namespace Modules.HexResourcesView.Systems
             : base(world)
         {
             _world = world;
-            _textureSet = world.GetEntities().With<TerrainTextureComponent>().AsSet();
             _terrainViewSet = world.GetEntities().With<TerrainViewComponent>().AsSet();
             _hexSet = world.GetEntities().With<HexIdComponent>().AsSet();
         }
@@ -54,7 +52,7 @@ namespace Modules.HexResourcesView.Systems
             if (!TryGetVertexGrid(out var grid) || !_world.Has<ClayViewConfigComponent>())
                 return;
 
-            if (!_world.Has<TerrainViewConfigComponent>() || _textureSet.Count == 0 || _terrainViewSet.Count == 0)
+            if (!_world.Has<TerrainViewConfigComponent>() || !_world.Has<TerrainTextureComponent>() || _terrainViewSet.Count == 0)
             {
                 Debug.LogWarning("[ClayResourceViewSubSystem] Missing terrain config, texture, or view — clay skipped.");
                 return;
@@ -62,7 +60,7 @@ namespace Modules.HexResourcesView.Systems
 
             var clayConfig = _world.Get<ClayViewConfigComponent>();
             var cellSize = _world.Get<TerrainViewConfigComponent>().CellSize;
-            var texture = _textureSet.GetEntities()[0].Get<TerrainTextureComponent>().Texture;
+            var texture = _world.Get<TerrainTextureComponent>().Texture;
             var terrainView = _terrainViewSet.GetEntities()[0].Get<TerrainViewComponent>().ObjectRef;
 
             if (texture == null || terrainView == null)
@@ -99,7 +97,6 @@ namespace Modules.HexResourcesView.Systems
 
         public override void Dispose()
         {
-            _textureSet.Dispose();
             _terrainViewSet.Dispose();
             _hexSet.Dispose();
             base.Dispose();

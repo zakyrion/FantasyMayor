@@ -11,14 +11,14 @@ namespace Modules.Boot.Implementation.States
     /// <summary>
     ///     Builds a fresh world: runs the one-shot generation pipeline
     ///     (<see cref="IPrioritizedUniTaskSystem{T}" /> for <see cref="TerrainGenerationStep" />) in priority order,
-    ///     then ticks its per-frame systems for a few "settle" frames so reactive view systems
-    ///     (e.g. forest sync) can build from the freshly generated entities, then transitions to
-    ///     <see cref="GameMode.Gameplay" />.
+    ///     then ticks its per-frame systems for a few "settle" frames (e.g. event cleanup) before transitioning
+    ///     to <see cref="GameMode.Gameplay" />. View building is done synchronously inside the pipeline.
     /// </summary>
     public sealed class MapCreationState : IAppState
     {
-        // Reactive view systems build over 1-2 frames after entities appear; 3 gives a safe margin.
-        // Safe because those systems are idempotent (diff-based) — extra ticks are no-ops.
+        // A few frames let the per-frame settle systems (e.g. event cleanup) drain anything the pipeline
+        // raised before handing off to Gameplay; 3 is a safe margin. The systems here are idempotent, so
+        // extra ticks are no-ops.
         private const int SettleFrames = 3;
 
         private readonly IReadOnlyList<IPrioritizedUniTaskSystem<TerrainGenerationStep>> _pipeline;

@@ -165,6 +165,7 @@ Before modifying terrain transitions, read these files first:
 
 ## Patterns Reference
 - **Addressables / `IAddressable` / `Box<T>` / `Result<T>` / addressable asset loading:** before writing, editing, or reviewing any such code, read `Assets/Modules/Addressable/ADDRESSABLE_PATTERNS.md` first. It is the single source of truth — do not re-derive patterns from source, do not deviate without user approval. The file is intentionally not loaded into context by default; load it on demand when the trigger applies.
+- **ECS queries / entity tables / joins / `EntityMap` / `EntityMultiMap`:** before writing or reviewing any ECS query, follow the Table Rule in `ARCHITECTURE.md` ("Relational Modeling — Table Rule"). Core rule: a query names a table = key component + discriminator; a bare `With<KeyComponent>` query is forbidden. PK table → `EntityMap`, FK 1:N → `EntityMultiMap`, sweep → `EntitySet`. Full rules live in `ARCHITECTURE.md` only — do not duplicate them elsewhere.
 
 ## Code Documentation Policy
 - Add comments only where the logic stops being simple and unambiguous.

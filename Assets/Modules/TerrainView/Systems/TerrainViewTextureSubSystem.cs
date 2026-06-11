@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using DefaultEcs;
@@ -40,7 +41,6 @@ namespace Modules.TerrainView.Systems
         }
 
         private readonly EntitySet _hexSet;
-        private readonly EntitySet _vertexGridSet;
         private readonly World _world;
 
         /// <inheritdoc />
@@ -51,21 +51,23 @@ namespace Modules.TerrainView.Systems
         {
             _world = world;
             _hexSet = world.GetEntities().With<HexIdComponent>().AsSet();
-            _vertexGridSet = world.GetEntities().With<VertexGridComponent>().AsSet();
         }
 
         /// <inheritdoc />
         public override async UniTask Update(GameState state, CancellationToken cancellationToken)
         {
-            if (!_world.Has<TerrainTextureConfigComponent>() || _vertexGridSet.Count == 0 || !_world.Has<TerrainViewConfigComponent>())
+            if (!_world.Has<VertexGridComponent>())
+                throw new InvalidOperationException("TerrainViewTextureSubSystem: VertexGridComponent world component is missing.");
+
+            if (!_world.Has<TerrainTextureConfigComponent>() || !_world.Has<TerrainViewConfigComponent>())
             {
-                Debug.LogError("[TerrainViewTextureSubSystem] Required config or vertex grid is missing.");
+                Debug.LogError("[TerrainViewTextureSubSystem] Required config is missing.");
                 return;
             }
 
             var config = _world.Get<TerrainTextureConfigComponent>();
             var terrainConfig = _world.Get<TerrainViewConfigComponent>();
-            var vertexGrid = _vertexGridSet.GetEntities()[0].Get<VertexGridComponent>().Grid;
+            var vertexGrid = _world.Get<VertexGridComponent>().Grid;
 
             // Persistent (not Temp): the map is read inside RunOnThreadPool, so it must outlive the await.
             // NativeParallelHashMap is the thread-safe-read container; disposed on every exit path below.
@@ -95,7 +97,7 @@ namespace Modules.TerrainView.Systems
                 texture.SetPixels32(pixels);
                 texture.Apply(false);
 
-                _world.CreateEntity().Set(new TerrainTextureComponent { Texture = texture });
+                _world.Set(new TerrainTextureComponent { Texture = texture });
             }
             finally
             {
@@ -107,7 +109,6 @@ namespace Modules.TerrainView.Systems
         public override void Dispose()
         {
             _hexSet.Dispose();
-            _vertexGridSet.Dispose();
             base.Dispose();
         }
 

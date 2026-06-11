@@ -3,8 +3,18 @@
 Single source of truth for how to write Markdown docs in this project.
 Read this before creating or editing any `.md` file in a module or repo root.
 
-The primary reader of these docs is a language model (usually Sonnet), not a human.
-Write for that reader: explicit, literal, no implied reasoning chains.
+---
+
+## Rule 0 — Documentation is written for the AI agent, not for a human
+
+Every `.md` file in this project — module docs, templates, policy files, and **this file itself** — is
+written **primarily for an AI agent that will act on it**, not for a human reader. No human is the
+primary audience; optimize for the model that executes against the doc.
+
+Concretely: write for the **least-capable agent likely to read it** — explicit, literal, no implied
+reasoning chains, nothing left "obvious from context". A doc succeeds when an agent can act on it
+correctly **without opening the source**. This target is sharper than a vague "write for AI", and it is
+what every rule below serves.
 
 ---
 
@@ -150,9 +160,10 @@ Model the block on `ADDRESSABLE_PATTERNS.md`:
 
 ---
 
-## Sonnet-First Writing Rules
+## AI-First Writing Rules
 
-The reader is a smaller model. Optimize for zero ambiguity, not for brevity.
+The reader is an AI agent — assume the least-capable model likely to read it (Rule 0). Optimize for
+zero ambiguity, not for brevity.
 
 - **Explicit over implicit.** State the rule directly. Do not make the reader infer it.
 - **Short declarative sentences.** One claim per sentence.

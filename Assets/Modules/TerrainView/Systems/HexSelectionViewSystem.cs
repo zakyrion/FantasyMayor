@@ -23,7 +23,7 @@ namespace Modules.TerrainView.Systems
         private const float BorderLift = 0.08f;
 
         private readonly EntitySet _selectedHexSet;
-        private readonly EntitySet _vertexGridSet;
+        private readonly World _world;
 
         private bool _hadSelection;
         private SelectedHexComponent _lastSelection;
@@ -37,11 +37,9 @@ namespace Modules.TerrainView.Systems
                 .With<HexSelectionViewComponent>()
                 .AsSet())
         {
+            _world = world;
             _selectedHexSet = world.GetEntities()
                 .With<SelectedHexComponent>()
-                .AsSet();
-            _vertexGridSet = world.GetEntities()
-                .With<VertexGridComponent>()
                 .AsSet();
         }
 
@@ -64,14 +62,14 @@ namespace Modules.TerrainView.Systems
                 return;
             }
 
-            if (_vertexGridSet.Count == 0)
-                return;
+            if (!_world.Has<VertexGridComponent>())
+                throw new InvalidOperationException("HexSelectionViewSystem: VertexGridComponent world component is missing.");
 
             var selected = _selectedHexSet.GetEntities()[0].Get<SelectedHexComponent>();
             if (!viewChanged && _hadSelection && _lastSelection.Coords == selected.Coords)
                 return;
 
-            VertexGrid vertexGrid = _vertexGridSet.GetEntities()[0].Get<VertexGridComponent>().Grid;
+            VertexGrid vertexGrid = _world.Get<VertexGridComponent>().Grid;
             ComputeSelectionRings(selected.Coords, vertexGrid, out var outerRing, out var innerRing);
 
             view.ShowSelectionBorder(outerRing, innerRing);
@@ -163,7 +161,6 @@ namespace Modules.TerrainView.Systems
         public override void Dispose()
         {
             _selectedHexSet.Dispose();
-            _vertexGridSet.Dispose();
             base.Dispose();
         }
     }

@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using DefaultEcs;
@@ -30,7 +31,6 @@ namespace Modules.TerrainView.Systems
         private const int ExecutionPriority = 100;
 
         private readonly EntitySet _hexSet;
-        private readonly EntitySet _vertexGridSet;
         private readonly World _world;
 
         /// <inheritdoc />
@@ -44,7 +44,6 @@ namespace Modules.TerrainView.Systems
         {
             _world = world;
             _hexSet = world.GetEntities().With<HexIdComponent>().AsSet();
-            _vertexGridSet = world.GetEntities().With<VertexGridComponent>().AsSet();
         }
 
         /// <inheritdoc />
@@ -53,7 +52,10 @@ namespace Modules.TerrainView.Systems
             if (!HasRequiredConfigEntities())
                 return;
 
-            var vertexGrid = _vertexGridSet.GetEntities()[0].Get<VertexGridComponent>().Grid;
+            if (!_world.Has<VertexGridComponent>())
+                throw new InvalidOperationException("TerrainViewGenerationSubSystem: VertexGridComponent world component is missing.");
+
+            var vertexGrid = _world.Get<VertexGridComponent>().Grid;
             var config = _world.Get<TerrainViewConfigComponent>();
             var innerConfig = _world.Get<InnerIsolineConfigComponent>();
             var outerConfig = _world.Get<OuterIsolineConfigComponent>();
@@ -83,7 +85,6 @@ namespace Modules.TerrainView.Systems
         public override void Dispose()
         {
             _hexSet.Dispose();
-            _vertexGridSet.Dispose();
             base.Dispose();
         }
 
@@ -93,8 +94,7 @@ namespace Modules.TerrainView.Systems
         /// <returns><c>true</c> if all config sets are populated; <c>false</c> with a logged error otherwise.</returns>
         private bool HasRequiredConfigEntities()
         {
-            if (_vertexGridSet.Count > 0 &&
-                _world.Has<TerrainViewConfigComponent>() &&
+            if (_world.Has<TerrainViewConfigComponent>() &&
                 _world.Has<InnerIsolineConfigComponent>() && _world.Has<OuterIsolineConfigComponent>() &&
                 _world.Has<HeightSmoothingConfigComponent>() && _world.Has<HydraulicErosionConfigComponent>() &&
                 _world.Has<WindErosionConfigComponent>())

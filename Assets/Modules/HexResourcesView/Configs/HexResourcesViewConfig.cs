@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Modules.HexResourcesView.Configs
 {
     [CreateAssetMenu(fileName = "HexResourcesViewConfig", menuName = "FantasyMayor/HexResourcesView/HexResourcesViewConfig")]
-    internal sealed class HexResourcesViewConfig : ScriptableObject
+    public sealed class HexResourcesViewConfig : ScriptableObject
     {
         [SerializeField] private HexResourcesViewConfigEntry[] _resources = Array.Empty<HexResourcesViewConfigEntry>();
 

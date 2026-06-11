@@ -2,6 +2,16 @@
 
 Manages per-hex UI icon badges using a UI Toolkit Screen-Space overlay.
 
+## Trigger
+`HexIconsVisibilitySystem` runs on a `HexIconsVisibilityChangedEvent` pulse (a **Reactive System**,
+Gameplay — base set = the event; the truth lives in the `HexIconsVisibilityComponent` world
+component). Producer today: `GameplayState.EnterAsync`; later a UI toggle. This reactive trigger is
+not visible in graphify — full event flow: `ECS_REFERENCE.md`.
+
+System roles (`ARCHITECTURE.md` "System Taxonomy"): `HexIconsConfigLoaderSystem` = Config Loader;
+`HexIconsSpawnSystem` = Pipeline Stage (700); `HexIconsVisibilitySystem` = Reactive System;
+`HexIconsContainerPositionSystem` = Per-frame System (LateUpdate).
+
 ## Non-Obvious Invariants
 - `HexIconsConfigComponent` owns the `Box<HexIconsConfig>` — the loader transfers ownership on Set and
   nulls the local. This deviates from the standard ADDRESSABLE_PATTERNS.md rule ("loader retains Box").
@@ -9,6 +19,10 @@ Manages per-hex UI icon badges using a UI Toolkit Screen-Space overlay.
   singleton config that lives for the full application lifetime).
 - `HexResourceIconConfigComponent` follows the same Box-ownership deviation: it owns the
   `Box<HexResourceIconConfig>`, the loader nulls its local after `World.Set`.
+- **`HexResourceIconConfig` and `HexResourceIconConfigComponent` are `public` and shared.** The HexesUI info
+  panel (`HexInfoPanelResourcesSystem`) reads the same `HexResourceIconConfigComponent` world component to
+  render its resource chips. Treat these two types as a read-only cross-module contract — changing their
+  shape affects HexesUI as well.
 - One loader (`HexIconsConfigLoaderSystem`) loads **both** configs. The two boxes stay owned inside a
   single try/finally until every `World.Set` has run; both locals are nulled only after the last Set.
   So a failure/cancel on the second load rolls back the first via the shared `finally` (DisposeBox) —
@@ -78,47 +92,58 @@ Manages per-hex UI icon badges using a UI Toolkit Screen-Space overlay.
   (LateUpdate, priority 0).** Running it in `Update` instead lags the camera by one frame (positions are
   computed before the camera moves that frame), so the icons visibly slide while panning/zooming.
 - **Per-frame resolve in `PreUpdate`, per-entity project in `Update`.** `PreUpdate` resolves the panel
-  (`HexIconsViewComponent.View.Root.panel`), the camera (`CameraComponent`), and the `VertexGrid` (singleton
-  `VertexGridComponent` entity) once per frame and caches them; it **throws** (fail-loud) if any is missing —
-  by Gameplay the spawn step has run, so absence is a real error.
+  (`HexIconsViewComponent.View.Root.panel`), the camera + its `ReferenceFieldOfView` (`CameraComponent`), the
+  `VertexGrid` (world component `VertexGridComponent`), and the `HexIconsConfigComponent` (for `WorldYOffset`)
+  once per frame, computes the resolved zoom scale + focus depth, and packs everything into a single
+  frame-stamped `FrameBox<FramePose>` (`Core`); it **throws** (fail-loud) if any is missing — by Gameplay the
+  spawn step has run, so absence is a real error.
+- **The system holds NO cross-frame state.** Its only instance field is the `FrameBox` (marked
+  `[StateAllowed]`): filled in `PreUpdate`, valid for that frame only — a stale `.Value` in a later frame
+  **throws** instead of reading outdated data. `Dispose` drops the box (clearing the held Camera/grid/panel
+  refs) plus the secondary `_vertexGridSet`. There is **no latched zoom reference** — see the scale bullet.
 - **Projection convention.** Per entity: read `HexIdComponent.Coords` → the hex's **real on-mesh center**
   from the `VertexGrid` (`GetCenterVertexCoord` → `TryGet` → `HexVertex.Position`, a `float3` whose Y is the
   actual terrain height — the **same geometry the selection outline uses**, so X/Z *and* height match what
-  is rendered; a flat `y = 0` point caused a diagonal offset under the tilted camera). Then
+  is rendered; a flat `y = 0` point caused a diagonal offset under the tilted camera). The center is then
+  **lifted by `HexIconsConfig.WorldYOffset`** (world-space `+Y`, default `1.5`) so the icon floats above the
+  hex; the lift is in world space, so it foreshortens with perspective and the **lifted** point's depth feeds
+  both the position and the per-hex scale. `WorldYOffset` is read per frame in `PreUpdate` (fail-loud on a
+  missing `HexIconsConfigComponent`), so inspector tweaks apply live in Play. Then
   `Camera.WorldToScreenPoint` (bottom-left origin, Y up) → flip Y with **`Screen.height − y`** →
   `RuntimePanelUtils.ScreenToPanel` (expects top-left-origin screen Y, does **not** flip itself — Unity's
   documented world-anchored-UI pattern; omitting the flip mirrors placement vertically). A hex missing from
   the grid, or `z ≤ 0` (behind the camera), → container `display: None`.
 - **Still `left/top`, runs unconditionally.** Positioning sets `style.left/top` every frame (the `-50% -50%`
   translate set at creation still does the centering) and re-projects on **every** `LateUpdate` — no
-  camera-moved gate yet. Switching to transform-only moves + a camera dirty-gate (the perf-conscious form)
-  is the deferred next step.
+  camera-moved gate yet.
+- **Per-hex perspective scale (`ComputeZoomScale` + per-entity factor).** Final `style.scale` per container is
+  `zoomScale * (focusDepth / hexDepth)`:
+  - **`zoomScale`** — the map-wide **zoom baseline**, computed **analytically** from FOV in `ComputeZoomScale`:
+    `tan(ReferenceFieldOfView/2) / tan(Camera.fieldOfView/2)`. Zoom is FOV-driven (`CameraMovementSystem`
+    changes `fieldOfView`, not camera distance), so the on-screen size of a fixed world span ∝ `1/tan(fov/2)`.
+    `ReferenceFieldOfView` is the camera's startup FOV (read from `CameraComponent`), so `zoomScale` is `1` at
+    startup zoom (icons at `IconSize`) with **no latched reference** — the old first-valid-frame
+    pixels-per-world-unit capture (and the `_hasReference` / `_referencePixelsPerWorldUnit` latch) is **gone**.
+  - **`focusDepth / hexDepth`** — the **per-hex perspective factor**. `focusDepth` is the view-space depth of
+    the screen-center point on the ground plane (`y = 0`), computed per frame in `ComputeFocusDepth`; `hexDepth`
+    is `screenPoint.z` already computed when projecting the hex. The factor is `1` at the focus, `>1` nearer the
+    camera (bottom of screen → **bigger**) and `<1` farther (distance → **smaller**) — the reference-screenshot
+    look. The focus depth that the old empirical baseline also carried **cancels out** of `zoomScale *
+    perspective`, which is exactly why the baseline reduces to the pure FOV ratio.
+  - **Degenerate focus ray** (parallel to the ground / ground behind the camera) → `ComputeFocusDepth` returns
+    `0`, and the `focusDepth > 0` guard yields perspective factor `1`. `zoomScale` still computes (FOV only), so
+    **no sticky last-good state is needed** — this is what let the whole zoom calibration leave the instance.
+  - This is the chosen **"option a"** (per-hex perspective), replacing the earlier uniform "option b".
+  - Scale uses the default **center transform-origin**, so it composes with the `-50% -50%` centering translate
+    **without shifting the anchor** — icons stay pinned to the hex center, no sliding. The focus uses a flat
+    `y = 0` plane (a zoom proxy, not exact placement — placement still uses the real on-mesh center), which
+    assumes terrain near `y = 0`. There is **no size clamp** — far icons may become small by design.
 - **Parallel-table coexistence.** Container entities are a third Approach-B table carrying `HexIdComponent`
-  (alongside `HexResource` and `ResourceView`). Bare `With<HexIdComponent>` consumers in Gameplay
-  (`CameraMovementSystem` bounds, `ForestViewSyncSystem` UV rect) are bounding-box computations where
-  duplicate coords are idempotent, so the extra rows are harmless — but a future bare consumer that assumes
-  one row per coord would need an explicit exclusion.
-
-## Next Step — remaining work
-
-The per-frame projection (`HexIconsContainerPositionSystem`) and the eager entity-backed containers are
-**done**. What remains, in rough order:
-
-1. **Move via `transform`/`style.translate`, never per-frame `left/top`** — transform-only updates skip the
-   Yoga layout pass; `left/top` re-layouts hundreds of elements each frame (the perf trap from the research
-   note). Reconcile with the current centering: today `-50% -50%` *is* the translate; pick one approach
-   (e.g. anchor element moved by translate + an inner content element doing the `-50%` centering, or bake
-   the half-size offset into the projected position once).
-2. **Gate on camera moved** — dirty-check the camera transform; skip the whole pass when the camera is idle
-   (≈0 cost most frames). This is what makes 171 hexes / ≤684 icons cheap. Pairs with step 1.
-3. **Restore real container sizing**: the 2:3 incircle rectangle, now in **screen px scaled by camera
-   distance/zoom** (project a second point or derive a per-hex scale), and bring back `flexWrap` overflow→grid
-   once the container has a bounded size again.
-4. Add a **UI control** that toggles `HexIconsVisibilityComponent` and raises `HexIconsVisibilityChangedEvent`
-   (the player-facing producer; today only `GameplayState.EnterAsync` raises it). Revisit the now-legacy
-   `HexIconsConfig.WorldHeight` / `PixelsPerUnit` fields. Optionally add a Sprite-by-`ResourceType` lookup
-   API on `HexResourceIconConfig` (currently a linear scan) and an index for the per-hex resource join if
-   the O(C×R) rebuild becomes hot.
+  (alongside `HexResource` and `ResourceView`). A bare `With<HexIdComponent>` consumer in Gameplay
+  (`CameraMovementSystem` bounds) is a bounding-box computation where duplicate coords are idempotent, so
+  the extra rows are harmless — but a future bare consumer that assumes one row per coord would need an
+  explicit exclusion. (The forest spawners scope their hex set with `With<HexTag>`, so they already exclude
+  these rows.)
 
 ## Current State
 `HexResourceIconConfig` (asset) maps each `ResourceType` (from `HexResources`) to a `Sprite` via a list
@@ -129,13 +154,15 @@ There is **no** Sprite-by-`ResourceType` lookup API — `HexIconsVisibilitySyste
 The real consumer is now **`HexIconsVisibilitySystem`** (event-driven, see the Visibility invariants): on a
 `HexIconsVisibilityChangedEvent` it rebuilds every hex's container from that hex's actual resources. The old
 hard-coded spawn-time demo (`AddDemoIcons` / `FindResourceSprite` / `TryGetContainer`) is **gone**. Icon size
-in pixels comes from `HexIconsConfig.IconSize` (default 64).
+in pixels comes from `HexIconsConfig.IconSize` (default 64); `HexIconsConfig.WorldYOffset` (default 1.5) is the
+world-space `+Y` lift applied before projection so icons float above the hex (consumed by
+`HexIconsContainerPositionSystem`).
 
 **The module switched from a world-space panel to a Screen-Space overlay.** `HexIconsSpawnSystem` was
 rewritten: no `WorldDocumentRaycaster`, no instance transform, no root/map pixel sizing — it instantiates
 the screen-space prefab, makes the overlay raycast-transparent, and **eagerly creates one empty container
 entity per hex** (icons are filled in later by `HexIconsVisibilitySystem`). It still runs at priority 700
-(last in the `TerrainGenerationStep` pipeline). The
+in the `TerrainGenerationStep` pipeline (no longer last — `HexInfoPanelSpawnSystem` runs at 800). The
 `HexIconsConfig.WorldHeight` / `HexIconsConfig.PixelsPerUnit` fields are now **unused** (legacy from the
 world-space approach). Container positioning is now a **per-frame world→screen projection** in
 `HexIconsContainerPositionSystem` (Gameplay state), so containers track the camera as it moves — the

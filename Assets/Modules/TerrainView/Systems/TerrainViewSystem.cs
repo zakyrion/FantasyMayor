@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
@@ -31,8 +32,6 @@ namespace Modules.TerrainView.Systems
 
         private readonly IAddressable _addressable;
         private readonly EntitySet _hexSet;
-        private readonly EntitySet _textureSet;
-        private readonly EntitySet _vertexGridSet;
         private readonly IReadOnlyList<ViewSubSystem> _viewSubSystems;
         private readonly World _world;
 
@@ -51,8 +50,6 @@ namespace Modules.TerrainView.Systems
             _addressable = addressable;
             _terrainViewBox = Box<Views.TerrainView>.Empty();
             _hexSet = world.GetEntities().With<HexIdComponent>().AsSet();
-            _vertexGridSet = world.GetEntities().With<VertexGridComponent>().AsSet();
-            _textureSet = world.GetEntities().With<TerrainTextureComponent>().AsSet();
             _viewSubSystems = viewSubSystems
                 .OrderBy(s => s.Priority)
                 .ToArray();
@@ -70,8 +67,6 @@ namespace Modules.TerrainView.Systems
             DestroyTerrainViewEntity();
             DisposeTerrainViewBox();
             _hexSet.Dispose();
-            _vertexGridSet.Dispose();
-            _textureSet.Dispose();
         }
 
         /// <summary>
@@ -161,13 +156,10 @@ namespace Modules.TerrainView.Systems
 
             ApplyGeneratedTexture(terrainView);
 
-            if (_vertexGridSet.Count == 0)
-            {
-                Debug.LogError("[TerrainViewSystem] VertexGridComponent entity is missing.");
-                return;
-            }
+            if (!_world.Has<VertexGridComponent>())
+                throw new InvalidOperationException("TerrainViewSystem: VertexGridComponent world component is missing.");
 
-            var vertexGrid = _vertexGridSet.GetEntities()[0].Get<VertexGridComponent>().Grid;
+            var vertexGrid = _world.Get<VertexGridComponent>().Grid;
             terrainView.ApplyHeightsFromVertexGrid(vertexGrid);
 
             DestroyTerrainViewEntity();
@@ -177,20 +169,19 @@ namespace Modules.TerrainView.Systems
         }
 
         /// <summary>
-        ///     Reads the <see cref="TerrainTextureComponent" /> entity created by the texture subsystem
-        ///     and applies the texture to the terrain view material.
-        ///     The entity is intentionally kept alive: the same <see cref="UnityEngine.Texture2D" /> instance
+        ///     Reads the <see cref="TerrainTextureComponent" /> world component created by the texture
+        ///     subsystem and applies the texture to the terrain view material.
+        ///     The world component persists: the same <see cref="UnityEngine.Texture2D" /> instance
         ///     stays assigned to the material, so reactive runtime systems (e.g. forest ground painting)
         ///     can mutate its pixels and have the material reflect the change without re-applying.
         /// </summary>
         /// <param name="terrainView">Target terrain view that receives the texture.</param>
         private void ApplyGeneratedTexture(Views.TerrainView terrainView)
         {
-            if (_textureSet.Count == 0)
+            if (!_world.Has<TerrainTextureComponent>())
                 return;
 
-            var textureEntity = _textureSet.GetEntities()[0];
-            var texture = textureEntity.Get<TerrainTextureComponent>().Texture;
+            var texture = _world.Get<TerrainTextureComponent>().Texture;
             terrainView.ApplyTexture(texture);
         }
 

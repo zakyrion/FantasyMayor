@@ -65,6 +65,7 @@ MonoBehaviour:
     - Pathfinding
     - Pathfinding.Installer
     - Sirenix.OdinInspector.Modules.Unity.Addressables
+    - Sirenix.OdinInspector.Modules.UnityLocalization
     - Terrain.Generator
     - Terrain.View
     - UniTask

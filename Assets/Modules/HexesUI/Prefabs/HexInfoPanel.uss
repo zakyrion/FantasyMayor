@@ -1,0 +1,147 @@
+/* Hex info panel — tokens from GENERAL_UI_STYLE.md §4, USS-safe per §9 (no box-shadow/::before/blur).
+   The panel is VISIBLE by default so it previews in UI Builder; at runtime HexInfoPanelSpawnSystem hides it
+   until a hex is selected (HexInfoPanelView.Show/Hide toggle inline display). Icon slots use a placeholder
+   background so the panel reads correctly before terrain/resource sprites are authored.
+   Sizes are scaled +50% from the base design (width 320 → 480, fonts/padding/icons ×1.5). */
+
+.info-panel {
+    position: absolute;
+    right: 24px;
+    bottom: 24px;
+    width: 480px;
+    max-height: 70%;
+    background-color: rgba(24, 20, 16, 0.98);
+    border-left-width: 3px;
+    border-right-width: 3px;
+    border-top-width: 3px;
+    border-bottom-width: 3px;
+    /* Faux-gradient bevel: native per-side border colors (no USS gradient / no sprite). Brighter gold on the
+       top/left edges, dimmer on bottom/right — reads as a gold rim lit from the top-left. */
+    border-top-color: rgba(232, 184, 90, 0.65);
+    border-left-color: rgba(224, 178, 90, 0.45);
+    border-right-color: rgba(217, 164, 65, 0.22);
+    border-bottom-color: rgba(184, 140, 60, 0.20);
+    border-top-left-radius: 21px;
+    border-top-right-radius: 21px;
+    border-bottom-left-radius: 21px;
+    border-bottom-right-radius: 21px;
+    overflow: hidden;
+}
+
+/* Gold top-accent line (a real element — USS has no ::before). */
+.accent-line {
+    height: 5px;
+    background-color: rgb(217, 164, 65);
+}
+
+.header {
+    flex-direction: row;
+    align-items: center;
+    padding-top: 24px;
+    padding-bottom: 24px;
+    padding-left: 27px;
+    padding-right: 27px;
+}
+
+.terrain-icon {
+    width: 84px;
+    height: 84px;
+    margin-right: 21px;
+    flex-shrink: 0;
+    background-color: rgba(255, 255, 255, 0.08);
+    border-top-left-radius: 15px;
+    border-top-right-radius: 15px;
+    border-bottom-left-radius: 15px;
+    border-bottom-right-radius: 15px;
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgba(255, 255, 255, 0.10);
+    border-right-color: rgba(255, 255, 255, 0.10);
+    border-top-color: rgba(255, 255, 255, 0.10);
+    border-bottom-color: rgba(255, 255, 255, 0.10);
+}
+
+.header-titles {
+    flex-direction: column;
+}
+
+.title {
+    font-size: 30px;
+    color: rgb(241, 231, 214);
+    -unity-font-style: bold;
+}
+
+.coord {
+    font-size: 18px;
+    margin-top: 5px;
+    color: rgb(168, 156, 138);
+}
+
+.section {
+    padding-top: 21px;
+    padding-bottom: 21px;
+    padding-left: 27px;
+    padding-right: 27px;
+    border-top-width: 1px;
+    border-top-color: rgba(217, 164, 65, 0.14);
+}
+
+.section-label {
+    font-size: 17px;
+    letter-spacing: 2px;
+    margin-bottom: 15px;
+    color: rgb(212, 180, 120);
+}
+
+.chips {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.chip {
+    flex-direction: row;
+    align-items: center;
+    margin-right: 12px;
+    margin-bottom: 12px;
+    padding-top: 9px;
+    padding-bottom: 9px;
+    padding-left: 12px;
+    padding-right: 16px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgba(255, 255, 255, 0.07);
+    border-right-color: rgba(255, 255, 255, 0.07);
+    border-top-color: rgba(255, 255, 255, 0.07);
+    border-bottom-color: rgba(255, 255, 255, 0.07);
+    border-top-left-radius: 21px;
+    border-top-right-radius: 21px;
+    border-bottom-left-radius: 21px;
+    border-bottom-right-radius: 21px;
+}
+
+.chip-icon {
+    width: 33px;
+    height: 33px;
+    margin-right: 11px;
+    flex-shrink: 0;
+    background-color: rgba(255, 255, 255, 0.10);
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+}
+
+.chip-label {
+    font-size: 20px;
+    color: rgb(241, 231, 214);
+}
+
+.district-placeholder {
+    font-size: 20px;
+    color: rgb(168, 154, 134);
+}

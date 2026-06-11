@@ -68,7 +68,7 @@ namespace Modules.TerrainView.Systems
                 var vertexGrid = new VertexGrid(
                     terrainViewConfig.Value.CellSize,
                     terrainViewConfig.Value.Subdivisions);
-                World.CreateEntity().Set(new VertexGridComponent { Grid = vertexGrid });
+                World.Set(new VertexGridComponent { Grid = vertexGrid });
 
                 MarkAsLoaded();
             }
