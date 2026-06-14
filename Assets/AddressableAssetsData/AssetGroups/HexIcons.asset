@@ -16,7 +16,7 @@ MonoBehaviour:
   m_GUID: 5599e717cf47b4204a9d1ebcfcf2ce47
   m_SerializeEntries:
   - m_GUID: 318b1c1ac8a33453c9b74a21f6f5c3a6
-    m_Address: UI/HexInfoPanelView
+    m_Address: UI/MainUI
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
