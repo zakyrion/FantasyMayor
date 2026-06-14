@@ -145,3 +145,43 @@
     font-size: 20px;
     color: rgb(168, 154, 134);
 }
+
+/* End Turn button — the bottom-left hero CTA, the one filled-gold button (GENERAL_UI_STYLE.md §7 exception).
+   Glow/elevation come from a 9-slice sprite in-engine; USS has no box-shadow / gradient (§9). A lighter
+   border-top fakes a bevel. Lives in this shared document alongside the info-panel card. */
+.end-turn-button {
+    position: absolute;
+    left: 24px;
+    bottom: 24px;
+    min-width: 220px;
+    padding: 14px 22px;
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
+    font-size: 14px;
+    letter-spacing: 1.4px;
+    color: rgb(37, 28, 14);
+    background-color: rgb(217, 164, 65);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgb(185, 138, 53);
+    border-right-color: rgb(185, 138, 53);
+    border-bottom-color: rgb(185, 138, 53);
+    border-top-color: rgba(255, 255, 255, 0.4);
+    border-radius: 13px;
+}
+
+.end-turn-button:hover {
+    background-color: rgb(232, 192, 116);
+}
+
+/* Processing — non-interactive, dimmed gold; mirrors the engine re-entry guard. */
+.end-turn-button.is-processing {
+    color: rgb(224, 178, 90);
+    background-color: rgba(217, 164, 65, 0.14);
+    border-left-color: rgba(224, 178, 90, 0.32);
+    border-right-color: rgba(224, 178, 90, 0.32);
+    border-top-color: rgba(224, 178, 90, 0.32);
+    border-bottom-color: rgba(224, 178, 90, 0.32);
+}

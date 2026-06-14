@@ -1,9 +1,0 @@
-<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
-    <Style src="EndTurnView.uss" />
-    <!-- Root is full-screen and click-through (raycast-transparent); only the button blocks map clicks.
-         The label is authored uppercase here (USS has no text-transform) and is overwritten at runtime by
-         EndTurnView.SetProcessing. -->
-    <ui:VisualElement name="Root" class="raycast-transparent" style="flex-grow: 1;">
-        <ui:Button name="EndTurnButton" text="ЗАВЕРШИТИ ХІД" class="end-turn-button" />
-    </ui:VisualElement>
-</ui:UXML>

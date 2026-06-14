@@ -38,10 +38,12 @@ Switched by class/`display` (§10). Two states now, one future.
 
 ## Implementation (module `MainUI`, window `EndTurn/`)
 Mirrors the HexInfoPanel panel pattern; the click-emit mirrors the generator UI (`HexesUI`).
-- **`EndTurnView`** (`Views/`) — MonoBehaviour over the UIDocument. `[Inject] Construct(World)`. On click
-  (Ready only) creates an entity with `NextTurnEvent` + `EventTag` — the emitter `TURN.md` was missing.
-  `SetProcessing(bool)` relabels, toggles `is-processing`, and `SetEnabled`. Root marked
-  `raycast-transparent`; the button stays pickable.
+- **`EndTurnView`** (`Views/`) — MonoBehaviour over the **shared** Main UI `UIDocument` (the same document as
+  the hex info panel — see `MAIN_UI.md`). `[Inject] Construct(World)`. On click (Ready only) creates an entity
+  with `NextTurnEvent` + `EventTag` — the emitter `TURN.md` was missing. `Show/Hide` toggle the **button
+  element's** `display` (NOT the document root — that would blank the whole Main UI). `SetProcessing(bool)`
+  relabels, toggles `is-processing`, and `SetEnabled`. The shared `Root` is marked `raycast-transparent`; the
+  button stays pickable.
 - **`EndTurnViewComponent`** (`Components/`) — view singleton (mirrors `HexInfoPanelViewComponent`).
 - **`EndTurnSpawnSubSystem`** (`Systems/`, a `MainUISpawnSubSystem` run by `MainUISpawnSystem` at pipeline
   800, Priority 10) — resolves `EndTurnView` off the shared `UI/MainUI` instance (`GetComponentInChildren`),
@@ -61,8 +63,11 @@ is the authoritative backstop; the View's `_processing` self-guard is defence in
 - `Locked` state is future (needs phase/turn ownership).
 
 ## Current State
-- **Implemented:** `EndTurnView` + `EndTurnViewComponent` + `EndTurnSpawnSubSystem` + `EndTurnSystem` +
-  `EndTurnView.uxml`/`.uss`, registered in `UIInstaller`, wired into Gameplay by `Boot`.
-- **User-side (Unity):** `EndTurnView` (UIDocument + the uxml) is a **child of the single `UI/MainUI`
-  prefab** — there is no separate `UI/EndTurnView` address. The prefab is authored in Unity; not a code
-  artifact.
+- **Implemented:** `EndTurnView` + `EndTurnViewComponent` + `EndTurnSpawnSubSystem` + `EndTurnSystem`,
+  registered in `UIInstaller`, wired into Gameplay by `Boot`. The button **markup lives in the shared Main UI
+  document** — `EndTurnButton` is a sibling of the info-panel card in `Prefabs/HexInfoPanel.uxml`, styled by
+  `Prefabs/HexInfoPanel.uss`. There is no standalone `EndTurnView.uxml`/`.uss` (merged away).
+- **User-side (Unity):** `EndTurnView` is a MonoBehaviour on the single `UI/MainUI` prefab, referencing the
+  **same `UIDocument`** as `HexInfoPanelView`. There is no separate `UI/EndTurnView` address. The prefab is
+  authored in Unity; not a code artifact. (The orphan `EndTurnView.uxml.meta`/`.uss.meta` left by the merge
+  are removed in Unity.)

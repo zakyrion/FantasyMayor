@@ -50,17 +50,21 @@ namespace Modules.MainUI.EndTurn.Views
                 _button.clicked -= OnClicked;
         }
 
-        /// <summary>Reveals the button. It spawns hidden so it does not flash during map creation.</summary>
+        /// <summary>
+        ///     Reveals the button. It spawns hidden so it does not flash during map creation. Toggles the
+        ///     button element only — the UIDocument is shared with the hex info panel, so touching the document
+        ///     root here would blank the whole Main UI (mirrors HexInfoPanelView toggling its own card).
+        /// </summary>
         public void Show()
         {
             EnsureCached();
-            _document.rootVisualElement.style.display = DisplayStyle.Flex;
+            _button.style.display = DisplayStyle.Flex;
         }
 
         public void Hide()
         {
             EnsureCached();
-            _document.rootVisualElement.style.display = DisplayStyle.None;
+            _button.style.display = DisplayStyle.None;
         }
 
         /// <summary>

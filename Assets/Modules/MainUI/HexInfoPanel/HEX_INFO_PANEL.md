@@ -58,6 +58,10 @@ One system per block (per `GENERAL_UI_STYLE` Panel Construction; roles per `ARCH
 ## Implementation Notes
 - **One shared instance** (selection is singular), not a panel per hex. World-space per-hex badges are a
   separate concern (HexIcons).
+- **Shared Main UI document.** `Prefabs/HexInfoPanel.uxml` is the single Main UI `UIDocument` — besides the
+  info-panel card it also hosts the **End Turn button** (`EndTurnButton`) as a sibling inside the same `Root`
+  (see `MAIN_UI.md` / `EndTurn/END_TURN.md`). `HexInfoPanelView.Show/Hide` therefore toggle the **card element
+  only** (`_panel`), never the document root — that would also blank the button.
 - **Picking:** the full-screen layers (document root + `Root`) are click-through so empty-area clicks reach
   the map, but the **panel card blocks** clicks — clicking it does not select/deselect a hex behind it.
   Implemented in `HexInfoPanelView.ConfigurePicking` via `EnablePicking(false)` on those two ancestors only
@@ -69,9 +73,10 @@ One system per block (per `GENERAL_UI_STYLE` Panel Construction; roles per `ARCH
   see `GENERAL_UI_STYLE.md` Panel Construction + USS Mapping.
 
 ## Current State
-**Implemented and wired** — code (UXML/USS + systems in `HexesUI`) AND Unity-side authoring:
-`Prefabs/HexInfoPanelView.prefab` and the `HexTerrainIconConfig` asset
-(`Assets/Addressables/Configs/HexIconsConfigs/`) exist and are addressable. Header + Resources bind
+**Implemented and wired** — code (UXML/USS + systems in `MainUI`) AND Unity-side authoring:
+the single `UI/MainUI` prefab (`Prefabs/MainUI.prefab`, document `Prefabs/HexInfoPanel.uxml`) and the
+`HexTerrainIconConfig` asset (`Assets/Addressables/Configs/HexIconsConfigs/`) exist and are addressable.
+Header + Resources bind
 to existing components (`HexCore` terrain tags, `HexResources`); the District block is SCAFFOLD,
 hidden by `HexInfoPanelDistrictPlaceholderSystem`, pending gameplay components. The systems are
 wired into `Boot` (spawn in the pipeline, the rest in `Gameplay`) — see the Block → System map above.

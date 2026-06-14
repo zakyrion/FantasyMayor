@@ -15,11 +15,15 @@ this doc, the asmdef) stay at the root. Windows:
 
 ## UI root and the single Main UI prefab
 The shared full-screen UI root is module **`MainCanvas`** (`IMainCanvasProvider.RootGO`). Under it, the whole
-Main UI is **one addressable prefab `UI/MainUI`** that carries every window's view (each view is a MonoBehaviour
-on a child GameObject with its own UIDocument). `MainUISpawnSystem` instantiates that single prefab; the spawn
-subsystems do NOT instantiate — each pulls its own view off the instance via `GetComponentInChildren`. One
-addressable handle (owned by the orchestrator) covers the entire Main UI. Adding a window = add its view to the
-`UI/MainUI` prefab + a `MainUISpawnSubSystem` that resolves it.
+Main UI is **one addressable prefab `UI/MainUI`** with **one `UIDocument`** whose UXML tree carries every
+window's markup (the hex info-panel card and the End Turn button are siblings inside one shared `Root`). Each
+window's view is a MonoBehaviour that references **that same `UIDocument`** and queries only its own elements
+(`HexInfoPanelView` → the panel card; `EndTurnView` → `EndTurnButton`); a view's `Show/Hide` toggles **its own
+element's `display`, never the document root** — toggling the root would blank the whole Main UI.
+`MainUISpawnSystem` instantiates that single prefab; the spawn subsystems do NOT instantiate — each pulls its
+own view component off the instance via `GetComponentInChildren`. One addressable handle (owned by the
+orchestrator) covers the entire Main UI. Adding a window = add its markup to the `UI/MainUI` document + its view
+MonoBehaviour + a `MainUISpawnSubSystem` that resolves it.
 
 ## Trigger
 - `HexInfoPanelSystem` is a **Per-frame System** (Gameplay, anchored on the `HexInfoPanelViewComponent`
