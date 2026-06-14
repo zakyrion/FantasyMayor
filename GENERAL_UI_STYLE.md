@@ -53,11 +53,32 @@ How to use it:
   status). Do not reuse a role color for an unrelated accent, and do not recolor the same role per panel.
 
 ### Reference touchstones (what we borrow)
-- **Frostpunk 2** — district panels with prominent **workforce** and clean sectioned hierarchy. We borrow
-  the workforce-front-and-center idea and strong sectioning. We **drop** its cold industrial palette.
-- **Civilization 6** — tile/hex info with **yields shown as icon + number**, terrain + feature + district
-  stacked. We borrow the compact icon+value yield language.
-- **Endless Legend** — ornate fantasy framing and per-tile breakdowns. We borrow the warm fantasy feel.
+
+**Primary lens — Old World.** The closest structural twin to FantasyMayor's core loop, so it is the
+DEFAULT reference for interaction and information architecture. Two of its signature systems ARE our core:
+- its **Orders** economy (a small per-turn pool spent on actions) ≈ our **Action Points** scarcity;
+- its **event / character cards** (decisions presented as choice cards, built around characters and their
+  relationships) ≈ the **Mayor's agency + Important Citizens**.
+
+It is also a clean, modern, warm turn-based UI — a realistic visual target. **When an interaction is
+unspecified, resolve it the Old World way:** turn-based, card-driven, character-centric, readable.
+
+**Subsystem touchstones (borrow the named idea only):**
+- **Shadow Empire** — decisions-as-cards and personality-driven AI leaders. Borrow the model for the
+  «Дії Мера» decision deck and Important-Citizen personalities. **Drop** its dense, hard-to-read UI.
+- **Frostpunk 2** — faction pressure, district panels with prominent **workforce**, council-style
+  decisions, strong sectioning. Borrow for the political layer and the district panel. **Drop** its cold
+  industrial palette.
+- **Civilization 6** — tile/hex **yields shown as icon + number**, terrain + feature + district stacked.
+  Borrow the compact icon+value yield language.
+- **Endless Legend** — ornate fantasy framing and per-tile breakdowns. Borrow the warm fantasy feel.
+- **Mind Over Magic / Farthest Frontier** — a compact resource strip with hover **drill-down**, and the
+  principle that not everything lives on the permanent HUD — secondary state opens **on demand**. Borrow
+  this for the top resource bar + the left window-opener menu.
+
+**Tone and scale are OURS, not borrowed.** None of these are cozy — FP2 is cold-industrial; Old World and
+Shadow Empire are empire-scale. We borrow their SYSTEMS and information architecture, then apply our own
+warm/gold **cozy** skin (§4) at the intimate scale of a single city. Never import a reference's mood.
 
 ---
 
@@ -220,6 +241,26 @@ Each entry: **use for** / **structure** / **anti-pattern**. Build new panels fro
 - All player agency (build, negotiate, invest, intervene) is delivered through **Mayor cards**, not panels.
 - Consequence: a pill/badge on a panel must never be clickable. If a design pressures you to add an action to
   a panel, that is a signal the action belongs on a card.
+
+### Agency window archetypes (Old World lens)
+
+Player agency is delivered through windows opened on demand (from the left window-opener menu), in **two
+standardized compositions**. Both obey the Old World rule: **every choice shows its consequence (gain/loss
+icons) and its AP cost** — the player never commits blind.
+
+- **Action deck — master–detail.** The Mayor's free actions for the turn. A scrollable list of available
+  actions (icon + name + AP cost) on the left; the selected action's detail on the right (title, what it
+  does, effects, requirements, a confirm button carrying the AP cost). Use for: free choice under the AP
+  budget (the «Дії Мера» window). **Anti-pattern:** a card fan/hand — rejected; it does not scale and reads
+  as a toy.
+- **Event decision card — focused.** A single forced decision: a portrait/illustration, the situation
+  narrative, then a vertical list of choices, each with its consequences + AP cost. Use for: system events,
+  requests, end-of-turn consequences — one at a time. **Anti-pattern:** burying a forced decision inside a
+  list where it can be skipped.
+
+**Negotiation is NOT one of these.** Negotiating with an Important Citizen is a separate, more complex
+mechanic with its **own bespoke window** — design it on its own terms when that mechanic lands. Do not force
+it into the action-deck or event-card shell.
 
 ---
 
