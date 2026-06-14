@@ -44,3 +44,7 @@ Config Loader (terrain icon + name sprites for the panel header).
 - `HEX_INFO_PANEL.md` — design spec + current implementation state of the selected-hex info panel:
   blocks, progressive-disclosure states (empty / resource / district), ECS bindings, block→system
   map. Read it before changing that panel.
+- `END_TURN.md` — design spec for the End Turn button + turn indicator (Gameplay HUD, bottom-right):
+  the state-vs-agency exception, Ready/Processing states, binding to Turn's `NextTurnEvent` /
+  `TurnProcessorComponent`. DESIGN ONLY — not implemented; owning module is an OPEN decision (this is
+  a candidate home, not yet committed).

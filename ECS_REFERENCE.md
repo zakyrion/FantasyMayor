@@ -175,7 +175,7 @@ World components are NOT entities: stored via `world.Set<T>()`, read via `world.
 with `world.Has<T>()`), invisible to `With<T>` / `WhenAdded<T>` / `WhenChanged<T>`. Contract and
 decision rule: `ARCHITECTURE.md` → "State Storage Taxonomy".
 
-### Runtime world components (5)
+### Runtime world components (6)
 
 ```
 WORLD: CameraComponent  (module Cameras)
@@ -212,6 +212,15 @@ WORLD: HexIconsVisibilityComponent  (module HexIcons)
   READS: HexIconsVisibilitySystem (on a HexIconsVisibilityChangedEvent)
   Note: mutable bool "are per-hex icons shown" — the single source of truth. The paired event is a
         payload-less pulse; the state lives HERE, not in the event.
+
+WORLD: TurnProcessorComponent  (module Turn)
+  Fields: Status (Running | Completed)
+  WRITES: TurnProcessorSystem (Set Running on a NextTurnEvent pulse; the background run Sets Completed
+          AFTER SwitchToMainThread — pool computes, main thread writes)
+  READS: TurnProcessorSystem (polls Status each frame; removes the component once Completed)
+  Note: present ONLY while a turn is processed — its PRESENCE is the "turn in progress" gate, removed
+        on completion. Doubles as the re-entry guard (further NextTurnEvent pulses ignored while set).
+        SKELETON — zero phases today, so a started turn completes immediately.
 ```
 
 ### Config world components (20)
@@ -319,6 +328,13 @@ EVENT: ForestHexAppearedEvent / ForestHexRemovedEvent
   Lifetime: 1 frame
   Note: DORMANT scaffold. The startup forest is built one-shot by ForestResourceViewSubSystem —
         these pulses cover runtime changes only.
+
+EVENT: NextTurnEvent
+  Producer: NO emitter yet (future gameplay: end-turn button / AI turn advance)
+  Consumer: TurnProcessorSystem — starts a turn: Set TurnProcessorComponent, run phases off-thread
+  Lifetime: 1 frame
+  Note: DORMANT scaffold. Consumed by a PER-FRAME poller (queries With<NextTurnEvent>), NOT a WhenAdded
+        reactive set. Ignored while a turn is already in progress (re-entry guard on TurnProcessorComponent).
 
 EVENT: EventTag
   Producer: any system emitting an event (Set on the event entity alongside the event component)

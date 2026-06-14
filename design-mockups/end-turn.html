@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FantasyMayor — End Turn button</title>
+<style>
+  :root{
+    --panel-bg: rgba(30, 25, 20, 0.93);
+    --panel-border: rgba(217, 164, 65, 0.28);
+    --txt: #f1e7d6;
+    --txt-dim: #a89a86;
+    --txt-faint: #7d7264;
+    --gold: #e0b25a;
+    --gold-soft: #d9a441;
+    --divider: rgba(217, 164, 65, 0.14);
+    --chip-bg: rgba(255,255,255,0.05);
+    --forest:#6fa05b; --clay:#c2784f;
+    --serif: Georgia, 'Times New Roman', serif;
+    --sans: -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:var(--sans); min-height:100vh; color:var(--txt);
+    background:
+      radial-gradient(circle at 30% 20%, #3a4a3a 0%, transparent 45%),
+      radial-gradient(circle at 75% 70%, #4a4030 0%, transparent 50%),
+      linear-gradient(160deg, #2b3528 0%, #20271d 60%, #1a1f16 100%);
+    background-attachment:fixed; padding:40px 32px 80px;
+  }
+  .page{position:relative; z-index:1; max-width:1100px; margin:0 auto;}
+  .page h1{font-family:var(--serif); font-weight:600; font-size:22px; color:var(--gold);
+    letter-spacing:.5px; margin-bottom:4px;}
+  .page .sub{color:var(--txt-dim); font-size:13px; margin-bottom:28px; max-width:760px; line-height:1.6;}
+
+  /* ---------- GAME SCREEN COMPOSITION ---------- */
+  .screen{position:relative; height:520px; border-radius:16px; overflow:hidden; margin-bottom:34px;
+    border:1px solid rgba(0,0,0,0.5);
+    background:
+      radial-gradient(circle at 26% 22%, #3a4a3a 0%, transparent 45%),
+      radial-gradient(circle at 80% 76%, #4a4030 0%, transparent 50%),
+      linear-gradient(160deg, #2b3528 0%, #20271d 60%, #1a1f16 100%);}
+  .screen .hexgrid{position:absolute; inset:0; opacity:.05; background-image:
+    linear-gradient(60deg, transparent 49.5%, #fff 49.5%, #fff 50.5%, transparent 50.5%),
+    linear-gradient(-60deg, transparent 49.5%, #fff 49.5%, #fff 50.5%, transparent 50.5%);
+    background-size:60px 104px;}
+  /* reserved card-hand zone (future) */
+  .cards{position:absolute; left:50%; bottom:22px; transform:translateX(-50%);
+    display:flex; gap:11px; opacity:.5;}
+  .cards .gc{width:80px; height:112px; border:1px dashed rgba(217,164,65,0.32);
+    border-radius:11px; background:rgba(255,255,255,0.02);}
+  .cards .cap{position:absolute; left:50%; bottom:-20px; transform:translateX(-50%); white-space:nowrap;
+    font-size:10px; letter-spacing:1.3px; text-transform:uppercase; color:var(--txt-faint);}
+
+  /* bottom-right HUD column */
+  .br{position:absolute; right:24px; bottom:24px; width:320px; display:flex; flex-direction:column; gap:14px;}
+
+  /* ---------- HEX INFO PANEL (state 2) ---------- */
+  .panel{background:var(--panel-bg); border:1px solid var(--panel-border); border-radius:14px;
+    overflow:hidden; backdrop-filter:blur(6px);
+    box-shadow:0 10px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.04);}
+  .panel::before{content:""; display:block; height:3px;
+    background:linear-gradient(90deg, transparent, var(--gold-soft), transparent);}
+  .hd{display:flex; gap:14px; align-items:center; padding:16px 18px;}
+  .hd .terrain-icon{width:54px; height:54px; border-radius:10px; flex:none; display:flex;
+    align-items:center; justify-content:center; font-size:28px;
+    background:linear-gradient(150deg, rgba(255,255,255,0.10), rgba(255,255,255,0.02));
+    border:1px solid rgba(255,255,255,0.10);}
+  .hd .ttl{font-family:var(--serif); font-size:20px; font-weight:600; line-height:1.15;}
+  .hd .coord{font-size:12px; color:var(--txt-faint); margin-top:3px; letter-spacing:.5px;}
+  .divider{height:1px; background:var(--divider); margin:0 18px;}
+  .sec{padding:14px 18px;}
+  .sec .sec-ttl{font-size:11px; letter-spacing:1.4px; text-transform:uppercase;
+    color:var(--txt-faint); margin-bottom:10px;}
+  .chips{display:flex; gap:8px; flex-wrap:wrap;}
+  .chip{display:flex; align-items:center; gap:7px; padding:6px 11px 6px 8px; background:var(--chip-bg);
+    border:1px solid rgba(255,255,255,0.07); border-radius:20px; font-size:13px;}
+  .chip .dot{width:22px; height:22px; border-radius:50%; display:flex; align-items:center;
+    justify-content:center; font-size:13px;}
+  .chip.forest .dot{background:rgba(111,160,91,0.22);}
+  .chip.clay .dot{background:rgba(194,120,79,0.22);}
+
+  /* ---------- TURN INDICATOR ---------- */
+  .turncap{display:flex; align-items:center; justify-content:space-between; padding:0 4px;}
+  .turncap .t{font-family:var(--serif); font-size:15px; color:var(--txt);}
+  .turncap .ph{font-size:10px; letter-spacing:1.3px; text-transform:uppercase; color:var(--txt-faint);}
+
+  /* ---------- END TURN BUTTON ---------- */
+  .endturn{display:flex; align-items:center; justify-content:center; gap:10px; width:100%;
+    padding:16px 22px; border-radius:13px; font-size:14px; letter-spacing:1.5px; text-transform:uppercase;
+    font-weight:600; cursor:pointer; border:1px solid #b98a35; color:#251c0e;
+    background:linear-gradient(180deg, #e8c074, var(--gold-soft));
+    border-top-color:rgba(255,255,255,0.4);
+    box-shadow:0 8px 22px rgba(0,0,0,0.42), 0 0 22px rgba(224,178,90,0.25);}
+  .endturn .gl{font-size:18px;}
+  .endturn.proc{cursor:default; color:var(--gold); background:rgba(217,164,65,0.14);
+    border:1px solid rgba(224,178,90,0.32); box-shadow:0 8px 22px rgba(0,0,0,0.35);}
+  .endturn.proc .spin{display:inline-block; animation:spin 1s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* ---------- STATES STRIP ---------- */
+  .states{display:flex; gap:18px; flex-wrap:wrap;}
+  .states .col{flex:1; min-width:240px;}
+  .states .lbl{font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--txt-faint);
+    margin:0 0 9px 2px;}
+
+  .legend{margin-top:34px; font-size:12px; color:var(--txt-dim); line-height:1.8;
+    border-top:1px solid var(--divider); padding-top:18px; max-width:880px;}
+  .legend b{color:var(--gold-soft); font-weight:600;}
+  .legend code{font-family:ui-monospace, monospace; color:var(--txt); font-size:11px;}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>FantasyMayor — Кнопка завершення ходу</h1>
+  <div class="sub">Глобальний контроль ігрового потоку (коміт ходу) + індикатор «Хід N». Свідомий виняток із «no buttons on panels»: це не дія над сутністю і не картка Мера, а єдиний глобальний контроль. Іконки — плейсхолдери (emoji), у грі це спрайти.</div>
+
+  <!-- ===== COMPOSITION ===== -->
+  <div class="screen">
+    <div class="hexgrid"></div>
+
+    <div class="cards">
+      <div class="gc"></div><div class="gc"></div><div class="gc"></div>
+      <span class="cap">Картки Мера · фаза гравця (майбутнє)</span>
+    </div>
+
+    <div class="br">
+      <div class="panel">
+        <div class="hd">
+          <div class="terrain-icon">⛰️</div>
+          <div>
+            <div class="ttl">Лісисті пагорби</div>
+            <div class="coord">Hex · 3, 0</div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="sec">
+          <div class="sec-ttl">Ресурси гексу</div>
+          <div class="chips">
+            <div class="chip forest"><span class="dot">🌲</span> Ліс</div>
+            <div class="chip clay"><span class="dot">🟤</span> Глина</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="turncap">
+        <span class="t">Хід 4</span>
+        <span class="ph">Фаза мера</span>
+      </div>
+
+      <button class="endturn">Завершити хід <span class="gl">▸</span></button>
+    </div>
+  </div>
+
+  <!-- ===== BUTTON STATES ===== -->
+  <div class="states">
+    <div class="col">
+      <div class="lbl">Готова · хід гравця</div>
+      <button class="endturn">Завершити хід <span class="gl">▸</span></button>
+    </div>
+    <div class="col">
+      <div class="lbl">Заблокована · обрахунок (TurnProcessorComponent)</div>
+      <button class="endturn proc"><span class="spin">⏳</span> Обрахунок ходу…</button>
+    </div>
+  </div>
+
+  <div class="legend">
+    <b>Чому це кнопка:</b> панелі лише показують стан, агентність — у картках Мера. Завершення ходу — окремий глобальний контроль, тому не живе на інфопанелі гекса й не є карткою.<br>
+    <b>Композиція:</b> правий стовпчик, прив'язка до низу. Кнопка тримає фіксований кут (м'язова пам'ять), інфопанель виростає над нею лише на вибір гекса. Між ними — індикатор «Хід N». Центр-низ зарезервовано під майбутню руку карток.<br>
+    <b>Прив'язка до двигуна (модуль Turn):</b> клік у стані Ready підіймає <code>NextTurnEvent</code> (відкладений емітер). Стан «Обрахунок» = присутній <code>TurnProcessorComponent</code> → кнопка заблокована (re-entry guard). Зняли компонент → знову Ready.<br>
+    <b>USS-реалії:</b> у грі немає <code>box-shadow</code>/градієнт-border — glow і тінь робимо 9-slice спрайтом; UPPERCASE — рядком у даних. Дизайн-спец: <code>Assets/Modules/HexesUI/END_TURN.md</code>.
+  </div>
+</div>
+</body>
+</html>

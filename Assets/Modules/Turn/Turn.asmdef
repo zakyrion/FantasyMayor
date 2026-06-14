@@ -1,18 +1,11 @@
 {
-    "name": "Boot.Implementation",
+    "name": "Turn",
     "rootNamespace": "",
     "references": [
-        "VContainer",
-        "Boot.Core",
+        "Core",
         "DefaultECS.Extensions",
-        "UniTask",
-        "Terrain.Generator",
-        "Hexes.UI",
-        "UserInput",
-        "Terrain.View",
-        "HexResourcesView",
-        "HexIcons",
-        "Turn"
+        "VContainer",
+        "UniTask"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

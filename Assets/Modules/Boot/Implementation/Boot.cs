@@ -9,6 +9,7 @@ using Modules.HexIcons.Systems;
 using Modules.HexResourcesView.Systems;
 using Modules.HexesUI.Systems;
 using Modules.TerrainView.Systems;
+using Modules.Turn.Systems;
 using Modules.UserInput.Systems;
 using UnityEngine;
 using VContainer;
@@ -79,6 +80,7 @@ namespace Modules.Boot.Implementation
             HexInfoPanelHeaderSystem hexInfoPanelHeader,
             HexInfoPanelResourcesSystem hexInfoPanelResources,
             HexInfoPanelDistrictPlaceholderSystem hexInfoPanelDistrict,
+            TurnProcessorSystem turnProcessor,
             EventCleanupSystem eventCleanup,
             CameraMovementSystem cameraMovement,
             World world)
@@ -97,7 +99,7 @@ namespace Modules.Boot.Implementation
                 {
                     hexSelection, hexSelectionView, forestSpawn, forestDespawn, hexIconsVisibility,
                     hexInfoPanel, hexInfoPanelHeader, hexInfoPanelResources, hexInfoPanelDistrict,
-                    eventCleanup
+                    turnProcessor, eventCleanup
                 },
                 new ILateUpdatedSystem[] { cameraMovement, hexIconsContainerPosition });
 

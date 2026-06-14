@@ -12,6 +12,7 @@ using Modules.MainCanvas.Implementation;
 using Modules.Cameras.Components;
 using Modules.Pathfinding.Installer;
 using Modules.TerrainGenerator.Installer;
+using Modules.Turn.Installer;
 using Modules.UserInput.Components;
 using Modules.UserInput.Systems;
 using UnityEngine;
@@ -73,6 +74,7 @@ namespace Installers.World
             new HexResourcesInstaller().Install(builder);
             new HexResourcesViewInstaller().Install(builder);
             new HexIconsInstaller().Install(builder);
+            new TurnInstaller().Install(builder);
         }
     }
 }

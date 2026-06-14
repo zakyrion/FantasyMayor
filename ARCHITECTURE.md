@@ -91,6 +91,7 @@ FantasyMayor/
 | `UserInput` | `UserInput` | Camera and player input ECS bridge plus camera movement config flow |
 | `HexResources` | `HexResources` | Resource components, generation systems, config flow for Forest, Clay, Fish |
 | `HexResourcesView` | `HexResourcesView` | Resource visualization: one-shot startup build per resource (Forest planted + ground painted; Clay depression + gradient; Fish scaffold) plus dormant reactive runtime upkeep for forest (`ForestSpawnSystem`/`ForestDespawnSystem`) |
+| `Turn` | `Turn` | Turn-phase orchestration engine: on a turn pulse runs ordered phase subsystems off the main thread and signals "turn in progress" via a world component. SCAFFOLD — no phases yet |
 
 ## Module Layout Rules
 
@@ -201,6 +202,13 @@ Role invariants (policy — hold regardless of the template you follow):
   intent names (`ForestSpawnSystem`, `HexIconsVisibilitySystem`) — there is no mandated
   `…ReactiveSystem` suffix.
 
+**Turn pipeline (module `Turn`) — same roles, different scope.** The Orchestrator/SubSystem roles are
+reused for turn processing, but turn-scoped (re-run every turn on a `NextTurnEvent` pulse) and executed
+OFF the main thread (`UniTask.RunOnThreadPool`), unlike the one-shot, main-thread `MapCreation`
+pipeline. The phase base is `TurnPhaseSubSystem`; the launcher is the per-frame `TurnProcessorSystem`
+(it polls the in-flight run each frame, so it is justified as a Per-frame System, not reactive). Every
+world write stays on the main thread; the pool only computes. SCAFFOLD — zero phases today.
+
 ## State Storage Taxonomy
 
 Four storages. Pick by answering: how many instances, and does anything need to FIND it via an
@@ -302,6 +310,18 @@ Escape hatches, in order of preference:
    cache resolved in `PreUpdate`): it is frame-stamped and fails loud on a stale read.
 3. `[StateAllowed("reason")]` (`Core`) on the field — a deliberate, reviewed exception that
    `/arch-check` skips. Always pass the reason.
+
+**The default home for "system state" is a component — reach for 2–3 only after ruling out 1.**
+Most things that feel like per-system state are not: a status flag, an in-flight marker, a progress
+counter, an "is this running" / "did this complete" bit, a handle to the thing currently being
+processed — these are domain state that belongs ON AN ENTITY (a component) or in a WORLD component,
+and moving them there breaks nothing. The system then just reads/writes that component and stays
+stateless. A component is not limited to "intrinsic data" — a transient, single-instance lifecycle
+flag is a perfectly valid world component. Do not assume a value must live in the system just because
+only that system touches it today; the moment a value lives on a component, any future system can
+observe it without auditing the writer. Worked example: `TurnProcessorComponent` (module `Turn`) is a
+world component that holds the in-flight turn's status and doubles as the "turn in progress" signal;
+the launching `TurnProcessorSystem` keeps zero mutable fields.
 
 **Ban 2 — no `System.Collections.Generic` in systems.** Use `Unity.Collections`
 (`NativeList`, `NativeHashSet`, `NativeParallelHashMap`, …) and dispose explicitly.
@@ -470,4 +490,5 @@ Each module has an MD file in its root folder. Read it before touching any code 
 | `Pathfinding` | `Assets/Modules/Pathfinding/PATHFINDING.md` |
 | `TerrainGenerator` | `Assets/Modules/TerrainGenerator/TERRAIN_GENERATOR.md` |
 | `TerrainView` | `Assets/Modules/TerrainView/TERRAIN_VIEW.md` |
+| `Turn` | `Assets/Modules/Turn/TURN.md` |
 | `UserInput` | `Assets/Modules/UserInput/USER_INPUT.md` |

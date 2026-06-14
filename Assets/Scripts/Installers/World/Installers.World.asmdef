@@ -18,7 +18,8 @@
         "Terrain.View",
         "HexResources",
         "HexResourcesView",
-        "HexIcons"
+        "HexIcons",
+        "Turn"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
