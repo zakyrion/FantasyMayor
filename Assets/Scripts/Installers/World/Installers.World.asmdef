@@ -10,7 +10,7 @@
         "Unity.InputSystem",
         "Boot.Core",
         "Boot.Implementation",
-        "Hexes.UI",
+        "MainUI",
         "MainCanvas.Core",
         "MainCanvas.Implementation",
         "Pathfinding.Installer",

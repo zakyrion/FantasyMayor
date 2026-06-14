@@ -7,7 +7,7 @@
         "DefaultECS.Extensions",
         "UniTask",
         "Terrain.Generator",
-        "Hexes.UI",
+        "MainUI",
         "UserInput",
         "Terrain.View",
         "HexResourcesView",

@@ -28,8 +28,9 @@ runtime order is NOT the presentation order in `GAMEPLAY_FOUNDATION.md`. By asce
 
 ## Trigger
 `TurnProcessorSystem` consumes the one-frame `NextTurnEvent`. It is NOT a `WhenAdded`/reactive
-set — it queries `With<NextTurnEvent>` from a per-frame poller (see Design Decisions). No emitter
-raises `NextTurnEvent` yet. Full producer→consumer flow: `ECS_REFERENCE.md`.
+set — it queries `With<NextTurnEvent>` from a per-frame poller (see Design Decisions). The emitter is
+the **MainUI End Turn button** (`EndTurnView`, module `MainUI`): clicking it in the Mayor Phase creates
+a `NextTurnEvent` + `EventTag` entity. Full producer→consumer flow: `ECS_REFERENCE.md`.
 
 ## Public Contract & Gotchas
 - **Thread boundary (hard invariant).** The phase run executes on the thread pool
@@ -66,7 +67,8 @@ raises `NextTurnEvent` yet. Full producer→consumer flow: `ECS_REFERENCE.md`.
   an empty pool body, and completes immediately.
 - Two `Debug.Log` lines (turn started / completed) exist ONLY to make the empty skeleton observable in
   Play mode — remove when real phases land.
-- No emitter raises `NextTurnEvent` yet (gameplay-owned, out of scope).
+- The `NextTurnEvent` emitter now exists: the MainUI End Turn button (`EndTurnView`). The button also
+  reflects pipeline state — it shows "Processing" while `TurnProcessorComponent` is present.
 - **Migration:** when the first `PhaseNSubSystem` lands, remove the empty-list `RegisterInstance` in
   `TurnInstaller` and register each phase `.As<PhaseN, TurnPhaseSubSystem>()`, exactly as
   `HexResourcesViewInstaller` does for view subsystems.

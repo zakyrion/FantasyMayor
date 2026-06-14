@@ -7,7 +7,9 @@ using Modules.Boot.Core;
 using Modules.Boot.Implementation.States;
 using Modules.HexIcons.Systems;
 using Modules.HexResourcesView.Systems;
-using Modules.HexesUI.Systems;
+using Modules.MainUI.EndTurn.Systems;
+using Modules.MainUI.GeneratorMenu.Systems;
+using Modules.MainUI.HexInfoPanel.Systems;
 using Modules.TerrainView.Systems;
 using Modules.Turn.Systems;
 using Modules.UserInput.Systems;
@@ -80,6 +82,7 @@ namespace Modules.Boot.Implementation
             HexInfoPanelHeaderSystem hexInfoPanelHeader,
             HexInfoPanelResourcesSystem hexInfoPanelResources,
             HexInfoPanelDistrictPlaceholderSystem hexInfoPanelDistrict,
+            EndTurnSystem endTurn,
             TurnProcessorSystem turnProcessor,
             EventCleanupSystem eventCleanup,
             CameraMovementSystem cameraMovement,
@@ -99,7 +102,7 @@ namespace Modules.Boot.Implementation
                 {
                     hexSelection, hexSelectionView, forestSpawn, forestDespawn, hexIconsVisibility,
                     hexInfoPanel, hexInfoPanelHeader, hexInfoPanelResources, hexInfoPanelDistrict,
-                    turnProcessor, eventCleanup
+                    endTurn, turnProcessor, eventCleanup
                 },
                 new ILateUpdatedSystem[] { cameraMovement, hexIconsContainerPosition });
 

@@ -239,7 +239,7 @@ Pattern rules:
 CONDITION:
 - One-shot world/view construction during map creation, ordered against other stages.
 - Reference implementations: `TerrainGenerationSystem`, `HexIconsSpawnSystem`,
-  `HexInfoPanelSpawnSystem`.
+  `MainUISpawnSystem` (an orchestrator stage that fans out into `MainUISpawnSubSystem`s).
 
 SKELETON:
 

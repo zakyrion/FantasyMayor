@@ -158,13 +158,21 @@ ENTITY: HexSelectionViewSingleton  (singleton)
 
 ENTITY: HexInfoPanelView  (singleton)
   Components: HexInfoPanelViewComponent (View → the HexInfoPanelView MonoBehaviour)
-  WRITES: HexInfoPanelSpawnSystem (pipeline 800 — loads the panel under the main canvas, owns the
-          addressable handle; idempotent after first load)
+  WRITES: HexInfoPanelSpawnSubSystem (run by MainUISpawnSystem at pipeline 800 — GetComponentInChildren off
+          the shared UI/MainUI instance; the orchestrator owns the single addressable handle)
   READS: HexInfoPanelSystem (base/anchor set — per-frame selection watcher),
          HexInfoPanelHeaderSystem / HexInfoPanelResourcesSystem /
          HexInfoPanelDistrictPlaceholderSystem (EntitySet — resolve the view on each refresh pulse)
   Note: the panel starts hidden (USS default); HexInfoPanelSystem shows it on selection and raises
         the one-frame HexInfoPanelRefreshEvent that the per-block systems consume.
+
+ENTITY: EndTurnView  (singleton)
+  Components: EndTurnViewComponent (View → the EndTurnView MonoBehaviour)
+  WRITES: EndTurnSpawnSubSystem (run by MainUISpawnSystem at pipeline 800 — GetComponentInChildren off the
+          shared UI/MainUI instance; the orchestrator owns the single addressable handle)
+  READS: EndTurnSystem (base/anchor set — per-frame Gameplay state mirror)
+  Note: the button starts hidden; EndTurnSystem reveals it in Gameplay and reflects TurnProcessorComponent
+        presence as the Processing look. The click→NextTurnEvent emit lives in EndTurnView (module MainUI).
 ```
 
 ---
@@ -330,11 +338,12 @@ EVENT: ForestHexAppearedEvent / ForestHexRemovedEvent
         these pulses cover runtime changes only.
 
 EVENT: NextTurnEvent
-  Producer: NO emitter yet (future gameplay: end-turn button / AI turn advance)
+  Producer: EndTurnView (module MainUI) — the End Turn button creates NextTurnEvent + EventTag on click
+            (future: AI turn advance may also emit)
   Consumer: TurnProcessorSystem — starts a turn: Set TurnProcessorComponent, run phases off-thread
   Lifetime: 1 frame
-  Note: DORMANT scaffold. Consumed by a PER-FRAME poller (queries With<NextTurnEvent>), NOT a WhenAdded
-        reactive set. Ignored while a turn is already in progress (re-entry guard on TurnProcessorComponent).
+  Note: Consumed by a PER-FRAME poller (queries With<NextTurnEvent>), NOT a WhenAdded reactive set.
+        Ignored while a turn is already in progress (re-entry guard on TurnProcessorComponent).
 
 EVENT: EventTag
   Producer: any system emitting an event (Set on the event entity alongside the event component)
@@ -394,7 +403,8 @@ stages awaited sequentially in ascending priority, then settle frames, then swit
   → TerrainViewDebugSystem (600)         → debug rays per hex level
   → HexIconsSpawnSystem (700)            → world.Set HexIconsViewComponent + creates EMPTY
                                             HexIconContainer rows (one per hex)
-  → HexInfoPanelSpawnSystem (800)        → creates the HexInfoPanelView singleton (panel hidden)
+  → MainUISpawnSystem (800)              → instantiates the Main UI root, then runs spawn subsystems:
+                                            HexInfoPanelView + EndTurnView singletons (both hidden)
 
 Gameplay state entry (GameplayState.EnterAsync):
   → world.Set HexIconsVisibilityComponent (IsVisible = true)

@@ -162,7 +162,7 @@ world-space `+Y` lift applied before projection so icons float above the hex (co
 rewritten: no `WorldDocumentRaycaster`, no instance transform, no root/map pixel sizing — it instantiates
 the screen-space prefab, makes the overlay raycast-transparent, and **eagerly creates one empty container
 entity per hex** (icons are filled in later by `HexIconsVisibilitySystem`). It still runs at priority 700
-in the `TerrainGenerationStep` pipeline (no longer last — `HexInfoPanelSpawnSystem` runs at 800). The
+in the `TerrainGenerationStep` pipeline (no longer last — `MainUISpawnSystem` runs at 800). The
 `HexIconsConfig.WorldHeight` / `HexIconsConfig.PixelsPerUnit` fields are now **unused** (legacy from the
 world-space approach). Container positioning is now a **per-frame world→screen projection** in
 `HexIconsContainerPositionSystem` (Gameplay state), so containers track the camera as it moves — the

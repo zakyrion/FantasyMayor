@@ -3,7 +3,7 @@ using Cysharp.Threading.Tasks;
 using DefaultEcs;
 using DefaultECSExtensions;
 using Modules.Boot.Core;
-using Modules.HexesUI.Systems;
+using Modules.MainUI.GeneratorMenu.Systems;
 using Modules.TerrainGenerator.Components;
 
 namespace Modules.Boot.Implementation.States

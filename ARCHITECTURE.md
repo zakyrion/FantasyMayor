@@ -83,7 +83,7 @@ FantasyMayor/
 | `CurveBuilders` | `CurveBuilders` | Shared curve builder contract |
 | `HexCore` | `Hex.Core` | Hex domain data, tags, grid and utility operations |
 | `HexIcons` | `HexIcons` | Screen-space per-hex icon overlay: container entities, per-frame projection, event-driven icon rebuild |
-| `HexesUI` | `Hexes.UI` | UI Toolkit screens: generator menu (MainMenu state) and the selection-driven hex info panel (Gameplay) |
+| `MainUI` | `MainUI` | Main UI module (per-window subfolders): generator menu (MainMenu state), selection-driven hex info panel (Gameplay), End Turn button (Gameplay HUD) |
 | `MainCanvas` | `MainCanvas.Core`, `MainCanvas.Implementation` | Root canvas abstraction and provider implementation; DI registration lives in `WorldInstaller` |
 | `Pathfinding` | `Pathfinding`, `Pathfinding.Installer` | Hex pathfinding utility and its DI registration |
 | `TerrainGenerator` | `Terrain.Generator` | Terrain generation configs, generation trigger event, generation systems for mountains, rivers, lakes, sea |
@@ -485,7 +485,7 @@ Each module has an MD file in its root folder. Read it before touching any code 
 | `HexResources` | `Assets/Modules/HexResources/HEXRESOURCES.md` |
 | `HexResourcesView` | `Assets/Modules/HexResourcesView/HEXRESOURCESVIEW.md` |
 | `HexCore` | `Assets/Modules/HexCore/HEX_CORE.md` |
-| `HexesUI` | `Assets/Modules/HexesUI/HEXES_UI.md` |
+| `MainUI` | `Assets/Modules/MainUI/MAIN_UI.md` |
 | `MainCanvas` | `Assets/Modules/MainCanvas/MAIN_CANVAS.md` |
 | `Pathfinding` | `Assets/Modules/Pathfinding/PATHFINDING.md` |
 | `TerrainGenerator` | `Assets/Modules/TerrainGenerator/TERRAIN_GENERATOR.md` |

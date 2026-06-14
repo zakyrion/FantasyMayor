@@ -6,7 +6,7 @@ using Modules.Boot.Core;
 using Modules.HexIcons.Installer;
 using Modules.HexResources.Installer;
 using Modules.HexResourcesView.Installer;
-using Modules.HexesUI.Installer;
+using Modules.MainUI.Installer;
 using Modules.MainCanvas.Core;
 using Modules.MainCanvas.Implementation;
 using Modules.Cameras.Components;
