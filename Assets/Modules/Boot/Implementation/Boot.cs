@@ -84,6 +84,7 @@ namespace Modules.Boot.Implementation
             HexInfoPanelDistrictPlaceholderSystem hexInfoPanelDistrict,
             EndTurnSystem endTurn,
             TurnProcessorSystem turnProcessor,
+            TurnCountSystem turnCount,
             EventCleanupSystem eventCleanup,
             CameraMovementSystem cameraMovement,
             World world)
@@ -102,7 +103,7 @@ namespace Modules.Boot.Implementation
                 {
                     hexSelection, hexSelectionView, forestSpawn, forestDespawn, hexIconsVisibility,
                     hexInfoPanel, hexInfoPanelHeader, hexInfoPanelResources, hexInfoPanelDistrict,
-                    endTurn, turnProcessor, eventCleanup
+                    endTurn, turnProcessor, turnCount, eventCleanup
                 },
                 new ILateUpdatedSystem[] { cameraMovement, hexIconsContainerPosition });
 

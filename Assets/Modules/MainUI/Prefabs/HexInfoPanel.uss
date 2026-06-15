@@ -146,14 +146,88 @@
     color: rgb(168, 154, 134);
 }
 
-/* End Turn button — the bottom-left hero CTA, the one filled-gold button (GENERAL_UI_STYLE.md §7 exception).
-   Glow/elevation come from a 9-slice sprite in-engine; USS has no box-shadow / gradient (§9). A lighter
-   border-top fakes a bevel. Lives in this shared document alongside the info-panel card. */
-.end-turn-button {
+/* Bottom-left turn cluster card — same chrome as the info-panel card (panel-bg + faux-gradient gold rim).
+   Holds "Хід N", the "Дії" placeholder, and the End Turn button. Sized +50% from the design like the panel. */
+.turn-cluster {
     position: absolute;
     left: 24px;
     bottom: 24px;
-    min-width: 220px;
+    width: 360px;
+    background-color: rgba(24, 20, 16, 0.98);
+    border-left-width: 3px;
+    border-right-width: 3px;
+    border-top-width: 3px;
+    border-bottom-width: 3px;
+    border-top-color: rgba(232, 184, 90, 0.65);
+    border-left-color: rgba(224, 178, 90, 0.45);
+    border-right-color: rgba(217, 164, 65, 0.22);
+    border-bottom-color: rgba(184, 140, 60, 0.20);
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
+    border-bottom-left-radius: 18px;
+    border-bottom-right-radius: 18px;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    padding-left: 21px;
+    padding-right: 21px;
+}
+
+.turn-top {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.turn-number {
+    font-size: 26px;
+    color: rgb(241, 231, 214);
+    -unity-font-style: bold;
+}
+
+/* "Дії" (action points) — VISIBLE placeholder; dashes until the AP model lands. */
+.turn-ap {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.turn-ap-cap {
+    font-size: 16px;
+    letter-spacing: 1.5px;
+    color: rgb(212, 180, 120);
+    margin-right: 12px;
+}
+
+.turn-ap-cur {
+    font-size: 27px;
+    color: rgb(217, 164, 65);
+    -unity-font-style: bold;
+    margin-right: 9px;
+}
+
+.turn-ap-arrow {
+    font-size: 18px;
+    color: rgb(168, 156, 138);
+    margin-right: 9px;
+}
+
+.turn-ap-nxt {
+    font-size: 21px;
+    color: rgba(217, 164, 65, 0.82);
+    margin-right: 6px;
+}
+
+.turn-ap-nxt-cap {
+    font-size: 14px;
+    color: rgb(168, 156, 138);
+}
+
+/* End Turn button — the hero CTA, the one filled-gold button (GENERAL_UI_STYLE.md §7 exception). Glow/elevation
+   come from a 9-slice sprite in-engine; USS has no box-shadow / gradient (§9). A lighter border-top fakes a
+   bevel. Full-width inside the cluster card. */
+.end-turn-button {
+    width: 100%;
     padding: 14px 22px;
     -unity-text-align: middle-center;
     -unity-font-style: bold;

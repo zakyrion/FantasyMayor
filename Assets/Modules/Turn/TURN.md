@@ -42,6 +42,14 @@ a `NextTurnEvent` + `EventTag` entity. Full producer→consumer flow: `ECS_REFER
   PRESENCE is the "turn in progress" gate; absence means idle.
 - **Re-entry guard.** While `TurnProcessorComponent` exists, `NextTurnEvent` pulses are ignored — only
   one turn runs at a time.
+- **Turn boundary signal.** When `TurnProcessorSystem` removes `TurnProcessorComponent` (turn resolved) it
+  raises a one-frame `TurnCompletedEvent` (+ `EventTag`). This is the reusable "a turn just finished" pulse —
+  turn-boundary reactors subscribe to it instead of re-deriving completion from the processor's status.
+- **Turn counter.** `TurnCountComponent` (world singleton, `int Value`) is the current turn number. Seeded to
+  `1` on Gameplay enter (`GameplayState.EnterAsync`) — the first Mayor Phase is turn 1 — and incremented by
+  `TurnCountSystem` on each `TurnCompletedEvent`. `TurnCountSystem` runs at Priority 1010 (above the processor's
+  1000) so it reads the pulse the same frame it is emitted, before `EventCleanupSystem` clears it. The MainUI
+  turn cluster reads this to show "Хід N".
 - **Cancellation.** The run observes `Core.StatusMonitor.Token` (global app-shutdown token), so an
   in-flight turn stops cleanly on quit. It is the only quiet stop.
 - **`TurnPhaseRunner` is stateless and threading-agnostic.** It only orders by `Priority`, skips
@@ -69,6 +77,8 @@ a `NextTurnEvent` + `EventTag` entity. Full producer→consumer flow: `ECS_REFER
   Play mode — remove when real phases land.
 - The `NextTurnEvent` emitter now exists: the MainUI End Turn button (`EndTurnView`). The button also
   reflects pipeline state — it shows "Processing" while `TurnProcessorComponent` is present.
+- The **turn counter is live**: `TurnCountComponent` + `TurnCompletedEvent` + `TurnCountSystem`. Even on the
+  empty skeleton, each completed turn raises `TurnCompletedEvent` and bumps "Хід N" in the MainUI turn cluster.
 - **Migration:** when the first `PhaseNSubSystem` lands, remove the empty-list `RegisterInstance` in
   `TurnInstaller` and register each phase `.As<PhaseN, TurnPhaseSubSystem>()`, exactly as
   `HexResourcesViewInstaller` does for view subsystems.

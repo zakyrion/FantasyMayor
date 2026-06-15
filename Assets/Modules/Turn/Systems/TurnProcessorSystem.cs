@@ -49,6 +49,12 @@ namespace Modules.Turn.Systems
                 {
                     _world.Remove<TurnProcessorComponent>();
                     Debug.Log("[TurnProcessorSystem] Turn completed.");
+
+                    // Announce the turn boundary so the counter (and future turn-boundary reactors) advance,
+                    // without coupling them to this completion check. One-frame pulse, cleared by EventCleanup.
+                    var completed = _world.CreateEntity();
+                    completed.Set(new TurnCompletedEvent());
+                    completed.Set(new EventTag());
                 }
 
                 // A turn is in progress: ignore further pulses (re-entry guard).

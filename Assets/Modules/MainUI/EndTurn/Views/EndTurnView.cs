@@ -17,7 +17,9 @@ namespace Modules.MainUI.EndTurn.Views
     /// </summary>
     public sealed class EndTurnView : MonoBehaviour
     {
+        private const string ClusterName = "TurnCluster";
         private const string ButtonName = "EndTurnButton";
+        private const string TurnNumberName = "TurnNumber";
         private const string ProcessingClass = "is-processing";
 
         // Labels are uppercased in DATA — USS has no text-transform (GENERAL_UI_STYLE.md §9).
@@ -27,7 +29,9 @@ namespace Modules.MainUI.EndTurn.Views
         [SerializeField] private UIDocument _document;
 
         private World _world;
+        private VisualElement _cluster;
         private Button _button;
+        private Label _turnNumber;
         private bool _processing;
         private bool _cached;
 
@@ -51,20 +55,28 @@ namespace Modules.MainUI.EndTurn.Views
         }
 
         /// <summary>
-        ///     Reveals the button. It spawns hidden so it does not flash during map creation. Toggles the
-        ///     button element only — the UIDocument is shared with the hex info panel, so touching the document
-        ///     root here would blank the whole Main UI (mirrors HexInfoPanelView toggling its own card).
+        ///     Reveals the whole turn cluster (card + "Хід N" + button). It spawns hidden so it does not flash
+        ///     during map creation. Toggles the cluster element only — the UIDocument is shared with the hex info
+        ///     panel, so touching the document root here would blank the whole Main UI (mirrors HexInfoPanelView
+        ///     toggling its own card).
         /// </summary>
         public void Show()
         {
             EnsureCached();
-            _button.style.display = DisplayStyle.Flex;
+            _cluster.style.display = DisplayStyle.Flex;
         }
 
         public void Hide()
         {
             EnsureCached();
-            _button.style.display = DisplayStyle.None;
+            _cluster.style.display = DisplayStyle.None;
+        }
+
+        /// <summary>Sets the turn-number label ("Хід N"). Driven by EndTurnSystem from TurnCountComponent.</summary>
+        public void SetTurnNumber(int turnNumber)
+        {
+            EnsureCached();
+            _turnNumber.text = $"Хід {turnNumber}";
         }
 
         /// <summary>
@@ -105,7 +117,10 @@ namespace Modules.MainUI.EndTurn.Views
             if (_cached)
                 return;
 
-            _button = _document.rootVisualElement.Q<Button>(ButtonName);
+            var root = _document.rootVisualElement;
+            _cluster = root.Q<VisualElement>(ClusterName);
+            _button = root.Q<Button>(ButtonName);
+            _turnNumber = root.Q<Label>(TurnNumberName);
             _cached = true;
         }
     }

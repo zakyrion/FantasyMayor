@@ -170,9 +170,10 @@ ENTITY: EndTurnView  (singleton)
   Components: EndTurnViewComponent (View → the EndTurnView MonoBehaviour)
   WRITES: EndTurnSpawnSubSystem (run by MainUISpawnSystem at pipeline 800 — GetComponentInChildren off the
           shared UI/MainUI instance; the orchestrator owns the single addressable handle)
-  READS: EndTurnSystem (base/anchor set — per-frame Gameplay state mirror)
-  Note: the button starts hidden; EndTurnSystem reveals it in Gameplay and reflects TurnProcessorComponent
-        presence as the Processing look. The click→NextTurnEvent emit lives in EndTurnView (module MainUI).
+  READS: EndTurnSystem (base/anchor set — per-frame Gameplay state mirror; also reads TurnCountComponent)
+  Note: the cluster starts hidden; EndTurnSystem reveals it in Gameplay, reflects TurnProcessorComponent
+        presence as the Processing look, and pushes TurnCountComponent.Value into "Хід N". The
+        click→NextTurnEvent emit lives in EndTurnView (module MainUI).
 ```
 
 ---
@@ -183,7 +184,7 @@ World components are NOT entities: stored via `world.Set<T>()`, read via `world.
 with `world.Has<T>()`), invisible to `With<T>` / `WhenAdded<T>` / `WhenChanged<T>`. Contract and
 decision rule: `ARCHITECTURE.md` → "State Storage Taxonomy".
 
-### Runtime world components (6)
+### Runtime world components (7)
 
 ```
 WORLD: CameraComponent  (module Cameras)
@@ -229,6 +230,14 @@ WORLD: TurnProcessorComponent  (module Turn)
   Note: present ONLY while a turn is processed — its PRESENCE is the "turn in progress" gate, removed
         on completion. Doubles as the re-entry guard (further NextTurnEvent pulses ignored while set).
         SKELETON — zero phases today, so a started turn completes immediately.
+
+WORLD: TurnCountComponent  (module Turn)
+  Fields: Value (current turn number; immutable readonly struct — advance via world.Set)
+  WRITES: GameplayState.EnterAsync (seed Value = 1 on Gameplay enter),
+          TurnCountSystem (Set Value + 1 on each TurnCompletedEvent)
+  READS: EndTurnSystem (module MainUI — pushes Value into the "Хід N" label; throws if unseeded)
+  Note: the current-turn counter. First Mayor Phase = turn 1; TurnCountSystem (Priority 1010, above the
+        processor's 1000) increments on the TurnCompletedEvent pulse the same frame it is emitted.
 ```
 
 ### Config world components (20)
@@ -345,6 +354,14 @@ EVENT: NextTurnEvent
   Note: Consumed by a PER-FRAME poller (queries With<NextTurnEvent>), NOT a WhenAdded reactive set.
         Ignored while a turn is already in progress (re-entry guard on TurnProcessorComponent).
 
+EVENT: TurnCompletedEvent
+  Producer: TurnProcessorSystem (module Turn) — raised when a turn resolves, the same frame it removes
+            TurnProcessorComponent
+  Consumer: TurnCountSystem (Priority 1010, > processor's 1000) — increments TurnCountComponent
+  Lifetime: 1 frame
+  Note: the reusable "a turn just finished" pulse — decouples turn-boundary reactors from the processor's
+        completion check. Future turn-boundary systems subscribe here too.
+
 EVENT: EventTag
   Producer: any system emitting an event (Set on the event entity alongside the event component)
   Consumer: EventCleanupSystem (disposes the entity at end of tick)
@@ -409,6 +426,7 @@ stages awaited sequentially in ascending priority, then settle frames, then swit
 Gameplay state entry (GameplayState.EnterAsync):
   → world.Set HexIconsVisibilityComponent (IsVisible = true)
   → raises HexIconsVisibilityChangedEvent → consumed on the first Gameplay tick
+  → world.Set TurnCountComponent (Value = 1) → the turn cluster shows "Хід 1" from the first tick
 
 Gameplay state, per-frame (Update, ascending priority):
   → HexSelectionSystem / HexSelectionViewSystem        → selection write + highlight
@@ -417,6 +435,11 @@ Gameplay state, per-frame (Update, ascending priority):
   → HexInfoPanelHeader/Resources/DistrictPlaceholder (560–562, reactive) → rebuild panel blocks on the pulse
   → ForestSpawnSystem (600) / ForestDespawnSystem (601, reactive) → reconcile forest views on a pulse (dormant)
   → HexIconsVisibilitySystem (800, reactive)           → clear/rebuild icon containers on the pulse
+  → EndTurnSystem (560)                                → reveals the turn cluster; mirrors Processing;
+                                                          pushes TurnCountComponent.Value into "Хід N"
+  → TurnProcessorSystem (1000)                         → polls the in-flight turn; on completion removes
+                                                          TurnProcessorComponent + raises TurnCompletedEvent
+  → TurnCountSystem (1010, reactive)                   → increments TurnCountComponent on that pulse
   → EventCleanupSystem (int.MaxValue)                  → disposes all EventTag entities
 
 Gameplay state, per-frame (LateUpdate):

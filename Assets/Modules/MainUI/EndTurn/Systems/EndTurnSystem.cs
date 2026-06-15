@@ -1,3 +1,4 @@
+using System;
 using DefaultEcs;
 using DefaultECSExtensions;
 using JetBrains.Annotations;
@@ -7,11 +8,12 @@ using Modules.Turn.Components;
 namespace Modules.MainUI.EndTurn.Systems
 {
     /// <summary>
-    ///     Drives the end-turn button each Gameplay frame: reveals it (it spawns hidden) and reflects whether a
-    ///     turn is running — Processing while a <see cref="TurnProcessorComponent" /> exists, Ready otherwise.
-    ///     The click→NextTurnEvent emit lives in the view; this only mirrors engine state. Stateless: Show and
-    ///     SetProcessing are idempotent. Anchored on the button-view singleton so it ticks once per frame,
-    ///     mirroring HexInfoPanelSystem.
+    ///     Drives the turn cluster each Gameplay frame: reveals it (it spawns hidden), reflects whether a turn is
+    ///     running — Processing while a <see cref="TurnProcessorComponent" /> exists, Ready otherwise — and
+    ///     pushes the current turn number from <see cref="TurnCountComponent" /> into "Хід N". The
+    ///     click→NextTurnEvent emit lives in the view; this only mirrors engine state. Stateless: Show,
+    ///     SetProcessing, and SetTurnNumber are idempotent. Anchored on the button-view singleton so it ticks
+    ///     once per frame, mirroring HexInfoPanelSystem.
     /// </summary>
     [UsedImplicitly]
     public sealed class EndTurnSystem : UpdatedSystem
@@ -34,8 +36,13 @@ namespace Modules.MainUI.EndTurn.Systems
             if (view == null)
                 return;
 
+            if (!_world.Has<TurnCountComponent>())
+                throw new InvalidOperationException(
+                    "EndTurnSystem: TurnCountComponent is missing — it must be seeded on Gameplay enter.");
+
             view.Show();
             view.SetProcessing(_world.Has<TurnProcessorComponent>());
+            view.SetTurnNumber(_world.Get<TurnCountComponent>().Value);
         }
     }
 }

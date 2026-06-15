@@ -31,9 +31,22 @@
                 <ui:Label text="Поки недоступно" class="district-placeholder" />
             </ui:VisualElement>
         </ui:VisualElement>
-        <!-- End Turn button — a sibling of the info-panel card inside the same shared Root. Label is authored
-             uppercase (USS has no text-transform) and is overwritten at runtime by EndTurnView.SetProcessing.
-             EndTurnView toggles this button's own display (Show/Hide), never the document root. -->
-        <ui:Button name="EndTurnButton" text="ЗАВЕРШИТИ ХІД" class="end-turn-button" />
+        <!-- Bottom-left turn cluster (Old World lens) — a sibling of the info-panel card inside the same shared
+             Root. EndTurnView toggles THIS card's display (Show/Hide), never the document root, and overwrites
+             "Хід N" + the button label at runtime. The "Дії" (action points) block is a VISIBLE placeholder:
+             no AP model exists yet, so its values are dashes until that mechanic lands (no system touches it). -->
+        <ui:VisualElement name="TurnCluster" class="turn-cluster">
+            <ui:VisualElement name="TurnTop" class="turn-top">
+                <ui:Label name="TurnNumber" text="Хід 1" class="turn-number" />
+            </ui:VisualElement>
+            <ui:VisualElement name="TurnActions" class="turn-ap">
+                <ui:Label text="ДІЇ" class="turn-ap-cap" />
+                <ui:Label text="—" class="turn-ap-cur" />
+                <ui:Label text="→" class="turn-ap-arrow" />
+                <ui:Label text="—" class="turn-ap-nxt" />
+                <ui:Label text="наст. хід" class="turn-ap-nxt-cap" />
+            </ui:VisualElement>
+            <ui:Button name="EndTurnButton" text="ЗАВЕРШИТИ ХІД" class="end-turn-button" />
+        </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

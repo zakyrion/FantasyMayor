@@ -6,6 +6,7 @@ using DefaultEcs;
 using DefaultECSExtensions;
 using Modules.HexIcons.Components;
 using Modules.HexIcons.Events;
+using Modules.Turn.Components;
 
 namespace Modules.Boot.Implementation.States
 {
@@ -42,6 +43,10 @@ namespace Modules.Boot.Implementation.States
             var visibilityEvent = _world.CreateEntity();
             visibilityEvent.Set(new HexIconsVisibilityChangedEvent());
             visibilityEvent.Set(new EventTag());
+
+            // The game opens on the first Mayor Phase = turn 1; TurnCountSystem increments it on each
+            // turn boundary. Seeded here so the turn cluster can show "Хід N" from the first frame.
+            _world.Set(new TurnCountComponent(1));
 
             return UniTask.CompletedTask;
         }

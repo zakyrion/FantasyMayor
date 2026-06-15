@@ -17,6 +17,9 @@ namespace Modules.Turn.Installer
 
             builder.Register<TurnProcessorSystem>(Lifetime.Singleton)
                 .As<TurnProcessorSystem>();
+
+            builder.Register<TurnCountSystem>(Lifetime.Singleton)
+                .As<TurnCountSystem>();
         }
     }
 }

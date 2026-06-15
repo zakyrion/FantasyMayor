@@ -11,7 +11,8 @@ The module is split into **per-window subfolders**, each mirroring the module's 
 this doc, the asmdef) stay at the root. Windows:
 - `GeneratorMenu/` — the terrain-generator screen (`HexesUI` view + `ShowHexesUISystem`).
 - `HexInfoPanel/` — the selected-hex info panel (+ the terrain-icon config). Design: `HexInfoPanel/HEX_INFO_PANEL.md`.
-- `EndTurn/` — the End Turn button. Design: `EndTurn/END_TURN.md`.
+- `EndTurn/` — the bottom-left turn cluster (turn number «Хід N», «Дії» placeholder, End Turn button).
+  Design: `EndTurn/END_TURN.md`.
 
 ## UI root and the single Main UI prefab
 The shared full-screen UI root is module **`MainCanvas`** (`IMainCanvasProvider.RootGO`). Under it, the whole
@@ -33,8 +34,9 @@ MonoBehaviour + a `MainUISpawnSubSystem` that resolves it.
   are **Reactive Systems** anchored on that pulse (base set = the event) — each rebuilds its panel
   block from current world state.
 - `EndTurnSystem` is a **Per-frame System** (Gameplay, anchored on the `EndTurnViewComponent` singleton):
-  it reveals the button and mirrors `TurnProcessorComponent` presence into the Processing look. The button
-  emits `NextTurnEvent` from `EndTurnView` on click. See `EndTurn/END_TURN.md`.
+  it reveals the turn cluster, mirrors `TurnProcessorComponent` presence into the Processing look, and pushes
+  the current turn number (`TurnCountComponent`, module `Turn`) into «Хід N». The button emits `NextTurnEvent`
+  from `EndTurnView` on click. See `EndTurn/END_TURN.md`.
 - These reactive triggers are not visible in graphify — full event flow: `ECS_REFERENCE.md`.
   Roles: `ARCHITECTURE.md` "System Taxonomy".
 
@@ -62,11 +64,13 @@ MonoBehaviour + a `MainUISpawnSubSystem` that resolves it.
 - Hex info panel: **implemented** (systems + UXML/USS + prefab + configs). Header and Resources blocks
   bind to real components; the District block is SCAFFOLD (hidden by `HexInfoPanelDistrictPlaceholderSystem`)
   until gameplay components land.
-- End Turn button: **implemented** (View/Component/Spawn/System + uxml/uss). The «Хід N» and «Дії» parts of
-  the turn cluster are NOT built (no data source yet). See `EndTurn/END_TURN.md`.
+- Turn cluster (EndTurn): **implemented** (View/Component/Spawn/System + markup in the shared document). The
+  End Turn button and **«Хід N» (live, bound to `TurnCountComponent`)** work; «Дії» is a visible placeholder
+  (dashes) until the AP model lands. See `EndTurn/END_TURN.md`.
 
 ## Window Design Docs
 - `HexInfoPanel/HEX_INFO_PANEL.md` — the selected-hex info panel: blocks, progressive-disclosure states,
   ECS bindings, block→system map.
-- `EndTurn/END_TURN.md` — the End Turn button (bottom-left): state-vs-agency exception, Ready/Processing,
-  binding to Turn's `NextTurnEvent` / `TurnProcessorComponent`. Implemented.
+- `EndTurn/END_TURN.md` — the bottom-left turn cluster: state-vs-agency exception, Ready/Processing,
+  «Хід N» binding to `TurnCountComponent`, «Дії» placeholder, `NextTurnEvent` / `TurnProcessorComponent`.
+  Implemented.
