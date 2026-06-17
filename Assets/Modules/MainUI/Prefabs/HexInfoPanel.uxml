@@ -1,52 +1,125 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
     <Style src="HexInfoPanel.uss" />
-    <!-- Sample header text and the two chips are EDITOR-PREVIEW ONLY (so the panel reads correctly in UI
-         Builder). At runtime SetHeader overwrites the header and the resources system clears + rebuilds the
-         chips (HexInfoPanelView strips these sample chips on first cache). -->
+    <!-- ONE full-width bottom panel (GENERAL_UI_STYLE.md §4): a single shell with two sub-panels divided by a
+         vertical divider — TURN (state + the End Turn commit) on the left, CONTEXT (selected hex) on the right.
+         The shell is ALWAYS present once revealed; only the CONTEXT content swaps between the filled blocks
+         (ContextFilled) and the empty placeholder (ContextEmpty).
+         Ownership: EndTurnView toggles the whole BottomPanel shell (Show/Hide); HexInfoPanelView swaps
+         ContextFilled <-> ContextEmpty. Neither toggles the document root (that would blank the whole Main UI).
+         Sample header text, the chips, and the District/Yield rows are EDITOR-PREVIEW ONLY (so the panel reads
+         in UI Builder). At runtime: SetHeader overwrites the header, the resources system clears + rebuilds the
+         chips, and HexInfoPanelDistrictPlaceholderSystem hides the District + Yield scaffold (no backing data). -->
     <ui:VisualElement name="Root" class="raycast-transparent" style="flex-grow: 1;">
-        <ui:VisualElement name="HexInfoPanelView" class="info-panel">
+        <ui:VisualElement name="BottomPanel" class="bottom-panel">
             <ui:VisualElement name="AccentLine" class="accent-line" />
-            <ui:VisualElement name="Header" class="header">
-                <ui:VisualElement name="HeaderIcon" class="terrain-icon" />
-                <ui:VisualElement name="HeaderTitles" class="header-titles">
-                    <ui:Label name="HeaderTitle" text="Лісисті пагорби" class="title" />
-                    <ui:Label name="HeaderCoord" text="Hex · 3, 0" class="coord" />
+            <ui:VisualElement name="BottomRow" class="bp-row">
+
+                <!-- ============ TURN sub-panel (left) ============ -->
+                <ui:VisualElement name="TurnPanel" class="bp-turn">
+                    <ui:Label text="ПОТОЧНИЙ ХІД" class="turn-cap" />
+                    <ui:Label name="TurnNumber" text="Хід 1" class="turn-number" />
+                    <ui:VisualElement class="turn-divider" />
+                    <!-- "Дії" (action points) — VISIBLE placeholder; dashes until the AP model lands. -->
+                    <ui:VisualElement name="TurnActions" class="turn-ap">
+                        <ui:Label text="ДІЇ" class="turn-ap-cap" />
+                        <ui:Label text="—" class="turn-ap-cur" />
+                        <ui:Label text="→" class="turn-ap-arrow" />
+                        <ui:Label text="—" class="turn-ap-nxt" />
+                        <ui:Label text="наст. хід" class="turn-ap-nxt-cap" />
+                    </ui:VisualElement>
+                    <ui:Button name="EndTurnButton" text="ЗАВЕРШИТИ ХІД" class="end-turn-button" />
+                </ui:VisualElement>
+
+                <!-- ============ CONTEXT sub-panel (right) ============ -->
+                <ui:VisualElement name="ContextPanel" class="bp-ctx">
+
+                    <!-- Filled: a hex is selected -->
+                    <ui:VisualElement name="ContextFilled" class="ctx-filled">
+                        <ui:VisualElement name="ContextHeader" class="ctx-hd">
+                            <ui:VisualElement name="HeaderIcon" class="terrain-icon" />
+                            <ui:VisualElement name="HeaderTitles" class="ctx-titles">
+                                <ui:Label name="HeaderTitle" text="Лісисті пагорби" class="ctx-title" />
+                                <ui:Label name="HeaderCoord" text="3, 0" class="ctx-coord" />
+                            </ui:VisualElement>
+                            <!-- District tabs — SCAFFOLD (full-window drill-down not built yet); visual only. -->
+                            <ui:Label text="Огляд" class="ctx-tab ctx-tab--active" />
+                            <ui:Label text="Будівлі" class="ctx-tab" />
+                            <ui:Label text="Вихід" class="ctx-tab" />
+                        </ui:VisualElement>
+
+                        <ui:VisualElement name="ContextBody" class="ctx-body">
+                            <ui:VisualElement name="ContextMain" class="ctx-a">
+                                <ui:VisualElement name="ResourcesSection" class="section">
+                                    <ui:Label text="РЕСУРСИ ГЕКСУ" class="section-label" />
+                                    <ui:VisualElement name="ResourcesContainer" class="chips">
+                                        <ui:VisualElement class="chip">
+                                            <ui:VisualElement class="chip-icon" />
+                                            <ui:Label text="Ліс" class="chip-label" />
+                                        </ui:VisualElement>
+                                        <ui:VisualElement class="chip">
+                                            <ui:VisualElement class="chip-icon" />
+                                            <ui:Label text="Глина" class="chip-label" />
+                                        </ui:VisualElement>
+                                    </ui:VisualElement>
+                                </ui:VisualElement>
+                                <!-- District kvgrid — SCAFFOLD; hidden at runtime until District-economy data lands. -->
+                                <ui:VisualElement name="DistrictSection" class="section">
+                                    <ui:Label text="РАЙОН" class="section-label" />
+                                    <ui:VisualElement class="kvgrid">
+                                        <ui:VisualElement class="kvcol">
+                                            <ui:VisualElement class="kv">
+                                                <ui:Label text="Спеціалізація" class="kv-k" />
+                                                <ui:Label text="Лісництво" class="kv-v" />
+                                            </ui:VisualElement>
+                                            <ui:VisualElement class="kv">
+                                                <ui:Label text="Праця" class="kv-k" />
+                                                <ui:Label text="75%" class="kv-v kv-v--warn" />
+                                            </ui:VisualElement>
+                                        </ui:VisualElement>
+                                        <ui:VisualElement class="kvcol">
+                                            <ui:VisualElement class="kv">
+                                                <ui:Label text="Власник" class="kv-k" />
+                                                <ui:Label text="Місто" class="kv-v kv-v--city" />
+                                            </ui:VisualElement>
+                                            <ui:VisualElement class="kv">
+                                                <ui:Label text="Оператор" class="kv-k" />
+                                                <ui:Label text="Мер" class="kv-v kv-v--oper" />
+                                            </ui:VisualElement>
+                                        </ui:VisualElement>
+                                    </ui:VisualElement>
+                                </ui:VisualElement>
+                            </ui:VisualElement>
+
+                            <!-- Yield split — SCAFFOLD; hidden at runtime alongside the District block. -->
+                            <ui:VisualElement name="YieldSection" class="ctx-b">
+                                <ui:Label text="ВИХІД ЦЬОГО ХОДУ" class="section-label" />
+                                <ui:VisualElement class="split-bar">
+                                    <ui:VisualElement class="split-seg split-seg--city" style="width: 40%;" />
+                                    <ui:VisualElement class="split-seg split-seg--owner" style="width: 35%;" />
+                                    <ui:VisualElement class="split-seg split-seg--oper" style="width: 25%;" />
+                                </ui:VisualElement>
+                                <ui:VisualElement class="kv">
+                                    <ui:Label text="Місто" class="kv-k" />
+                                    <ui:Label text="+3 · 40%" class="kv-v" />
+                                </ui:VisualElement>
+                                <ui:VisualElement class="kv">
+                                    <ui:Label text="Власник" class="kv-k" />
+                                    <ui:Label text="+3 · 35%" class="kv-v" />
+                                </ui:VisualElement>
+                                <ui:VisualElement class="kv">
+                                    <ui:Label text="Оператор" class="kv-k" />
+                                    <ui:Label text="+2 · 25%" class="kv-v" />
+                                </ui:VisualElement>
+                                <ui:Label text="SCAFFOLD — зʼявиться з District-економікою" class="scaffold-tag" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+
+                    <!-- Empty: nothing selected. Intentionally blank — no tabs, no hint text. -->
+                    <ui:VisualElement name="ContextEmpty" class="ctx-empty-wrap" />
+
                 </ui:VisualElement>
             </ui:VisualElement>
-            <ui:VisualElement name="ResourcesSection" class="section">
-                <ui:Label text="РЕСУРСИ ГЕКСУ" class="section-label" />
-                <ui:VisualElement name="ResourcesContainer" class="chips">
-                    <ui:VisualElement class="chip">
-                        <ui:VisualElement class="chip-icon" />
-                        <ui:Label text="Ліс" class="chip-label" />
-                    </ui:VisualElement>
-                    <ui:VisualElement class="chip">
-                        <ui:VisualElement class="chip-icon" />
-                        <ui:Label text="Глина" class="chip-label" />
-                    </ui:VisualElement>
-                </ui:VisualElement>
-            </ui:VisualElement>
-            <ui:VisualElement name="DistrictSection" class="section">
-                <ui:Label text="РАЙОН" class="section-label" />
-                <ui:Label text="Поки недоступно" class="district-placeholder" />
-            </ui:VisualElement>
-        </ui:VisualElement>
-        <!-- Bottom-left turn cluster (Old World lens) — a sibling of the info-panel card inside the same shared
-             Root. EndTurnView toggles THIS card's display (Show/Hide), never the document root, and overwrites
-             "Хід N" + the button label at runtime. The "Дії" (action points) block is a VISIBLE placeholder:
-             no AP model exists yet, so its values are dashes until that mechanic lands (no system touches it). -->
-        <ui:VisualElement name="TurnCluster" class="turn-cluster">
-            <ui:VisualElement name="TurnTop" class="turn-top">
-                <ui:Label name="TurnNumber" text="Хід 1" class="turn-number" />
-            </ui:VisualElement>
-            <ui:VisualElement name="TurnActions" class="turn-ap">
-                <ui:Label text="ДІЇ" class="turn-ap-cap" />
-                <ui:Label text="—" class="turn-ap-cur" />
-                <ui:Label text="→" class="turn-ap-arrow" />
-                <ui:Label text="—" class="turn-ap-nxt" />
-                <ui:Label text="наст. хід" class="turn-ap-nxt-cap" />
-            </ui:VisualElement>
-            <ui:Button name="EndTurnButton" text="ЗАВЕРШИТИ ХІД" class="end-turn-button" />
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

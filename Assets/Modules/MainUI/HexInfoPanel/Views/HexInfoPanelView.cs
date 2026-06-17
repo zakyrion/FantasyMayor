@@ -6,21 +6,24 @@ using static Unity.AppUI.UI.VisualElementExtensions;
 namespace Modules.MainUI.HexInfoPanel.Views
 {
     /// <summary>
-    ///     View layer for the hex info panel. Owns the UIDocument's VisualElements and exposes a per-block
-    ///     populate API for the panel systems. Holds no game logic. The full-screen layers stay click-through
-    ///     so empty-area clicks reach the map, but the panel card blocks clicks — clicking the card does not
-    ///     select/deselect a hex behind it.
+    ///     View layer for the CONTEXT sub-panel of the shared bottom panel. Owns its VisualElements and exposes
+    ///     a per-block populate API for the panel systems. Holds no game logic. It does NOT own the bottom-panel
+    ///     shell (EndTurnView reveals/hides that) — it only swaps the context content between the filled blocks
+    ///     (a hex is selected) and the empty placeholder (nothing selected). The full-screen layers stay
+    ///     click-through so empty-area clicks reach the map, but the bottom panel itself blocks clicks.
     /// </summary>
     public sealed class HexInfoPanelView : MonoBehaviour
     {
         private const string RootName = "Root";
-        private const string PanelName = "HexInfoPanelView";
+        private const string ContextFilledName = "ContextFilled";
+        private const string ContextEmptyName = "ContextEmpty";
         private const string HeaderIconName = "HeaderIcon";
         private const string HeaderTitleName = "HeaderTitle";
         private const string HeaderCoordName = "HeaderCoord";
         private const string ResourcesSectionName = "ResourcesSection";
         private const string ResourcesContainerName = "ResourcesContainer";
         private const string DistrictSectionName = "DistrictSection";
+        private const string YieldSectionName = "YieldSection";
 
         private const string ChipClass = "chip";
         private const string ChipIconClass = "chip-icon";
@@ -28,13 +31,15 @@ namespace Modules.MainUI.HexInfoPanel.Views
 
         [SerializeField] private UIDocument _document;
 
-        private VisualElement _panel;
+        private VisualElement _contextFilled;
+        private VisualElement _contextEmpty;
         private VisualElement _headerIcon;
         private Label _headerTitle;
         private Label _headerCoord;
         private VisualElement _resourcesSection;
         private VisualElement _resourcesContainer;
         private VisualElement _districtSection;
+        private VisualElement _yieldSection;
 
         // Managed UI elements → System.Collections.Generic (NativeContainer holds unmanaged only).
         private readonly List<VisualElement> _chipPool = new();
@@ -47,10 +52,10 @@ namespace Modules.MainUI.HexInfoPanel.Views
 
         /// <summary>
         ///     Makes the full-screen layers (the document root + the "Root" container) click-through so
-        ///     empty-area clicks reach the map, while the panel card stays pickable so it blocks clicks.
-        ///     Picking does not propagate from a parent to its children, so leaving the card and its children
+        ///     empty-area clicks reach the map, while the bottom panel stays pickable so it blocks clicks.
+        ///     Picking does not propagate from a parent to its children, so leaving the panel and its children
         ///     at the default pickable mode is enough — only the two full-screen ancestors are disabled.
-        ///     HexSelectionSystem then skips selection over the card via EventSystem.IsPointerOverGameObject.
+        ///     HexSelectionSystem then skips selection over the panel via EventSystem.IsPointerOverGameObject.
         /// </summary>
         public void ConfigurePicking()
         {
@@ -59,16 +64,20 @@ namespace Modules.MainUI.HexInfoPanel.Views
             _document.rootVisualElement.Q<VisualElement>(RootName)?.EnablePicking(false);
         }
 
-        public void Show()
+        /// <summary>A hex is selected: show the filled context blocks, hide the empty placeholder.</summary>
+        public void ShowSelection()
         {
             EnsureCached();
-            _panel.style.display = DisplayStyle.Flex;
+            _contextFilled.style.display = DisplayStyle.Flex;
+            _contextEmpty.style.display = DisplayStyle.None;
         }
 
-        public void Hide()
+        /// <summary>Nothing selected: hide the filled blocks, show the empty placeholder. The shell stays up.</summary>
+        public void ShowEmpty()
         {
             EnsureCached();
-            _panel.style.display = DisplayStyle.None;
+            _contextFilled.style.display = DisplayStyle.None;
+            _contextEmpty.style.display = DisplayStyle.Flex;
         }
 
         public void SetHeader(Sprite icon, string title, string coord)
@@ -103,10 +112,17 @@ namespace Modules.MainUI.HexInfoPanel.Views
             _resourcesSection.style.display = DisplayStyle.None;
         }
 
+        /// <summary>
+        ///     Toggles the District-economy scaffold — both the District kvgrid (left column) and the
+        ///     "Вихід цього ходу" yield split (right column). They share the same backing data, so they appear
+        ///     and disappear together. Hidden by HexInfoPanelDistrictPlaceholderSystem until that data lands.
+        /// </summary>
         public void SetDistrictVisible(bool visible)
         {
             EnsureCached();
-            _districtSection.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
+            var display = visible ? DisplayStyle.Flex : DisplayStyle.None;
+            _districtSection.style.display = display;
+            _yieldSection.style.display = display;
         }
 
         // A null sprite clears the inline value so the USS placeholder background shows through.
@@ -145,13 +161,15 @@ namespace Modules.MainUI.HexInfoPanel.Views
                 return;
 
             var root = _document.rootVisualElement;
-            _panel = root.Q<VisualElement>(PanelName);
+            _contextFilled = root.Q<VisualElement>(ContextFilledName);
+            _contextEmpty = root.Q<VisualElement>(ContextEmptyName);
             _headerIcon = root.Q<VisualElement>(HeaderIconName);
             _headerTitle = root.Q<Label>(HeaderTitleName);
             _headerCoord = root.Q<Label>(HeaderCoordName);
             _resourcesSection = root.Q<VisualElement>(ResourcesSectionName);
             _resourcesContainer = root.Q<VisualElement>(ResourcesContainerName);
             _districtSection = root.Q<VisualElement>(DistrictSectionName);
+            _yieldSection = root.Q<VisualElement>(YieldSectionName);
             _cached = true;
 
             // Strip the editor-preview sample chips authored in UXML so the runtime chip pool starts clean;

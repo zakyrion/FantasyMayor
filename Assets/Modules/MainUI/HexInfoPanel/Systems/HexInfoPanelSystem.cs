@@ -11,9 +11,10 @@ using Modules.TerrainView.Components;
 namespace Modules.MainUI.HexInfoPanel.Systems
 {
     /// <summary>
-    ///     Drives the hex info panel from the current selection. Shows the panel and raises a one-frame
-    ///     <see cref="HexInfoPanelRefreshEvent" /> when the selected hex changes; hides it when nothing — or a
-    ///     coordinate with no hex — is selected. Per-block systems react to the refresh event.
+    ///     Drives the CONTEXT sub-panel from the current selection. Swaps it to the filled blocks and raises a
+    ///     one-frame <see cref="HexInfoPanelRefreshEvent" /> when the selected hex changes; swaps it back to the
+    ///     empty placeholder when nothing — or a coordinate with no hex — is selected. Does NOT show/hide the
+    ///     bottom-panel shell (EndTurnSystem owns that). Per-block systems react to the refresh event.
     ///     Anchored on the panel-view singleton so it ticks once per frame, mirroring HexSelectionViewSystem.
     /// </summary>
     [UsedImplicitly]
@@ -25,7 +26,7 @@ namespace Modules.MainUI.HexInfoPanel.Systems
         private readonly EntitySet _selectedHexSet;
         private readonly EntitySet _hexSet;
 
-        private bool _isShown;
+        private bool _isFilled;
         private bool _hasProcessed;
         private HexCoord _lastCoords;
 
@@ -47,10 +48,10 @@ namespace Modules.MainUI.HexInfoPanel.Systems
 
             if (_selectedHexSet.Count == 0)
             {
-                if (_isShown)
+                if (_isFilled)
                 {
-                    view.Hide();
-                    _isShown = false;
+                    view.ShowEmpty();
+                    _isFilled = false;
                 }
 
                 _hasProcessed = false;
@@ -68,18 +69,18 @@ namespace Modules.MainUI.HexInfoPanel.Systems
             // so the panel stays hidden rather than showing an empty header.
             if (!HexExists(coords))
             {
-                if (_isShown)
+                if (_isFilled)
                 {
-                    view.Hide();
-                    _isShown = false;
+                    view.ShowEmpty();
+                    _isFilled = false;
                 }
 
                 return;
             }
 
-            view.Show();
+            view.ShowSelection();
             RaiseRefresh(coords);
-            _isShown = true;
+            _isFilled = true;
         }
 
         private bool HexExists(HexCoord coords)

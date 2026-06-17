@@ -10,9 +10,9 @@ using UnityEngine;
 namespace Modules.MainUI.EndTurn.Systems
 {
     /// <summary>
-    ///     Main UI spawn subsystem: resolves the end-turn button view from the shared Main UI instance and
-    ///     publishes EndTurnViewComponent. Instantiates nothing — the orchestrator owns the Main UI handle.
-    ///     Leaves the button hidden; EndTurnSystem reveals it in Gameplay.
+    ///     Main UI spawn subsystem: resolves the end-turn view from the shared Main UI instance and publishes
+    ///     EndTurnViewComponent. Instantiates nothing — the orchestrator owns the Main UI handle. Leaves the
+    ///     whole bottom-panel shell hidden; EndTurnSystem reveals it in Gameplay.
     /// </summary>
     [UsedImplicitly]
     internal sealed class EndTurnSpawnSubSystem : MainUISpawnSubSystem
@@ -41,7 +41,7 @@ namespace Modules.MainUI.EndTurn.Systems
             entity.Set(new EndTurnViewComponent(view));
             entity.Set<UITag>();
 
-            // Hidden until Gameplay; EndTurnSystem shows it.
+            // Whole bottom panel hidden until Gameplay; EndTurnSystem reveals it.
             view.Hide();
         }
     }

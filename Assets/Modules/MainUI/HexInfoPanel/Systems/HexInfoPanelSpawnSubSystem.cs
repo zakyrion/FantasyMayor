@@ -12,7 +12,8 @@ namespace Modules.MainUI.HexInfoPanel.Systems
     /// <summary>
     ///     Main UI spawn subsystem: resolves the hex info panel view from the shared Main UI instance and
     ///     publishes HexInfoPanelViewComponent. Instantiates nothing — the orchestrator owns the Main UI
-    ///     handle. Leaves the panel hidden; HexInfoPanelSystem shows it on selection.
+    ///     handle. Sets the context sub-panel to its empty state; HexInfoPanelSystem fills it on selection.
+    ///     The bottom-panel shell stays hidden (EndTurnSpawnSubSystem) until Gameplay.
     /// </summary>
     [UsedImplicitly]
     internal sealed class HexInfoPanelSpawnSubSystem : MainUISpawnSubSystem
@@ -41,8 +42,8 @@ namespace Modules.MainUI.HexInfoPanel.Systems
             panelEntity.Set(new HexInfoPanelViewComponent(view));
             panelEntity.Set<UITag>();
 
-            // Hidden until a hex is selected; HexInfoPanelSystem shows it.
-            view.Hide();
+            // Empty context until a hex is selected; HexInfoPanelSystem swaps in the filled blocks.
+            view.ShowEmpty();
         }
     }
 }

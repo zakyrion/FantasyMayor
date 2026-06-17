@@ -9,15 +9,17 @@ using static Unity.AppUI.UI.VisualElementExtensions;
 namespace Modules.MainUI.EndTurn.Views
 {
     /// <summary>
-    ///     View for the end-turn button. Owns the UIDocument's button, emits the turn-commit event on click,
-    ///     and switches between Ready and Processing looks. Holds no game logic beyond raising the one-frame
-    ///     event — the Processing state is driven from outside by EndTurnSystem. The full-screen root stays
-    ///     click-through so map clicks pass through; only the button itself blocks clicks (mirrors the generator
-    ///     UI and HexInfoPanelView picking rules).
+    ///     View for the End Turn button AND the owner of the shared bottom-panel shell reveal. Owns the
+    ///     UIDocument's button + turn number, emits the turn-commit event on click, and switches between Ready
+    ///     and Processing looks. The turn corner is the always-present part of the bottom panel, so this view
+    ///     toggles the whole BottomPanel shell (Show/Hide) — never the document root (that would blank the whole
+    ///     Main UI). The CONTEXT sub-panel content is swapped independently by HexInfoPanelView. Holds no game
+    ///     logic beyond raising the one-frame event — the Processing state is driven by EndTurnSystem. The
+    ///     full-screen root stays click-through; only the button blocks clicks (mirrors the generator UI rules).
     /// </summary>
     public sealed class EndTurnView : MonoBehaviour
     {
-        private const string ClusterName = "TurnCluster";
+        private const string PanelName = "BottomPanel";
         private const string ButtonName = "EndTurnButton";
         private const string TurnNumberName = "TurnNumber";
         private const string ProcessingClass = "is-processing";
@@ -29,7 +31,7 @@ namespace Modules.MainUI.EndTurn.Views
         [SerializeField] private UIDocument _document;
 
         private World _world;
-        private VisualElement _cluster;
+        private VisualElement _panel;
         private Button _button;
         private Label _turnNumber;
         private bool _processing;
@@ -55,21 +57,21 @@ namespace Modules.MainUI.EndTurn.Views
         }
 
         /// <summary>
-        ///     Reveals the whole turn cluster (card + "Хід N" + button). It spawns hidden so it does not flash
-        ///     during map creation. Toggles the cluster element only — the UIDocument is shared with the hex info
-        ///     panel, so touching the document root here would blank the whole Main UI (mirrors HexInfoPanelView
-        ///     toggling its own card).
+        ///     Reveals the whole bottom panel (turn sub-panel + context sub-panel). It spawns hidden so it does
+        ///     not flash during map creation. Toggles the BottomPanel shell only — the UIDocument is shared, so
+        ///     touching the document root here would blank the whole Main UI. The context content inside is
+        ///     swapped separately by HexInfoPanelView.
         /// </summary>
         public void Show()
         {
             EnsureCached();
-            _cluster.style.display = DisplayStyle.Flex;
+            _panel.style.display = DisplayStyle.Flex;
         }
 
         public void Hide()
         {
             EnsureCached();
-            _cluster.style.display = DisplayStyle.None;
+            _panel.style.display = DisplayStyle.None;
         }
 
         /// <summary>Sets the turn-number label ("Хід N"). Driven by EndTurnSystem from TurnCountComponent.</summary>
@@ -118,7 +120,7 @@ namespace Modules.MainUI.EndTurn.Views
                 return;
 
             var root = _document.rootVisualElement;
-            _cluster = root.Q<VisualElement>(ClusterName);
+            _panel = root.Q<VisualElement>(PanelName);
             _button = root.Q<Button>(ButtonName);
             _turnNumber = root.Q<Label>(TurnNumberName);
             _cached = true;

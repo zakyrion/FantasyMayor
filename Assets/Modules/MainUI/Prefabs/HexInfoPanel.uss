@@ -1,30 +1,21 @@
-/* Hex info panel — tokens from GENERAL_UI_STYLE.md §4, USS-safe per §9 (no box-shadow/::before/blur).
-   The panel is VISIBLE by default so it previews in UI Builder; at runtime HexInfoPanelSpawnSystem hides it
-   until a hex is selected (HexInfoPanelView.Show/Hide toggle inline display). Icon slots use a placeholder
-   background so the panel reads correctly before terrain/resource sprites are authored.
-   Sizes are scaled +50% from the base design (width 320 → 480, fonts/padding/icons ×1.5). */
+/* Bottom panel — tokens from GENERAL_UI_STYLE.md §6, USS-safe per §11 (no box-shadow / ::before / blur / gradient).
+   ONE full-width shell (§4): left TURN sub-panel (state + End Turn) | right CONTEXT sub-panel (selected hex),
+   split by a vertical divider. The shell previews VISIBLE in UI Builder; at runtime it spawns hidden and
+   EndTurnView reveals it on Gameplay, while HexInfoPanelView swaps ContextFilled <-> ContextEmpty.
+   Sizes are scaled +50% from the mockup base (design-mockups/index.html): every px is the mockup value x1.5. */
 
-.info-panel {
+/* ============ SHELL ============ */
+.bottom-panel {
     position: absolute;
-    right: 24px;
-    bottom: 24px;
-    width: 480px;
-    max-height: 70%;
-    background-color: rgba(24, 20, 16, 0.98);
-    border-left-width: 3px;
-    border-right-width: 3px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    /* Flush to the screen's bottom + side edges (no margins) and fully opaque (no transparency). */
+    background-color: rgb(24, 20, 16);
+    /* Only the top edge floats, so only it carries the gold rim; all four corners are squared (no radius).
+       The other three sides sit at the screen edge and are border-less. */
     border-top-width: 3px;
-    border-bottom-width: 3px;
-    /* Faux-gradient bevel: native per-side border colors (no USS gradient / no sprite). Brighter gold on the
-       top/left edges, dimmer on bottom/right — reads as a gold rim lit from the top-left. */
     border-top-color: rgba(232, 184, 90, 0.65);
-    border-left-color: rgba(224, 178, 90, 0.45);
-    border-right-color: rgba(217, 164, 65, 0.22);
-    border-bottom-color: rgba(184, 140, 60, 0.20);
-    border-top-left-radius: 21px;
-    border-top-right-radius: 21px;
-    border-bottom-left-radius: 21px;
-    border-bottom-right-radius: 21px;
     overflow: hidden;
 }
 
@@ -34,168 +25,55 @@
     background-color: rgb(217, 164, 65);
 }
 
-.header {
+.bp-row {
     flex-direction: row;
-    align-items: center;
-    padding-top: 24px;
-    padding-bottom: 24px;
-    padding-left: 27px;
-    padding-right: 27px;
+    align-items: stretch;
 }
 
-.terrain-icon {
-    width: 84px;
-    height: 84px;
-    margin-right: 21px;
+/* ============ TURN sub-panel (left) ============ */
+.bp-turn {
+    width: 315px;
     flex-shrink: 0;
-    background-color: rgba(255, 255, 255, 0.08);
-    border-top-left-radius: 15px;
-    border-top-right-radius: 15px;
-    border-bottom-left-radius: 15px;
-    border-bottom-right-radius: 15px;
-    border-left-width: 1px;
-    border-right-width: 1px;
-    border-top-width: 1px;
-    border-bottom-width: 1px;
-    border-left-color: rgba(255, 255, 255, 0.10);
-    border-right-color: rgba(255, 255, 255, 0.10);
-    border-top-color: rgba(255, 255, 255, 0.10);
-    border-bottom-color: rgba(255, 255, 255, 0.10);
-}
-
-.header-titles {
     flex-direction: column;
-}
-
-.title {
-    font-size: 30px;
-    color: rgb(241, 231, 214);
-    -unity-font-style: bold;
-}
-
-.coord {
-    font-size: 18px;
-    margin-top: 5px;
-    color: rgb(168, 156, 138);
-}
-
-.section {
     padding-top: 21px;
     padding-bottom: 21px;
-    padding-left: 27px;
-    padding-right: 27px;
-    border-top-width: 1px;
-    border-top-color: rgba(217, 164, 65, 0.14);
-}
-
-.section-label {
-    font-size: 17px;
-    letter-spacing: 2px;
-    margin-bottom: 15px;
-    color: rgb(212, 180, 120);
-}
-
-.chips {
-    flex-direction: row;
-    flex-wrap: wrap;
-}
-
-.chip {
-    flex-direction: row;
-    align-items: center;
-    margin-right: 12px;
-    margin-bottom: 12px;
-    padding-top: 9px;
-    padding-bottom: 9px;
-    padding-left: 12px;
-    padding-right: 16px;
-    background-color: rgba(255, 255, 255, 0.05);
-    border-left-width: 1px;
+    padding-left: 24px;
+    padding-right: 24px;
     border-right-width: 1px;
-    border-top-width: 1px;
-    border-bottom-width: 1px;
-    border-left-color: rgba(255, 255, 255, 0.07);
-    border-right-color: rgba(255, 255, 255, 0.07);
-    border-top-color: rgba(255, 255, 255, 0.07);
-    border-bottom-color: rgba(255, 255, 255, 0.07);
-    border-top-left-radius: 21px;
-    border-top-right-radius: 21px;
-    border-bottom-left-radius: 21px;
-    border-bottom-right-radius: 21px;
+    border-right-color: rgba(217, 164, 65, 0.14);
 }
 
-.chip-icon {
-    width: 33px;
-    height: 33px;
-    margin-right: 11px;
-    flex-shrink: 0;
-    background-color: rgba(255, 255, 255, 0.10);
-    border-top-left-radius: 16px;
-    border-top-right-radius: 16px;
-    border-bottom-left-radius: 16px;
-    border-bottom-right-radius: 16px;
-}
-
-.chip-label {
-    font-size: 20px;
-    color: rgb(241, 231, 214);
-}
-
-.district-placeholder {
-    font-size: 20px;
-    color: rgb(168, 154, 134);
-}
-
-/* Bottom-left turn cluster card — same chrome as the info-panel card (panel-bg + faux-gradient gold rim).
-   Holds "Хід N", the "Дії" placeholder, and the End Turn button. Sized +50% from the design like the panel. */
-.turn-cluster {
-    position: absolute;
-    left: 24px;
-    bottom: 24px;
-    width: 360px;
-    background-color: rgba(24, 20, 16, 0.98);
-    border-left-width: 3px;
-    border-right-width: 3px;
-    border-top-width: 3px;
-    border-bottom-width: 3px;
-    border-top-color: rgba(232, 184, 90, 0.65);
-    border-left-color: rgba(224, 178, 90, 0.45);
-    border-right-color: rgba(217, 164, 65, 0.22);
-    border-bottom-color: rgba(184, 140, 60, 0.20);
-    border-top-left-radius: 18px;
-    border-top-right-radius: 18px;
-    border-bottom-left-radius: 18px;
-    border-bottom-right-radius: 18px;
-    padding-top: 18px;
-    padding-bottom: 18px;
-    padding-left: 21px;
-    padding-right: 21px;
-}
-
-.turn-top {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
+.turn-cap {
+    font-size: 16px;
+    letter-spacing: 2px;
+    color: rgb(125, 114, 100);
 }
 
 .turn-number {
-    font-size: 26px;
-    color: rgb(241, 231, 214);
+    font-size: 33px;
+    margin-top: 3px;
+    color: rgb(224, 178, 90);
     -unity-font-style: bold;
+}
+
+.turn-divider {
+    height: 1px;
+    margin-top: 16px;
+    margin-bottom: 16px;
+    background-color: rgba(217, 164, 65, 0.14);
 }
 
 /* "Дії" (action points) — VISIBLE placeholder; dashes until the AP model lands. */
 .turn-ap {
     flex-direction: row;
     align-items: center;
-    margin-bottom: 15px;
+    margin-bottom: 18px;
 }
 
 .turn-ap-cap {
     font-size: 16px;
-    letter-spacing: 1.5px;
-    color: rgb(212, 180, 120);
+    letter-spacing: 2px;
+    color: rgb(125, 114, 100);
     margin-right: 12px;
 }
 
@@ -223,16 +101,20 @@
     color: rgb(168, 156, 138);
 }
 
-/* End Turn button — the hero CTA, the one filled-gold button (GENERAL_UI_STYLE.md §7 exception). Glow/elevation
-   come from a 9-slice sprite in-engine; USS has no box-shadow / gradient (§9). A lighter border-top fakes a
-   bevel. Full-width inside the cluster card. */
+/* End Turn button — the hero CTA, the one filled-gold button (§9 exception). Pinned to the sub-panel bottom
+   with margin-top: auto so the two sub-panels share a common bottom edge. Glow/elevation come from a 9-slice
+   sprite in-engine; USS has no box-shadow / gradient (§11). A lighter border-top fakes a bevel. */
 .end-turn-button {
+    margin-top: auto;
     width: 100%;
-    padding: 14px 22px;
+    padding-top: 16px;
+    padding-bottom: 16px;
+    padding-left: 22px;
+    padding-right: 22px;
     -unity-text-align: middle-center;
     -unity-font-style: bold;
-    font-size: 14px;
-    letter-spacing: 1.4px;
+    font-size: 18px;
+    letter-spacing: 2px;
     color: rgb(37, 28, 14);
     background-color: rgb(217, 164, 65);
     border-left-width: 1px;
@@ -243,7 +125,10 @@
     border-right-color: rgb(185, 138, 53);
     border-bottom-color: rgb(185, 138, 53);
     border-top-color: rgba(255, 255, 255, 0.4);
-    border-radius: 13px;
+    border-top-left-radius: 15px;
+    border-top-right-radius: 15px;
+    border-bottom-left-radius: 15px;
+    border-bottom-right-radius: 15px;
 }
 
 .end-turn-button:hover {
@@ -258,4 +143,250 @@
     border-right-color: rgba(224, 178, 90, 0.32);
     border-top-color: rgba(224, 178, 90, 0.32);
     border-bottom-color: rgba(224, 178, 90, 0.32);
+}
+
+/* ============ CONTEXT sub-panel (right) ============ */
+.bp-ctx {
+    flex-grow: 1;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.ctx-filled {
+    flex-grow: 1;
+    flex-direction: column;
+}
+
+/* Header row — terrain identity + the district tabs (SCAFFOLD: drill-down windows not built yet). */
+.ctx-hd {
+    flex-direction: row;
+    align-items: center;
+    padding-top: 16px;
+    padding-bottom: 16px;
+    padding-left: 24px;
+    padding-right: 24px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(217, 164, 65, 0.14);
+}
+
+.terrain-icon {
+    width: 51px;
+    height: 51px;
+    margin-right: 15px;
+    flex-shrink: 0;
+    background-color: rgba(255, 255, 255, 0.08);
+    border-top-left-radius: 14px;
+    border-top-right-radius: 14px;
+    border-bottom-left-radius: 14px;
+    border-bottom-right-radius: 14px;
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgba(255, 255, 255, 0.10);
+    border-right-color: rgba(255, 255, 255, 0.10);
+    border-top-color: rgba(255, 255, 255, 0.10);
+    border-bottom-color: rgba(255, 255, 255, 0.10);
+}
+
+.ctx-titles {
+    flex-direction: row;
+    align-items: baseline;
+    margin-right: 21px;
+}
+
+.ctx-title {
+    font-size: 23px;
+    color: rgb(241, 231, 214);
+    -unity-font-style: bold;
+}
+
+.ctx-coord {
+    font-size: 16px;
+    margin-left: 8px;
+    color: rgb(125, 114, 100);
+}
+
+/* District tabs — SCAFFOLD; not wired to drill-down windows yet, visual chrome only. */
+.ctx-tab {
+    font-size: 18px;
+    margin-right: 6px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    padding-left: 14px;
+    padding-right: 14px;
+    color: rgb(168, 156, 138);
+}
+
+.ctx-tab--active {
+    color: rgb(241, 231, 214);
+    border-bottom-width: 2px;
+    border-bottom-color: rgb(224, 178, 90);
+}
+
+.ctx-body {
+    flex-direction: row;
+    align-items: stretch;
+    flex-grow: 1;
+}
+
+.ctx-a {
+    flex-grow: 1;
+    min-width: 0;
+    padding-top: 20px;
+    padding-bottom: 20px;
+    padding-left: 24px;
+    padding-right: 24px;
+}
+
+.ctx-b {
+    width: 345px;
+    flex-shrink: 0;
+    padding-top: 20px;
+    padding-bottom: 20px;
+    padding-left: 24px;
+    padding-right: 24px;
+    border-left-width: 1px;
+    border-left-color: rgba(217, 164, 65, 0.14);
+}
+
+.section {
+    margin-bottom: 18px;
+}
+
+.section-label {
+    font-size: 16px;
+    letter-spacing: 2px;
+    margin-bottom: 14px;
+    color: rgb(125, 114, 100);
+}
+
+/* ---- chips ---- */
+.chips {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.chip {
+    flex-direction: row;
+    align-items: center;
+    margin-right: 12px;
+    margin-bottom: 12px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    padding-left: 12px;
+    padding-right: 16px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgba(255, 255, 255, 0.07);
+    border-right-color: rgba(255, 255, 255, 0.07);
+    border-top-color: rgba(255, 255, 255, 0.07);
+    border-bottom-color: rgba(255, 255, 255, 0.07);
+    border-top-left-radius: 30px;
+    border-top-right-radius: 30px;
+    border-bottom-left-radius: 30px;
+    border-bottom-right-radius: 30px;
+}
+
+.chip-icon {
+    width: 30px;
+    height: 30px;
+    margin-right: 11px;
+    flex-shrink: 0;
+    background-color: rgba(255, 255, 255, 0.10);
+    border-top-left-radius: 15px;
+    border-top-right-radius: 15px;
+    border-bottom-left-radius: 15px;
+    border-bottom-right-radius: 15px;
+}
+
+.chip-label {
+    font-size: 20px;
+    color: rgb(241, 231, 214);
+}
+
+/* ---- key-value grid (District scaffold) ---- */
+.kvgrid {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.kvcol {
+    min-width: 192px;
+    margin-right: 33px;
+}
+
+.kv {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 6px;
+    padding-bottom: 6px;
+}
+
+.kv-k {
+    font-size: 18px;
+    color: rgb(168, 156, 138);
+}
+
+.kv-v {
+    font-size: 18px;
+    color: rgb(241, 231, 214);
+    -unity-font-style: bold;
+}
+
+.kv-v--warn {
+    color: rgb(232, 169, 106);
+}
+
+.kv-v--city {
+    color: rgb(127, 176, 214);
+}
+
+.kv-v--oper {
+    color: rgb(158, 199, 138);
+}
+
+/* ---- yield split-bar (Yield scaffold) ---- */
+.split-bar {
+    flex-direction: row;
+    height: 14px;
+    margin-bottom: 16px;
+    border-top-left-radius: 9px;
+    border-top-right-radius: 9px;
+    border-bottom-left-radius: 9px;
+    border-bottom-right-radius: 9px;
+    overflow: hidden;
+}
+
+.split-seg {
+    height: 100%;
+}
+
+.split-seg--city {
+    background-color: rgb(91, 139, 176);
+}
+
+.split-seg--owner {
+    background-color: rgb(224, 178, 90);
+}
+
+.split-seg--oper {
+    background-color: rgb(111, 160, 91);
+}
+
+.scaffold-tag {
+    font-size: 15px;
+    margin-top: 12px;
+    color: rgb(125, 114, 100);
+    -unity-font-style: italic;
+}
+
+/* ============ CONTEXT empty state (nothing selected) ============ */
+/* Intentionally blank — no tabs, no hint text. The container only exists as the swap target. */
+.ctx-empty-wrap {
+    flex-grow: 1;
 }

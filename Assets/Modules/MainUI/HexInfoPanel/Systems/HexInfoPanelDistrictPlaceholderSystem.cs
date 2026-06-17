@@ -7,10 +7,11 @@ using Modules.MainUI.HexInfoPanel.Events;
 namespace Modules.MainUI.HexInfoPanel.Systems
 {
     /// <summary>
-    ///     SCAFFOLD. The district block has no backing ECS components yet — District / Owner / Operator /
-    ///     Workforce / Yield live only at the GAMEPLAY_FOUNDATION level. This placeholder keeps the block
-    ///     hidden on every refresh until those components exist; replace it with the real district subsystem
-    ///     when they land.
+    ///     SCAFFOLD. The District-economy blocks have no backing ECS components yet — District / Owner /
+    ///     Operator / Workforce / Yield live only at the GAMEPLAY_FOUNDATION level. This placeholder keeps both
+    ///     the District kvgrid and the "Вихід цього ходу" yield split hidden on every refresh (one call —
+    ///     <see cref="Views.HexInfoPanelView.SetDistrictVisible" /> toggles both) until those components exist;
+    ///     replace it with the real district subsystem when they land.
     /// </summary>
     [UsedImplicitly]
     public sealed class HexInfoPanelDistrictPlaceholderSystem : UpdatedSystem

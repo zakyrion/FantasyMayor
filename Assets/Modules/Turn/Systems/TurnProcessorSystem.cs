@@ -24,11 +24,10 @@ namespace Modules.Turn.Systems
     public sealed class TurnProcessorSystem : IUpdatedSystem
     {
         private const int ExecutionPriority = 1000;
-
-        private readonly World _world;
+        private readonly EntitySet _nextTurnPulses;
         private readonly IReadOnlyList<TurnPhaseSubSystem> _phases;
         private readonly TurnPhaseRunner _runner = new();
-        private readonly EntitySet _nextTurnPulses;
+        private readonly World _world;
 
         public bool IsEnabled { get; set; } = true;
 
@@ -43,30 +42,28 @@ namespace Modules.Turn.Systems
 
         public void Update(GameState state)
         {
-            if (_world.Has<TurnProcessorComponent>())
+            if (!_world.Has<TurnProcessorComponent>())
             {
-                if (_world.Get<TurnProcessorComponent>().Status == TurnProcessorStatus.Completed)
-                {
-                    _world.Remove<TurnProcessorComponent>();
-                    Debug.Log("[TurnProcessorSystem] Turn completed.");
+                if (_nextTurnPulses.Count == 0)
+                    return;
 
-                    // Announce the turn boundary so the counter (and future turn-boundary reactors) advance,
-                    // without coupling them to this completion check. One-frame pulse, cleared by EventCleanup.
-                    var completed = _world.CreateEntity();
-                    completed.Set(new TurnCompletedEvent());
-                    completed.Set(new EventTag());
-                }
-
-                // A turn is in progress: ignore further pulses (re-entry guard).
+                _world.Set(new TurnProcessorComponent { Status = TurnProcessorStatus.Running });
+                Debug.Log("[TurnProcessorSystem] Turn started.");
+                RunTurnAsync().Forget();
                 return;
             }
 
-            if (_nextTurnPulses.Count == 0)
-                return;
+            if (_world.Get<TurnProcessorComponent>().Status == TurnProcessorStatus.Completed)
+            {
+                _world.Remove<TurnProcessorComponent>();
+                Debug.Log("[TurnProcessorSystem] Turn completed.");
 
-            _world.Set(new TurnProcessorComponent { Status = TurnProcessorStatus.Running });
-            Debug.Log("[TurnProcessorSystem] Turn started.");
-            RunTurnAsync().Forget();
+                // Announce the turn boundary so the counter (and future turn-boundary reactors) advance,
+                // without coupling them to this completion check. One-frame pulse, cleared by EventCleanup.
+                var completed = _world.CreateEntity();
+                completed.Set(new TurnCompletedEvent());
+                completed.Set(new EventTag());
+            }
         }
 
         public void Dispose()

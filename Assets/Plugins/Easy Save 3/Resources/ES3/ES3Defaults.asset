@@ -54,7 +54,6 @@ MonoBehaviour:
     - glTFast.Export
     - glTFast.Newtonsoft
     - Hexes.Core
-    - Hexes.UI
     - HexIcons
     - HexResources
     - HexResourcesView
@@ -62,12 +61,14 @@ MonoBehaviour:
     - Installers.World
     - MainCanvas.Core
     - MainCanvas.Implementation
+    - MainUI
     - Pathfinding
     - Pathfinding.Installer
     - Sirenix.OdinInspector.Modules.Unity.Addressables
     - Sirenix.OdinInspector.Modules.UnityLocalization
     - Terrain.Generator
     - Terrain.View
+    - Turn
     - UniTask
     - UniTask.Addressables
     - UniTask.DOTween

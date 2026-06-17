@@ -8,7 +8,8 @@ using Modules.Turn.Components;
 namespace Modules.MainUI.EndTurn.Systems
 {
     /// <summary>
-    ///     Drives the turn cluster each Gameplay frame: reveals it (it spawns hidden), reflects whether a turn is
+    ///     Drives the turn corner each Gameplay frame and owns the bottom-panel shell reveal: reveals the whole
+    ///     panel (it spawns hidden) since the turn corner is its always-present part, reflects whether a turn is
     ///     running — Processing while a <see cref="TurnProcessorComponent" /> exists, Ready otherwise — and
     ///     pushes the current turn number from <see cref="TurnCountComponent" /> into "Хід N". The
     ///     click→NextTurnEvent emit lives in the view; this only mirrors engine state. Stateless: Show,
