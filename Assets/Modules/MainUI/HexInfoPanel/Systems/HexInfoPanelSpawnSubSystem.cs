@@ -4,6 +4,7 @@ using JetBrains.Annotations;
 using Modules.MainUI.HexInfoPanel.Components;
 using Modules.MainUI.HexInfoPanel.Views;
 using Modules.MainUI.Systems;
+using Modules.MainUI.Tags;
 using UnityEngine;
 
 namespace Modules.MainUI.HexInfoPanel.Systems
@@ -38,6 +39,7 @@ namespace Modules.MainUI.HexInfoPanel.Systems
 
             var panelEntity = _world.CreateEntity();
             panelEntity.Set(new HexInfoPanelViewComponent(view));
+            panelEntity.Set<UITag>();
 
             // Hidden until a hex is selected; HexInfoPanelSystem shows it.
             view.Hide();

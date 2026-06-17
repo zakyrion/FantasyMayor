@@ -4,6 +4,7 @@ using JetBrains.Annotations;
 using Modules.MainUI.EndTurn.Components;
 using Modules.MainUI.EndTurn.Views;
 using Modules.MainUI.Systems;
+using Modules.MainUI.Tags;
 using UnityEngine;
 
 namespace Modules.MainUI.EndTurn.Systems
@@ -38,6 +39,7 @@ namespace Modules.MainUI.EndTurn.Systems
 
             var entity = _world.CreateEntity();
             entity.Set(new EndTurnViewComponent(view));
+            entity.Set<UITag>();
 
             // Hidden until Gameplay; EndTurnSystem shows it.
             view.Hide();

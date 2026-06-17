@@ -4,12 +4,13 @@ using System.Linq;
 using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
+using DefaultEcs;
 using DefaultECSExtensions;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using Modules.Boot.Core;
 using Modules.MainCanvas.Core;
-using UnityEngine;
+using Modules.MainUI.Components;
 
 namespace Modules.MainUI.Systems
 {
@@ -28,32 +29,26 @@ namespace Modules.MainUI.Systems
         private readonly IAddressable _addressable;
         private readonly IMainCanvasProvider _canvasProvider;
         private readonly IReadOnlyList<MainUISpawnSubSystem> _subSystems;
-
-        private Box<GameObject> _rootBox;
-        private bool _isDisposed;
-        private bool _isLoaded;
+        private readonly World _world;
 
         public int Priority => ExecutionPriority;
 
-        public MainUISpawnSystem(
+        public MainUISpawnSystem(World world,
             IAddressable addressable,
             IMainCanvasProvider canvasProvider,
             IReadOnlyList<MainUISpawnSubSystem> subSystems)
         {
             _addressable = addressable;
             _canvasProvider = canvasProvider;
+            _world = world;
             _subSystems = subSystems
                 .OrderBy(system => system.Priority)
                 .ToArray();
-            _rootBox = Box<GameObject>.Empty();
         }
 
         public async UniTask Update(TerrainGenerationStep state, CancellationToken cancellationToken)
         {
-            if (_isDisposed)
-                throw new ObjectDisposedException(GetType().Name);
-
-            if (_isLoaded)
+            if (_world.Has<MainUIComponent>())
                 return;
 
             var canvas = _canvasProvider.RootGO;
@@ -75,8 +70,10 @@ namespace Modules.MainUI.Systems
                 throw new InvalidOperationException(
                     $"MainUISpawnSystem: failed to load Main UI by address '{MainUIPath}'.");
 
-            _rootBox = result.Box;
-            var mainUi = _rootBox.Value;
+            _world.Set(new MainUIComponent
+            {
+                RootBox = result.Box
+            });
 
             // Subsystems do not instantiate — each pulls its view off the shared Main UI instance.
             foreach (var subSystem in _subSystems)
@@ -84,21 +81,17 @@ namespace Modules.MainUI.Systems
                 if (!subSystem.IsEnabled)
                     continue;
 
-                subSystem.Prepare(mainUi);
+                subSystem.Prepare(result.Box.Value);
             }
-
-            _isLoaded = true;
         }
 
         public void Dispose()
         {
-            if (_isDisposed)
-                return;
-
-            _isDisposed = true;
-
-            if (_rootBox.Exist)
-                _rootBox.Dispose();
+            if (_world != null && _world.Has<MainUIComponent>())
+            {
+                _world.Get<MainUIComponent>().RootBox.Dispose();
+                _world.Remove<MainUIComponent>();
+            }
         }
     }
 }
