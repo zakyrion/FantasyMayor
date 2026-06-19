@@ -25,10 +25,12 @@ tokens, a component catalog, and the procedure for designing any new panel or wi
 > bindings of one concrete window) live in that window's **own** doc, which references this one. Do not put
 > per-window content here. See "Per-Window Docs" below.
 >
-> **Living visual example:** `design-mockups/index.html` — the full HUD in two states (A: nothing selected,
-> bottom panel empty; B: a hex selected, bottom panel filled). It is the reference render for the layout and
-> the skin described here. Open it when a verbal description is ambiguous. `design-mockups/main-screen.html`
-> is the SUPERSEDED previous layout (left rail + bottom-right hex panel) — do NOT use it as a reference.
+> **Living visual example:** `design-mockups/FantasyMayor-HUD.html` — the canonical HUD render (full-width
+> top bar + full-width bottom panel with two sub-panels; the context sub-panel showing a selected hex+district
+> with the Огляд / Будівлі / Дії tabs). It is the reference render for the layout and the skin described here.
+> Open it when a verbal description is ambiguous. It renders the FILLED context state; the empty STATE is
+> described in §4. (The earlier `index.html` / `main-screen.html` mockups were superseded by this render and
+> removed — do NOT look for them.)
 
 ---
 
@@ -101,7 +103,7 @@ empire-scale or cold-industrial; tone and scale are OURS.
 ## 4. Global HUD Layout
 
 This is the canonical map of the permanent HUD. Every new UI element must be placed into one of these
-regions. The render reference is `design-mockups/index.html`.
+regions. The render reference is `design-mockups/FantasyMayor-HUD.html`.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -124,17 +126,24 @@ regions. The render reference is `design-mockups/index.html`.
 
 - **Top bar — full width, permanent.** Three zones:
   - **left — global window openers.** Buttons that open read-only full-screen state windows (Огляд,
-    Населення, Економіка, …). These are global (not tied to a selection).
-  - **center — resource pool.** The current inventory pools (їжа, колоди, дошки, населення, золото, …) as
-    `icon + value`. Glanceable; drill-down opens a fuller window.
-  - **right — system icons.** Events (with a count badge), season/turn-calendar, settings.
+    Населення, Економіка, Райони, …). These are global (not tied to a selection).
+  - **center — resource pool, as an owner×resource matrix.** Rows = the pool owners (Мер, Місто); columns =
+    the shared resource set (золото, їжа, колоди, дошки, …) as `icon + value`, with the Мер row also carrying
+    its AP (⚖️) and a second leadership stat (🔥). Each owner reads its own value in the same column; values
+    are role-colored where a role owns them. A trailing `⋯` expander opens the fuller resource window.
+  - **right — system icons.** Events (with a count badge) and settings. **No season / turn-calendar here** —
+    season and phase are not shown anywhere on the HUD.
 - **Bottom panel — full width, permanent, two sub-panels** divided by a vertical divider:
-  - **left sub-panel — turn (state + commit).** «Хід N», read-only turn state (Сезон / Фаза / Події), and
-    the **«Завершити хід»** button pinned to the bottom. This is the player's turn corner; the End Turn
-    button is the single hero CTA on the whole HUD.
-  - **right sub-panel — context.** The selected hex / district detail: header (terrain identity), the
-    district's own tabs (Огляд / Будівлі / Вихід → each opens a **full window**), and the body
-    (`Ресурси гексу` + `Район` + `Вихід цього ходу`).
+  - **left sub-panel — turn (state + commit).** «Хід N», two AP tiles (`Дії зараз` / `наст. хід`), and the
+    **«Завершити хід»** button pinned to the bottom (`margin-top: auto`). This is the player's turn corner;
+    the End Turn button is the single hero CTA on the whole HUD. **No season / phase here.**
+  - **right sub-panel — context.** The selected hex / district detail, organized as a **tab row**
+    (Огляд / Будівлі / Дії) with a trailing faint drill-in `↗ повне вікно району`. Tab content is a set of
+    **discrete bordered blocks** (the Shadow Empire density lens, see §7) — stat-tiles and key–value tables,
+    **never** progress bars / sliders. Canonical Огляд blocks: **ГЕКС** (terrain icon + type as a compact
+    line + resource chips), **РАЙОН** (serif name + level + owner / operator / buildings / specialization
+    k-v), **ПРАЦЯ ТА ВИРОБНИЦТВО** (one labor line + production table). The **Дії** tab hosts the selected
+    district's action **cards** (icon + name + AP cost) — agency stays card-shaped (§9), not inline buttons.
 - **Left edge / right edge — free.** No permanent panels. (There is NO right-side hex inspector — its role is
   the bottom panel's right sub-panel.)
 - **Center — the map.** Never covered by a permanent panel.
@@ -143,8 +152,10 @@ regions. The render reference is `design-mockups/index.html`.
 
 - **Top bar = global state.** **Bottom-left = turn state + the turn commit.** **Bottom-right = contextual
   state.** All read-only except «Завершити хід».
-- **Agency (Mayor's domain actions) is NOT on the permanent HUD.** It opens as an on-demand window (the action
-  deck, §9). There is intentionally no «Дії мера» button docked in the HUD.
+- **Agency stays card-shaped (§9).** The selected district's actions appear as **cards** in the context
+  sub-panel's **Дії** tab (icon + name + AP cost). The Mayor's global free-action deck still opens as an
+  on-demand window (§9). What stays banned: an inline action **button** on a state block, and a permanent
+  «Дії мера» button docked in the HUD chrome — agency is never an inline state-panel control.
 
 ### The bottom panel is ALWAYS present
 
@@ -182,8 +193,10 @@ Run this every time a new panel/window is requested.
    - an enumerable set (resources, tags) → **chips**
    - a single attribute (owner, action) → **key–value row**
    - a status / badge → **pill**
-   - a proportional breakdown (yield split) → **split bar + breakdown rows**
-   - a value modified by a factor (yield reduced by labor) → **value-with-correction**
+   - a multi-good distribution (production split City / Owner / Operator) → **production table** (row per
+     good, role-colored share columns) — NOT a stacked split bar
+   - a labor-limited output → state the limit ONCE on the **labor line** (`N / M груп · X% · виробництво
+     обмежено`, amber when short); do not also strike through each produced value
 5. **Apply tokens** from §6. Color must encode meaning (role / resource / status), never decoration.
 6. **Keep it read-only.** If the design wants an action, that action belongs on a **card**, not the panel
    (sole HUD exception: «Завершити хід»).
@@ -194,7 +207,7 @@ Run this every time a new panel/window is requested.
 
 ## 6. Visual Tokens
 
-These are canonical. Use them verbatim. The values mirror `design-mockups/index.html`.
+These are canonical. Use them verbatim. The values mirror `design-mockups/FantasyMayor-HUD.html`.
 
 ### Color
 
@@ -202,12 +215,13 @@ These are canonical. Use them verbatim. The values mirror `design-mockups/index.
 - `--panel-bg: rgba(30, 25, 20, 0.93)` — panel background, warm near-black, translucent
 - `--panel-border: rgba(217, 164, 65, 0.28)` — gold-tinted hairline border
 - `--divider: rgba(217, 164, 65, 0.14)` — internal section dividers
+- `--block-border: rgba(217, 164, 65, 0.16)` — outline of a discrete context-tab block (Shadow Empire lens)
 - `--chip-bg: rgba(255, 255, 255, 0.05)` — chip / inset fill
 
 **Text tiers** (three levels, never more)
 - `--txt: #f1e7d6` — primary, warm off-white (titles, values)
 - `--txt-dim: #a89a86` — secondary (row labels)
-- `--txt-faint: #7d7264` — tertiary (section labels, captions, coordinates)
+- `--txt-faint: #7d7264` — tertiary (section labels, captions)
 
 **Accent**
 - `--gold: #e0b25a` — primary accent (title emphasis, level, AP cost, turn number)
@@ -235,14 +249,14 @@ Scale (px) and weight:
 - emphasis value (e.g. headline yield) — 15, sans
 - body / rows — 12–13, sans, weight 400; values weight 500
 - section label — 11, sans, **UPPERCASE**, letter-spacing ~1.4px, color `--txt-faint`
-- caption / coordinate — 11–12, sans, color `--txt-faint`
+- caption — 11–12, sans, color `--txt-faint`
 
 ### Spacing, Radius, Elevation
 
 - **Padding:** header `12px 16px`; section `13px 16px`; key–value row `4px–7px 0`.
 - **Gaps:** chip row `8px`; header icon→text `10–14px`.
-- **Radius:** panel `13–14px`; terrain icon `9–10px`; pill `10px`; chip `20px` (full-round); split bar `6px`;
-  swatch `3px`.
+- **Radius:** panel `13–14px`; context-tab block `9px`; terrain icon `9–10px`; pill `10px`; chip
+  `20px` (full-round); swatch `3px`.
 - **Elevation:** drop shadow `0 10px 30px rgba(0,0,0,0.45)` + inset top highlight
   `inset 0 1px 0 rgba(255,255,255,0.04)`; panel backdrop blur `6px` (mockup only — see §11 USS gotchas).
 - **Motif:** a 3px gold gradient **accent line** along a floating panel's top edge (the bottom panel and
@@ -271,20 +285,26 @@ Each entry: **use for** / **structure** / **anti-pattern**. Build new panels fro
 - **Use for:** one logical group inside a panel.
 - **Structure:** an UPPERCASE `--txt-faint` label, then the section body; `13px 16px` padding; a `--divider`
   separates it from the previous section.
+- **Bordered-block variant (context tabs):** inside the context sub-panel's tab content, sections become
+  **discrete bordered blocks** — own thin gold outline (`--block-border`, radius 9px) + UPPERCASE label —
+  packed densely (Shadow Empire lens). Each block must be **densely filled**, no half-empty block with air at
+  the bottom. Use this variant inside the context tabs; use divider-separated sections elsewhere.
 - **Anti-pattern:** rendering the section when it has no data (omit it — except the bottom panel's empty STATE).
 
 ### Header
-- **Use for:** the always-present identity row at the top of a panel.
-- **Structure:** square icon (terrain/entity sprite) + title (serif) + subtitle/caption (e.g. coordinate).
-- **Anti-pattern:** burying the entity's identity below other data.
+- **Use for:** the always-present identity row at the top of a panel or block.
+- **Structure:** square icon (terrain/entity sprite) + name. **Serif is reserved for proper names**
+  (the district name); a terrain TYPE is a compact sans line, not a big serif headline. No coordinate caption.
+- **Anti-pattern:** burying the entity's identity below other data; rendering a hex's terrain type as a large
+  serif headline (that weight is for the district name).
 
 ### Tabs
-- **Use for:** switching views inside a panel that drills into full windows (the bottom-panel context tabs;
-  Shadow Empire model).
-- **Structure:** a horizontal row of text tabs; the active tab carries a 2px gold bottom border; a trailing
-  `↗ повне вікно` affordance signals the tab opens a full-screen window.
-- **Anti-pattern:** tabs that hide an action behind them (agency belongs on cards); tabs with no full-window
-  drill-down when the data clearly needs more room.
+- **Use for:** switching views inside the context sub-panel (Огляд / Будівлі / Дії; Shadow Empire model);
+  a tab may drill into a full window via the trailing `↗ повне вікно району`.
+- **Structure:** a horizontal row of text tabs; the active tab carries a 2px gold bottom border (`--gold`);
+  a trailing faint `↗ повне вікно району` affordance signals the full-screen drill-down.
+- **Anti-pattern:** a tab that fires an action itself (a tab only switches the view); inline action buttons
+  inside a state block — agency is card-shaped and lives as cards in the Дії tab (§9).
 
 ### Divider
 - **Use for:** separating sections (horizontal) or sub-panels (vertical).
@@ -300,7 +320,7 @@ Each entry: **use for** / **structure** / **anti-pattern**. Build new panels fro
 - **Use for:** a single attribute of the entity (owner, operator, active action, workforce, season, phase).
 - **Structure:** label left (`--txt-dim`), value right (`--txt`, weight 500). Role values carry the role color
   (city blue, operator green). Group related rows into columns when horizontal room allows.
-- **Anti-pattern:** packing a proportional breakdown into one row (use a split bar).
+- **Anti-pattern:** packing a multi-good distribution into one row (use a production table).
 
 ### Pills
 - **Use for:** compact status badges inside a value.
@@ -313,18 +333,23 @@ Each entry: **use for** / **structure** / **anti-pattern**. Build new panels fro
   is shown.
 - **Anti-pattern:** showing the same role in different colors across panels.
 
-### Split bar + breakdown rows
-- **Use for:** a **proportional distribution** (yield split City / Owner / Operator).
-- **Structure:** a thin stacked horizontal bar segmented by the role palette (fast proportion read) **plus**
-  breakdown rows giving exact amount + % per recipient (precise read). Bar segment widths must match the row
-  percentages.
-- **Anti-pattern:** a bar whose segments don't visually match the listed numbers.
+### Production table
+- **Use for:** a district's **production split** across recipients (City / Owner / Operator), possibly for
+  **several goods** at once.
+- **Structure:** a compact table — one **row per good** (`icon + name + total`) and three role-colored
+  columns (`Місто` blue / `Власн.` gold / `Опер.` green) holding each recipient's signed share; a small role
+  swatch heads each column. No stacked / segmented bar.
+- **Anti-pattern:** a stacked split-bar (rejected — does not scale to multiple goods and reads as decoration);
+  using the word «вихід» (the term is **«виробництво»**).
 
-### Value-with-correction
-- **Use for:** a number **modified by a factor** (yield reduced by a labor shortage).
-- **Structure:** the **effective** value shown prominently; below it, a faint caption with the **potential**
-  value struck through + the **reason** for the delta (e.g. `потенціал ~~+8~~ · −2 нестача праці`).
-- **Anti-pattern:** showing only the raw effective number — always surface the causality.
+### Labor line
+- **Use for:** the single labor / utilization readout of a district (replaces the old struck-through
+  "value-with-correction" — the limit is stated ONCE, here, not on each produced value).
+- **Structure:** one line — `N / M груп · X% · виробництво обмежено` — in an **amber** bordered inset
+  (`--warn`) when labor is short, plain when fully staffed. This is the single place the shortage and its
+  effect on production are stated.
+- **Anti-pattern:** splitting labor into two readouts («групи праці» + «завантаження» — the same fact twice);
+  ALSO striking through each produced value with `потенціал ~~+8~~ −2` (the labor line already said why).
 
 ---
 
@@ -345,10 +370,12 @@ Region placement is §4. These are the per-panel rules once a panel is placed.
 ## 9. Interaction Model
 
 - Permanent panels are **read-only**; their only exception is the **«Завершити хід»** turn-commit button.
-- All player agency (build, negotiate, invest, intervene) is delivered through **Mayor cards/decks**, opened
-  on demand — never docked in the permanent HUD, never as buttons on a state panel.
-- A pill/badge on a state panel must never be clickable. If a design pressures you to add an action to a
-  panel, that is a signal the action belongs on a card.
+- All player agency (build, negotiate, invest, intervene) is delivered through **cards/decks**, never as
+  inline buttons on a state block. A district's action cards are hosted in the context sub-panel's **Дії**
+  tab; the Mayor's global free-action deck opens **on demand** as a window. Cards — not docked buttons — are
+  the only form agency takes.
+- A pill/badge on a state block must never be clickable. If a design pressures you to add an action to a
+  state block, that is a signal the action belongs on a card (in the Дії tab or the on-demand deck).
 
 ### Agency window archetypes (Old World lens)
 
@@ -378,12 +405,14 @@ they only show state. Distinguish them clearly from the agency windows above.
 
 ## 10. Microcopy & Numbers
 
-- **Section labels:** UPPERCASE, short, noun phrase (`РЕСУРСИ ГЕКСУ`, `ВИХІД ЦЬОГО ХОДУ`).
+- **Section labels:** UPPERCASE, short, noun phrase (`РЕСУРСИ`, `ПРАЦЯ ТА ВИРОБНИЦТВО`).
+- **Term is «виробництво», never «вихід».** Remove «вихід» from every UI string.
 - **Signed quantities:** always show the sign for deltas/yields — `+6`, `−2`.
 - **Resource amounts:** pair the number with the resource icon; keep icon/number order consistent within a
   given context (headline: icon → `+N` → unit name; dense rows: `+N` → icon → `%`).
 - **Percentages:** shown alongside each share in a breakdown.
-- **Modified values:** always pair effective + struck potential + reason (see Value-with-correction).
+- **Labor-limited production:** state the limit ONCE on the labor line (`N / M груп · X% · виробництво
+  обмежено`); do not strike through each produced value.
 - **In-game strings are Ukrainian** (the player-facing language). Keep this doc's prose English (matches the
   repo's reference docs), but use real Ukrainian strings in examples.
 
@@ -402,6 +431,7 @@ Tokens become **USS custom properties**, assigned on a root/theme selector and r
   --panel-bg: rgba(30, 25, 20, 0.93);
   --panel-border: rgba(217, 164, 65, 0.28);
   --divider: rgba(217, 164, 65, 0.14);
+  --block-border: rgba(217, 164, 65, 0.16);
   --txt: #f1e7d6;
   --txt-dim: #a89a86;
   --txt-faint: #7d7264;
@@ -463,7 +493,7 @@ How to assemble any panel. This is the default; deviate only with a stated reaso
 - **Placeholder / SCAFFOLD blocks.** A block whose backing ECS components do not exist yet is driven by a
   **placeholder system** that supplies stub data or keeps the block hidden, until the real components land.
   Mark such blocks `SCAFFOLD` in the window's own doc (current SCAFFOLD: the District block and the
-  `Вихід цього ходу` yield split — both wait on the District-economy data).
+  production table — both wait on the District-economy data).
 
 ---
 
@@ -494,9 +524,12 @@ exists today.
 | Put a permanent panel on the left/right edge or over the center | Eats the map; breaks "UI on the edges" | Top bar, bottom panel, or an on-demand window |
 | Render a conditional section with no data | Dead space; breaks progressive disclosure | Omit it (except the bottom panel's designed empty STATE) |
 | Make the bottom panel appear/disappear on selection | Layout jump; loses the muscle-memory anchor | Keep the shell permanent; swap only the context CONTENT |
-| Dock a «Дії мера» / action button on the HUD | Violates state-vs-agency | Open the action deck on demand (§9) |
+| Dock a permanent «Дії мера» button, or an inline action button on a state block | Violates state-vs-agency | District actions are **cards** in the Дії tab; the global action deck opens on demand (§9) |
 | Put an action button on a state panel | Muddies the mental model | Move it to a Mayor card (only HUD action = «Завершити хід») |
-| Show a modified number raw (`+6` only) | Hides causality | Effective + struck potential + reason |
+| Strike through each produced value (`потенціал ~~+8~~ −2`) | Duplicates the cause already on the labor line | State the shortage ONCE on the labor line |
+| Use the word «вихід» in any UI string | Wrong term | Use «виробництво» |
+| A stacked split-bar for the production split | Does not scale to multiple goods; reads as decoration | Production table (row per good, role columns) |
+| Show season / phase anywhere on the HUD | Removed from the HUD this pass | Omit it — no season/phase on the top bar or the turn corner |
 | Invent a new accent color per panel | Breaks visual unity | Reuse the token palette |
 | Recolor the same role across panels | Breaks the role-color language | city=blue, owner=gold, operator=green everywhere |
 | Cold / steel palette | Wrong tone for a `cozy` game | Warm dark + gold |
