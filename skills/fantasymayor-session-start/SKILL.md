@@ -1,6 +1,6 @@
 ---
 name: fantasymayor-session-start
-description: Load and resume working context for the FantasyMayor repository by reading `CLAUDE.md`, executing its startup instructions, reading the remaining root Markdown files, identifying where work appears to have stopped, surfacing any conflicting status notes between documents, and ending by asking the user what to do next. Use when starting a new session in this repository, when the user asks to resume context, continue prior work, or find the current roadmap before making changes.
+description: Load and resume working context for the FantasyMayor repository by reading `CLAUDE.md`, following it to `INDEX.md` (the generated doc map), reading only the docs `INDEX.md` marks `read: always`, identifying where work appears to have stopped, surfacing any conflicting status notes between documents, and ending by asking the user what to do next. Use when starting a new session in this repository, when the user asks to resume context, continue prior work, or find the current roadmap before making changes.
 ---
 
 # FantasyMayor Session Start
@@ -20,28 +20,21 @@ Only after provided asnwer you must to continue this skill.
 
 ### 1. Load startup instructions first
 
-Read `CLAUDE.md` before anything else.
+Read `CLAUDE.md` before anything else, then read `INDEX.md` (CLAUDE.md "Start Working" points there). `INDEX.md` is the generated doc map and the single source of the start-reading list.
 
-Execute the instructions inside `CLAUDE.md`, not just summarize them. At minimum this means reading:
-- `ARCHITECTURE.md`
-
-If `CLAUDE.md` points to additional mandatory startup material, read that too.
-
-Respect the repository constraints you find there, especially:
+Respect the repository constraints in `CLAUDE.md`, especially:
 - startup-order requirements
 - Unity build restrictions
 - module-folder rules
 - "read on demand" references such as Addressables patterns or terrain/isoline pre-read files
 
-Do not preload optional deep-dive files unless the current startup flow or the user's request requires them.
+### 2. Read only the start-reading set
 
-### 2. Read the remaining root Markdown files
+Read every doc `INDEX.md` marks `read: always` (currently `ARCHITECTURE.md`, `DOC_STANDARD.md`, `GAMEPLAY_FOUNDATION.md`).
 
-After completing the startup documents, read the other Markdown files in the repository root.
+Do **not** read all root Markdown, and do **not** preload `trigger` or `reference` docs — `INDEX.md` already summarizes each one. Glance at the index and read a `trigger`/`reference` doc only when the user's task needs it. Ignore nested package/plugin READMEs.
 
-Ignore nested package/plugin READMEs during this startup pass unless a root file explicitly sends you there or the user asks for work in that area.
-
-Treat root Markdown as potentially inconsistent. Compare documents rather than assuming the first one is canonical.
+Treat the always-read docs as potentially inconsistent. Compare them rather than assuming the first one is canonical. For "what is the current state", the `status` column in `INDEX.md` is the fast machine-readable view; the prose `## Current State` in each module doc is the authoritative detail.
 
 ### 3. Reconstruct the current state
 
@@ -54,8 +47,8 @@ Extract only the facts that help resume work:
 When documents conflict, do not silently merge them. State the conflict explicitly with file names and the differing claims.
 
 Use simple priority rules:
-- treat process and safety rules in `CLAUDE.md` and `SESSION_START.md` as mandatory
-- treat dated status notes as useful evidence for recency
+- treat process and safety rules in `CLAUDE.md` and `DOC_STANDARD.md` as mandatory
+- treat dated status notes and the `status` column in `INDEX.md` as evidence of current state
 - when two roadmap documents disagree, surface both and ask the user which one is current
 
 ### 4. Hand control back to the user
@@ -71,7 +64,7 @@ Respond in the user's language. Keep the summary short and operational.
 Use this structure:
 
 1. `Read`
-   List the startup and root files you loaded.
+   List the files you loaded (`CLAUDE.md`, `INDEX.md`, and the `read: always` docs).
 
 2. `Current state`
    State where the project appears to have stopped and what is already considered done.

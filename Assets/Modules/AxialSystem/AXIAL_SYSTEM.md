@@ -1,3 +1,13 @@
+---
+category: A
+read: reference
+tags: [hex, math, grid]
+related:
+  - "[HEX_CORE](../HexCore/HEX_CORE.md)"
+  - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
+status: implemented
+---
+
 # AxialSystem
 
 Hex grid coordinate system: axial math, coordinate types, and generic sparse grid storage.

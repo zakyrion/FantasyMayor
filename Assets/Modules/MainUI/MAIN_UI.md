@@ -1,3 +1,14 @@
+---
+category: A
+read: reference
+tags: [ui, ecs]
+related:
+  - "[HEX_INFO_PANEL](./HexInfoPanel/HEX_INFO_PANEL.md)"
+  - "[END_TURN](./EndTurn/END_TURN.md)"
+  - "[GENERAL_UI_STYLE](../../../GENERAL_UI_STYLE.md)"
+status: partial
+---
+
 # MainUI
 
 The **Main UI module** — the game's UI-window home. Currently owns three windows: the terrain-generator

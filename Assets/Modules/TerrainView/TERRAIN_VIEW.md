@@ -1,3 +1,14 @@
+---
+category: A
+read: reference
+tags: [terrain, view, mesh, ecs]
+related:
+  - "[TERRAIN_GENERATOR](../TerrainGenerator/TERRAIN_GENERATOR.md)"
+  - "[HEX_CORE](../HexCore/HEX_CORE.md)"
+  - "[WATER_VIEW_SETUP](./WATER_VIEW_SETUP.md)"
+status: implemented
+---
+
 # TerrainView
 
 Renders procedural terrain: subdivided hex mesh, isoline height fields, erosion, procedural

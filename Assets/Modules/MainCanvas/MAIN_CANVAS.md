@@ -1,3 +1,12 @@
+---
+category: A
+read: reference
+tags: [ui]
+related:
+  - "[MAIN_UI](../MainUI/MAIN_UI.md)"
+status: implemented
+---
+
 # MainCanvas
 
 Singleton provider for the main UI canvas root, behind an interface for DI.

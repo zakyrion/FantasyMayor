@@ -1,3 +1,13 @@
+---
+category: C
+read: always
+tags: [contract, process, rules]
+related:
+  - "[INDEX](INDEX.md)"
+  - "[ARCHITECTURE](ARCHITECTURE.md)"
+  - "[DOC_STANDARD](DOC_STANDARD.md)"
+---
+
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
@@ -32,11 +42,10 @@ export GRAPHIFY_OLLAMA_MODEL=openai/codex-mini:free
 When Gemini fails (503, quota, or any error) and a subagent fallback is needed, always use `model: "haiku"` — it is the cheapest available Claude model. Never spawn a fallback subagent without explicitly setting the model to haiku. Same rule applies when using OpenAI-compatible backends (OpenRouter, Ollama): always pick the cheapest/free model tier available.
 
 ## Start Working
-- Read ARCHITECTURE.md
-- `DOC_STANDARD.md` - single source of truth for how every MD file is written; read it before creating or editing any `.md`
-- `SYSTEMTEMPLATE.md` - general template for systems and subsystems; read it if you will work with systems
-- `CONFIGTEMPLATE.md` - general template for configs, config components, and config loader systems; read it if you will work with config flows
-- 'GAMEPLAY_FOUNDATION.md' - general GD doc, explanation of few gameplay cycles that I want to achieve
+- **Read `INDEX.md` first.** It is the generated doc map and the single source of the start-reading list.
+- Read every doc it marks `read: always` (currently `ARCHITECTURE.md`, `DOC_STANDARD.md`, `GAMEPLAY_FOUNDATION.md`).
+- Do **not** preload anything else. `INDEX.md` lists `trigger` docs (read only when their condition holds — e.g. `SYSTEMTEMPLATE.md`, `CONFIGTEMPLATE.md`, `ECS_REFERENCE.md`, `GENERAL_UI_STYLE.md`, `ADDRESSABLE_PATTERNS.md`) and `reference` docs (per-module, on demand). Glance at the index, then decide.
+- `INDEX.md` is generated — never hand-edit it. After changing any doc's frontmatter, regenerate: `python3 Tools/gen_index.py`.
 
 ## User Process Contract
 - User-defined process and repository rules are mandatory and override agent-default workflows.

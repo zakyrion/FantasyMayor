@@ -1,4 +1,16 @@
+---
+category: C
+read: always
+tags: [architecture, ecs, conventions]
+related:
+  - "[DOC_STANDARD](DOC_STANDARD.md)"
+  - "[ECS_REFERENCE](ECS_REFERENCE.md)"
+  - "[GAMEPLAY_FOUNDATION](GAMEPLAY_FOUNDATION.md)"
+---
+
 # FantasyMayor — Architecture Reference
+
+> Doc map & read-priority: see `INDEX.md` (generated; lists every doc and when to read it).
 
 ## Stack
 - Engine: Unity

@@ -1,3 +1,13 @@
+---
+category: A
+read: reference
+tags: [hex, resources, ecs, generation]
+related:
+  - "[HEXRESOURCESVIEW](../HexResourcesView/HEXRESOURCESVIEW.md)"
+  - "[ECS_REFERENCE](../../../ECS_REFERENCE.md)"
+status: implemented
+---
+
 # HexResources
 
 Generates logical resource data for the map. Does not render anything.

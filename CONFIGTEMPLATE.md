@@ -1,3 +1,13 @@
+---
+category: B
+read: trigger
+trigger: "before working with a config, config component, or loader flow"
+tags: [template, config]
+related:
+  - "[ARCHITECTURE](ARCHITECTURE.md)"
+  - "[CONFIGS](Assets/Modules/Configs/CONFIGS.md)"
+---
+
 # FantasyMayor — Config Template Catalog
 
 How to create config-related classes: the authored `ScriptableObject`, its flattened ECS component,

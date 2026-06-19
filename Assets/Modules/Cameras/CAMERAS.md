@@ -1,3 +1,13 @@
+---
+category: A
+read: reference
+tags: [camera, ecs]
+related:
+  - "[USER_INPUT](../UserInput/USER_INPUT.md)"
+  - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
+status: implemented
+---
+
 # Cameras
 
 Owns the shared scene-camera reference as world state, decoupled from any consumer module.

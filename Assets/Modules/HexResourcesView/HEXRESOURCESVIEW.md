@@ -1,3 +1,14 @@
+---
+category: A
+read: reference
+tags: [resources, terrain, view, ecs]
+related:
+  - "[HEXRESOURCES](../HexResources/HEXRESOURCES.md)"
+  - "[TERRAIN_VIEW](../TerrainView/TERRAIN_VIEW.md)"
+  - "[ECS_REFERENCE](../../../ECS_REFERENCE.md)"
+status: partial
+---
+
 # HexResourcesView
 
 Visualizes resource entities from `HexResources` by instantiating prefabs on terrain.

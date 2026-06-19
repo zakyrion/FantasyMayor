@@ -1,3 +1,13 @@
+---
+category: B
+read: trigger
+trigger: "before creating or editing an ECS system or subsystem"
+tags: [template, ecs, systems]
+related:
+  - "[ARCHITECTURE](ARCHITECTURE.md)"
+  - "[DOC_STANDARD](DOC_STANDARD.md)"
+---
+
 # FantasyMayor — System Template Catalog
 
 How to create a new system. Pick the role first, then follow that role's template and rules.

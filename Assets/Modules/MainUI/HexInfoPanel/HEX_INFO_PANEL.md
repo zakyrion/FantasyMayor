@@ -1,3 +1,13 @@
+---
+category: B
+read: reference
+tags: [ui, hex]
+related:
+  - "[MAIN_UI](../MAIN_UI.md)"
+  - "[END_TURN](../EndTurn/END_TURN.md)"
+  - "[GENERAL_UI_STYLE](../../../../GENERAL_UI_STYLE.md)"
+---
+
 # Hex Info Panel — Context Sub-Panel
 
 The read-only **CONTEXT sub-panel** (right) of the shared bottom panel: everything known about the currently

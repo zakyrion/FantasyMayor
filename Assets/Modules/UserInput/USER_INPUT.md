@@ -1,3 +1,14 @@
+---
+category: A
+read: reference
+tags: [input, camera, hex, ecs]
+related:
+  - "[CAMERAS](../Cameras/CAMERAS.md)"
+  - "[TERRAIN_VIEW](../TerrainView/TERRAIN_VIEW.md)"
+  - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
+status: implemented
+---
+
 # UserInput
 
 Bridges Unity InputSystem to ECS: camera pan/drag/zoom and hex selection.

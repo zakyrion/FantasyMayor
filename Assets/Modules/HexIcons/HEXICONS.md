@@ -1,3 +1,14 @@
+---
+category: A
+read: reference
+tags: [hex, ui, icons, ecs]
+related:
+  - "[HEXRESOURCES](../HexResources/HEXRESOURCES.md)"
+  - "[ECS_REFERENCE](../../../ECS_REFERENCE.md)"
+  - "[ADDRESSABLE_PATTERNS](../Addressable/ADDRESSABLE_PATTERNS.md)"
+status: partial
+---
+
 # HexIcons
 
 Manages per-hex UI icon badges using a UI Toolkit Screen-Space overlay.

@@ -1,3 +1,12 @@
+---
+category: A
+read: reference
+tags: [pathfinding, hex, ecs]
+related:
+  - "[TERRAIN_GENERATOR](../TerrainGenerator/TERRAIN_GENERATOR.md)"
+status: implemented
+---
+
 # Pathfinding
 
 Hex-grid BFS pathfinding over ECS entities using native Unity collections.

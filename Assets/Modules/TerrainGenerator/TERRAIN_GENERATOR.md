@@ -1,3 +1,14 @@
+---
+category: A
+read: reference
+tags: [terrain, generation, hex, ecs]
+related:
+  - "[TERRAIN_VIEW](../TerrainView/TERRAIN_VIEW.md)"
+  - "[HEX_CORE](../HexCore/HEX_CORE.md)"
+  - "[ECS_REFERENCE](../../../ECS_REFERENCE.md)"
+status: implemented
+---
+
 # TerrainGenerator
 
 Procedural terrain generation: hex grid creation, mountains with foothills, and water (river / lake / sea).

@@ -1,3 +1,13 @@
+---
+category: A
+read: reference
+tags: [hex, ecs, terrain]
+related:
+  - "[AXIAL_SYSTEM](../AxialSystem/AXIAL_SYSTEM.md)"
+  - "[ECS_REFERENCE](../../../ECS_REFERENCE.md)"
+status: implemented
+---
+
 # HexCore
 
 Core hex grid data structures and terrain tag components.

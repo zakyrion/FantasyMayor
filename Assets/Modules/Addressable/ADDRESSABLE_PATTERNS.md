@@ -1,3 +1,13 @@
+---
+category: B
+read: trigger
+trigger: "before writing/editing/reviewing Addressables, IAddressable, Box<T> or Result<T> code"
+tags: [addressables, patterns, ecs]
+related:
+  - "[CONFIGS](../Configs/CONFIGS.md)"
+  - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
+---
+
 # IAddressable Contract
 
 Single source of truth for addressable loading. Read this; do not grep.

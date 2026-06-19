@@ -1,3 +1,14 @@
+---
+category: A
+read: reference
+tags: [turn, ecs, gameplay]
+related:
+  - "[MAIN_UI](../MainUI/MAIN_UI.md)"
+  - "[END_TURN](../MainUI/EndTurn/END_TURN.md)"
+  - "[ECS_REFERENCE](../../../ECS_REFERENCE.md)"
+status: scaffold
+---
+
 # Turn
 
 Engine that runs a game turn: on a turn pulse it fires an ordered set of phase subsystems off the main thread and signals "a turn is being processed" so other systems can gate.

@@ -1,3 +1,13 @@
+---
+category: A
+read: reference
+tags: [boot, ecs, state-machine]
+related:
+  - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
+  - "[ECS_REFERENCE](../../../ECS_REFERENCE.md)"
+status: partial
+---
+
 # Boot
 
 Entry-point orchestration: a one-time config bootstrap, then a hand-wired game-state machine.

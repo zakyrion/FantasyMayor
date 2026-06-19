@@ -1,3 +1,12 @@
+---
+category: B
+read: trigger
+trigger: "before writing an ECS query, entity table/join, or adding an archetype"
+tags: [ecs, reference, archetypes]
+related:
+  - "[ARCHITECTURE](ARCHITECTURE.md)"
+---
+
 # ECS_REFERENCE.md
 
 Central registry of ECS state in FantasyMayor: every unique entity (archetype), every world

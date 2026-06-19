@@ -1,3 +1,14 @@
+---
+category: B
+read: reference
+tags: [ui, turn]
+related:
+  - "[MAIN_UI](../MAIN_UI.md)"
+  - "[HEX_INFO_PANEL](../HexInfoPanel/HEX_INFO_PANEL.md)"
+  - "[TURN](../../Turn/TURN.md)"
+  - "[GENERAL_UI_STYLE](../../../../GENERAL_UI_STYLE.md)"
+---
+
 # Turn Corner (End Turn) — Turn Sub-Panel
 
 The **TURN sub-panel** (left) of the shared bottom panel (`GENERAL_UI_STYLE.md` §4): the turn number «Хід N», a

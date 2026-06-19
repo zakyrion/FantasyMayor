@@ -1,3 +1,12 @@
+---
+category: A
+read: reference
+tags: [config, addressables]
+related:
+  - "[ADDRESSABLE_PATTERNS](../Addressable/ADDRESSABLE_PATTERNS.md)"
+status: implemented
+---
+
 # Configs
 
 Generic async loader pattern for ScriptableObject configs from Addressables.

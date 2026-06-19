@@ -1,3 +1,13 @@
+---
+category: B
+read: trigger
+trigger: "before creating or changing UI (UI Toolkit, panels, tokens, USS)"
+tags: [ui, style, reference]
+related:
+  - "[MAIN_UI](Assets/Modules/MainUI/MAIN_UI.md)"
+  - "[HEX_INFO_PANEL](Assets/Modules/MainUI/HexInfoPanel/HEX_INFO_PANEL.md)"
+---
+
 # GENERAL_UI_STYLE.md
 
 The general UI design language for FantasyMayor: the global HUD layout model, design principles, visual

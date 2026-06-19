@@ -1,3 +1,12 @@
+---
+category: C
+read: always
+tags: [gameplay, design]
+related:
+  - "[ARCHITECTURE](ARCHITECTURE.md)"
+  - "[TURN](Assets/Modules/Turn/TURN.md)"
+---
+
 # FantasyMayor - Gameplay Foundation
 
 ## High Concept
