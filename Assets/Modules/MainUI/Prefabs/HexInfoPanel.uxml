@@ -16,16 +16,17 @@
 
                 <!-- ============ TURN sub-panel (left) ============ -->
                 <ui:VisualElement name="TurnPanel" class="bp-turn">
-                    <ui:Label text="ПОТОЧНИЙ ХІД" class="turn-cap" />
                     <ui:Label name="TurnNumber" text="Хід 1" class="turn-number" />
-                    <ui:VisualElement class="turn-divider" />
-                    <!-- "Дії" (action points) — VISIBLE placeholder; dashes until the AP model lands. -->
+                    <!-- AP — TWO tiles (Дії зараз / наст. хід): VISIBLE placeholders (dashes) until the AP model lands. -->
                     <ui:VisualElement name="TurnActions" class="turn-ap">
-                        <ui:Label text="ДІЇ" class="turn-ap-cap" />
-                        <ui:Label text="—" class="turn-ap-cur" />
-                        <ui:Label text="→" class="turn-ap-arrow" />
-                        <ui:Label text="—" class="turn-ap-nxt" />
-                        <ui:Label text="наст. хід" class="turn-ap-nxt-cap" />
+                        <ui:VisualElement class="turn-ap-tile turn-ap-tile--cur">
+                            <ui:Label text="⚡ ДІЇ ЗАРАЗ" class="turn-ap-tile-cap" />
+                            <ui:Label text="—" class="turn-ap-tile-num turn-ap-tile-num--cur" />
+                        </ui:VisualElement>
+                        <ui:VisualElement class="turn-ap-tile turn-ap-tile--nxt">
+                            <ui:Label text="НАСТ. ХІД" class="turn-ap-tile-cap" />
+                            <ui:Label text="—" class="turn-ap-tile-num turn-ap-tile-num--nxt" />
+                        </ui:VisualElement>
                     </ui:VisualElement>
                     <ui:Button name="EndTurnButton" text="ЗАВЕРШИТИ ХІД" class="end-turn-button" />
                 </ui:VisualElement>
@@ -35,20 +36,23 @@
 
                     <!-- Filled: a hex is selected -->
                     <ui:VisualElement name="ContextFilled" class="ctx-filled">
-                        <ui:VisualElement name="ContextHeader" class="ctx-hd">
-                            <ui:VisualElement name="HeaderIcon" class="terrain-icon" />
-                            <ui:VisualElement name="HeaderTitles" class="ctx-titles">
-                                <ui:Label name="HeaderTitle" text="Лісисті пагорби" class="ctx-title" />
-                                <ui:Label name="HeaderCoord" text="3, 0" class="ctx-coord" />
-                            </ui:VisualElement>
-                            <!-- District tabs — SCAFFOLD (full-window drill-down not built yet); visual only. -->
-                            <ui:Label text="Огляд" class="ctx-tab ctx-tab--active" />
-                            <ui:Label text="Будівлі" class="ctx-tab" />
-                            <ui:Label text="Вихід" class="ctx-tab" />
+                        <!-- Tab row (Огляд / Будівлі / Дії) — ContextTabs window. The toggles form a single-select
+                             group; the active tab is owned by ActiveContextTabComponent and reconciled by
+                             ContextTabsView (toggle value, highlighted via :checked). -->
+                        <ui:VisualElement name="ContextTabs" class="ctx-tabs">
+                            <ui:Toggle name="TabOverview" text="Огляд" value="true" class="ctx-tab" />
+                            <ui:Toggle name="TabBuildings" text="Будівлі" class="ctx-tab" />
+                            <ui:Toggle name="TabActions" text="Дії" class="ctx-tab" />
                         </ui:VisualElement>
 
                         <ui:VisualElement name="ContextBody" class="ctx-body">
                             <ui:VisualElement name="ContextMain" class="ctx-a">
+                                <!-- Hex identity (icon + name) — relocated here from the old header (mockup .hexhead).
+                                     SetHeader resolves HeaderIcon / HeaderTitle by name; no coordinate (design dropped it). -->
+                                <ui:VisualElement name="HexHead" class="hexhead">
+                                    <ui:VisualElement name="HeaderIcon" class="terrain-icon" />
+                                    <ui:Label name="HeaderTitle" text="Лісисті пагорби" class="ctx-title" />
+                                </ui:VisualElement>
                                 <ui:VisualElement name="ResourcesSection" class="section">
                                     <ui:Label text="РЕСУРСИ ГЕКСУ" class="section-label" />
                                     <ui:VisualElement name="ResourcesContainer" class="chips">

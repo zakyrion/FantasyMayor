@@ -19,7 +19,6 @@ namespace Modules.MainUI.HexInfoPanel.Views
         private const string ContextEmptyName = "ContextEmpty";
         private const string HeaderIconName = "HeaderIcon";
         private const string HeaderTitleName = "HeaderTitle";
-        private const string HeaderCoordName = "HeaderCoord";
         private const string ResourcesSectionName = "ResourcesSection";
         private const string ResourcesContainerName = "ResourcesContainer";
         private const string DistrictSectionName = "DistrictSection";
@@ -35,7 +34,6 @@ namespace Modules.MainUI.HexInfoPanel.Views
         private VisualElement _contextEmpty;
         private VisualElement _headerIcon;
         private Label _headerTitle;
-        private Label _headerCoord;
         private VisualElement _resourcesSection;
         private VisualElement _resourcesContainer;
         private VisualElement _districtSection;
@@ -80,12 +78,11 @@ namespace Modules.MainUI.HexInfoPanel.Views
             _contextEmpty.style.display = DisplayStyle.Flex;
         }
 
-        public void SetHeader(Sprite icon, string title, string coord)
+        public void SetHeader(Sprite icon, string title)
         {
             EnsureCached();
             SetBackground(_headerIcon, icon);
             _headerTitle.text = title;
-            _headerCoord.text = coord;
         }
 
         public void SetResources(IReadOnlyList<ResourceChip> resources)
@@ -165,7 +162,6 @@ namespace Modules.MainUI.HexInfoPanel.Views
             _contextEmpty = root.Q<VisualElement>(ContextEmptyName);
             _headerIcon = root.Q<VisualElement>(HeaderIconName);
             _headerTitle = root.Q<Label>(HeaderTitleName);
-            _headerCoord = root.Q<Label>(HeaderCoordName);
             _resourcesSection = root.Q<VisualElement>(ResourcesSectionName);
             _resourcesContainer = root.Q<VisualElement>(ResourcesContainerName);
             _districtSection = root.Q<VisualElement>(DistrictSectionName);

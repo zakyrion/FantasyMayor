@@ -12,7 +12,7 @@ using Unity.Mathematics;
 namespace Modules.TerrainView.Systems
 {
     /// <summary>
-    ///     Synchronizes <see cref="SelectedHexComponent" /> state into the runtime selection view.
+    ///     Synchronizes <see cref="HexSelectedComponent" /> state into the runtime selection view.
     ///     Hides the border when selection disappears and regenerates it when selection changes.
     /// </summary>
     [UsedImplicitly]
@@ -26,7 +26,7 @@ namespace Modules.TerrainView.Systems
         private readonly World _world;
 
         private bool _hadSelection;
-        private SelectedHexComponent _lastSelection;
+        private HexSelectedComponent _lastSelection;
         private HexSelectionView _lastView;
 
         /// <inheritdoc />
@@ -39,7 +39,7 @@ namespace Modules.TerrainView.Systems
         {
             _world = world;
             _selectedHexSet = world.GetEntities()
-                .With<SelectedHexComponent>()
+                .With<HexSelectedComponent>()
                 .AsSet();
         }
 
@@ -65,7 +65,7 @@ namespace Modules.TerrainView.Systems
             if (!_world.Has<VertexGridComponent>())
                 throw new InvalidOperationException("HexSelectionViewSystem: VertexGridComponent world component is missing.");
 
-            var selected = _selectedHexSet.GetEntities()[0].Get<SelectedHexComponent>();
+            var selected = _selectedHexSet.GetEntities()[0].Get<HexSelectedComponent>();
             if (!viewChanged && _hadSelection && _lastSelection.Coords == selected.Coords)
                 return;
 

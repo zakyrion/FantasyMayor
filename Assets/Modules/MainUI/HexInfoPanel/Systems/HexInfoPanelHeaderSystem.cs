@@ -8,15 +8,17 @@ using Modules.HexCore.Tags;
 using Modules.MainUI.HexInfoPanel.Components;
 using Modules.MainUI.HexInfoPanel.Configs;
 using Modules.MainUI.HexInfoPanel.Data;
-using Modules.MainUI.HexInfoPanel.Events;
-using Modules.MainUI.HexInfoPanel.Views;
+using Modules.TerrainView.Components;
+using Modules.TerrainView.Events;
 using UnityEngine;
 
 namespace Modules.MainUI.HexInfoPanel.Systems
 {
     /// <summary>
-    ///     Fills the always-present header (terrain icon + name + coordinate) on a panel refresh. Resolves the
-    ///     selected coordinate to its hex entity and reads its terrain tag.
+    ///     Fills the hex header (terrain icon + name) on a selection change. Reactive on
+    ///     <see cref="SelectedHexChangedEvent" />: reads the current HexSelectedComponent, resolves it to its hex
+    ///     entity and terrain tag. Skips gracefully when nothing — or a coordinate with no hex — is selected (a
+    ///     non-grid click is a valid empty selection; HexInfoPanelSystem shows the empty panel).
     /// </summary>
     [UsedImplicitly]
     public sealed class HexInfoPanelHeaderSystem : UpdatedSystem
@@ -25,36 +27,38 @@ namespace Modules.MainUI.HexInfoPanel.Systems
 
         private readonly World _world;
         private readonly EntitySet _viewSet;
+        private readonly EntitySet _selectedHexSet;
         private readonly EntitySet _hexSet;
 
         public override int Priority => ExecutionPriority;
 
         public HexInfoPanelHeaderSystem(World world)
-            : base(world.GetEntities().With<HexInfoPanelRefreshEvent>().AsSet())
+            : base(world.GetEntities().With<SelectedHexChangedEvent>().AsSet())
         {
             _world = world;
             _viewSet = world.GetEntities().With<HexInfoPanelViewComponent>().AsSet();
+            _selectedHexSet = world.GetEntities().With<HexSelectedComponent>().AsSet();
             _hexSet = world.GetEntities().With<HexTag>().With<HexIdComponent>().AsSet();
         }
 
         protected override void Update(GameState state, in Entity entity)
         {
-            if (_viewSet.Count == 0)
+            if (_viewSet.Count == 0 || _selectedHexSet.Count == 0)
                 return;
 
             if (!_world.Has<HexTerrainIconConfigComponent>())
                 throw new InvalidOperationException(
                     "HexInfoPanelHeaderSystem: HexTerrainIconConfigComponent is missing.");
 
-            var coords = entity.Get<HexInfoPanelRefreshEvent>().Coords;
+            var coords = _selectedHexSet.GetEntities()[0].Get<HexSelectedComponent>().Coords;
             var view = _viewSet.GetEntities()[0].Get<HexInfoPanelViewComponent>().View;
             if (view == null)
                 return;
 
-            // The controller only refreshes for real hexes, so a missing terrain tag is a broken invariant.
+            // A non-grid coordinate carries no hex — a valid empty selection (the panel shows empty), so skip
+            // rather than fill a header for a nonexistent hex.
             if (!TryGetHexTerrainType(coords, out var terrainType))
-                throw new InvalidOperationException(
-                    $"HexInfoPanelHeaderSystem: no hex with a terrain tag at {coords}.");
+                return;
 
             var config = _world.Get<HexTerrainIconConfigComponent>().Value;
             if (!TryGetTerrainEntry(config, terrainType, out var sprite, out var displayName))
@@ -63,7 +67,7 @@ namespace Modules.MainUI.HexInfoPanel.Systems
                 // which falls back to the USS placeholder).
             }
 
-            view.SetHeader(sprite, displayName, coords.ToString());
+            view.SetHeader(sprite, displayName);
         }
 
         private bool TryGetHexTerrainType(HexCoord coords, out HexTerrainType terrainType)
@@ -113,6 +117,7 @@ namespace Modules.MainUI.HexInfoPanel.Systems
         public override void Dispose()
         {
             _viewSet.Dispose();
+            _selectedHexSet.Dispose();
             _hexSet.Dispose();
             base.Dispose();
         }

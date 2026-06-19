@@ -11,7 +11,7 @@ related:
 
 Generated doc map for FantasyMayor. **Do not hand-edit** — run `python3 Tools/gen_index.py` after changing any doc's frontmatter. Data source: each doc's frontmatter (`category`/`read`/`trigger`/`status`) and its first line. See `DOC_STANDARD.md`.
 
-Totals: 28 docs — 4 always · 5 trigger · 19 reference.
+Totals: 29 docs — 4 always · 5 trigger · 20 reference.
 
 ## Read at start (always)
 
@@ -50,7 +50,8 @@ Per-module navigation docs. `status` mirrors each module's `## Current State`.
 | [HexResources](Assets/Modules/HexResources/HEXRESOURCES.md) | A | implemented | Generates logical resource data for the map. Does not render anything. |
 | [HexResourcesView](Assets/Modules/HexResourcesView/HEXRESOURCESVIEW.md) | A | partial | Visualizes resource entities from `HexResources` by instantiating prefabs on terrain. |
 | [MainCanvas](Assets/Modules/MainCanvas/MAIN_CANVAS.md) | A | implemented | Singleton provider for the main UI canvas root, behind an interface for DI. |
-| [Turn Corner (End Turn) — Turn Sub-Panel](Assets/Modules/MainUI/EndTurn/END_TURN.md) | B | — | The **TURN sub-panel** (left) of the shared bottom panel (`GENERAL_UI_STYLE.md` §4): the turn number «Хід N», a |
+| [Context Tabs — Tab Row of the Context Sub-Panel](Assets/Modules/MainUI/ContextTabs/CONTEXT_TABS.md) | B | — | The **tab row** (Огляд / Будівлі / Дії) of the bottom panel's context sub-panel |
+| [Turn Corner (End Turn) — Turn Sub-Panel](Assets/Modules/MainUI/EndTurn/END_TURN.md) | B | — | The **TURN sub-panel** (left) of the shared bottom panel (`GENERAL_UI_STYLE.md` §4): the turn number «Хід N», two |
 | [Hex Info Panel — Context Sub-Panel](Assets/Modules/MainUI/HexInfoPanel/HEX_INFO_PANEL.md) | B | — | The read-only **CONTEXT sub-panel** (right) of the shared bottom panel: everything known about the currently |
 | [MainUI](Assets/Modules/MainUI/MAIN_UI.md) | A | partial | The **Main UI module** — the game's UI-window home. Currently owns three windows: the terrain-generator |
 | [Pathfinding](Assets/Modules/Pathfinding/PATHFINDING.md) | A | implemented | Hex-grid BFS pathfinding over ECS entities using native Unity collections. |

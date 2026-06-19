@@ -247,7 +247,7 @@ World component contract:
   creation; the payload object is then mutated in place by its writers. `world.Set` is never
   re-called after a mutation — readers always see the live object via `world.Get`.
 - Singleton entities are the exception, not the default. Current ones exist because systems anchor
-  per-frame ticks on them or query them: `TerrainViewComponent`, `SelectedHexComponent`,
+  per-frame ticks on them or query them: `TerrainViewComponent`, `HexSelectedComponent`,
   `WaterViewComponent`, `HexSelectionViewComponent`, `HexInfoPanelViewComponent`,
   `PlayerInputComponent`. When adding new single-instance state, default to a world component;
   create a singleton entity only when an entity-query consumer exists from day one.
@@ -292,7 +292,7 @@ when designing or reviewing any system.
 - **Component naming by role (suffix):**
   - a component **carrying data** → `…Component` (e.g. `HexIdComponent`, `HexIconsVisibilityComponent`)
   - a **tag / marker** component (empty, presence-only) → `…Tag` (e.g. `HexTag`, `EventTag`)
-  - a **one-frame event** component → `…Event` (e.g. `ForestHexAppearedEvent`, `HexInfoPanelRefreshEvent`)
+  - a **one-frame event** component → `…Event` (e.g. `ForestHexAppearedEvent`, `SelectedHexChangedEvent`)
 
   Pre-existing `…EventComponent` names (e.g. `TerrainGenerationGenerateEventComponent`) predate this rule;
   they stay until a deliberate rename, but new events use the `…Event` suffix.

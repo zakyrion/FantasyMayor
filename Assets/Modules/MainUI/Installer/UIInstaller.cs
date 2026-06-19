@@ -1,5 +1,6 @@
 using DefaultECSExtensions;
 using Modules.Boot.Core;
+using Modules.MainUI.ContextTabs.Systems;
 using Modules.MainUI.EndTurn.Systems;
 using Modules.MainUI.GeneratorMenu.Systems;
 using Modules.MainUI.HexInfoPanel.Systems;
@@ -32,6 +33,8 @@ namespace Modules.MainUI.Installer
                 .As<HexInfoPanelSpawnSubSystem, MainUISpawnSubSystem>();
             builder.Register<EndTurnSpawnSubSystem>(Lifetime.Singleton)
                 .As<EndTurnSpawnSubSystem, MainUISpawnSubSystem>();
+            builder.Register<ContextTabsSpawnSubSystem>(Lifetime.Singleton)
+                .As<ContextTabsSpawnSubSystem, MainUISpawnSubSystem>();
 
             // Per-frame view systems, wired into GameplayState by Boot (concrete singletons).
             builder.Register<HexInfoPanelSystem>(Lifetime.Singleton)
@@ -44,6 +47,10 @@ namespace Modules.MainUI.Installer
                 .As<HexInfoPanelDistrictPlaceholderSystem>();
             builder.Register<EndTurnSystem>(Lifetime.Singleton)
                 .As<EndTurnSystem>();
+            builder.Register<ContextTabSelectionSystem>(Lifetime.Singleton)
+                .As<ContextTabSelectionSystem>();
+            builder.Register<ContextTabsAvailabilitySystem>(Lifetime.Singleton)
+                .As<ContextTabsAvailabilitySystem>();
         }
     }
 }

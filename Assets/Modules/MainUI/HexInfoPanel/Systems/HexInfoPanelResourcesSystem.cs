@@ -8,18 +8,20 @@ using Modules.HexCore.Components;
 using Modules.HexIcons.Components;
 using Modules.HexIcons.Configs;
 using Modules.MainUI.HexInfoPanel.Components;
-using Modules.MainUI.HexInfoPanel.Events;
 using Modules.MainUI.HexInfoPanel.Views;
 using Modules.HexResources.Components;
 using Modules.HexResources.Data;
+using Modules.TerrainView.Components;
+using Modules.TerrainView.Events;
 using UnityEngine;
 
 namespace Modules.MainUI.HexInfoPanel.Systems
 {
     /// <summary>
     ///     Fills the resources block with one chip per resource on the selected hex, or hides it when the hex
-    ///     has none. Sprites are reused from HexIcons' resource-icon config; the chip label is the resource
-    ///     type until a localized resource-name source exists.
+    ///     has none (or nothing is selected). Reactive on <see cref="SelectedHexChangedEvent" />; reads the
+    ///     current HexSelectedComponent for the coordinate. Sprites are reused from HexIcons' resource-icon
+    ///     config; the chip label is the resource type until a localized resource-name source exists.
     /// </summary>
     [UsedImplicitly]
     public sealed class HexInfoPanelResourcesSystem : UpdatedSystem
@@ -28,6 +30,7 @@ namespace Modules.MainUI.HexInfoPanel.Systems
 
         private readonly World _world;
         private readonly EntitySet _viewSet;
+        private readonly EntitySet _selectedHexSet;
         private readonly EntitySet _resourceSet;
 
         // Managed UI payload → System.Collections.Generic. Reused buffer to avoid per-refresh allocation.
@@ -36,10 +39,11 @@ namespace Modules.MainUI.HexInfoPanel.Systems
         public override int Priority => ExecutionPriority;
 
         public HexInfoPanelResourcesSystem(World world)
-            : base(world.GetEntities().With<HexInfoPanelRefreshEvent>().AsSet())
+            : base(world.GetEntities().With<SelectedHexChangedEvent>().AsSet())
         {
             _world = world;
             _viewSet = world.GetEntities().With<HexInfoPanelViewComponent>().AsSet();
+            _selectedHexSet = world.GetEntities().With<HexSelectedComponent>().AsSet();
             _resourceSet = world.GetEntities()
                 .With<HexIdComponent>()
                 .With<HexResourcesComponent>()
@@ -51,15 +55,21 @@ namespace Modules.MainUI.HexInfoPanel.Systems
             if (_viewSet.Count == 0)
                 return;
 
-            if (!_world.Has<HexResourceIconConfigComponent>())
-                throw new InvalidOperationException(
-                    "HexInfoPanelResourcesSystem: HexResourceIconConfigComponent is missing.");
-
-            var coords = entity.Get<HexInfoPanelRefreshEvent>().Coords;
             var view = _viewSet.GetEntities()[0].Get<HexInfoPanelViewComponent>().View;
             if (view == null)
                 return;
 
+            if (_selectedHexSet.Count == 0)
+            {
+                view.HideResources();
+                return;
+            }
+
+            if (!_world.Has<HexResourceIconConfigComponent>())
+                throw new InvalidOperationException(
+                    "HexInfoPanelResourcesSystem: HexResourceIconConfigComponent is missing.");
+
+            var coords = _selectedHexSet.GetEntities()[0].Get<HexSelectedComponent>().Coords;
             var entries = _world.Get<HexResourceIconConfigComponent>().Value.Entries;
 
             _chips.Clear();
@@ -104,6 +114,7 @@ namespace Modules.MainUI.HexInfoPanel.Systems
         public override void Dispose()
         {
             _viewSet.Dispose();
+            _selectedHexSet.Dispose();
             _resourceSet.Dispose();
             base.Dispose();
         }

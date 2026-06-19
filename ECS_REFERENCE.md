@@ -136,13 +136,17 @@ ENTITY: HexIconContainer  (table — UI overlay layer)
 ### Singletons (exactly one row; justified by entity-query consumers)
 
 ```
-ENTITY: SelectedHex  (singleton)
-  Components: SelectedHexComponent (carries HexCoord)
-  WRITES: HexSelectionSystem (on click — creates/updates)
-  READS: HexSelectionViewSystem (selection highlight), HexSelectionSystem (avoid re-selecting the
-         same hex), HexInfoPanelSystem (drives panel show/hide + refresh)
+ENTITY: HexSelected  (singleton)
+  Components: HexSelectedComponent (carries HexCoord)
+  WRITES: HexSelectionSystem (on click — creates/updates/disposes; raises SelectedHexChangedEvent on
+          EVERY mutation)
+  READS: HexSelectionViewSystem (selection highlight — per-frame poll), HexSelectionSystem (avoid
+         re-selecting the same hex), and all SelectedHexChangedEvent reactors reconcile against it:
+         HexInfoPanelSystem (show/hide) + the block systems Header/Resources/District (fill) +
+         ContextTabsAvailabilitySystem (tab availability)
   Note: entity (not a world component) because consumers query its PRESENCE — the info panel hides
-        when the set is empty.
+        when the set is empty. The paired SelectedHexChangedEvent is the canonical "selection changed"
+        pulse; the truth lives HERE.
 
 ENTITY: PlayerInput  (singleton)
   Components: PlayerInputComponent
@@ -169,11 +173,12 @@ ENTITY: HexInfoPanelView  (singleton)
   Components: HexInfoPanelViewComponent (View → the HexInfoPanelView MonoBehaviour)
   WRITES: HexInfoPanelSpawnSubSystem (run by MainUISpawnSystem at pipeline 800 — GetComponentInChildren off
           the shared UI/MainUI instance; the orchestrator owns the single addressable handle)
-  READS: HexInfoPanelSystem (base/anchor set — per-frame selection watcher),
-         HexInfoPanelHeaderSystem / HexInfoPanelResourcesSystem /
-         HexInfoPanelDistrictPlaceholderSystem (EntitySet — resolve the view on each refresh pulse)
-  Note: the panel starts hidden (USS default); HexInfoPanelSystem shows it on selection and raises
-        the one-frame HexInfoPanelRefreshEvent that the per-block systems consume.
+  READS: HexInfoPanelSystem (resolves the view to show/hide), HexInfoPanelHeaderSystem /
+         HexInfoPanelResourcesSystem / HexInfoPanelDistrictPlaceholderSystem (resolve the view to fill
+         their block) — all four anchored on the SelectedHexChangedEvent pulse (EntitySet)
+  Note: the panel starts empty (HexInfoPanelSpawnSubSystem); on the SelectedHexChangedEvent pulse
+        HexInfoPanelSystem reconciles show/hide and the block systems fill from the current
+        HexSelectedComponent. No intermediary refresh event.
 
 ENTITY: EndTurnView  (singleton)
   Components: EndTurnViewComponent (View → the EndTurnView MonoBehaviour)
@@ -193,7 +198,7 @@ World components are NOT entities: stored via `world.Set<T>()`, read via `world.
 with `world.Has<T>()`), invisible to `With<T>` / `WhenAdded<T>` / `WhenChanged<T>`. Contract and
 decision rule: `ARCHITECTURE.md` → "State Storage Taxonomy".
 
-### Runtime world components (7)
+### Runtime world components (9)
 
 ```
 WORLD: CameraComponent  (module Cameras)
@@ -247,6 +252,22 @@ WORLD: TurnCountComponent  (module Turn)
   READS: EndTurnSystem (module MainUI — pushes Value into the "Хід N" label; throws if unseeded)
   Note: the current-turn counter. First Mayor Phase = turn 1; TurnCountSystem (Priority 1010, above the
         processor's 1000) increments on the TurnCompletedEvent pulse the same frame it is emitted.
+
+WORLD: ContextTabsViewComponent  (module MainUI, window ContextTabs)
+  Fields: View (→ the ContextTabsView MonoBehaviour)
+  WRITES: ContextTabsSpawnSubSystem (world.Set at pipeline 800 — GetComponentInChildren off the shared
+          UI/MainUI instance)
+  READS: ContextTabSelectionSystem (restyle on the tab-changed pulse),
+         ContextTabsAvailabilitySystem (enable/disable on the SelectedHexChangedEvent pulse)
+  Note: world singleton (this window has NO singleton entity) — same view-reference role as the
+        entity-based EndTurnView/HexInfoPanelView, but stored on the world.
+
+WORLD: ActiveContextTabComponent  (module MainUI, window ContextTabs)
+  Fields: Value (ContextTab enum: Overview | Buildings | Actions; Unknown=0 sentinel)
+  WRITES: ContextTabsSpawnSubSystem (seed Overview on spawn), ContextTabsView (World.Set on tab click)
+  READS: ContextTabSelectionSystem (reconciles the active highlight on the tab-changed pulse)
+  Note: which context tab is active. The view writes it on click then raises the payload-less
+        ContextTabChangedEvent; the selection system reconciles the highlight from HERE.
 ```
 
 ### Config world components (20)
@@ -337,14 +358,25 @@ EVENT: HexIconsVisibilityChangedEvent
   Lifetime: 1 frame
   Note: payload-less pulse — the truth is the HexIconsVisibilityComponent WORLD component.
 
-EVENT: HexInfoPanelRefreshEvent
-  Producer: HexInfoPanelSystem (when the selected hex changes)
-  Consumers: HexInfoPanelHeaderSystem (560), HexInfoPanelResourcesSystem (561),
-             HexInfoPanelDistrictPlaceholderSystem (562) — each rebuilds its panel block from
-             current world state
+EVENT: SelectedHexChangedEvent
+  Producer: HexSelectionSystem (module UserInput) — raised on EVERY selection mutation: create,
+            deselect (dispose), and re-select to another coord
+  Consumers: HexInfoPanelSystem (550 — show/hide), HexInfoPanelHeaderSystem (560),
+             HexInfoPanelResourcesSystem (561), HexInfoPanelDistrictPlaceholderSystem (562) — fill the
+             panel blocks; ContextTabsAvailabilitySystem (560) — per-tab enabled state
   Lifetime: 1 frame
-  Note: one pulse fans out to several per-block reactive systems; ordering before
-        EventCleanupSystem guarantees same-frame consumption.
+  Note: the canonical "selection changed" pulse — payload-less; every consumer reads the current
+        HexSelectedComponent (present/value), reconciling its block. Replaced both the consumers' former
+        per-frame polling AND the old HexInfoPanelRefreshEvent (which only re-broadcast this with a Coords
+        payload).
+
+EVENT: ContextTabChangedEvent
+  Producer: ContextTabsView (module MainUI, window ContextTabs) — on a tab click, after it writes the
+            new ActiveContextTabComponent
+  Consumer: ContextTabSelectionSystem (560) — reconciles the active-tab highlight from
+            ActiveContextTabComponent
+  Lifetime: 1 frame
+  Note: payload-less pulse — the active tab lives in the ActiveContextTabComponent world singleton.
 
 EVENT: ForestHexAppearedEvent / ForestHexRemovedEvent
   Producer: NO emitter yet (future gameplay: planting / chopping)
@@ -430,7 +462,8 @@ stages awaited sequentially in ascending priority, then settle frames, then swit
   → HexIconsSpawnSystem (700)            → world.Set HexIconsViewComponent + creates EMPTY
                                             HexIconContainer rows (one per hex)
   → MainUISpawnSystem (800)              → instantiates the Main UI root, then runs spawn subsystems:
-                                            HexInfoPanelView + EndTurnView singletons (both hidden)
+                                            HexInfoPanelView + EndTurnView entity singletons (both hidden)
+                                            + ContextTabs view/active-tab WORLD singletons (Overview seeded)
 
 Gameplay state entry (GameplayState.EnterAsync):
   → world.Set HexIconsVisibilityComponent (IsVisible = true)
@@ -438,14 +471,17 @@ Gameplay state entry (GameplayState.EnterAsync):
   → world.Set TurnCountComponent (Value = 1) → the turn cluster shows "Хід 1" from the first tick
 
 Gameplay state, per-frame (Update, ascending priority):
-  → HexSelectionSystem / HexSelectionViewSystem        → selection write + highlight
-  → HexInfoPanelSystem (550)                           → watches SelectedHex; shows/hides the panel;
-                                                          raises HexInfoPanelRefreshEvent on change
-  → HexInfoPanelHeader/Resources/DistrictPlaceholder (560–562, reactive) → rebuild panel blocks on the pulse
+  → HexSelectionSystem (0) / HexSelectionViewSystem     → selection write (raises SelectedHexChangedEvent
+                                                          on every mutation) + highlight (poll)
+  → HexInfoPanelSystem (550, reactive on SelectedHexChangedEvent) → show/hide (ShowSelection/ShowEmpty)
+  → HexInfoPanelHeader/Resources/DistrictPlaceholder (560–562, reactive on SelectedHexChangedEvent)
+                                                          → fill panel blocks, reading HexSelectedComponent
   → ForestSpawnSystem (600) / ForestDespawnSystem (601, reactive) → reconcile forest views on a pulse (dormant)
   → HexIconsVisibilitySystem (800, reactive)           → clear/rebuild icon containers on the pulse
   → EndTurnSystem (560)                                → reveals the turn cluster; mirrors Processing;
                                                           pushes TurnCountComponent.Value into "Хід N"
+  → ContextTabSelectionSystem (560, reactive on ContextTabChangedEvent) → restyles the active tab
+  → ContextTabsAvailabilitySystem (560, reactive on SelectedHexChangedEvent) → reconciles per-tab enabled
   → TurnProcessorSystem (1000)                         → polls the in-flight turn; on completion removes
                                                           TurnProcessorComponent + raises TurnCompletedEvent
   → TurnCountSystem (1010, reactive)                   → increments TurnCountComponent on that pulse
@@ -472,5 +508,6 @@ VertexGridComponent            read by HexResourcesView (planting heights), HexI
                                HexSelectionViewSystem (selection ring)
 TerrainTextureComponent        read by HexResourcesView (clay + forest ground painting)
 HexResourceIconConfigComponent read by HexesUI (HexInfoPanelResourcesSystem — shared icon set)
-SelectedHexComponent           read by HexesUI (HexInfoPanelSystem) and TerrainView (HexSelectionViewSystem)
+HexSelectedComponent           read by HexesUI (HexInfoPanelSystem + Header/Resources/District block
+                               systems + ContextTabsAvailabilitySystem) and TerrainView (HexSelectionViewSystem)
 ```

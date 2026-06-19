@@ -2,7 +2,7 @@
    ONE full-width shell (§4): left TURN sub-panel (state + End Turn) | right CONTEXT sub-panel (selected hex),
    split by a vertical divider. The shell previews VISIBLE in UI Builder; at runtime it spawns hidden and
    EndTurnView reveals it on Gameplay, while HexInfoPanelView swaps ContextFilled <-> ContextEmpty.
-   Sizes are scaled +50% from the mockup base (design-mockups/index.html): every px is the mockup value x1.5. */
+   Sizes are scaled +50% from the mockup base (design-mockups/FantasyMayor-HUD.html): every px is the mockup value x1.5. */
 
 /* ============ SHELL ============ */
 .bottom-panel {
@@ -43,62 +43,73 @@
     border-right-color: rgba(217, 164, 65, 0.14);
 }
 
-.turn-cap {
-    font-size: 16px;
-    letter-spacing: 2px;
-    color: rgb(125, 114, 100);
-}
-
 .turn-number {
     font-size: 33px;
-    margin-top: 3px;
+    margin-top: 0;
     color: rgb(224, 178, 90);
     -unity-font-style: bold;
 }
 
-.turn-divider {
-    height: 1px;
-    margin-top: 16px;
-    margin-bottom: 16px;
-    background-color: rgba(217, 164, 65, 0.14);
-}
-
-/* "Дії" (action points) — VISIBLE placeholder; dashes until the AP model lands. */
+/* AP — TWO tiles (Дії зараз / наст. хід), mockup .ap/.tile scaled to the panel's established density.
+   VISIBLE placeholders (dashes) until the AP model lands. flex-grow shares the row; a right margin on the
+   first tile fakes the inter-tile gap (USS flex `gap` is version-fragile, so we use a margin). */
 .turn-ap {
     flex-direction: row;
-    align-items: center;
-    margin-bottom: 18px;
+    margin-top: 24px;
 }
 
-.turn-ap-cap {
-    font-size: 16px;
-    letter-spacing: 2px;
-    color: rgb(125, 114, 100);
+.turn-ap-tile {
+    flex-grow: 1;
+    flex-basis: 0;
+    padding-top: 14px;
+    padding-bottom: 14px;
+    padding-left: 16px;
+    padding-right: 16px;
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+
+.turn-ap-tile--cur {
     margin-right: 12px;
+    background-color: rgba(255, 255, 255, 0.045);
+    border-left-color: rgba(217, 164, 65, 0.2);
+    border-right-color: rgba(217, 164, 65, 0.2);
+    border-top-color: rgba(217, 164, 65, 0.2);
+    border-bottom-color: rgba(217, 164, 65, 0.2);
 }
 
-.turn-ap-cur {
-    font-size: 27px;
-    color: rgb(217, 164, 65);
+.turn-ap-tile--nxt {
+    background-color: rgba(255, 255, 255, 0.03);
+    border-left-color: rgba(255, 255, 255, 0.07);
+    border-right-color: rgba(255, 255, 255, 0.07);
+    border-top-color: rgba(255, 255, 255, 0.07);
+    border-bottom-color: rgba(255, 255, 255, 0.07);
+}
+
+.turn-ap-tile-cap {
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: rgb(125, 114, 100);
+}
+
+.turn-ap-tile-num {
+    font-size: 39px;
+    margin-top: 6px;
     -unity-font-style: bold;
-    margin-right: 9px;
 }
 
-.turn-ap-arrow {
-    font-size: 18px;
-    color: rgb(168, 156, 138);
-    margin-right: 9px;
+.turn-ap-tile-num--cur {
+    color: rgb(224, 178, 90);
 }
 
-.turn-ap-nxt {
-    font-size: 21px;
-    color: rgba(217, 164, 65, 0.82);
-    margin-right: 6px;
-}
-
-.turn-ap-nxt-cap {
-    font-size: 14px;
-    color: rgb(168, 156, 138);
+.turn-ap-tile-num--nxt {
+    color: rgba(217, 164, 65, 0.85);
 }
 
 /* End Turn button — the hero CTA, the one filled-gold button (§9 exception). Pinned to the sub-panel bottom
@@ -157,16 +168,21 @@
     flex-direction: column;
 }
 
-/* Header row — terrain identity + the district tabs (SCAFFOLD: drill-down windows not built yet). */
-.ctx-hd {
+/* Tab row (Огляд / Будівлі / Дії) — ContextTabs window. A single-select toggle group; see .ctx-tab below. */
+.ctx-tabs {
     flex-direction: row;
-    align-items: center;
-    padding-top: 16px;
-    padding-bottom: 16px;
+    padding-top: 10px;
     padding-left: 24px;
     padding-right: 24px;
     border-bottom-width: 1px;
     border-bottom-color: rgba(217, 164, 65, 0.14);
+}
+
+/* Hex identity (icon + name) — relocated from the old header into the overview body (mockup .hexhead). */
+.hexhead {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 18px;
 }
 
 .terrain-icon {
@@ -189,39 +205,54 @@
     border-bottom-color: rgba(255, 255, 255, 0.10);
 }
 
-.ctx-titles {
-    flex-direction: row;
-    align-items: baseline;
-    margin-right: 21px;
-}
-
 .ctx-title {
     font-size: 23px;
     color: rgb(241, 231, 214);
     -unity-font-style: bold;
 }
 
-.ctx-coord {
-    font-size: 16px;
-    margin-left: 8px;
-    color: rgb(125, 114, 100);
-}
-
-/* District tabs — SCAFFOLD; not wired to drill-down windows yet, visual chrome only. */
+/* Tabs are ui:Toggle elements styled as a tab strip: the native checkmark and (empty) field label are hidden,
+   so only the tab text shows. The active tab is shown via :checked — ContextTabsView drives each toggle's value
+   from ActiveContextTabComponent. A transparent base underline reserves the 2px so the row never jumps. */
 .ctx-tab {
-    font-size: 18px;
     margin-right: 6px;
+    margin-left: 0;
     padding-top: 8px;
     padding-bottom: 8px;
     padding-left: 14px;
     padding-right: 14px;
+    border-bottom-width: 2px;
+    border-bottom-color: rgba(0, 0, 0, 0);
+}
+
+.ctx-tab .unity-toggle__checkmark {
+    display: none;
+}
+
+.ctx-tab .unity-base-field__label {
+    display: none;
+}
+
+.ctx-tab .unity-toggle__input {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+/* The visible tab caption is the Toggle's own text element — colour it directly (the default theme sets a
+   colour on text elements, so an inherited colour on the toggle root would not win). */
+.ctx-tab .unity-toggle__text {
+    margin-left: 0;
+    margin-right: 0;
+    font-size: 18px;
     color: rgb(168, 156, 138);
 }
 
-.ctx-tab--active {
-    color: rgb(241, 231, 214);
-    border-bottom-width: 2px;
+.ctx-tab:checked {
     border-bottom-color: rgb(224, 178, 90);
+}
+
+.ctx-tab:checked .unity-toggle__text {
+    color: rgb(241, 231, 214);
 }
 
 .ctx-body {

@@ -17,11 +17,15 @@ Bridges Unity InputSystem to ECS: camera pan/drag/zoom and hex selection.
 - Both systems are **Per-frame Systems** (`ARCHITECTURE.md` "System Taxonomy"): `HexSelectionSystem`
   runs in Update, `CameraMovementSystem` in **LateUpdate** (priority 0 — before the icon projection).
   Each is anchored on the single `PlayerInputComponent` entity as its per-frame tick anchor.
-- `SelectedHexComponent` is a singleton and **its absence means "nothing selected"** — systems
+- `HexSelectedComponent` is a singleton and **its absence means "nothing selected"** — systems
   must handle the no-entity case, not a null/sentinel value. Cross-module consumers:
-  `HexSelectionViewSystem` (TerrainView, highlight) and `HexInfoPanelSystem` (HexesUI — selection
-  drives the hex info panel show/hide/refresh).
-- Selection is a **toggle**: clicking the already-selected hex removes the selection entity.
+  `HexSelectionViewSystem` (TerrainView, highlight — per-frame poll) and the MainUI reactors
+  `HexInfoPanelSystem` + `ContextTabsAvailabilitySystem` (driven by the pulse below).
+- `HexSelectionSystem` raises a payload-less **`SelectedHexChangedEvent`** (module `TerrainView`, beside
+  `HexSelectedComponent`) on **every** selection mutation — create, deselect (dispose), re-select to another
+  coord. It is the canonical "selection changed" pulse; reactive consumers reconcile against the current
+  `HexSelectedComponent` instead of polling. Full flow: `ECS_REFERENCE.md`.
+- Selection is a **toggle**: clicking the already-selected hex removes the selection entity (and pulses).
 - `HexSelectionSystem` blocks selection when the pointer is over UI (checks `EventSystem.RaycastAll`).
   Clicks consumed by UI must not select a hex.
 - Hex picking intersects the pointer ray with the `y = 0` plane, then `WorldToAxial`. There is no

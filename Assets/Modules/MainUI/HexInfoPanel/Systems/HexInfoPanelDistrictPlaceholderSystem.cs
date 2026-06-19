@@ -2,7 +2,7 @@ using DefaultEcs;
 using DefaultECSExtensions;
 using JetBrains.Annotations;
 using Modules.MainUI.HexInfoPanel.Components;
-using Modules.MainUI.HexInfoPanel.Events;
+using Modules.TerrainView.Events;
 
 namespace Modules.MainUI.HexInfoPanel.Systems
 {
@@ -23,7 +23,7 @@ namespace Modules.MainUI.HexInfoPanel.Systems
         public override int Priority => ExecutionPriority;
 
         public HexInfoPanelDistrictPlaceholderSystem(World world)
-            : base(world.GetEntities().With<HexInfoPanelRefreshEvent>().AsSet())
+            : base(world.GetEntities().With<SelectedHexChangedEvent>().AsSet())
         {
             _viewSet = world.GetEntities().With<HexInfoPanelViewComponent>().AsSet();
         }

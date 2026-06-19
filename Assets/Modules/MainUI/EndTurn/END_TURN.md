@@ -11,8 +11,8 @@ related:
 
 # Turn Corner (End Turn) — Turn Sub-Panel
 
-The **TURN sub-panel** (left) of the shared bottom panel (`GENERAL_UI_STYLE.md` §4): the turn number «Хід N», a
-«Дії» (action-points) readout, and the global **End Turn** button pinned to the bottom. Window of the `MainUI`
+The **TURN sub-panel** (left) of the shared bottom panel (`GENERAL_UI_STYLE.md` §4): the turn number «Хід N», two
+AP tiles («Дії зараз» / «наст. хід»), and the global **End Turn** button pinned to the bottom. Window of the `MainUI`
 module (`EndTurn/`). The window keeps the `EndTurn` name even though it now owns the whole turn corner **and**
 the bottom-panel shell reveal.
 
@@ -30,11 +30,12 @@ is the single GLOBAL game-flow control that commits the turn. Consequences:
 ## Placement
 - The **left sub-panel** of the always-present bottom panel, divided from the context sub-panel by a vertical
   divider. It never appears/disappears — the muscle-memory turn corner.
-- The sub-panel stacks top-to-bottom: cap **«ПОТОЧНИЙ ХІД»** → **«Хід N»** → divider → **«Дії»** placeholder →
+- The sub-panel stacks top-to-bottom: **«Хід N»** → **two AP tiles** («Дії зараз» / «наст. хід») →
   **End Turn button**. The button is pinned to the bottom with `margin-top: auto`, so the two sub-panels share a
-  common bottom edge. «Хід N» is live (bound to `TurnCountComponent`); «Дії» is a visible placeholder (dashes)
-  until the AP model lands — see Scaffold.
-- Design reference: `design-mockups/index.html` (the `.bp-turn` sub-panel).
+  common bottom edge. «Хід N» is live (bound to `TurnCountComponent`); the two AP tiles are visible placeholders
+  (dashes) until the AP model lands — see Scaffold. No «ПОТОЧНИЙ ХІД» cap, no season / phase
+  (`GENERAL_UI_STYLE.md` §4).
+- Design reference: `design-mockups/FantasyMayor-HUD.html` (the `.turn` sub-panel).
 
 ## Visual
 - **Hero CTA — the one place a filled-gold button is warranted.** Body gold `rgb(217,164,65)`, dark warm text
@@ -80,18 +81,18 @@ authoritative backstop; the View's `_processing` self-guard is defence in depth.
 
 ## Scaffold / not done
 - «Хід N» is **live** (module `Turn`: `TurnCountComponent`).
-- «Дії» (Action Points) is a **visible placeholder only** — the block is authored and shown with dash values,
-  but **no AP model exists yet** and no system touches it. Wire it when the action-points mechanic lands
-  (`GAMEPLAY_FOUNDATION.md` level), not as a UI task.
+- The **two AP tiles** («Дії зараз» / «наст. хід») are **visible placeholders only** — authored and shown with
+  dash values, but **no AP model exists yet** and no system touches them. Wire them when the action-points
+  mechanic lands (`GAMEPLAY_FOUNDATION.md` level), not as a UI task.
 - `Locked` state is future (needs phase/turn ownership).
 
 ## Current State
 - **Implemented:** `EndTurnView` + `EndTurnViewComponent` + `EndTurnSpawnSubSystem` + `EndTurnSystem`, registered
   in `UIInstaller`, wired into Gameplay by `Boot`. The turn corner **markup lives in the shared Main UI
-  document** — `TurnPanel` (the `.bp-turn` sub-panel with `TurnNumber`, the «Дії» placeholder, and
+  document** — `TurnPanel` (the `.bp-turn` sub-panel with `TurnNumber`, the two AP tiles, and
   `EndTurnButton`) is the left sub-panel of the `BottomPanel` shell in `Prefabs/HexInfoPanel.uxml`, styled by
   `Prefabs/HexInfoPanel.uss`. There is no standalone `EndTurnView.uxml`/`.uss`. «Хід N» binds to
-  `TurnCountComponent` (module `Turn`).
+  `TurnCountComponent` (module `Turn`); the two AP tiles are static placeholders (no system touches them).
 - **User-side (Unity):** `EndTurnView` is a MonoBehaviour on the single `UI/MainUI` prefab, referencing the
   **same `UIDocument`** as `HexInfoPanelView`. There is no separate `UI/EndTurnView` address. The prefab is
   authored in Unity; not a code artifact.

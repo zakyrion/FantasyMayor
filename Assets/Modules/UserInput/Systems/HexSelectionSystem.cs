@@ -4,6 +4,7 @@ using JetBrains.Annotations;
 using Modules.AxialSystem;
 using Modules.Cameras.Components;
 using Modules.TerrainView.Components;
+using Modules.TerrainView.Events;
 using Modules.UserInput.Components;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -42,7 +43,7 @@ namespace Modules.UserInput.Systems
                 .With<PlayerInputComponent>()
                 .AsSet();
             _selectedHexSet = world.GetEntities()
-                .With<SelectedHexComponent>()
+                .With<HexSelectedComponent>()
                 .AsSet();
 
             TryBindInputActions();
@@ -96,7 +97,7 @@ namespace Modules.UserInput.Systems
         }
 
         /// <summary>
-        ///     Creates, updates, or removes the singleton <see cref="SelectedHexComponent" /> entity.
+        ///     Creates, updates, or removes the singleton <see cref="HexSelectedComponent" /> entity.
         /// </summary>
         /// <param name="coord">Hex that was clicked.</param>
         private void ApplySelection(HexCoord coord)
@@ -104,7 +105,8 @@ namespace Modules.UserInput.Systems
             var selectedEntities = _selectedHexSet.GetEntities();
             if (selectedEntities.Length == 0)
             {
-                _world.CreateEntity().Set(new SelectedHexComponent { Coords = coord });
+                _world.CreateEntity().Set(new HexSelectedComponent { Coords = coord });
+                RaiseSelectionChanged();
                 return;
             }
 
@@ -112,14 +114,28 @@ namespace Modules.UserInput.Systems
                 selectedEntities[index].Dispose();
 
             var selectedEntity = selectedEntities[0];
-            if (selectedEntity.Get<SelectedHexComponent>().Coords == coord)
+            if (selectedEntity.Get<HexSelectedComponent>().Coords == coord)
             {
                 selectedEntity.Dispose();
+                RaiseSelectionChanged();
                 return;
             }
 
             // Write through Set (publishing path), never in-place ref-mutation — see ARCHITECTURE.md.
-            selectedEntity.Set(new SelectedHexComponent { Coords = coord });
+            selectedEntity.Set(new HexSelectedComponent { Coords = coord });
+            RaiseSelectionChanged();
+        }
+
+        /// <summary>
+        ///     One-frame pulse so selection consumers (the hex info panel, the context tabs) reconcile against
+        ///     the new <see cref="HexSelectedComponent" /> state without per-frame polling. Raised on every
+        ///     mutation — create, deselect (dispose), and re-select to another coord.
+        /// </summary>
+        private void RaiseSelectionChanged()
+        {
+            var pulse = _world.CreateEntity();
+            pulse.Set(new SelectedHexChangedEvent());
+            pulse.Set(new EventTag());
         }
 
         /// <summary>

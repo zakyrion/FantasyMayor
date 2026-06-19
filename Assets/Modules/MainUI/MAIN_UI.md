@@ -5,6 +5,7 @@ tags: [ui, ecs]
 related:
   - "[HEX_INFO_PANEL](./HexInfoPanel/HEX_INFO_PANEL.md)"
   - "[END_TURN](./EndTurn/END_TURN.md)"
+  - "[CONTEXT_TABS](./ContextTabs/CONTEXT_TABS.md)"
   - "[GENERAL_UI_STYLE](../../../GENERAL_UI_STYLE.md)"
 status: partial
 ---
@@ -23,8 +24,11 @@ this doc, the asmdef) stay at the root. Windows:
 - `GeneratorMenu/` — the terrain-generator screen (`HexesUI` view + `ShowHexesUISystem`).
 - `HexInfoPanel/` — the selected-hex **context sub-panel** (right) of the bottom panel (+ the terrain-icon
   config). Design: `HexInfoPanel/HEX_INFO_PANEL.md`.
-- `EndTurn/` — the **turn sub-panel** (left) of the bottom panel (turn number «Хід N», «Дії» placeholder, End
-  Turn button); also owns the bottom-panel shell reveal. Design: `EndTurn/END_TURN.md`.
+- `EndTurn/` — the **turn sub-panel** (left) of the bottom panel («Хід N», two AP tiles «Дії зараз» / «наст.
+  хід», End Turn button); also owns the bottom-panel shell reveal. Design: `EndTurn/END_TURN.md`.
+- `ContextTabs/` — the **tab row** (Огляд / Будівлі / Дії) of the context sub-panel: a single-select `ui:Toggle`
+  group, active-tab state, the change event, and a stub availability system. Markup authored; one Unity-side
+  wiring step left (the `ContextTabsView` MonoBehaviour on the prefab). Design: `ContextTabs/CONTEXT_TABS.md`.
 
 ## UI root and the single Main UI prefab
 The shared full-screen UI root is module **`MainCanvas`** (`IMainCanvasProvider.RootGO`). Under it, the whole
@@ -45,17 +49,24 @@ Adding a window = add its markup to the `UI/MainUI` document + its view MonoBeha
 that resolves it.
 
 ## Trigger
-- `HexInfoPanelSystem` is a **Per-frame System** (Gameplay, anchored on the `HexInfoPanelViewComponent`
-  singleton) that watches the `SelectedHexComponent` singleton: it swaps the context sub-panel content
-  (filled ↔ empty placeholder) and raises a one-frame `HexInfoPanelRefreshEvent` when the selected hex
-  changes. It does NOT show/hide the shell.
+- `HexInfoPanelSystem` is a **Reactive System** (Gameplay, anchored on the `SelectedHexChangedEvent` pulse
+  raised by `UserInput.HexSelectionSystem`): it reconciles the context sub-panel **show/hide** (filled ↔ empty
+  placeholder) against the current `HexSelectedComponent`. The initial empty state is seeded by the spawn
+  subsystem; it does NOT show/hide the shell and does NOT fill blocks.
 - `HexInfoPanelHeaderSystem` / `HexInfoPanelResourcesSystem` / `HexInfoPanelDistrictPlaceholderSystem`
-  are **Reactive Systems** anchored on that pulse (base set = the event) — each rebuilds its panel
-  block from current world state.
+  are **Reactive Systems** anchored on the **same `SelectedHexChangedEvent` pulse** — each fills its panel
+  block from the current `HexSelectedComponent` (no intermediary refresh event; each gates on a real hex /
+  skips gracefully when nothing is selected).
 - `EndTurnSystem` is a **Per-frame System** (Gameplay, anchored on the `EndTurnViewComponent` singleton):
   it reveals the whole bottom panel (it owns the shell reveal), mirrors `TurnProcessorComponent` presence into
   the Processing look, and pushes the current turn number (`TurnCountComponent`, module `Turn`) into «Хід N».
   The button emits `NextTurnEvent` from `EndTurnView` on click. See `EndTurn/END_TURN.md`.
+- `ContextTabSelectionSystem` is a **Reactive System** (Gameplay, anchored on the payload-less
+  `ContextTabChangedEvent`): it reconciles the view against the `ActiveContextTabComponent` world singleton (the
+  view writes it on click). `ContextTabsAvailabilitySystem`
+  is a **Reactive System** (anchored on the `SelectedHexChangedEvent` pulse): it reconciles per-tab
+  enabled/disabled state from the current selection (currently a stub — all enabled). See
+  `ContextTabs/CONTEXT_TABS.md`.
 - These reactive triggers are not visible in graphify — full event flow: `ECS_REFERENCE.md`.
   Roles: `ARCHITECTURE.md` "System Taxonomy".
 
@@ -73,10 +84,12 @@ that resolves it.
   `TerrainGenerationGenerateEventComponent + EventTag`.
 - `MainUISpawnSystem` (**Pipeline Stage 800**, orchestrator) instantiates the single `UI/MainUI` prefab under
   the main canvas (owns the one addressable handle), then runs its **spawn subsystems** (`MainUISpawnSubSystem`,
-  ordered by Priority): `HexInfoPanelSpawnSubSystem` (0) and `EndTurnSpawnSubSystem` (10). Each subsystem
-  instantiates nothing — it `GetComponentInChildren`s its view off the shared instance and publishes the view
-  singleton. `HexInfoPanelSpawnSubSystem` sets the context to its empty state; `EndTurnSpawnSubSystem` leaves
-  the whole bottom-panel shell hidden — `EndTurnSystem` reveals it on entering Gameplay.
+  ordered by Priority): `HexInfoPanelSpawnSubSystem` (0), `EndTurnSpawnSubSystem` (10) and
+  `ContextTabsSpawnSubSystem` (20). Each subsystem instantiates nothing — it `GetComponentInChildren`s its view
+  off the shared instance and publishes the view singleton. `HexInfoPanelSpawnSubSystem` sets the context to
+  its empty state; `EndTurnSpawnSubSystem` leaves the whole bottom-panel shell hidden — `EndTurnSystem` reveals
+  it on entering Gameplay; `ContextTabsSpawnSubSystem` seeds the view + active tab (Overview) as **world
+  singletons** (no entity) + applies the initial highlight.
 
 ## Current State
 - Generator screen: three buttons (Generate, Second Step, Generate Mesh). **Only Generate is wired to
@@ -88,8 +101,13 @@ that resolves it.
   `HexInfoPanelDistrictPlaceholderSystem`) until gameplay components land; the empty state is intentionally
   blank.
 - Turn sub-panel (EndTurn): **implemented** (View/Component/Spawn/System + markup in the shared document). The
-  End Turn button and **«Хід N» (live, bound to `TurnCountComponent`)** work; «Дії» is a visible placeholder
-  (dashes) until the AP model lands. See `EndTurn/END_TURN.md`.
+  End Turn button and **«Хід N» (live, bound to `TurnCountComponent`)** work; the two AP tiles («Дії зараз» /
+  «наст. хід») are visible placeholders (dashes) until the AP model lands. See `EndTurn/END_TURN.md`.
+- Context tabs (ContextTabs): **markup authored, one Unity wiring step left** — components/event/enum/View/Spawn +
+  selection & availability systems, registered in `UIInstaller`, wired into Gameplay by `Boot`; the three
+  `ui:Toggle` tabs live in the shared document (active via `:checked`). Pending: add the `ContextTabsView`
+  MonoBehaviour to the `UI/MainUI` prefab + assign its `UIDocument` (else the spawn subsystem throws). Availability
+  is a stub (all tabs enabled). See `ContextTabs/CONTEXT_TABS.md`.
 
 ## Window Design Docs
 - `HexInfoPanel/HEX_INFO_PANEL.md` — the selected-hex context sub-panel (right): blocks, the filled ↔ empty
@@ -97,3 +115,6 @@ that resolves it.
 - `EndTurn/END_TURN.md` — the turn sub-panel (left) + shell reveal: state-vs-agency exception, Ready/Processing,
   «Хід N» binding to `TurnCountComponent`, «Дії» placeholder, `NextTurnEvent` / `TurnProcessorComponent`.
   Implemented.
+- `ContextTabs/CONTEXT_TABS.md` — the context tab row (Огляд / Будівлі / Дії): `ContextTab` enum, the active-tab
+  state component, the change event, the markup name-constant contract, the selection/availability split.
+  C# scaffold only.

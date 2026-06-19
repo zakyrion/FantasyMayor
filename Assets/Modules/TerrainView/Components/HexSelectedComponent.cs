@@ -6,7 +6,7 @@ namespace Modules.TerrainView.Components
     ///     Marks the currently selected hex in world space.
     ///     Expected to exist on at most one entity at a time.
     /// </summary>
-    public struct SelectedHexComponent
+    public struct HexSelectedComponent
     {
         /// <summary>Axial coordinates of the selected hex.</summary>
         public HexCoord Coords;

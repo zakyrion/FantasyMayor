@@ -5,82 +5,64 @@ using Modules.AxialSystem;
 using Modules.HexCore.Components;
 using Modules.HexCore.Tags;
 using Modules.MainUI.HexInfoPanel.Components;
-using Modules.MainUI.HexInfoPanel.Events;
 using Modules.TerrainView.Components;
+using Modules.TerrainView.Events;
 
 namespace Modules.MainUI.HexInfoPanel.Systems
 {
     /// <summary>
-    ///     Drives the CONTEXT sub-panel from the current selection. Swaps it to the filled blocks and raises a
-    ///     one-frame <see cref="HexInfoPanelRefreshEvent" /> when the selected hex changes; swaps it back to the
-    ///     empty placeholder when nothing — or a coordinate with no hex — is selected. Does NOT show/hide the
-    ///     bottom-panel shell (EndTurnSystem owns that). Per-block systems react to the refresh event.
-    ///     Anchored on the panel-view singleton so it ticks once per frame, mirroring HexSelectionViewSystem.
+    ///     Owns the CONTEXT sub-panel's show/hide. Reactive on the <see cref="SelectedHexChangedEvent" /> pulse
+    ///     (raised by HexSelectionSystem on every selection mutation): swaps the panel to the filled blocks when a
+    ///     real hex is selected, back to the empty placeholder on deselection or a coordinate with no hex.
+    ///     Stateless reconcile (idempotent). The block CONTENT is filled by the per-block systems, which react to
+    ///     the same pulse and read HexSelectedComponent; the initial empty state is seeded by
+    ///     HexInfoPanelSpawnSubSystem. Does NOT show/hide the bottom-panel shell (EndTurnSystem owns that).
     /// </summary>
     [UsedImplicitly]
     public sealed class HexInfoPanelSystem : UpdatedSystem
     {
         private const int ExecutionPriority = 550;
 
-        private readonly World _world;
+        private readonly EntitySet _viewSet;
         private readonly EntitySet _selectedHexSet;
         private readonly EntitySet _hexSet;
-
-        private bool _isFilled;
-        private bool _hasProcessed;
-        private HexCoord _lastCoords;
 
         public override int Priority => ExecutionPriority;
 
         public HexInfoPanelSystem(World world)
-            : base(world.GetEntities().With<HexInfoPanelViewComponent>().AsSet())
+            : base(world.GetEntities().With<SelectedHexChangedEvent>().AsSet())
         {
-            _world = world;
-            _selectedHexSet = world.GetEntities().With<SelectedHexComponent>().AsSet();
+            _viewSet = world.GetEntities().With<HexInfoPanelViewComponent>().AsSet();
+            _selectedHexSet = world.GetEntities().With<HexSelectedComponent>().AsSet();
             _hexSet = world.GetEntities().With<HexTag>().With<HexIdComponent>().AsSet();
         }
 
         protected override void Update(GameState state, in Entity entity)
         {
-            var view = entity.Get<HexInfoPanelViewComponent>().View;
+            if (_viewSet.Count == 0)
+                return;
+
+            var view = _viewSet.GetEntities()[0].Get<HexInfoPanelViewComponent>().View;
             if (view == null)
                 return;
 
             if (_selectedHexSet.Count == 0)
             {
-                if (_isFilled)
-                {
-                    view.ShowEmpty();
-                    _isFilled = false;
-                }
-
-                _hasProcessed = false;
+                view.ShowEmpty();
                 return;
             }
 
-            var coords = _selectedHexSet.GetEntities()[0].Get<SelectedHexComponent>().Coords;
-            if (_hasProcessed && _lastCoords == coords)
-                return;
+            var coords = _selectedHexSet.GetEntities()[0].Get<HexSelectedComponent>().Coords;
 
-            _hasProcessed = true;
-            _lastCoords = coords;
-
-            // A click can land on a coordinate with no hex (e.g. outside the grid) — that is not a real hex,
-            // so the panel stays hidden rather than showing an empty header.
+            // A click can land on a coordinate with no hex (e.g. outside the grid) — not a real hex, so the
+            // panel stays empty rather than showing an empty header.
             if (!HexExists(coords))
             {
-                if (_isFilled)
-                {
-                    view.ShowEmpty();
-                    _isFilled = false;
-                }
-
+                view.ShowEmpty();
                 return;
             }
 
             view.ShowSelection();
-            RaiseRefresh(coords);
-            _isFilled = true;
         }
 
         private bool HexExists(HexCoord coords)
@@ -94,15 +76,9 @@ namespace Modules.MainUI.HexInfoPanel.Systems
             return false;
         }
 
-        private void RaiseRefresh(HexCoord coords)
-        {
-            var refreshEntity = _world.CreateEntity();
-            refreshEntity.Set(new HexInfoPanelRefreshEvent { Coords = coords });
-            refreshEntity.Set(new EventTag());
-        }
-
         public override void Dispose()
         {
+            _viewSet.Dispose();
             _selectedHexSet.Dispose();
             _hexSet.Dispose();
             base.Dispose();

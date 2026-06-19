@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 4115371328212060824}
   - component: {fileID: 7885086457313621787}
   - component: {fileID: 4395211397937596506}
+  - component: {fileID: 7516460248528946567}
   m_Layer: 0
   m_Name: MainUI
   m_TagString: Untagged
@@ -83,4 +84,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eb12ab5cf1f24fba9dbed8e5a2d3fce, type: 3}
   m_Name: 
   m_EditorClassIdentifier: MainUI::Modules.MainUI.EndTurn.Views.EndTurnView
+  _document: {fileID: 4115371328212060824}
+--- !u!114 &7516460248528946567
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 781495093416928468}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c83b4d35df214e09913616864d0fcf5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: MainUI::Modules.MainUI.ContextTabs.Views.ContextTabsView
   _document: {fileID: 4115371328212060824}

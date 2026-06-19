@@ -5,6 +5,7 @@ tags: [ui, hex]
 related:
   - "[MAIN_UI](../MAIN_UI.md)"
   - "[END_TURN](../EndTurn/END_TURN.md)"
+  - "[CONTEXT_TABS](../ContextTabs/CONTEXT_TABS.md)"
   - "[GENERAL_UI_STYLE](../../../../GENERAL_UI_STYLE.md)"
 ---
 
@@ -33,25 +34,31 @@ this sub-panel's CONTENT is contextual — it swaps between the **filled** block
   the document root or the shell.
 
 ## Trigger
-Driven by the `SelectedHexComponent` singleton entity, created / updated / removed by
-`UserInput.HexSelectionSystem`. `SelectedHexComponent.Coords` is the selected hex coordinate.
-- `HexInfoPanelSystem` swaps to the filled content when that entity exists over a real hex, swaps back to the
-  empty placeholder when it is gone (or the coordinate carries no hex), and raises `HexInfoPanelRefreshEvent`
-  when `Coords` changes.
+Driven by the `HexSelectedComponent` singleton entity, created / updated / removed by
+`UserInput.HexSelectionSystem`, which raises a payload-less `SelectedHexChangedEvent` on every mutation.
+`HexSelectedComponent.Coords` is the selected hex coordinate.
+- **All four panel systems are reactive on `SelectedHexChangedEvent`** (no per-frame polling) and reconcile
+  against the current `HexSelectedComponent`. There is **no intermediary refresh event** — each reads the
+  selection itself:
+  - `HexInfoPanelSystem` owns **show/hide** (`ShowSelection` for a real hex, else `ShowEmpty`).
+  - the block systems (Header / Resources / District) **fill** their block, each gating on a real hex /
+    skipping gracefully when nothing (or a non-grid coord) is selected.
+- The initial empty state is seeded by the spawn subsystem.
 - This reactive trigger is not visible in graphify — full selection flow: `ECS_REFERENCE.md`.
 
 ## Blocks (in progressive-disclosure order)
 
 ### Filled state — a hex is selected (`ContextFilled`)
 
-#### 1. Header — always present (when filled)
+#### 1. Hex header (icon + name) — top of the overview body (`HexHead` in `ctx-a`)
 - **Terrain icon + name:** from the terrain tag on the selected hex entity — `HexPlainTag` / `HexMountTag` /
   `HexBedhillTag` / `HexWaterTag` (data-less tags; tag *presence* is the type). Each tag maps to one
   sprite + label.
-- **Coordinate:** `SelectedHexComponent.Coords`.
-- **District tabs — SCAFFOLD.** `Огляд / Будівлі / Вихід` live in the header row. They are **visual chrome
-  only** — the full-window drill-downs do not exist yet, no system wires them, and they are not pickable. They
-  mark where district navigation will live.
+- **No coordinate.** The design dropped it; `SetHeader(icon, title)` has no coord argument. `HexSelectedComponent.Coords`
+  is still read by the system to resolve the terrain tag, just not displayed.
+- **Relocation.** The header (`HexHead`: `HeaderIcon` + `HeaderTitle`) now sits at the **top of the overview
+  body** (mockup `.hexhead` inside the «Гекс» block), NOT in a top header row. The top of the context sub-panel
+  is the **tab row** — a separate window (`ContextTabs/CONTEXT_TABS.md`), not part of this panel.
 - **Required prerequisite:** a hex must carry exactly one terrain tag. None → throw (fail-loud). This is *not*
   an "optional block absent" case.
 
@@ -82,14 +89,16 @@ One system per block (per `GENERAL_UI_STYLE` Panel Construction; roles per `ARCH
 - **`HexInfoPanelSpawnSubSystem`** — Main UI spawn subsystem (run by `MainUISpawnSystem`, pipeline 800):
   resolves the panel view off the shared `UI/MainUI` instance (`GetComponentInChildren`), publishes the view
   singleton, and sets the context to its **empty** state. Instantiates nothing; does not touch the shell.
-- **`HexInfoPanelSystem`** — Per-frame System (550): watches `SelectedHexComponent`; swaps the context content
-  (`ShowSelection` / `ShowEmpty`) and raises the one-frame `HexInfoPanelRefreshEvent` on selection change. Does
-  **not** show/hide the shell.
-- **`HexInfoPanelHeaderSystem`** — Reactive System (560): terrain tag + coord → header block.
-- **`HexInfoPanelResourcesSystem`** — Reactive System (561): resource entities → chips; toggles the
-  resources block.
-- **`HexInfoPanelDistrictPlaceholderSystem`** — Reactive System (562), SCAFFOLD; keeps the district kvgrid
-  **and** the yield split hidden until real components exist.
+- **`HexInfoPanelSystem`** — Reactive System (550) on `SelectedHexChangedEvent`: reconciles **show/hide only**
+  (`ShowSelection` for a real hex via `HexExists`, else `ShowEmpty`). Does **not** show/hide the shell, does
+  **not** fill blocks.
+- **`HexInfoPanelHeaderSystem`** — Reactive System (560) on `SelectedHexChangedEvent`: reads
+  `HexSelectedComponent.Coords`, resolves the terrain tag → header block (icon + name, no coord). Skips
+  gracefully on no selection / a non-grid coord (no throw — that is a valid empty selection).
+- **`HexInfoPanelResourcesSystem`** — Reactive System (561) on `SelectedHexChangedEvent`: resource entities of
+  the selected hex → chips; hides the block when none (or nothing selected).
+- **`HexInfoPanelDistrictPlaceholderSystem`** — Reactive System (562) on `SelectedHexChangedEvent`, SCAFFOLD;
+  keeps the district kvgrid **and** the yield split hidden until real components exist.
 
 ## Implementation Notes
 - **One shared instance** (selection is singular), not a panel per hex. World-space per-hex badges are a
