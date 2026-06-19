@@ -26,9 +26,10 @@ this doc, the asmdef) stay at the root. Windows:
   config). Design: `HexInfoPanel/HEX_INFO_PANEL.md`.
 - `EndTurn/` — the **turn sub-panel** (left) of the bottom panel («Хід N», two AP tiles «Дії зараз» / «наст.
   хід», End Turn button); also owns the bottom-panel shell reveal. Design: `EndTurn/END_TURN.md`.
-- `ContextTabs/` — the **tab row** (Огляд / Будівлі / Дії) of the context sub-panel: a single-select `ui:Toggle`
-  group, active-tab state, the change event, and a stub availability system. Markup authored; one Unity-side
-  wiring step left (the `ContextTabsView` MonoBehaviour on the prefab). Design: `ContextTabs/CONTEXT_TABS.md`.
+- `ContextTabs/` — the **permanent tab row** (Огляд / Будівлі / Дії) of the context sub-panel: a single-select
+  `ui:Toggle` group, active-tab state, the change event, a stub availability system, **and the swap of the three
+  content panes** (`OverviewPane` / `BuildingsPane` / `ActionsPane`) it drives via `SetActive`. Design:
+  `ContextTabs/CONTEXT_TABS.md`.
 
 ## UI root and the single Main UI prefab
 The shared full-screen UI root is module **`MainCanvas`** (`IMainCanvasProvider.RootGO`). Under it, the whole
@@ -96,18 +97,21 @@ that resolves it.
   logic** — the other two are placeholders.
 - Bottom panel: **one unified shell** with two sub-panels (UXML/USS + systems + prefab + configs), revealed in
   Gameplay by `EndTurnSystem`.
-- Context sub-panel (HexInfoPanel): **implemented**. Header and Resources blocks bind to real components; the
-  District kvgrid + the «Вихід цього ходу» yield split are SCAFFOLD (both hidden by
-  `HexInfoPanelDistrictPlaceholderSystem`) until gameplay components land; the empty state is intentionally
+- Context sub-panel (HexInfoPanel): **implemented**. Fixed-height shell, permanent tab row over a filled/empty
+  swap, with three tab panes inside the filled state (`OverviewPane` / `BuildingsPane` / `ActionsPane`). The
+  Overview pane's «Гекс» block (icon + name + Resources) binds to real components; the «Район» + «Праця та
+  виробництво» blocks are SCAFFOLD (both hidden by `HexInfoPanelDistrictPlaceholderSystem`) until gameplay
+  components land; `BuildingsPane` / `ActionsPane` are empty named containers; the empty state is intentionally
   blank.
 - Turn sub-panel (EndTurn): **implemented** (View/Component/Spawn/System + markup in the shared document). The
   End Turn button and **«Хід N» (live, bound to `TurnCountComponent`)** work; the two AP tiles («Дії зараз» /
   «наст. хід») are visible placeholders (dashes) until the AP model lands. See `EndTurn/END_TURN.md`.
-- Context tabs (ContextTabs): **markup authored, one Unity wiring step left** — components/event/enum/View/Spawn +
-  selection & availability systems, registered in `UIInstaller`, wired into Gameplay by `Boot`; the three
-  `ui:Toggle` tabs live in the shared document (active via `:checked`). Pending: add the `ContextTabsView`
-  MonoBehaviour to the `UI/MainUI` prefab + assign its `UIDocument` (else the spawn subsystem throws). Availability
-  is a stub (all tabs enabled). See `ContextTabs/CONTEXT_TABS.md`.
+- Context tabs (ContextTabs): **implemented** — components/event/enum/View/Spawn + selection & availability
+  systems, registered in `UIInstaller`, wired into Gameplay by `Boot`; the three `ui:Toggle` tabs (active via
+  `:checked`) and the three content panes live in the shared document, and `SetActive` swaps both. Requires the
+  `ContextTabsView` MonoBehaviour on the `UI/MainUI` prefab with its `UIDocument` assigned (else the spawn
+  subsystem throws). Availability is a stub (all tabs enabled); `BuildingsPane` / `ActionsPane` content is
+  pending. See `ContextTabs/CONTEXT_TABS.md`.
 
 ## Window Design Docs
 - `HexInfoPanel/HEX_INFO_PANEL.md` — the selected-hex context sub-panel (right): blocks, the filled ↔ empty
@@ -115,6 +119,6 @@ that resolves it.
 - `EndTurn/END_TURN.md` — the turn sub-panel (left) + shell reveal: state-vs-agency exception, Ready/Processing,
   «Хід N» binding to `TurnCountComponent`, «Дії» placeholder, `NextTurnEvent` / `TurnProcessorComponent`.
   Implemented.
-- `ContextTabs/CONTEXT_TABS.md` — the context tab row (Огляд / Будівлі / Дії): `ContextTab` enum, the active-tab
-  state component, the change event, the markup name-constant contract, the selection/availability split.
-  C# scaffold only.
+- `ContextTabs/CONTEXT_TABS.md` — the permanent context tab row (Огляд / Будівлі / Дії): `ContextTab` enum, the
+  active-tab state component, the change event, the markup name-constant contract (tabs + the three content panes),
+  the pane swap in `SetActive`, the selection/availability split.

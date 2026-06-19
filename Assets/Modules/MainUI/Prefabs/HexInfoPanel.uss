@@ -1,7 +1,8 @@
 /* Bottom panel — tokens from GENERAL_UI_STYLE.md §6, USS-safe per §11 (no box-shadow / ::before / blur / gradient).
-   ONE full-width shell (§4): left TURN sub-panel (state + End Turn) | right CONTEXT sub-panel (selected hex),
-   split by a vertical divider. The shell previews VISIBLE in UI Builder; at runtime it spawns hidden and
-   EndTurnView reveals it on Gameplay, while HexInfoPanelView swaps ContextFilled <-> ContextEmpty.
+   ONE full-width FIXED-HEIGHT shell (§4): left TURN sub-panel (state + End Turn) | right CONTEXT sub-panel
+   (selected hex), split by a vertical divider. The shell previews VISIBLE in UI Builder; at runtime it spawns
+   hidden and EndTurnView reveals it on Gameplay. CONTEXT: a PERMANENT tab row on top, then a filled/empty swap
+   (HexInfoPanelView), and inside the filled state one of three tab panes (ContextTabsView).
    Sizes are scaled +50% from the mockup base (design-mockups/FantasyMayor-HUD.html): every px is the mockup value x1.5. */
 
 /* ============ SHELL ============ */
@@ -10,6 +11,8 @@
     left: 0;
     right: 0;
     bottom: 0;
+    /* Fixed height (mockup 306 x1.5) so the panel never grows upward with content; overflow is clipped. */
+    height: 459px;
     /* Flush to the screen's bottom + side edges (no margins) and fully opaque (no transparency). */
     background-color: rgb(24, 20, 16);
     /* Only the top edge floats, so only it carries the gold rim; all four corners are squared (no radius).
@@ -25,9 +28,12 @@
     background-color: rgb(217, 164, 65);
 }
 
+/* The two sub-panels fill the fixed shell height (flex-grow), stretched to a common height. */
 .bp-row {
+    flex-grow: 1;
     flex-direction: row;
     align-items: stretch;
+    min-height: 0;
 }
 
 /* ============ TURN sub-panel (left) ============ */
@@ -161,54 +167,19 @@
     flex-grow: 1;
     flex-direction: column;
     min-width: 0;
+    min-height: 0;
 }
 
-.ctx-filled {
-    flex-grow: 1;
-    flex-direction: column;
-}
-
-/* Tab row (Огляд / Будівлі / Дії) — ContextTabs window. A single-select toggle group; see .ctx-tab below. */
+/* Tab row (Огляд / Будівлі / Дії) — ContextTabs window. PERMANENT (flex-shrink:0): never collapses and stays
+   above the filled/empty swap. A single-select toggle group; see .ctx-tab below. */
 .ctx-tabs {
     flex-direction: row;
+    flex-shrink: 0;
     padding-top: 10px;
     padding-left: 24px;
     padding-right: 24px;
     border-bottom-width: 1px;
     border-bottom-color: rgba(217, 164, 65, 0.14);
-}
-
-/* Hex identity (icon + name) — relocated from the old header into the overview body (mockup .hexhead). */
-.hexhead {
-    flex-direction: row;
-    align-items: center;
-    margin-bottom: 18px;
-}
-
-.terrain-icon {
-    width: 51px;
-    height: 51px;
-    margin-right: 15px;
-    flex-shrink: 0;
-    background-color: rgba(255, 255, 255, 0.08);
-    border-top-left-radius: 14px;
-    border-top-right-radius: 14px;
-    border-bottom-left-radius: 14px;
-    border-bottom-right-radius: 14px;
-    border-left-width: 1px;
-    border-right-width: 1px;
-    border-top-width: 1px;
-    border-bottom-width: 1px;
-    border-left-color: rgba(255, 255, 255, 0.10);
-    border-right-color: rgba(255, 255, 255, 0.10);
-    border-top-color: rgba(255, 255, 255, 0.10);
-    border-bottom-color: rgba(255, 255, 255, 0.10);
-}
-
-.ctx-title {
-    font-size: 23px;
-    color: rgb(241, 231, 214);
-    -unity-font-style: bold;
 }
 
 /* Tabs are ui:Toggle elements styled as a tab strip: the native checkmark and (empty) field label are hidden,
@@ -255,40 +226,133 @@
     color: rgb(241, 231, 214);
 }
 
-.ctx-body {
-    flex-direction: row;
-    align-items: stretch;
+/* Filled state: fills the area below the tab row. Holds the three panes (one shown by ContextTabsView). */
+.ctx-filled {
     flex-grow: 1;
+    flex-direction: column;
+    min-height: 0;
 }
 
-.ctx-a {
+/* A tab pane fills the filled-state region; only the active one is displayed (ContextTabsView toggles display). */
+.ctx-pane {
+    flex-grow: 1;
+    flex-basis: 0;
+    min-height: 0;
+}
+
+/* The Overview pane lays its discrete blocks out in a row (mockup .blocks). */
+.ctx-pane--row {
+    flex-direction: row;
+    padding-top: 21px;
+    padding-bottom: 21px;
+    padding-left: 24px;
+    padding-right: 24px;
+}
+
+/* ---- discrete blocks (mockup .block) ---- */
+.block {
+    flex-direction: column;
+    margin-right: 18px;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    padding-left: 20px;
+    padding-right: 20px;
+    background-color: rgba(255, 255, 255, 0.015);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgba(217, 164, 65, 0.12);
+    border-right-color: rgba(217, 164, 65, 0.12);
+    border-top-color: rgba(217, 164, 65, 0.12);
+    border-bottom-color: rgba(217, 164, 65, 0.12);
+    border-top-left-radius: 14px;
+    border-top-right-radius: 14px;
+    border-bottom-left-radius: 14px;
+    border-bottom-right-radius: 14px;
+}
+
+.block--hex {
+    width: 423px;
+    flex-shrink: 0;
+}
+
+.block--district {
+    width: 477px;
+    flex-shrink: 0;
+}
+
+.block--prod {
     flex-grow: 1;
     min-width: 0;
-    padding-top: 20px;
-    padding-bottom: 20px;
-    padding-left: 24px;
-    padding-right: 24px;
+    margin-right: 0;
 }
 
-.ctx-b {
-    width: 345px;
-    flex-shrink: 0;
-    padding-top: 20px;
-    padding-bottom: 20px;
-    padding-left: 24px;
-    padding-right: 24px;
-    border-left-width: 1px;
-    border-left-color: rgba(217, 164, 65, 0.14);
-}
-
-.section {
-    margin-bottom: 18px;
-}
-
-.section-label {
-    font-size: 16px;
+/* Block header caption (mockup .bh). */
+.block-h {
+    font-size: 14px;
     letter-spacing: 2px;
-    margin-bottom: 14px;
+    margin-bottom: 16px;
+    color: rgb(125, 114, 100);
+}
+
+/* Block header with a trailing level chip (mockup .bh.row). */
+.block-h-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.block-h-cap {
+    font-size: 14px;
+    letter-spacing: 2px;
+    color: rgb(125, 114, 100);
+}
+
+.block-h-lvl {
+    font-size: 16px;
+    color: rgb(125, 114, 100);
+}
+
+/* Hex identity (icon + name) — top of the Гекс block (mockup .hexhead). */
+.hexhead {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.terrain-icon {
+    width: 51px;
+    height: 51px;
+    margin-right: 15px;
+    flex-shrink: 0;
+    background-color: rgba(255, 255, 255, 0.08);
+    border-top-left-radius: 14px;
+    border-top-right-radius: 14px;
+    border-bottom-left-radius: 14px;
+    border-bottom-right-radius: 14px;
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgba(255, 255, 255, 0.10);
+    border-right-color: rgba(255, 255, 255, 0.10);
+    border-top-color: rgba(255, 255, 255, 0.10);
+    border-bottom-color: rgba(255, 255, 255, 0.10);
+}
+
+.ctx-title {
+    font-size: 23px;
+    color: rgb(241, 231, 214);
+    -unity-font-style: bold;
+}
+
+/* Small sub-label inside a block (mockup .minilbl), e.g. "Ресурси". */
+.minilbl {
+    font-size: 14px;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
     color: rgb(125, 114, 100);
 }
 
@@ -339,74 +403,152 @@
     color: rgb(241, 231, 214);
 }
 
-/* ---- key-value grid (District scaffold) ---- */
-.kvgrid {
-    flex-direction: row;
-    flex-wrap: wrap;
-}
-
-.kvcol {
-    min-width: 192px;
-    margin-right: 33px;
-}
-
-.kv {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 6px;
-    padding-bottom: 6px;
-}
-
-.kv-k {
-    font-size: 18px;
-    color: rgb(168, 156, 138);
-}
-
-.kv-v {
-    font-size: 18px;
+/* ---- District name + key-value list (District scaffold, mockup .dname / .kv) ---- */
+.dname {
+    font-size: 24px;
+    margin-bottom: 16px;
     color: rgb(241, 231, 214);
     -unity-font-style: bold;
 }
 
-.kv-v--warn {
-    color: rgb(232, 169, 106);
+.kv {
+    flex-direction: column;
 }
 
-.kv-v--city {
-    color: rgb(127, 176, 214);
+.kv-row {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 9px;
+    padding-bottom: 9px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(217, 164, 65, 0.10);
+}
+
+.kv-k {
+    font-size: 19px;
+    color: rgb(168, 156, 138);
+}
+
+.kv-v {
+    font-size: 19px;
+    color: rgb(241, 231, 214);
+}
+
+.kv-v--owner {
+    color: rgb(224, 178, 90);
 }
 
 .kv-v--oper {
-    color: rgb(158, 199, 138);
+    color: rgb(111, 160, 91);
 }
 
-/* ---- yield split-bar (Yield scaffold) ---- */
-.split-bar {
+.kv-role {
     flex-direction: row;
-    height: 14px;
-    margin-bottom: 16px;
-    border-top-left-radius: 9px;
-    border-top-right-radius: 9px;
-    border-bottom-left-radius: 9px;
-    border-bottom-right-radius: 9px;
-    overflow: hidden;
+    align-items: center;
 }
 
-.split-seg {
-    height: 100%;
+.kv-role-sw {
+    width: 12px;
+    height: 12px;
+    margin-right: 9px;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
 }
 
-.split-seg--city {
-    background-color: rgb(91, 139, 176);
-}
-
-.split-seg--owner {
+.kv-role-sw--owner {
     background-color: rgb(224, 178, 90);
 }
 
-.split-seg--oper {
+.kv-role-sw--oper {
     background-color: rgb(111, 160, 91);
+}
+
+/* ---- labour line + production table (Production scaffold, mockup .laborline / .prodtable) ---- */
+.laborline {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    padding-left: 16px;
+    padding-right: 16px;
+    background-color: rgba(255, 255, 255, 0.03);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgba(232, 169, 106, 0.30);
+    border-right-color: rgba(232, 169, 106, 0.30);
+    border-top-color: rgba(232, 169, 106, 0.30);
+    border-bottom-color: rgba(232, 169, 106, 0.30);
+    border-top-left-radius: 11px;
+    border-top-right-radius: 11px;
+    border-bottom-left-radius: 11px;
+    border-bottom-right-radius: 11px;
+}
+
+.laborline-k {
+    font-size: 14px;
+    letter-spacing: 1px;
+    color: rgb(125, 114, 100);
+}
+
+.laborline-v {
+    font-size: 19px;
+    color: rgb(232, 169, 106);
+}
+
+.prodtable {
+    flex-direction: column;
+}
+
+.prod-row {
+    flex-direction: row;
+    align-items: center;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    border-top-width: 1px;
+    border-top-color: rgba(217, 164, 65, 0.10);
+}
+
+.prod-row--head {
+    border-top-width: 0;
+}
+
+.prod-name {
+    flex-grow: 1;
+    flex-basis: 0;
+    min-width: 0;
+    font-size: 19px;
+    color: rgb(241, 231, 214);
+}
+
+.prod-c {
+    width: 96px;
+    -unity-text-align: middle-right;
+    font-size: 19px;
+}
+
+.prod-h {
+    font-size: 14px;
+    letter-spacing: 1px;
+    color: rgb(125, 114, 100);
+}
+
+.prod-c--city {
+    color: rgb(169, 200, 221);
+}
+
+.prod-c--owner {
+    color: rgb(240, 215, 154);
+}
+
+.prod-c--oper {
+    color: rgb(191, 224, 168);
 }
 
 .scaffold-tag {
@@ -417,7 +559,8 @@
 }
 
 /* ============ CONTEXT empty state (nothing selected) ============ */
-/* Intentionally blank — no tabs, no hint text. The container only exists as the swap target. */
+/* Intentionally blank — no hint text. The tab row above stays visible; this only fills the area below it. */
 .ctx-empty-wrap {
     flex-grow: 1;
+    min-height: 0;
 }

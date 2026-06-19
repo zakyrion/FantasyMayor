@@ -17,14 +17,20 @@ namespace Modules.MainUI.ContextTabs.Views
     ///     (ActiveContextTabComponent): on the "on" edge of a tab the view raises a one-frame
     ///     ContextTabChangedEvent (mirrors EndTurnView's click-emit) and holds no state. The active tab cannot
     ///     be turned off (there is always exactly one). The systems push state in via SetActive (the checked
-    ///     tab) and SetTabEnabled (per-tab availability). Tabs bind by name constant — the markup authors
-    ///     ui:Toggle elements named TabOverview / TabBuildings / TabActions; the active one is shown via :checked.
+    ///     tab + the shown content pane) and SetTabEnabled (per-tab availability). Tabs bind by name constant —
+    ///     the markup authors ui:Toggle elements named TabOverview / TabBuildings / TabActions (the active one is
+    ///     shown via :checked) plus the matching content panes OverviewPane / BuildingsPane / ActionsPane (one
+    ///     shown at a time). Both the tabs and the panes live in the shared Main UI document; the pane swap rides
+    ///     inside SetActive (the active-tab state is owned by ECS, the view only mirrors it).
     /// </summary>
     public sealed class ContextTabsView : MonoBehaviour
     {
         private const string TabOverviewName = "TabOverview";
         private const string TabBuildingsName = "TabBuildings";
         private const string TabActionsName = "TabActions";
+        private const string OverviewPaneName = "OverviewPane";
+        private const string BuildingsPaneName = "BuildingsPane";
+        private const string ActionsPaneName = "ActionsPane";
 
         [SerializeField] private UIDocument _document;
 
@@ -32,6 +38,9 @@ namespace Modules.MainUI.ContextTabs.Views
         private Toggle _tabOverview;
         private Toggle _tabBuildings;
         private Toggle _tabActions;
+        private VisualElement _overviewPane;
+        private VisualElement _buildingsPane;
+        private VisualElement _actionsPane;
         private EventCallback<ChangeEvent<bool>> _onOverview;
         private EventCallback<ChangeEvent<bool>> _onBuildings;
         private EventCallback<ChangeEvent<bool>> _onActions;
@@ -69,14 +78,24 @@ namespace Modules.MainUI.ContextTabs.Views
                 _tabActions.UnregisterValueChangedCallback(_onActions);
         }
 
-        /// <summary>Reflects the active tab as the single checked toggle (idempotent; raises no ChangeEvent).</summary>
+        /// <summary>
+        ///     Reflects the active tab: the single checked toggle AND the single shown content pane (the two
+        ///     other panes are hidden). Idempotent; raises no ChangeEvent.
+        /// </summary>
         public void SetActive(ContextTab active)
         {
             EnsureCached();
             _tabOverview.SetValueWithoutNotify(active == ContextTab.Overview);
             _tabBuildings.SetValueWithoutNotify(active == ContextTab.Buildings);
             _tabActions.SetValueWithoutNotify(active == ContextTab.Actions);
+
+            _overviewPane.style.display = Display(active == ContextTab.Overview);
+            _buildingsPane.style.display = Display(active == ContextTab.Buildings);
+            _actionsPane.style.display = Display(active == ContextTab.Actions);
         }
+
+        private StyleEnum<DisplayStyle> Display(bool shown) =>
+            shown ? DisplayStyle.Flex : DisplayStyle.None;
 
         /// <summary>Enables/disables one tab — SetEnabled blocks its clicks and applies the :disabled look.</summary>
         public void SetTabEnabled(ContextTab tab, bool enabled)
@@ -139,6 +158,9 @@ namespace Modules.MainUI.ContextTabs.Views
             _tabOverview = root.Q<Toggle>(TabOverviewName);
             _tabBuildings = root.Q<Toggle>(TabBuildingsName);
             _tabActions = root.Q<Toggle>(TabActionsName);
+            _overviewPane = root.Q<VisualElement>(OverviewPaneName);
+            _buildingsPane = root.Q<VisualElement>(BuildingsPaneName);
+            _actionsPane = root.Q<VisualElement>(ActionsPaneName);
             _cached = true;
         }
     }

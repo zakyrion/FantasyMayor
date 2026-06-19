@@ -22,7 +22,7 @@ namespace Modules.MainUI.HexInfoPanel.Views
         private const string ResourcesSectionName = "ResourcesSection";
         private const string ResourcesContainerName = "ResourcesContainer";
         private const string DistrictSectionName = "DistrictSection";
-        private const string YieldSectionName = "YieldSection";
+        private const string ProductionSectionName = "ProductionSection";
 
         private const string ChipClass = "chip";
         private const string ChipIconClass = "chip-icon";
@@ -37,7 +37,7 @@ namespace Modules.MainUI.HexInfoPanel.Views
         private VisualElement _resourcesSection;
         private VisualElement _resourcesContainer;
         private VisualElement _districtSection;
-        private VisualElement _yieldSection;
+        private VisualElement _productionSection;
 
         // Managed UI elements → System.Collections.Generic (NativeContainer holds unmanaged only).
         private readonly List<VisualElement> _chipPool = new();
@@ -110,16 +110,16 @@ namespace Modules.MainUI.HexInfoPanel.Views
         }
 
         /// <summary>
-        ///     Toggles the District-economy scaffold — both the District kvgrid (left column) and the
-        ///     "Вихід цього ходу" yield split (right column). They share the same backing data, so they appear
-        ///     and disappear together. Hidden by HexInfoPanelDistrictPlaceholderSystem until that data lands.
+        ///     Toggles the District-economy scaffold — both the District block (Район) and the "Праця та
+        ///     виробництво" production block. They share the same backing data, so they appear and disappear
+        ///     together. Hidden by HexInfoPanelDistrictPlaceholderSystem until that data lands.
         /// </summary>
         public void SetDistrictVisible(bool visible)
         {
             EnsureCached();
             var display = visible ? DisplayStyle.Flex : DisplayStyle.None;
             _districtSection.style.display = display;
-            _yieldSection.style.display = display;
+            _productionSection.style.display = display;
         }
 
         // A null sprite clears the inline value so the USS placeholder background shows through.
@@ -165,7 +165,7 @@ namespace Modules.MainUI.HexInfoPanel.Views
             _resourcesSection = root.Q<VisualElement>(ResourcesSectionName);
             _resourcesContainer = root.Q<VisualElement>(ResourcesContainerName);
             _districtSection = root.Q<VisualElement>(DistrictSectionName);
-            _yieldSection = root.Q<VisualElement>(YieldSectionName);
+            _productionSection = root.Q<VisualElement>(ProductionSectionName);
             _cached = true;
 
             // Strip the editor-preview sample chips authored in UXML so the runtime chip pool starts clean;

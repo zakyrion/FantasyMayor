@@ -16,7 +16,7 @@ selected hex. Grows by progressive disclosure.
 
 > **Category:** B (design spec) per `DOC_STANDARD.md`. Style, tokens, component catalog, placement, and the
 > construction pattern come from `GENERAL_UI_STYLE.md` (repo root) — this doc does **not** restate them.
-> **Visual reference:** `design-mockups/index.html` (State A empty, State B filled).
+> **Visual reference:** `design-mockups/FantasyMayor-HUD.html` (tab row + the Overview/Buildings/Actions panes).
 > **Read policy:** read when building or changing this panel.
 
 ## Purpose
@@ -27,11 +27,17 @@ this sub-panel's CONTENT is contextual — it swaps between the **filled** block
 `EndTurn/END_TURN.md`.
 
 ## Ownership split (read this first)
-- The bottom-panel **shell** (`BottomPanel`) is revealed/hidden by **`EndTurnView` / `EndTurnSystem`** — the
-  turn corner is its always-present part. This panel does **not** touch the shell.
-- This panel owns only the **context content swap**: `HexInfoPanelView.ShowSelection()` (filled) ↔
-  `ShowEmpty()` (placeholder). Both toggle `display` on the `ContextFilled` / `ContextEmpty` containers, never
-  the document root or the shell.
+Three orthogonal layers, each with one owner — none overlaps:
+- **Shell height + reveal** — the bottom-panel **shell** (`BottomPanel`) is revealed/hidden by **`EndTurnView` /
+  `EndTurnSystem`** (the turn corner is its always-present part) and has a **fixed height** (`.bottom-panel`,
+  USS) so it never grows with content. This panel does **not** touch the shell.
+- **Selection swap** — this panel owns only the context content swap: `HexInfoPanelView.ShowSelection()`
+  (filled) ↔ `ShowEmpty()` (placeholder). Both toggle `display` on the `ContextFilled` / `ContextEmpty`
+  containers, never the document root or the shell.
+- **Tab swap** — the tab row (`ContextTabs`) is a **PERMANENT** sibling **above** the filled/empty swap (visible
+  even with no selection), and the three content panes inside `ContextFilled` (`OverviewPane` / `BuildingsPane` /
+  `ActionsPane`) are shown one-at-a-time by **`ContextTabsView`**, NOT by this panel. See
+  `ContextTabs/CONTEXT_TABS.md`.
 
 ## Trigger
 Driven by the `HexSelectedComponent` singleton entity, created / updated / removed by
@@ -46,42 +52,44 @@ Driven by the `HexSelectedComponent` singleton entity, created / updated / remov
 - The initial empty state is seeded by the spawn subsystem.
 - This reactive trigger is not visible in graphify — full selection flow: `ECS_REFERENCE.md`.
 
-## Blocks (in progressive-disclosure order)
+## Panes & blocks
 
 ### Filled state — a hex is selected (`ContextFilled`)
+Holds the **three tab panes**; `ContextTabsView` shows exactly one at a time (the tab swap is its concern, not
+this panel's — see `ContextTabs/CONTEXT_TABS.md`):
+- **`OverviewPane`** — the rich block row below; the only pane with real bindings today.
+- **`BuildingsPane`** / **`ActionsPane`** — **empty named containers**, content lands later (out of scope now).
 
-#### 1. Hex header (icon + name) — top of the overview body (`HexHead` in `ctx-a`)
-- **Terrain icon + name:** from the terrain tag on the selected hex entity — `HexPlainTag` / `HexMountTag` /
-  `HexBedhillTag` / `HexWaterTag` (data-less tags; tag *presence* is the type). Each tag maps to one
-  sprite + label.
-- **No coordinate.** The design dropped it; `SetHeader(icon, title)` has no coord argument. `HexSelectedComponent.Coords`
-  is still read by the system to resolve the terrain tag, just not displayed.
-- **Relocation.** The header (`HexHead`: `HeaderIcon` + `HeaderTitle`) now sits at the **top of the overview
-  body** (mockup `.hexhead` inside the «Гекс» block), NOT in a top header row. The top of the context sub-panel
-  is the **tab row** — a separate window (`ContextTabs/CONTEXT_TABS.md`), not part of this panel.
+The `OverviewPane` is a row of discrete blocks (mockup `.blocks`):
+
+#### 1. Block «Гекс» — hex identity + resources
+- **Terrain icon + name** (`HexHead`: `HeaderIcon` + `HeaderTitle`): from the terrain tag on the selected hex
+  entity — `HexPlainTag` / `HexMountTag` / `HexBedhillTag` / `HexWaterTag` (data-less tags; tag *presence* is the
+  type). Each tag maps to one sprite + label.
+- **No coordinate.** The design dropped it; `SetHeader(icon, title)` has no coord argument.
+  `HexSelectedComponent.Coords` is still read by the system to resolve the terrain tag, just not displayed.
 - **Required prerequisite:** a hex must carry exactly one terrain tag. None → throw (fail-loud). This is *not*
   an "optional block absent" case.
+- **Resources** (`ResourcesSection` / `ResourcesContainer`): the **dedicated** resource entities
+  (`HexIdComponent + HexResourcesComponent`), matched by `HexIdComponent` (resources are **not** on the hex
+  entity). `HexResourcesComponent.Type` → one chip (icon + label) per resource, built from a pooled item
+  template (`GENERAL_UI_STYLE` Panel Construction). Hidden when no matching resource entity exists.
 
-#### 2. Resources — when the hex has ≥1 resource (`ctx-a`)
-- Source: the **dedicated** resource entities (`HexIdComponent + HexResourcesComponent`), matched to the
-  selected hex by `HexIdComponent`. Resources are **not** stored on the hex entity.
-- `HexResourcesComponent.Type` (`ResourceType`) → one chip (icon + label) per resource.
-- Variable count → chips built from a pooled item template (per `GENERAL_UI_STYLE` Panel Construction).
-- Hidden when no matching resource entity exists.
-
-#### 3. District + Yield — when the hex has a district — **SCAFFOLD**
-- Two blocks that share one backing concern: the **District** kvgrid (`ctx-a`: Спеціалізація / Праця / Власник
-  / Оператор) and the **`Вихід цього ходу`** yield split-bar (`ctx-b`: City / Owner / Operator).
+#### 2. Block «Район» + Block «Праця та виробництво» — **SCAFFOLD**
+- Two blocks that share one backing concern: **District** (`DistrictSection`: рівень / Власник / Оператор /
+  Будівлі / Спеціалізація kv-list) and **Production** (`ProductionSection`: Праця labour line + a production
+  table City / Owner / Operator).
 - **Not implemented.** `District` / `Owner` / `Operator` / `Workforce` / `Yield` exist only at the
   `GAMEPLAY_FOUNDATION.md` level; there are no backing ECS components yet.
 - Driven by **one placeholder system** that keeps **both** blocks hidden (`SetDistrictVisible(false)` toggles
-  district + yield together) until the real components land. Replace it with the real subsystem when they do.
-- The example data authored in the UXML (Лісництво, 75%, +3/+3/+2, …) is **editor-preview only**.
+  `DistrictSection` + `ProductionSection` together) until the real components land. Replace it with the real
+  subsystem when they do.
+- The example data authored in the UXML (Лісозаготівля, 75%, +3/+2/+1, …) is **editor-preview only**.
 
 ### Empty state — nothing selected (`ContextEmpty`)
-- **Intentionally blank** — no tabs, no hint text. The `ContextEmpty` container exists only as the swap target;
-  when nothing is selected the context sub-panel is empty dark space. The bottom-panel shell itself stays
-  permanent (the turn corner is always present); only this content is contextual.
+- **Intentionally blank** — no hint text. The `ContextEmpty` container exists only as the swap target for the
+  area **below the tab row**; when nothing is selected that area is empty dark space. The shell stays permanent
+  (the turn corner is always present) and **the tab row stays visible** — only the area below it is contextual.
 
 ## Block → System map
 One system per block (per `GENERAL_UI_STYLE` Panel Construction; roles per `ARCHITECTURE.md`
@@ -98,15 +106,17 @@ One system per block (per `GENERAL_UI_STYLE` Panel Construction; roles per `ARCH
 - **`HexInfoPanelResourcesSystem`** — Reactive System (561) on `SelectedHexChangedEvent`: resource entities of
   the selected hex → chips; hides the block when none (or nothing selected).
 - **`HexInfoPanelDistrictPlaceholderSystem`** — Reactive System (562) on `SelectedHexChangedEvent`, SCAFFOLD;
-  keeps the district kvgrid **and** the yield split hidden until real components exist.
+  keeps the **District** block (`DistrictSection`) **and** the **Production** block (`ProductionSection`) hidden
+  until real components exist (`SetDistrictVisible(false)` toggles both together).
 
 ## Implementation Notes
 - **One shared instance** (selection is singular), not a panel per hex. World-space per-hex badges are a
   separate concern (HexIcons).
-- **One unified bottom-panel shell.** `Prefabs/HexInfoPanel.uxml` is the single Main UI `UIDocument`. Its
-  bottom panel (`BottomPanel`) is **one shell with two sub-panels** divided by a vertical divider: the turn
-  sub-panel (`TurnPanel`, owned by `EndTurnView`) and this context sub-panel (`ContextPanel`). They are NOT two
-  floating cards (that is the named anti-pattern in `GENERAL_UI_STYLE.md` §14).
+- **One unified, fixed-height bottom-panel shell.** `Prefabs/HexInfoPanel.uxml` is the single Main UI
+  `UIDocument`. Its bottom panel (`BottomPanel`) is **one shell with two sub-panels** divided by a vertical
+  divider: the turn sub-panel (`TurnPanel`, owned by `EndTurnView`) and this context sub-panel (`ContextPanel`).
+  They are NOT two floating cards (the named anti-pattern in `GENERAL_UI_STYLE.md` §14). The shell has a **fixed
+  height** (`.bottom-panel`, `height` in USS) and clips overflow, so swapping panes/selection never resizes it.
 - **`Show/Hide` semantics.** This view has no whole-panel `Show/Hide`; it exposes `ShowSelection()` /
   `ShowEmpty()` that swap `ContextFilled` ↔ `ContextEmpty`. The shell is revealed by `EndTurnView`.
 - **Picking:** the full-screen layers (document root + `Root`) are click-through so empty-area clicks reach the
@@ -124,10 +134,13 @@ One system per block (per `GENERAL_UI_STYLE` Panel Construction; roles per `ARCH
 ## Current State
 **Implemented and wired** — code (UXML/USS + systems in `MainUI`) AND Unity-side authoring: the single
 `UI/MainUI` prefab (`Prefabs/MainUI.prefab`, document `Prefabs/HexInfoPanel.uxml`) and the `HexTerrainIconConfig`
-asset (`Assets/Addressables/Configs/HexIconsConfigs/`) exist and are addressable. Header + Resources bind to
-existing components (`HexCore` terrain tags, `HexResources`); the District + Yield blocks are SCAFFOLD, hidden by
-`HexInfoPanelDistrictPlaceholderSystem`, pending gameplay components; the empty state is intentionally blank. The
-systems are wired into `Boot` (spawn in the pipeline, the rest in `Gameplay`) — see the
+asset (`Assets/Addressables/Configs/HexIconsConfigs/`) exist and are addressable. The context sub-panel is a
+**fixed-height** shell with a **permanent tab row** over a filled/empty swap; the filled state holds three tab
+panes (`OverviewPane` / `BuildingsPane` / `ActionsPane`), one shown at a time by `ContextTabsView`. The Overview
+pane's «Гекс» block binds to existing components (`HexCore` terrain tags, `HexResources`); the «Район» +
+«Праця та виробництво» blocks are SCAFFOLD, hidden by `HexInfoPanelDistrictPlaceholderSystem`, pending gameplay
+components; `BuildingsPane` / `ActionsPane` are **empty named containers** (content later); the empty state is
+intentionally blank. The systems are wired into `Boot` (spawn in the pipeline, the rest in `Gameplay`) — see the
 Block → System map above.
 
 `HexTerrainIconConfigLoaderSystem` (Config Loader, ConfigLoadStep) loads `HexTerrainIconConfig` → world
@@ -135,13 +148,15 @@ component. Resource sprites reuse `HexIcons.HexResourceIconConfigComponent` (mad
 label = the `ResourceType` name until a localized name source exists.
 
 Editor preview: open `Prefabs/HexInfoPanel.uxml` in **UI Builder** to see the panel populated — a UIDocument
-does **not** render in the Scene/Game view in edit mode, so opening the prefab shows nothing. The header text,
-the two chips, the District kvgrid, and the Yield split are **preview-only**; at runtime the systems overwrite
-the header, `HexInfoPanelView` strips the sample chips before rebuilding from real data, and the placeholder
-system hides the District/Yield scaffold. The filled-context root element is named `ContextFilled` and the
-empty one `ContextEmpty` (must match `HexInfoPanelView`'s constants).
+does **not** render in the Scene/Game view in edit mode, so opening the prefab shows nothing. The Overview pane
+is authored visible (Buildings/Actions panes + `ContextEmpty` authored `display:none`) so UI Builder previews the
+filled overview. The header text, the two chips, the District kv-list, and the Production table are
+**preview-only**; at runtime the systems overwrite the header, `HexInfoPanelView` strips the sample chips before
+rebuilding from real data, and the placeholder system hides the District/Production scaffold. The filled-context
+root element is named `ContextFilled` and the empty one `ContextEmpty`; the panes are `OverviewPane` /
+`BuildingsPane` / `ActionsPane` (must match `HexInfoPanelView`'s and `ContextTabsView`'s constants).
 
 Verify in editor (not provable from code): the 4 terrain entries in `HexTerrainIconConfig` and the resource
 sprites in `HexResourceIconConfig` are populated — empty entries render as skipped chips/icons.
 
-Visual target: `design-mockups/index.html`.
+Visual target: `design-mockups/FantasyMayor-HUD.html`.

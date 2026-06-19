@@ -1,14 +1,17 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
     <Style src="HexInfoPanel.uss" />
-    <!-- ONE full-width bottom panel (GENERAL_UI_STYLE.md §4): a single shell with two sub-panels divided by a
-         vertical divider — TURN (state + the End Turn commit) on the left, CONTEXT (selected hex) on the right.
-         The shell is ALWAYS present once revealed; only the CONTEXT content swaps between the filled blocks
-         (ContextFilled) and the empty placeholder (ContextEmpty).
+    <!-- ONE full-width bottom panel (GENERAL_UI_STYLE.md §4): a single FIXED-HEIGHT shell with two sub-panels
+         divided by a vertical divider — TURN (state + the End Turn commit) on the left, CONTEXT (selected hex)
+         on the right. The shell never grows with content (.bottom-panel has a fixed height; overflow is clipped).
+         CONTEXT layout (top → bottom): the tab row is PERMANENT (always visible, even with no selection), below
+         it the content swaps between ContextFilled (a hex is selected) and ContextEmpty (nothing selected).
+         Inside ContextFilled, ContextTabsView shows exactly one of the three tab panes (Overview/Buildings/Actions).
          Ownership: EndTurnView toggles the whole BottomPanel shell (Show/Hide); HexInfoPanelView swaps
-         ContextFilled <-> ContextEmpty. Neither toggles the document root (that would blank the whole Main UI).
-         Sample header text, the chips, and the District/Yield rows are EDITOR-PREVIEW ONLY (so the panel reads
-         in UI Builder). At runtime: SetHeader overwrites the header, the resources system clears + rebuilds the
-         chips, and HexInfoPanelDistrictPlaceholderSystem hides the District + Yield scaffold (no backing data). -->
+         ContextFilled <-> ContextEmpty; ContextTabsView swaps the active pane. Nobody toggles the document root.
+         Sample header text, the chips, the District/Production rows, and the Overview pane are EDITOR-PREVIEW
+         ONLY (so the panel reads in UI Builder). At runtime: SetHeader overwrites the header, the resources
+         system clears + rebuilds the chips, HexInfoPanelDistrictPlaceholderSystem hides the District + Production
+         scaffold, and SetActive shows only the active pane (Buildings/Actions are authored hidden). -->
     <ui:VisualElement name="Root" class="raycast-transparent" style="flex-grow: 1;">
         <ui:VisualElement name="BottomPanel" class="bottom-panel">
             <ui:VisualElement name="AccentLine" class="accent-line" />
@@ -34,27 +37,31 @@
                 <!-- ============ CONTEXT sub-panel (right) ============ -->
                 <ui:VisualElement name="ContextPanel" class="bp-ctx">
 
-                    <!-- Filled: a hex is selected -->
-                    <ui:VisualElement name="ContextFilled" class="ctx-filled">
-                        <!-- Tab row (Огляд / Будівлі / Дії) — ContextTabs window. The toggles form a single-select
-                             group; the active tab is owned by ActiveContextTabComponent and reconciled by
-                             ContextTabsView (toggle value, highlighted via :checked). -->
-                        <ui:VisualElement name="ContextTabs" class="ctx-tabs">
-                            <ui:Toggle name="TabOverview" text="Огляд" value="true" class="ctx-tab" />
-                            <ui:Toggle name="TabBuildings" text="Будівлі" class="ctx-tab" />
-                            <ui:Toggle name="TabActions" text="Дії" class="ctx-tab" />
-                        </ui:VisualElement>
+                    <!-- Tab row (Огляд / Будівлі / Дії) — ContextTabs window. PERMANENT: lives ABOVE the
+                         filled/empty swap so the tabs stay visible even when nothing is selected. The toggles
+                         form a single-select group; the active tab is owned by ActiveContextTabComponent and
+                         reconciled by ContextTabsView (toggle value highlighted via :checked + the shown pane). -->
+                    <ui:VisualElement name="ContextTabs" class="ctx-tabs">
+                        <ui:Toggle name="TabOverview" text="Огляд" value="true" class="ctx-tab" />
+                        <ui:Toggle name="TabBuildings" text="Будівлі" class="ctx-tab" />
+                        <ui:Toggle name="TabActions" text="Дії" class="ctx-tab" />
+                    </ui:VisualElement>
 
-                        <ui:VisualElement name="ContextBody" class="ctx-body">
-                            <ui:VisualElement name="ContextMain" class="ctx-a">
-                                <!-- Hex identity (icon + name) — relocated here from the old header (mockup .hexhead).
-                                     SetHeader resolves HeaderIcon / HeaderTitle by name; no coordinate (design dropped it). -->
+                    <!-- Filled: a hex is selected. Holds the three tab panes; ContextTabsView shows exactly one. -->
+                    <ui:VisualElement name="ContextFilled" class="ctx-filled">
+
+                        <!-- ===== OVERVIEW pane (default active) ===== -->
+                        <ui:VisualElement name="OverviewPane" class="ctx-pane ctx-pane--row">
+
+                            <!-- Block: Гекс (icon + name + resources). Bound at runtime by the Header / Resources systems. -->
+                            <ui:VisualElement class="block block--hex">
+                                <ui:Label text="ГЕКС" class="block-h" />
                                 <ui:VisualElement name="HexHead" class="hexhead">
                                     <ui:VisualElement name="HeaderIcon" class="terrain-icon" />
                                     <ui:Label name="HeaderTitle" text="Лісисті пагорби" class="ctx-title" />
                                 </ui:VisualElement>
-                                <ui:VisualElement name="ResourcesSection" class="section">
-                                    <ui:Label text="РЕСУРСИ ГЕКСУ" class="section-label" />
+                                <ui:VisualElement name="ResourcesSection">
+                                    <ui:Label text="Ресурси" class="minilbl" />
                                     <ui:VisualElement name="ResourcesContainer" class="chips">
                                         <ui:VisualElement class="chip">
                                             <ui:VisualElement class="chip-icon" />
@@ -66,61 +73,83 @@
                                         </ui:VisualElement>
                                     </ui:VisualElement>
                                 </ui:VisualElement>
-                                <!-- District kvgrid — SCAFFOLD; hidden at runtime until District-economy data lands. -->
-                                <ui:VisualElement name="DistrictSection" class="section">
-                                    <ui:Label text="РАЙОН" class="section-label" />
-                                    <ui:VisualElement class="kvgrid">
-                                        <ui:VisualElement class="kvcol">
-                                            <ui:VisualElement class="kv">
-                                                <ui:Label text="Спеціалізація" class="kv-k" />
-                                                <ui:Label text="Лісництво" class="kv-v" />
-                                            </ui:VisualElement>
-                                            <ui:VisualElement class="kv">
-                                                <ui:Label text="Праця" class="kv-k" />
-                                                <ui:Label text="75%" class="kv-v kv-v--warn" />
-                                            </ui:VisualElement>
+                            </ui:VisualElement>
+
+                            <!-- Block: Район — SCAFFOLD; hidden at runtime until District-economy data lands. -->
+                            <ui:VisualElement name="DistrictSection" class="block block--district">
+                                <ui:VisualElement class="block-h-row">
+                                    <ui:Label text="РАЙОН" class="block-h-cap" />
+                                    <ui:Label text="рів. 2" class="block-h-lvl" />
+                                </ui:VisualElement>
+                                <ui:Label text="Лісозаготівля" class="dname" />
+                                <ui:VisualElement class="kv">
+                                    <ui:VisualElement class="kv-row">
+                                        <ui:Label text="Власник" class="kv-k" />
+                                        <ui:VisualElement class="kv-role">
+                                            <ui:VisualElement class="kv-role-sw kv-role-sw--owner" />
+                                            <ui:Label text="Мер" class="kv-v kv-v--owner" />
                                         </ui:VisualElement>
-                                        <ui:VisualElement class="kvcol">
-                                            <ui:VisualElement class="kv">
-                                                <ui:Label text="Власник" class="kv-k" />
-                                                <ui:Label text="Місто" class="kv-v kv-v--city" />
-                                            </ui:VisualElement>
-                                            <ui:VisualElement class="kv">
-                                                <ui:Label text="Оператор" class="kv-k" />
-                                                <ui:Label text="Мер" class="kv-v kv-v--oper" />
-                                            </ui:VisualElement>
+                                    </ui:VisualElement>
+                                    <ui:VisualElement class="kv-row">
+                                        <ui:Label text="Оператор" class="kv-k" />
+                                        <ui:VisualElement class="kv-role">
+                                            <ui:VisualElement class="kv-role-sw kv-role-sw--oper" />
+                                            <ui:Label text="Громада" class="kv-v kv-v--oper" />
                                         </ui:VisualElement>
+                                    </ui:VisualElement>
+                                    <ui:VisualElement class="kv-row">
+                                        <ui:Label text="Будівлі" class="kv-k" />
+                                        <ui:Label text="2 / 3" class="kv-v" />
+                                    </ui:VisualElement>
+                                    <ui:VisualElement class="kv-row">
+                                        <ui:Label text="Спеціалізація" class="kv-k" />
+                                        <ui:Label text="Деревина" class="kv-v" />
                                     </ui:VisualElement>
                                 </ui:VisualElement>
                             </ui:VisualElement>
 
-                            <!-- Yield split — SCAFFOLD; hidden at runtime alongside the District block. -->
-                            <ui:VisualElement name="YieldSection" class="ctx-b">
-                                <ui:Label text="ВИХІД ЦЬОГО ХОДУ" class="section-label" />
-                                <ui:VisualElement class="split-bar">
-                                    <ui:VisualElement class="split-seg split-seg--city" style="width: 40%;" />
-                                    <ui:VisualElement class="split-seg split-seg--owner" style="width: 35%;" />
-                                    <ui:VisualElement class="split-seg split-seg--oper" style="width: 25%;" />
+                            <!-- Block: Праця та виробництво — SCAFFOLD; hidden at runtime alongside the District block. -->
+                            <ui:VisualElement name="ProductionSection" class="block block--prod">
+                                <ui:Label text="ПРАЦЯ ТА ВИРОБНИЦТВО" class="block-h" />
+                                <ui:VisualElement class="laborline">
+                                    <ui:Label text="ПРАЦЯ" class="laborline-k" />
+                                    <ui:Label text="3 / 4 групи · 75% · виробництво обмежено" class="laborline-v" />
                                 </ui:VisualElement>
-                                <ui:VisualElement class="kv">
-                                    <ui:Label text="Місто" class="kv-k" />
-                                    <ui:Label text="+3 · 40%" class="kv-v" />
-                                </ui:VisualElement>
-                                <ui:VisualElement class="kv">
-                                    <ui:Label text="Власник" class="kv-k" />
-                                    <ui:Label text="+3 · 35%" class="kv-v" />
-                                </ui:VisualElement>
-                                <ui:VisualElement class="kv">
-                                    <ui:Label text="Оператор" class="kv-k" />
-                                    <ui:Label text="+2 · 25%" class="kv-v" />
+                                <ui:VisualElement class="prodtable">
+                                    <ui:VisualElement class="prod-row prod-row--head">
+                                        <ui:Label text="ВИРОБНИЦТВО" class="prod-name prod-h" />
+                                        <ui:Label text="Місто" class="prod-c prod-h" />
+                                        <ui:Label text="Власн." class="prod-c prod-h" />
+                                        <ui:Label text="Опер." class="prod-c prod-h" />
+                                    </ui:VisualElement>
+                                    <ui:VisualElement class="prod-row">
+                                        <ui:Label text="Колоди" class="prod-name" />
+                                        <ui:Label text="+3" class="prod-c prod-c--city" />
+                                        <ui:Label text="+2" class="prod-c prod-c--owner" />
+                                        <ui:Label text="+1" class="prod-c prod-c--oper" />
+                                    </ui:VisualElement>
+                                    <ui:VisualElement class="prod-row">
+                                        <ui:Label text="Дошки" class="prod-name" />
+                                        <ui:Label text="+1" class="prod-c prod-c--city" />
+                                        <ui:Label text="+1" class="prod-c prod-c--owner" />
+                                        <ui:Label text="—" class="prod-c prod-c--oper" />
+                                    </ui:VisualElement>
                                 </ui:VisualElement>
                                 <ui:Label text="SCAFFOLD — зʼявиться з District-економікою" class="scaffold-tag" />
                             </ui:VisualElement>
                         </ui:VisualElement>
+
+                        <!-- ===== BUILDINGS pane — empty named container (content lands later). ===== -->
+                        <ui:VisualElement name="BuildingsPane" class="ctx-pane" style="display: none;" />
+
+                        <!-- ===== ACTIONS pane — empty named container (content lands later). ===== -->
+                        <ui:VisualElement name="ActionsPane" class="ctx-pane" style="display: none;" />
+
                     </ui:VisualElement>
 
-                    <!-- Empty: nothing selected. Intentionally blank — no tabs, no hint text. -->
-                    <ui:VisualElement name="ContextEmpty" class="ctx-empty-wrap" />
+                    <!-- Empty: nothing selected. Intentionally blank; the tab row above stays visible.
+                         Authored hidden so UI Builder previews the filled state; the spawn subsystem shows it at runtime. -->
+                    <ui:VisualElement name="ContextEmpty" class="ctx-empty-wrap" style="display: none;" />
 
                 </ui:VisualElement>
             </ui:VisualElement>
