@@ -131,6 +131,37 @@ ENTITY: HexIconContainer  (table — UI overlay layer)
   Lifecycle: created once per map; containers persist, their icon CONTENT is cleared/refilled.
   Note: exactly one row per hex. Holds a managed UI Toolkit VisualElement (the per-hex icon
         container) inside the screen-space overlay. See HexIcons/HEXICONS.md.
+
+ENTITY: City  (table — actor identity; one row per city, currently exactly one)
+  Components: CityIdComponent (PK), CityTag
+  Discriminator: CityTag
+  WRITES: ActorsSpawnSystem (creates the row, pipeline 900; allocates the id from CityIdAllocatorComponent)
+  READS: none yet (future: OwnerFK resolution — EntityMap<CityIdComponent> once ownables carry the FK)
+  Lifecycle: created once during MapCreation; never destroyed (no teardown/load flow yet).
+  Note: first table under the new Assets/Domains/ root (domain Actors). CityIdComponent is the PK here
+        and the same component is the FK carried by anything a city owns. CityIdAllocatorComponent is a
+        full +1 allocator — the model allows N cities even though one exists today.
+
+ENTITY: Mayor  (table — actor identity; exactly one, singleton actor)
+  Components: MayorIdComponent (PK), MayorTag
+  Discriminator: MayorTag
+  WRITES: ActorsSpawnSystem (creates the row, pipeline 900; id stays 1)
+  READS: none yet (future: OwnerFK resolution — EntityMap<MayorIdComponent>)
+  Lifecycle: created once during MapCreation; never destroyed.
+  Note: single mayor — MayorIdComponent is always 1. Kept as a PK table (not a world component) so it is
+        queryable as an OwnerFK target, the same shape as City.
+
+ENTITY: Resource  (table — inventory resource stack; SCAFFOLD — NO spawner yet)
+  Components: <owner FK: CityIdComponent | MayorIdComponent>, ResourceComponent (Type + Amount), ResourceTag
+  Discriminator: ResourceTag
+  WRITES: none yet — SCAFFOLD. Types defined (domain Economy, data-only slice); no entity created.
+  READS: none yet.
+  Lifecycle: not instantiated yet. Planned: one row per (owner, type); query a given owner's stacks via
+        With<OwnerFK> + With<ResourceTag> → AsMultiMap<OwnerFK> (NEVER bare — the owner id is a PK on the
+        actor AND a FK here).
+  Note: SoA ownership — the owner's id component IS the FK (no polymorphic OwnerId). Composite key
+        (OwnerFK + ResourceComponent.Type); NO surrogate ResourceId. The resource-spawn system (next slice)
+        will make domain Economy read CityIdComponent/MayorIdComponent (cross-domain).
 ```
 
 ### Singletons (exactly one row; justified by entity-query consumers)
@@ -198,7 +229,7 @@ World components are NOT entities: stored via `world.Set<T>()`, read via `world.
 with `world.Has<T>()`), invisible to `With<T>` / `WhenAdded<T>` / `WhenChanged<T>`. Contract and
 decision rule: `ARCHITECTURE.md` → "State Storage Taxonomy".
 
-### Runtime world components (9)
+### Runtime world components (11)
 
 ```
 WORLD: CameraComponent  (module Cameras)
@@ -268,6 +299,20 @@ WORLD: ActiveContextTabComponent  (module MainUI, window ContextTabs)
   READS: ContextTabSelectionSystem (reconciles the active highlight on the tab-changed pulse)
   Note: which context tab is active. The view writes it on click then raises the payload-less
         ContextTabChangedEvent; the selection system reconciles the highlight from HERE.
+
+WORLD: CityIdAllocatorComponent  (domain Actors)
+  Fields: Next (the id the next City will take)
+  WRITES: ActorsSpawnSystem (self-init Next = 1 on first run; advances by +1 per city via world.Set)
+  READS: ActorsSpawnSystem (reads Next to allocate)
+  Note: monotonic CityId source. Its PRESENCE doubles as the one-shot guard — ActorsSpawnSystem skips if
+        it already exists (no duplicate actors on pipeline re-entry / future load). Persisted via
+        save/load (contract only — ES3 wiring deferred).
+
+WORLD: MayorIdAllocatorComponent  (domain Actors)
+  Fields: Next (effectively constant 1 — single mayor)
+  WRITES: ActorsSpawnSystem (self-init Next = 1; advances by +1, but only one mayor is created)
+  READS: ActorsSpawnSystem
+  Note: kept for symmetry with CityIdAllocatorComponent and the save/load contract; yields a constant 1.
 ```
 
 ### Config world components (20)

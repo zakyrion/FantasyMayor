@@ -1,5 +1,6 @@
 using DefaultEcs;
 using DefaultECSExtensions;
+using Domains.Actors.Installer;
 using Installers.Addressable;
 using Installers.TerrainView;
 using Modules.Boot.Core;
@@ -75,6 +76,7 @@ namespace Installers.World
             new HexResourcesViewInstaller().Install(builder);
             new HexIconsInstaller().Install(builder);
             new TurnInstaller().Install(builder);
+            new ActorsInstaller().Install(builder);
         }
     }
 }

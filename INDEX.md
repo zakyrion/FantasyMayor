@@ -11,7 +11,7 @@ related:
 
 Generated doc map for FantasyMayor. **Do not hand-edit** — run `python3 Tools/gen_index.py` after changing any doc's frontmatter. Data source: each doc's frontmatter (`category`/`read`/`trigger`/`status`) and its first line. See `DOC_STANDARD.md`.
 
-Totals: 29 docs — 4 always · 5 trigger · 20 reference.
+Totals: 31 docs — 4 always · 5 trigger · 22 reference.
 
 ## Read at start (always)
 
@@ -40,6 +40,8 @@ Per-module navigation docs. `status` mirrors each module's `## Current State`.
 
 | Doc | Cat | Status | What it is |
 |---|---|---|---|
+| [Actors](Assets/Domains/Actors/ACTORS.md) | A | scaffold | Game-rule domain owning actor identities. First domain under `Assets/Domains/` (precedent for the root). |
+| [Economy](Assets/Domains/Economy/ECONOMY.md) | A | scaffold | Game-rule domain owning economic objects: inventory resources now; districts and buildings later. |
 | [AxialSystem](Assets/Modules/AxialSystem/AXIAL_SYSTEM.md) | A | implemented | Hex grid coordinate system: axial math, coordinate types, and generic sparse grid storage. |
 | [Boot](Assets/Modules/Boot/BOOT.md) | A | partial | Entry-point orchestration: a one-time config bootstrap, then a hand-wired game-state machine. |
 | [Cameras](Assets/Modules/Cameras/CAMERAS.md) | A | implemented | Owns the shared scene-camera reference as world state, decoupled from any consumer module. |

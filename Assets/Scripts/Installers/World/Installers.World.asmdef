@@ -19,7 +19,8 @@
         "HexResources",
         "HexResourcesView",
         "HexIcons",
-        "Turn"
+        "Turn",
+        "Domains.Actors"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
