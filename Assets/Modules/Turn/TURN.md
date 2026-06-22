@@ -24,15 +24,15 @@ runtime order is NOT the presentation order in `GAMEPLAY_FOUNDATION.md`. By asce
 
 `Citizen (3) → Resolution (4) → Upkeep (5) → Consequences (6) → Preview (1)`
 
-- **Mayor Phase (2) is NOT a phase subsystem.** It is the interactive player↔game layer (cards, input,
-  UI) running as ordinary Gameplay systems. Its terminal "end turn" action is the emitter that raises
+- **Mayor Phase (2) is NOT a phase subsystem.** It is the interactive player↔game layer (panels, submenus,
+  input, UI) running as ordinary Gameplay systems. Its terminal "end turn" action is the emitter that raises
   `NextTurnEvent` and hands control to this pipeline.
 - **The player interacts ONLY in the Mayor Phase.** The whole pipeline — Citizen Phase included — is
   non-interactive AI/economy computation. This is exactly WHY it can run off the main thread. A
   mechanic needing player input mid-resolve would break the off-thread model and must be designed
   separately.
 - **Preview (1) sits at the TAIL:** it computes the snapshot the player reads at the start of the next
-  Mayor Phase (available cards, needs, signals), reflecting the Consequences just produced.
+  Mayor Phase (available actions, needs, signals), reflecting the Consequences just produced.
 - **The first turn intentionally starts EMPTY.** There is NO bootstrap Preview. The first Mayor Phase
   opens on an empty snapshot; Preview only ever runs as the pipeline tail. Do NOT add a startup
   preview build.

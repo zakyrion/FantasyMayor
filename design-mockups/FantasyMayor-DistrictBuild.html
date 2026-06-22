@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FantasyMayor — Забудова району (USS-faithful)</title>
+<!--
+  USS-FIDELITY NOTE.
+  Everything inside .topbar / .bottompanel / .pickwrap is UI Toolkit chrome and is kept within USS:
+    flexbox only (no CSS grid), explicit flex-direction, solid colors, margins for spacing (no `gap`),
+    no box-shadow, no gradients, no backdrop blur, no text-transform (strings are pre-uppercased),
+    no tabular-nums, no structural selectors (:last-child/:not).
+  The green world behind the panels (.screen / .hexgrid / .sel) is the rendered game scene (camera),
+  NOT UI Toolkit — gradients / clip-path there are intentional and out of scope for USS.
+-->
+<style>
+  :root{
+    --panel-bg: rgba(30, 25, 20, 0.96);
+    --panel-border: rgba(217, 164, 65, 0.28);
+    --divider: rgba(217, 164, 65, 0.14);
+    --block-border: rgba(217, 164, 65, 0.16);
+    --txt: #f1e7d6;
+    --txt-dim: #a89a86;
+    --txt-faint: #7d7264;
+    --gold: #e0b25a;
+    --gold-soft: #d9a441;
+    --chip-bg: rgba(255,255,255,0.045);
+    --tile-bg: rgba(255,255,255,0.045);
+    --tile-border: rgba(255,255,255,0.08);
+    --bevel-top: rgba(255,255,255,0.18);   /* faux bevel via per-side border (USS-legal) */
+    --slot-bg: rgba(255,255,255,0.04);
+    --slot-border: rgba(255,255,255,0.07);
+    --forest:#6fa05b; --clay:#c2784f;
+    --share-city:#5b8bb0; --share-owner:#e0b25a; --share-oper:#6fa05b;
+    --warn:#e8a96a; --warn-border:rgba(214,138,74,0.30);
+    --ok:#bfe0a8; --ok-border:rgba(111,160,91,0.35);
+    --people:#c9b48a;
+    --serif: Georgia, 'Times New Roman', serif;
+    --sans: -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  /* page = mockup canvas (not UI) */
+  body{ font-family:var(--sans); min-height:100vh; color:var(--txt);
+    background:linear-gradient(160deg, #2b3528 0%, #20271d 60%, #1a1f16 100%);
+    background-attachment:fixed; padding:36px 28px; }
+  .page{ max-width:1340px; margin:0 auto; }
+  .page h1{ font-family:var(--serif); font-weight:600; font-size:22px; color:var(--gold); letter-spacing:.5px; margin-bottom:4px; }
+  .page .sub{ color:var(--txt-dim); font-size:13px; margin-bottom:22px; max-width:1040px; line-height:1.6; }
+  .page .sub b{ color:var(--txt); font-weight:600; }
+  .page .note{ color:var(--txt-faint); font-size:12px; margin-bottom:22px; max-width:1040px; line-height:1.6; font-style:italic; }
+
+  /* ---- SCENE (rendered game world, not UI Toolkit) ---- */
+  .screen{ position:relative; height:760px; border-radius:14px; overflow:hidden;
+    border:1px solid rgba(0,0,0,0.5);
+    background:
+      radial-gradient(circle at 26% 28%, #3a4a3a 0%, transparent 46%),
+      radial-gradient(circle at 78% 74%, #4a4030 0%, transparent 50%),
+      linear-gradient(160deg, #2b3528 0%, #20271d 60%, #1a1f16 100%); }
+  .hexgrid{ position:absolute; inset:0; opacity:.06; background-image:
+    linear-gradient(60deg, transparent 49.4%, #fff 49.4%, #fff 50.6%, transparent 50.6%),
+    linear-gradient(-60deg, transparent 49.4%, #fff 49.4%, #fff 50.6%, transparent 50.6%);
+    background-size:68px 118px; }
+  .sel{ position:absolute; left:39%; top:25%; width:118px; height:136px;
+    clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);
+    background:rgba(224,178,90,0.10); box-shadow:inset 0 0 0 2px rgba(224,178,90,0.55); }
+
+  /* ---- UI TOOLKIT CHROME (USS-faithful below) ---- */
+  .topbar{ position:absolute; top:0; left:0; right:0; display:flex; flex-direction:row; align-items:flex-start;
+    justify-content:space-between; padding:12px 18px; background:var(--panel-bg);
+    border-bottom:1px solid var(--panel-border); z-index:30; }
+  .openers{ display:flex; flex-direction:row; align-items:center; padding-top:14px; }
+  .opener{ width:42px; height:42px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+    font-size:20px; background:var(--slot-bg); border:1px solid var(--slot-border); cursor:pointer; margin-right:8px; }
+  .pool{ display:flex; flex-direction:row; align-items:stretch; background:rgba(255,255,255,0.03);
+    border:1px solid rgba(217,164,65,0.18); border-radius:11px; padding:8px 14px; }
+  .pool .pol{ display:flex; flex-direction:column; justify-content:center; padding-right:16px; margin-right:16px;
+    border-right:1px solid rgba(217,164,65,0.20); }
+  .pool .pol .crown{ display:flex; flex-direction:row; align-items:center; margin-bottom:6px; }
+  .pool .pol .crown .cr{ font-size:16px; color:var(--gold); margin-right:8px; }
+  .pool .pol .crown .cl{ font-size:11px; color:var(--txt-dim); }
+  .pool .pol .vals{ display:flex; flex-direction:row; }
+  .pool .pol .vals span{ font-size:13px; margin-right:11px; }
+
+  .matgrid{ display:flex; flex-direction:column; justify-content:center; margin-right:16px; }
+  .mrow{ display:flex; flex-direction:row; align-items:center; margin-bottom:3px; }
+  .mrow .rl{ width:56px; display:flex; flex-direction:row; align-items:center; font-size:11px; color:var(--txt-dim); }
+  .mrow .rl .ri{ margin-right:5px; }
+  .mrow .mc{ width:44px; text-align:center; font-size:13px; }
+  .mrow .mc.ic{ font-size:15px; }
+  .mrow .mc.vm{ color:var(--txt); }
+  .mrow .mc.vc{ color:#bfb39c; }
+
+  .expand{ align-self:center; width:32px; height:32px; border-radius:8px; display:flex; align-items:center;
+    justify-content:center; font-size:16px; color:var(--gold); background:var(--slot-bg); border:1px solid var(--slot-border); cursor:pointer; }
+  .system{ display:flex; flex-direction:row; align-items:center; padding-top:14px; }
+  .sysbtn{ position:relative; width:42px; height:42px; border-radius:10px; display:flex; align-items:center;
+    justify-content:center; font-size:19px; background:var(--slot-bg); border:1px solid var(--slot-border); cursor:pointer; margin-left:8px; }
+  .badge{ position:absolute; top:-4px; right:-4px; min-width:18px; height:18px; padding:0 4px; border-radius:9px;
+    background:var(--clay); color:#fff; font-size:11px; font-weight:600; display:flex; align-items:center; justify-content:center; }
+
+  .bottompanel{ position:absolute; bottom:0; left:0; right:0; height:306px; background:var(--panel-bg);
+    border-top:1px solid var(--panel-border); z-index:5; display:flex; flex-direction:row; }
+  .accent{ position:absolute; top:0; left:0; right:0; height:3px; background:var(--gold-soft); }
+  .turn{ flex:none; width:280px; border-right:1px solid var(--divider); display:flex; flex-direction:column; padding:18px; }
+  .turn .n{ font-family:var(--serif); font-size:22px; font-weight:600; }
+  .ap{ display:flex; flex-direction:row; margin-top:16px; }
+  .ap .tile{ flex:1; border-radius:8px; padding:9px 11px; }
+  .ap .tile.cur{ background:var(--tile-bg); border:1px solid rgba(217,164,65,0.20); border-top-color:var(--bevel-top); margin-right:8px; }
+  .ap .tile.nxt{ background:rgba(255,255,255,0.03); border:1px solid var(--slot-border); }
+  .ap .cap{ font-size:9px; letter-spacing:1.2px; color:var(--txt-faint); }
+  .ap .num{ font-family:var(--serif); font-size:26px; line-height:1; margin-top:4px; }
+  .ap .cur .num{ color:var(--gold); }
+  .ap .nxt .num{ color:var(--gold-soft); opacity:.85; }
+  .endturn{ margin-top:auto; display:flex; flex-direction:row; align-items:center; justify-content:center; width:100%;
+    padding:15px; border-radius:11px; font-size:13px; letter-spacing:1.4px;
+    font-weight:600; cursor:pointer; border:1px solid #b98a35; border-top-color:rgba(255,255,255,0.4);
+    color:#251c0e; background:var(--gold-soft); }
+  .endturn .arr{ margin-left:9px; }
+
+  .context{ flex:1; display:flex; flex-direction:column; min-width:0; }
+  .tabs{ display:flex; flex-direction:row; align-items:center; padding:0 16px; border-bottom:1px solid var(--divider); flex:none; }
+  .tab{ font-size:14px; font-weight:600; padding:13px 2px; cursor:pointer; border-bottom:2px solid transparent; color:var(--txt-dim); margin-right:28px; }
+  .tab.active{ color:var(--txt); border-bottom-color:var(--gold); }
+  .tabs .full{ margin-left:auto; font-size:11px; color:var(--txt-faint); cursor:pointer; padding:13px 0; }
+  .pane{ flex:1; min-height:0; }
+  .pane[hidden]{ display:none; }
+  .blocks{ display:flex; flex-direction:row; height:100%; padding:14px 16px; }
+  .block{ display:flex; flex-direction:column; background:rgba(255,255,255,0.015);
+    border:1px solid var(--block-border); border-radius:9px; padding:12px 13px; margin-right:12px; }
+  .bh{ font-size:9.5px; letter-spacing:1.4px; color:var(--txt-faint); margin-bottom:11px; }
+  .hexhead{ display:flex; flex-direction:row; align-items:center; margin-bottom:13px; }
+  .hexhead .ticon{ width:42px; height:42px; border-radius:8px; flex:none; display:flex; align-items:center;
+    justify-content:center; font-size:22px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.10);
+    border-top-color:var(--bevel-top); margin-right:11px; }
+  .hexhead .tname{ font-size:15px; font-weight:500; }
+  .minilbl{ font-size:9px; letter-spacing:1.2px; color:var(--txt-faint); margin-bottom:8px; }
+  .chips{ display:flex; flex-direction:row; flex-wrap:wrap; }
+  .chip{ display:flex; flex-direction:row; align-items:center; background:var(--chip-bg); border:1px solid var(--tile-border);
+    border-radius:7px; padding:7px 11px 7px 8px; font-size:13px; margin-right:8px; margin-bottom:8px; }
+  .chip .dot{ width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; margin-right:8px; }
+  .chip.sm{ padding:4px 9px 4px 5px; font-size:12px; margin-bottom:0; }
+  .chip.sm .dot{ width:18px; height:18px; font-size:11px; }
+  .chip.forest .dot{ background:rgba(111,160,91,0.22); }
+  .chip.clay .dot{ background:rgba(194,120,79,0.22); }
+
+  .block.dist-empty{ align-items:stretch; justify-content:center; }
+  .buildslot{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    border:1px dashed rgba(217,164,65,0.30); border-radius:9px; cursor:pointer; background:rgba(224,178,90,0.025); }
+  .buildslot:hover{ background:rgba(224,178,90,0.06); border-color:rgba(217,164,65,0.5); }
+  .buildslot .plus{ width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:30px; font-weight:300; color:var(--gold); background:rgba(224,178,90,0.10); border:1px dashed rgba(217,164,65,0.45); margin-bottom:12px; }
+  .buildslot .lab{ font-size:14px; font-weight:600; color:var(--txt); margin-bottom:6px; }
+  .buildslot .hint{ font-size:11px; color:var(--txt-faint); }
+
+  .appill{ font-size:11px; color:var(--gold); background:rgba(224,178,90,0.14); border:1px solid rgba(224,178,90,0.3);
+    padding:2px 8px; border-radius:6px; white-space:nowrap; }
+  .wk{ color:var(--people); font-weight:500; }
+
+  .pickwrap{ position:absolute; top:66px; left:0; right:0; bottom:0; z-index:20; display:none; flex-direction:row; align-items:center; justify-content:center; }
+  .pickwrap.open{ display:flex; }
+  .pickwrap .scrim{ position:absolute; inset:0; background:rgba(12,9,6,0.62); }
+  .picker{ position:relative; width:840px; max-width:95%; height:584px; background:var(--panel-bg);
+    border:1px solid var(--panel-border); border-top-color:var(--bevel-top); border-radius:14px; overflow:hidden; display:flex; flex-direction:column; }
+  .pkhead{ display:flex; flex-direction:row; align-items:center; padding:13px 18px; border-bottom:1px solid var(--divider); }
+  .pkhead .ticon{ width:40px; height:40px; border-radius:9px; flex:none; display:flex; align-items:center; justify-content:center;
+    font-size:21px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.10); border-top-color:var(--bevel-top); margin-right:12px; }
+  .pkhead .tt{ font-family:var(--serif); font-size:18px; font-weight:600; }
+  .pkhead .hx{ display:flex; flex-direction:row; align-items:center; margin-top:5px; }
+  .pkhead .hx .chip{ margin-bottom:0; }
+  .pkhead .x{ margin-left:auto; width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+    font-size:17px; color:var(--txt-dim); background:var(--slot-bg); border:1px solid var(--slot-border); cursor:pointer; }
+  .pkbody{ flex:1; display:flex; flex-direction:row; min-height:0; }
+
+  .dlist{ flex:none; width:288px; border-right:1px solid var(--divider); padding:12px; overflow:auto; display:flex; flex-direction:column; }
+  .drow{ display:flex; flex-direction:row; align-items:center; padding:11px 12px; border-radius:9px; cursor:pointer;
+    background:rgba(255,255,255,0.025); border:1px solid var(--tile-border); margin-bottom:8px; }
+  .drow:hover{ background:rgba(255,255,255,0.05); }
+  .drow.active{ background:rgba(224,178,90,0.10); border-color:rgba(217,164,65,0.45); }
+  .drow.locked{ opacity:.5; cursor:not-allowed; }
+  .drow .ic{ width:34px; height:34px; border-radius:8px; flex:none; display:flex; align-items:center; justify-content:center;
+    font-size:18px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.09); margin-right:11px; }
+  .drow .mid{ flex:1; min-width:0; }
+  .drow .nm{ font-size:13.5px; font-weight:500; color:var(--txt); }
+  .drow .rq{ font-size:11px; margin-top:2px; }
+  .drow .rq.ok{ color:var(--ok); } .drow .rq.no{ color:var(--warn); }
+  .drow .appill{ margin-left:11px; }
+
+  .ddetail{ flex:1; min-width:0; padding:15px 18px; display:flex; flex-direction:column; overflow:auto; }
+  .ddetail .dn{ font-family:var(--serif); font-size:19px; font-weight:600; }
+  .ddetail .dd{ font-size:12.5px; color:var(--txt-dim); line-height:1.5; margin-top:5px; }
+  .sec{ margin-top:15px; }
+  .sec .h{ font-size:9px; letter-spacing:1.3px; color:var(--txt-faint); margin-bottom:9px; display:flex; flex-direction:row; align-items:center; }
+  .sec .h .tag{ font-size:9.5px; letter-spacing:0.3px; color:var(--txt-faint); margin-left:auto; }
+
+  .line{ display:flex; flex-direction:row; align-items:center; font-size:12.5px; padding:5px 0; }
+  .line .ri{ margin-right:8px; }
+  .line .k{ color:var(--txt-dim); } .line .vv{ margin-left:auto; color:var(--txt); font-weight:500; text-align:right; }
+
+  .costrow{ display:flex; flex-direction:row; align-items:center; font-size:12.5px; padding:5px 0; }
+  .costrow .ci{ width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; background:rgba(255,255,255,0.06); margin-right:9px; }
+  .costrow .cn{ color:var(--txt-dim); }
+  .costrow .ca{ margin-left:auto; font-weight:600; }
+  .costrow .have{ font-size:12px; color:var(--txt-faint); min-width:40px; text-align:right; margin-left:10px; }
+  .costrow.short .ca{ color:var(--warn); } .costrow.short .have{ color:var(--warn); }
+
+  .payer{ display:flex; flex-direction:row; margin-top:9px; }
+  .payseg{ flex:1; display:flex; flex-direction:row; align-items:center; justify-content:center; padding:9px; border-radius:8px; cursor:pointer;
+    font-size:12.5px; background:rgba(255,255,255,0.03); border:1px solid var(--slot-border); color:var(--txt-dim); }
+  .payseg.mayor{ margin-right:7px; }
+  .payseg .pe{ margin-right:7px; }
+  .payseg .who{ font-weight:500; } .payseg .own{ font-size:10px; opacity:.8; margin-left:6px; }
+  .payseg.on.mayor{ background:rgba(224,178,90,0.12); border-color:rgba(217,164,65,0.5); color:var(--share-owner); }
+  .payseg.on.city{ background:rgba(91,139,176,0.14); border-color:rgba(91,139,176,0.5); color:var(--share-city); }
+
+  .actbox{ background:rgba(255,255,255,0.022); border:1px solid var(--block-border); border-radius:8px; padding:11px 12px; margin-top:8px; }
+  .actbox .an{ font-size:13px; font-weight:500; color:var(--txt); margin-bottom:4px; }
+  .actbox .step{ display:flex; flex-direction:row; align-items:center; font-size:12.5px; color:var(--txt-dim); padding:4px 0 8px; }
+  .actbox .step .wk{ margin-right:8px; }
+  .actbox .step .appill{ margin-right:8px; }
+  .actbox .step .arr{ margin-left:2px; }
+
+  .prodtable{ display:flex; flex-direction:column; }
+  .ptrow{ display:flex; flex-direction:row; align-items:center; }
+  .ptrow.d{ border-top:1px solid rgba(217,164,65,0.10); }
+  .ptrow .nh{ flex:1; min-width:0; font-size:9px; letter-spacing:1.1px; color:var(--txt-faint); padding-bottom:7px; }
+  .ptrow .hc{ width:58px; display:flex; flex-direction:row; align-items:center; justify-content:flex-end; font-size:10px; color:var(--txt-dim); padding-bottom:7px; margin-left:8px; }
+  .ptrow .hc .sw{ width:7px; height:7px; border-radius:2px; margin-right:5px; }
+  .ptrow .name{ flex:1; min-width:0; display:flex; flex-direction:row; align-items:center; padding:7px 0; }
+  .ptrow .name .ic{ font-size:15px; margin-right:8px; }
+  .ptrow .name .total{ margin-left:auto; color:#cfe6ba; font-weight:600; }
+  .ptrow .c{ width:58px; text-align:right; padding:7px 0; margin-left:8px; }
+  .ptrow .c.city{ color:#a9c8dd; } .ptrow .c.oper{ color:#bfe0a8; }
+  .prodtable.own-mayor .c.owner, .prodtable.own-mayor .hc.owner{ color:#f0d79a; }
+  .prodtable.own-mayor .hc.owner .sw{ background:var(--share-owner); }
+  .prodtable.own-city .c.owner, .prodtable.own-city .hc.owner{ color:#a9c8dd; }
+  .prodtable.own-city .hc.owner .sw{ background:var(--share-city); }
+
+  .fut{ font-size:11px; color:var(--txt-faint); margin-top:9px; font-style:italic; }
+
+  .dfoot{ margin-top:auto; padding-top:14px; display:flex; flex-direction:row; align-items:center; }
+  .confirm{ margin-left:auto; display:flex; flex-direction:row; align-items:center; padding:12px 22px; border-radius:11px;
+    font-size:13px; letter-spacing:1.2px; font-weight:600; cursor:pointer;
+    border:1px solid #b98a35; border-top-color:rgba(255,255,255,0.4); color:#251c0e; background:var(--gold-soft); }
+  .confirm.disabled{ background:rgba(255,255,255,0.06); color:var(--txt-faint); border-color:var(--slot-border); cursor:not-allowed; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>FantasyMayor — Забудова району</h1>
+  <div class="sub">Модель <b>без карток</b>. Люди = робітники (<b>1 одиниця = 1 людина</b>, Anno-style). У v1 — один тип, <b>селяни</b>; типи/раси (ремісники, майстри, ельфи, орки) як <b>дерево</b> — потім. Будівництво = AP + ресурси + <b>селяни</b>, триває N ходів; <b>Платник = Власник</b> (Мер/Місто). Район дає <b>дії з фіксованим кроком</b>: дія = (селяни + AP [+ вхідні ресурси]) → фіксований вихід (split City/Owner/Operator), вихід може бути <b>дробовим</b> (до десятих); <b>max worker capacity</b> = скільки таких наказів влазить на тайл. Натисни «+ Збудувати район».</div>
+  <div class="note">USS-faithful: усе всередині панелей тримається в межах UI Toolkit — flexbox, суцільні кольори, відступи через margin (без <code>gap</code>), без тіней / блюру / градієнтів / grid. Зелений світ за панелями — це рендер сцени (камера), не UI Toolkit.</div>
+
+  <div class="screen">
+    <div class="hexgrid"></div>
+    <div class="sel"></div>
+
+    <div class="topbar">
+      <div class="openers">
+        <div class="opener" title="Огляд">📊</div>
+        <div class="opener" title="Населення">👥</div>
+        <div class="opener" title="Економіка">💰</div>
+        <div class="opener" title="Райони">🗺️</div>
+      </div>
+      <div class="pool">
+        <div class="pol">
+          <div class="crown"><span class="cr">👑</span><span class="cl">Мер</span></div>
+          <div class="vals"><span>⚖️ 4</span><span>🔥 8</span></div>
+        </div>
+        <div class="matgrid">
+          <div class="mrow">
+            <span class="rl"></span>
+            <span class="mc ic">🪙</span><span class="mc ic">🍖</span><span class="mc ic">🪵</span><span class="mc ic">🪚</span><span class="mc ic">👷</span>
+          </div>
+          <div class="mrow">
+            <span class="rl"><span class="ri" style="color:var(--gold)">👑</span>Мер</span>
+            <span class="mc vm">120</span><span class="mc vm">56</span><span class="mc vm">22</span><span class="mc vm">9</span><span class="mc vm">—</span>
+          </div>
+          <div class="mrow">
+            <span class="rl"><span class="ri" style="color:var(--share-city)">🏛️</span>Місто</span>
+            <span class="mc vc">300</span><span class="mc vc">140</span><span class="mc vc">88</span><span class="mc vc">40</span><span class="mc vc">120</span>
+          </div>
+        </div>
+        <div class="expand" title="Усі ресурси">⋯</div>
+      </div>
+      <div class="system">
+        <div class="sysbtn">🔔<span class="badge">2</span></div>
+        <div class="sysbtn">⚙️</div>
+      </div>
+    </div>
+
+    <div class="bottompanel">
+      <div class="accent"></div>
+      <div class="turn">
+        <div class="n">Хід 4</div>
+        <div class="ap">
+          <div class="tile cur"><div class="cap">⚡ ДІЇ ЗАРАЗ</div><div class="num">3</div></div>
+          <div class="tile nxt"><div class="cap">НАСТ. ХІД</div><div class="num">5</div></div>
+        </div>
+        <button class="endturn">ЗАВЕРШИТИ ХІД <span class="arr">▸</span></button>
+      </div>
+
+      <div class="context">
+        <div class="tabs">
+          <div class="tab active" data-tab="overview">Огляд</div>
+          <div class="tab" data-tab="buildings">Будівлі</div>
+          <div class="tab" data-tab="actions">Дії</div>
+          <div class="full">↗ повне вікно гекса</div>
+        </div>
+
+        <div class="pane" data-pane="overview">
+          <div class="blocks">
+            <div class="block" style="flex:none; width:282px;">
+              <div class="bh">ГЕКС</div>
+              <div class="hexhead"><div class="ticon">⛰️</div><div class="tname">Лісисті пагорби</div></div>
+              <div class="minilbl">РЕСУРСИ</div>
+              <div class="chips">
+                <div class="chip forest"><span class="dot">🌲</span>Ліс</div>
+                <div class="chip clay"><span class="dot">🟤</span>Глина</div>
+              </div>
+            </div>
+            <div class="block dist-empty" style="flex:none; width:318px;">
+              <div class="bh">РАЙОН</div>
+              <div class="buildslot" id="openPicker">
+                <div class="plus">+</div>
+                <div class="lab">Збудувати район</div>
+                <div class="hint">обрати спеціалізацію для гекса</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pane" data-pane="buildings" hidden>
+          <div class="blocks">
+            <div class="block" style="flex:1; min-width:0; align-items:center; justify-content:center;">
+              <div class="hint" style="color:var(--txt-faint); font-size:12.5px;">Спочатку збудуйте район на цьому гексі.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pane" data-pane="actions" hidden>
+          <div class="blocks">
+            <div class="block" style="flex:none; width:318px;">
+              <div class="bh">ДІЇ ГЕКСА</div>
+              <div class="buildslot" id="openPicker2">
+                <div class="plus">+</div>
+                <div class="lab">Збудувати район</div>
+                <div class="hint">обрати спеціалізацію для гекса</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pickwrap" id="pickwrap">
+      <div class="scrim" id="scrim"></div>
+      <div class="picker">
+        <div class="accent"></div>
+        <div class="pkhead">
+          <div class="ticon">⛰️</div>
+          <div>
+            <div class="tt">Збудувати район</div>
+            <div class="hx">
+              <div class="chip sm forest"><span class="dot">🌲</span>Ліс</div>
+              <div class="chip sm clay"><span class="dot">🟤</span>Глина</div>
+            </div>
+          </div>
+          <div class="x" id="closeX">✕</div>
+        </div>
+        <div class="pkbody">
+          <div class="dlist" id="dlist"></div>
+          <div class="ddetail" id="ddetail"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  var POOLS = {
+    mayor: { '🪙':120, '🍖':56, '🪵':22, '🪚':9 },
+    city:  { '🪙':300, '🍖':140, '🪵':88, '🪚':40 }
+  };
+  var FREE_WORKERS = 120;                 // вільні люди в місті (1 = 1 робітник)
+  var PAYER_NAME = { mayor:'Мер', city:'Місто' };
+
+  // yields are floats, displayed rounded to tenths
+  function fmt(n){ return '+' + n.toFixed(1); }
+
+  var DISTRICTS = [
+    { id:'forestry', ic:'🌲', name:'Лісозаготівля', ok:true,
+      desc:'Перетворює лісовий потенціал гекса на деревину.',
+      reqs:[{ok:true,t:'Ресурс гекса: Ліс'}],
+      build:{ turns:3, ap:2, res:[{ic:'🪵',n:'Колоди',a:40},{ic:'🪙',n:'Золото',a:80}], workers:60 },
+      cap:200,
+      action:{ name:'Зрубати ділянку', people:100, ap:1, inputs:null,
+               out:[{ic:'🪵',n:'Колоди',total:6,city:3,owner:2,oper:1},
+                    {ic:'🪚',n:'Дошки',total:2.5,city:1.5,owner:1,oper:0}] },
+      upkeep:[{ic:'🍖',n:'Їжа',a:2}] },
+    { id:'claypit', ic:'🟤', name:'Глиняний кар’єр', ok:true,
+      desc:'Видобуває глину з родовища гекса.',
+      reqs:[{ok:true,t:'Ресурс гекса: Глина'}],
+      build:{ turns:3, ap:2, res:[{ic:'🪙',n:'Золото',a:100},{ic:'🪵',n:'Колоди',a:10}], workers:50 },
+      cap:200,
+      action:{ name:'Копати глину', people:100, ap:1, inputs:null,
+               out:[{ic:'🧱',n:'Глина',total:4.5,city:1.5,owner:3,oper:0}] },
+      upkeep:[{ic:'🍖',n:'Їжа',a:2}],
+      fut:'Пізніша дія «Ліпити кераміку»: 🧱 глина → 🏺 кераміка (дія з вхідним ресурсом).' },
+    { id:'housing', ic:'🏘️', name:'Житловий квартал', ok:true,
+      desc:'Селить нових людей. Джерело робочої сили для районів.',
+      reqs:[{ok:true,t:'Без вимог до ресурсу'}],
+      build:{ turns:2, ap:1, res:[{ic:'🪵',n:'Колоди',a:20},{ic:'🪙',n:'Золото',a:60}], workers:30 },
+      cap:null, action:null,
+      houses:'+100 мешканців (= робітники). Дій немає — це джерело робочої сили.',
+      upkeep:[{ic:'🍖',n:'Їжа',a:4}] },
+    { id:'farm', ic:'🌾', name:'Ферма', ok:false,
+      desc:'Виробляє їжу для базових потреб міста. Потребує рівнинного гекса.',
+      reqs:[{ok:false,t:'Потрібен рівнинний гекс (тут — пагорби)'}],
+      build:{ turns:3, ap:2, res:[{ic:'🪵',n:'Колоди',a:30},{ic:'🪙',n:'Золото',a:90}], workers:40 },
+      cap:200,
+      action:{ name:'Обробити поле', people:100, ap:1, inputs:null,
+               out:[{ic:'🍖',n:'Їжа',total:5,city:3,owner:1.5,oper:0.5}] },
+      upkeep:[{ic:'🍖',n:'Їжа',a:1}] }
+  ];
+
+  var selected = 0;
+  var payer = 'mayor';
+
+  function resOk(d){ var p = POOLS[payer]; return d.build.res.every(function(c){ return (p[c.ic]||0) >= c.a; }); }
+  function wOk(d){ return d.build.workers <= FREE_WORKERS; }
+
+  function renderList(){
+    document.getElementById('dlist').innerHTML = DISTRICTS.map(function(d,i){
+      var cls = 'drow' + (i===selected?' active':'') + (d.ok?'':' locked');
+      var rq = d.ok ? '<div class="rq ok">✓ доступно</div>' : '<div class="rq no">✕ вимога не виконана</div>';
+      return '<div class="'+cls+'" data-i="'+i+'"><div class="ic">'+d.ic+'</div>'
+           + '<div class="mid"><div class="nm">'+d.name+'</div>'+rq+'</div>'
+           + '<span class="appill">'+d.build.ap+' AP</span></div>';
+    }).join('');
+    document.querySelectorAll('.drow').forEach(function(r){
+      r.addEventListener('click', function(){ selected = parseInt(r.getAttribute('data-i'),10); render(); });
+    });
+  }
+
+  function prodTable(out, label){
+    var rows = out.map(function(p){
+      return '<div class="ptrow d">'
+           + '<span class="name"><span class="ic">'+p.ic+'</span>'+p.n+'<span class="total">'+fmt(p.total)+'</span></span>'
+           + '<span class="c city">'+fmt(p.city)+'</span>'
+           + '<span class="c owner">'+fmt(p.owner)+'</span>'
+           + '<span class="c oper">'+(p.oper?fmt(p.oper):'—')+'</span></div>';
+    }).join('');
+    return '<div class="prodtable own-'+payer+'">'
+         + '<div class="ptrow">'
+         +   '<span class="nh">'+label+'</span>'
+         +   '<span class="hc"><span class="sw" style="background:var(--share-city)"></span>Місто</span>'
+         +   '<span class="hc owner"><span class="sw"></span>Власн.</span>'
+         +   '<span class="hc"><span class="sw" style="background:var(--share-oper)"></span>Опер.</span>'
+         + '</div>'
+         + rows + '</div>';
+  }
+
+  function renderDetail(){
+    var d = DISTRICTS[selected], p = POOLS[payer];
+
+    var reqs = d.reqs.map(function(r){
+      return '<div class="line" style="color:'+(r.ok?'var(--ok)':'var(--warn)')+'"><span class="ri">'+(r.ok?'✓':'✕')+'</span>'+r.t+'</div>';
+    }).join('');
+
+    var costs = d.build.res.map(function(c){
+      var have = p[c.ic]||0, short = have < c.a;
+      return '<div class="costrow'+(short?' short':'')+'"><span class="ci">'+c.ic+'</span><span class="cn">'+c.n+'</span>'
+           + '<span class="ca">'+c.a+'</span><span class="have">'+have+'</span></div>';
+    }).join('');
+    var wShort = !wOk(d);
+    var wRow = '<div class="costrow'+(wShort?' short':'')+'"><span class="ci">👷</span><span class="cn">Селяни</span>'
+             + '<span class="ca">'+d.build.workers+'</span><span class="have">'+FREE_WORKERS+'</span></div>';
+
+    var payerSeg = ['mayor','city'].map(function(pp){
+      return '<div class="payseg '+pp+(payer===pp?' on':'')+'" data-p="'+pp+'"><span class="pe">'+(pp==='mayor'?'👑':'🏛️')+'</span>'
+           + '<span class="who">'+PAYER_NAME[pp]+'</span><span class="own">· власник</span></div>';
+    }).join('');
+
+    var after;
+    if (d.action){
+      var a = d.action, orders = Math.floor(d.cap / a.people);
+      var inputs = a.inputs ? ' + ' + a.inputs.map(function(x){ return x.ic+' '+x.a; }).join(' ') : '';
+      after = '<div class="line"><span class="k">Місткість</span><span class="vv">до <span class="wk">'+d.cap+'</span> селян · '+orders+' накази / хід</span></div>'
+            + '<div class="actbox"><div class="an">Дія: '+a.name+'</div>'
+            +   '<div class="step">крок: <span class="wk">👷 '+a.people+'</span> + <span class="appill">'+a.ap+' AP</span>'+inputs+'<span class="arr">→</span></div>'
+            +   prodTable(a.out, 'ВИРОБЛЯЄ / КРОК')
+            + '</div>'
+            + '<div class="line" style="margin-top:6px;"><span class="k">Утримання / хід</span><span class="vv">'
+            +   d.upkeep.map(function(u){ return u.ic+' '+u.a; }).join('  ') + '</span></div>';
+      if (d.fut) after += '<div class="fut">'+d.fut+'</div>';
+    } else {
+      after = '<div class="line"><span class="k">Ефект</span><span class="vv" style="max-width:300px;">'+d.houses+'</span></div>'
+            + '<div class="line"><span class="k">Утримання / хід</span><span class="vv">'+d.upkeep.map(function(u){ return u.ic+' '+u.a; }).join('  ')+'</span></div>';
+    }
+
+    var btn = !d.ok ? '<button class="confirm disabled">Недоступно</button>'
+            : !resOk(d) ? '<button class="confirm disabled">Бракує ресурсів ('+PAYER_NAME[payer]+')</button>'
+            : !wOk(d) ? '<button class="confirm disabled">Бракує робітників</button>'
+            : '<button class="confirm">ЗБУДУВАТИ</button>';
+
+    document.getElementById('ddetail').innerHTML =
+        '<div class="dn">'+d.name+'</div><div class="dd">'+d.desc+'</div>'
+      + '<div class="sec"><div class="h">ВИМОГИ</div>'+reqs+'</div>'
+      + '<div class="sec"><div class="h">ПЛАТНИК</div><div class="payer">'+payerSeg+'</div></div>'
+      + '<div class="sec"><div class="h">БУДІВНИЦТВО <span class="tag">'+d.build.turns+' ходи</span></div>'
+      +   '<div class="line"><span class="k">AP</span><span class="vv"><span class="appill">'+d.build.ap+' AP</span></span></div>'
+      +   costs + wRow
+      + '</div>'
+      + '<div class="sec"><div class="h">'+(d.action?'ДІЇ':'ЕФЕКТ')+'</div>'+after+'</div>'
+      + '<div class="dfoot">'+btn+'</div>';
+
+    document.querySelectorAll('.payseg').forEach(function(s){
+      s.addEventListener('click', function(){ payer = s.getAttribute('data-p'); render(); });
+    });
+  }
+
+  function render(){ renderList(); renderDetail(); }
+  function openP(){ document.getElementById('pickwrap').classList.add('open'); }
+  function closeP(){ document.getElementById('pickwrap').classList.remove('open'); }
+
+  document.getElementById('openPicker').addEventListener('click', openP);
+  document.getElementById('openPicker2').addEventListener('click', openP);
+  document.getElementById('closeX').addEventListener('click', closeP);
+  document.getElementById('scrim').addEventListener('click', closeP);
+
+  document.querySelectorAll('.tab').forEach(function(t){
+    t.addEventListener('click', function(){
+      var name = t.getAttribute('data-tab');
+      document.querySelectorAll('.tab').forEach(function(x){ x.classList.toggle('active', x === t); });
+      document.querySelectorAll('.pane').forEach(function(pp){ pp.hidden = pp.getAttribute('data-pane') !== name; });
+    });
+  });
+
+  render();
+</script>
+</body>
+</html>

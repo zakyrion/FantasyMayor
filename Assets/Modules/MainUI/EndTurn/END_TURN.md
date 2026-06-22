@@ -19,11 +19,11 @@ the bottom-panel shell reveal.
 Tokens, component patterns, placement rules, and USS construction: `GENERAL_UI_STYLE.md`. This doc adds ONLY
 what is specific to this control — do not restate tokens or principles here.
 
-## Why this is a button at all (documented exception)
-`GENERAL_UI_STYLE.md` §2/§9 forbid action buttons on STATE panels — player agency lives in Mayor cards. The End
-Turn button is a **deliberate, documented exception**: it is neither an entity-state action nor a Mayor card. It
-is the single GLOBAL game-flow control that commits the turn. Consequences:
-- It MUST NOT live on the context (hex) sub-panel (that would violate state-vs-agency).
+## Why this is a button (turn-commit action)
+The End Turn button is the single GLOBAL game-flow control that commits the turn (`GENERAL_UI_STYLE.md` §9 —
+panels carry actions; this is the most prominent one). It is not tied to any selected entity. Consequences:
+- It lives on the TURN sub-panel (global), not the context (hex) sub-panel — the context panel hosts the
+  selected hex's own actions, not global game-flow.
 - The shared full-screen root is raycast-transparent; the bottom panel (and the button) stay raycast-opaque, so
   map clicks pass through everywhere else (same picking rule as the generator UI / hex info panel).
 

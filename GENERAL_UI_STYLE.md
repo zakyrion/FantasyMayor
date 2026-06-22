@@ -47,18 +47,20 @@ gives feedback. When a UI decision is unstated, pick the option this doc implies
 
 How to use it:
 - Placing anything on screen → **§4 Global HUD Layout** (where each region lives and what it may hold).
-- Designing a new panel → **§5 Designing a New Panel** + pull from **§7 Component Catalog**.
+- Designing a new panel → **§5 Designing a New Panel** + pull from **§7 Component Catalog** (realized via App UI, §15).
 - Styling → use the exact tokens in **§6 Visual Tokens**; never invent values.
-- Building it in Unity → **§12 Panel Construction** + **§11 UI Toolkit / USS Mapping** (and its gotchas).
+- Building it in Unity → **§15 Component Foundation (App UI)** + **§12 Panel Construction** + **§11 UI Toolkit / USS Mapping** (and its gotchas).
 - Advising the user → **§2 Design Principles** + **§3 Touchstones** + **§14 Anti-Patterns** carry the "why".
 
 ---
 
 ## 2. Design Principles
 
-- **Map and panels for state, cards for agency.** Panels (and the map) only *show* state. Player *actions*
-  are cards (the Mayor's agency). A state panel therefore carries **no action buttons** — see §9. The one
-  permitted button on the permanent HUD is **«Завершити хід»** (the turn commit), not a domain action.
+- **Map and panels for everything; agency opens as submenus.** The map and panels *show* state **and** carry
+  the player's actions. An action is a **button on a panel** that opens a **submenu / detail subpanel / modal**
+  (the Mayor's agency) — never a floating card. There is no read-only restriction on panels: any panel may host
+  actions next to the state it shows — see §9. The **«Завершити хід»** turn-commit is just the most prominent
+  such action, not a special exception.
 - **UI on the edges, center always clean.** The map center is where play happens. All permanent HUD lives on
   the top edge and the bottom edge; the left and right edges stay free of permanent panels. Never cover the
   center with a permanent panel.
@@ -83,8 +85,9 @@ empire-scale or cold-industrial; tone and scale are OURS.
 
 - **Old World — primary lens for interaction.** The closest structural twin to our core loop. Its **Orders**
   economy (a small per-turn pool spent on actions) ≈ our **Action Points** scarcity; its **event / character
-  cards** ≈ the **Mayor's agency + Important Citizens**. **When an interaction is unspecified, resolve it the
-  Old World way:** turn-based, card-driven, character-centric, readable.
+  interactions** ≈ the **Mayor's agency + Important Citizens**. **When an interaction is unspecified, resolve it
+  the Old World way:** turn-based, character-centric, readable. We keep its systems (AP economy, character-driven
+  events); we render them as **panels + submenus**, not cards.
 - **Shadow Empire — adopted for the bottom panel.** Its model of a **wide bottom panel with tabs, where a tab
   drills into a full-screen window**, is our chosen shape for the contextual bottom panel and for deep
   management views (FantasyMayor is management-heavy; a wide tabbed hub fits better than Old World's narrow
@@ -143,19 +146,21 @@ regions. The render reference is `design-mockups/FantasyMayor-HUD.html`.
     **never** progress bars / sliders. Canonical Огляд blocks: **ГЕКС** (terrain icon + type as a compact
     line + resource chips), **РАЙОН** (serif name + level + owner / operator / buildings / specialization
     k-v), **ПРАЦЯ ТА ВИРОБНИЦТВО** (one labor line + production table). The **Дії** tab hosts the selected
-    district's action **cards** (icon + name + AP cost) — agency stays card-shaped (§9), not inline buttons.
+    district's actions as a **list of action buttons** (icon + name + AP cost); clicking one opens its
+    submenu / detail subpanel (§9).
 - **Left edge / right edge — free.** No permanent panels. (There is NO right-side hex inspector — its role is
   the bottom panel's right sub-panel.)
 - **Center — the map.** Never covered by a permanent panel.
 
-### State / agency mapping (the discipline line)
+### Region roles
 
-- **Top bar = global state.** **Bottom-left = turn state + the turn commit.** **Bottom-right = contextual
-  state.** All read-only except «Завершити хід».
-- **Agency stays card-shaped (§9).** The selected district's actions appear as **cards** in the context
-  sub-panel's **Дії** tab (icon + name + AP cost). The Mayor's global free-action deck still opens as an
-  on-demand window (§9). What stays banned: an inline action **button** on a state block, and a permanent
-  «Дії мера» button docked in the HUD chrome — agency is never an inline state-panel control.
+- **Top bar = global state + global openers.** **Bottom-left = turn state + the turn commit.**
+  **Bottom-right = contextual state + the selection's actions.**
+- **Agency opens as submenus (§9).** A panel hosts its actions as **buttons** beside the state it shows;
+  clicking one opens a submenu / detail subpanel / modal. The selected district's actions live as a button
+  list in the context sub-panel's **Дії** tab; the Mayor's global actions open from a top-bar opener. Inline
+  action buttons and docked action openers are the normal shape of agency — nothing here is banned except
+  cards (there are none).
 
 ### The bottom panel is ALWAYS present
 
@@ -170,10 +175,10 @@ nothing is selected:
 
 ### Full-screen windows
 
-Deep state lives in **read-only full-screen windows** opened from the top bar (global) or a bottom-panel tab
-(contextual). These are allowed and expected (Shadow Empire drill-down). They are NOT modal management dialogs
-for agency — agency stays card/deck-shaped (§9). A full-screen window may cover the map because the player
-deliberately opened it and is not looking at the map then; the "keep the center clean" rule governs the
+Deep state lives in **full-screen windows** opened from the top bar (global) or a bottom-panel tab
+(contextual). These are allowed and expected (Shadow Empire drill-down). A window may be read-only (a state
+breakdown) or carry its own actions (buttons → submenus, §9). A full-screen window may cover the map because the
+player deliberately opened it and is not looking at the map then; the "keep the center clean" rule governs the
 *permanent* HUD, not an opened window.
 
 ---
@@ -183,8 +188,8 @@ deliberately opened it and is not looking at the map then; the "keep the center 
 Run this every time a new panel/window is requested.
 
 1. **Place it first (§4).** Decide which region owns it: top-bar zone, a bottom-panel sub-panel, or an
-   on-demand window (global from the top bar, contextual from a bottom tab). If it is agency, it is a
-   card/deck window, not a panel (§9).
+   on-demand window (global from the top bar, contextual from a bottom tab). If it is agency, it is an
+   action panel / submenu / modal (§9), opened from a button on its host panel.
 2. **Identify the entity and its data layers.** Separate what is *always present* from what is *conditional*
    (e.g. hex: terrain always; resource sometimes; district sometimes).
 3. **Order by progressive disclosure.** Always-on header first. Then conditional sections, appended only when
@@ -198,8 +203,8 @@ Run this every time a new panel/window is requested.
    - a labor-limited output → state the limit ONCE on the **labor line** (`N / M груп · X% · виробництво
      обмежено`, amber when short); do not also strike through each produced value
 5. **Apply tokens** from §6. Color must encode meaning (role / resource / status), never decoration.
-6. **Keep it read-only.** If the design wants an action, that action belongs on a **card**, not the panel
-   (sole HUD exception: «Завершити хід»).
+6. **Place actions as buttons → submenus.** A panel may host actions next to its state. Render each action as a
+   button that opens a submenu / detail subpanel / modal (§9) — never a floating card.
 7. **Write the per-window doc** (§13): reference this file for tokens/components/layout, specify only the new
    window's content model, states, and data bindings.
 
@@ -303,8 +308,8 @@ Each entry: **use for** / **structure** / **anti-pattern**. Build new panels fro
   a tab may drill into a full window via the trailing `↗ повне вікно району`.
 - **Structure:** a horizontal row of text tabs; the active tab carries a 2px gold bottom border (`--gold`);
   a trailing faint `↗ повне вікно району` affordance signals the full-screen drill-down.
-- **Anti-pattern:** a tab that fires an action itself (a tab only switches the view); inline action buttons
-  inside a state block — agency is card-shaped and lives as cards in the Дії tab (§9).
+- **Anti-pattern:** a tab that fires an action itself (a tab only switches the view). Actions live as buttons
+  inside the tab's content (e.g. the Дії tab), not on the tab control.
 
 ### Divider
 - **Use for:** separating sections (horizontal) or sub-panels (vertical).
@@ -314,7 +319,7 @@ Each entry: **use for** / **structure** / **anti-pattern**. Build new panels fro
 - **Use for:** an **enumerable set** of small items (hex resources, tags).
 - **Structure:** full-round pill, `--chip-bg`, a colored icon dot (resource hue) + label; wraps to multiple
   rows.
-- **Anti-pattern:** using chips for a single key attribute (use a key–value row) or for an action (use a card).
+- **Anti-pattern:** using chips for a single key attribute (use a key–value row) or for an action (use an action button → submenu, §9).
 
 ### Key–Value row
 - **Use for:** a single attribute of the entity (owner, operator, active action, workforce, season, phase).
@@ -369,37 +374,42 @@ Region placement is §4. These are the per-panel rules once a panel is placed.
 
 ## 9. Interaction Model
 
-- Permanent panels are **read-only**; their only exception is the **«Завершити хід»** turn-commit button.
-- All player agency (build, negotiate, invest, intervene) is delivered through **cards/decks**, never as
-  inline buttons on a state block. A district's action cards are hosted in the context sub-panel's **Дії**
-  tab; the Mayor's global free-action deck opens **on demand** as a window. Cards — not docked buttons — are
-  the only form agency takes.
-- A pill/badge on a state block must never be clickable. If a design pressures you to add an action to a
-  state block, that is a signal the action belongs on a card (in the Дії tab or the on-demand deck).
+- **Panels carry both state and actions.** There is no read-only restriction. A panel shows its entity's state
+  and may host that entity's **actions** beside it.
+- **An action is a button → submenu.** Player agency (build, negotiate, invest, intervene) is rendered as a
+  **button on a panel** that opens a **submenu / detail subpanel / modal**. There are no cards or decks
+  anywhere in the game.
+- A district's actions live as a button list in the context sub-panel's **Дії** tab; the Mayor's global actions
+  open from a top-bar opener. The **«Завершити хід»** turn-commit is the most prominent action button, not a
+  special case.
+- A pill/badge that is purely a status must not be clickable — make the affordance an explicit action button,
+  so "this is clickable" is never ambiguous.
 
-### Agency window archetypes (Old World lens)
+### Agency archetypes (Old World lens)
 
-Player agency is delivered through windows opened on demand, in **two standardized compositions**. Both obey
-the Old World rule: **every choice shows its consequence (gain/loss icons) and its AP cost** — the player
-never commits blind.
+Player agency uses **two standardized compositions**, both **panels** (opened from an action button). Both obey
+the Old World rule: **every choice shows its consequence (gain/loss icons) and its AP cost** — the player never
+commits blind.
 
-- **Action deck — master–detail.** The Mayor's free actions for the turn. A scrollable list of available
-  actions (icon + name + AP cost) on the left; the selected action's detail on the right (title, what it
-  does, effects, requirements, a confirm button carrying the AP cost). Use for: free choice under the AP
-  budget. **Anti-pattern:** a card fan/hand — rejected; it does not scale and reads as a toy.
-- **Event decision card — focused.** A single forced decision: a portrait/illustration, the situation
-  narrative, then a vertical list of choices, each with its consequences + AP cost. Use for: system events,
-  requests, end-of-turn consequences — one at a time. **Anti-pattern:** burying a forced decision inside a
-  list where it can be skipped.
+- **Action panel — master–detail.** A list of actions (icon + name + AP cost) on the left; the selected
+  action's detail on the right (title, what it does, effects, requirements, a confirm button carrying the AP
+  cost). Use for: the Mayor's free actions under the AP budget, or any "pick one of several actions" choice
+  (e.g. **pick a district to build** — the «+» district affordance opens this). **Anti-pattern:** a card
+  fan/hand — there are no cards.
+- **Event decision — focused modal.** A single forced decision as a **modal panel-dialog**: a
+  portrait/illustration, the situation narrative, then a vertical list of choices, each with its consequences
+  + AP cost. Use for: system events, requests, end-of-turn consequences — one at a time. **Anti-pattern:**
+  burying a forced decision inside a list where it can be skipped.
 
 **Negotiation is NOT one of these.** Negotiating with an Important Citizen is a separate, more complex
 mechanic with its **own bespoke window** — design it on its own terms when that mechanic lands.
 
-### Read-only full-screen windows
+### Full-screen state windows
 
-Deep STATE (full economy, full population, a district's full breakdown) opens as a read-only full-screen
-window from a top-bar opener or a bottom-panel tab. These are NOT agency and NOT modal management dialogs —
-they only show state. Distinguish them clearly from the agency windows above.
+Deep STATE (full economy, full population, a district's full breakdown) opens as a full-screen window from a
+top-bar opener or a bottom-panel tab. These are primarily for reading state, but — like any panel — may carry
+their own action buttons (§9). They differ from the focused agency archetypes above by being broad, browsable
+breakdowns rather than a single decision.
 
 ---
 
@@ -420,8 +430,11 @@ they only show state. Distinguish them clearly from the agency windows above.
 
 ## 11. UI Toolkit / USS Mapping
 
-The game renders UI in **UI Toolkit** (UXML + USS). USS is a **subset** of CSS — some mockup CSS does **not**
-translate. Treat the HTML mockup as the visual target, not a literal source.
+The game renders UI in **UI Toolkit** (UXML + USS) on **Unity 6.4**, with **Unity App UI** as the component
+foundation (§15). USS is a **subset** of CSS. **Author mockups already inside that subset** — a mockup must be a
+faithful preview of what Unity will render, not aspirational CSS to be "mapped later". Stay within the techniques
+below from the start; the only exception is the rendered game scene (camera output behind the panels), which is
+not UI Toolkit. The capability notes below are verified against Unity 6.4's USS.
 
 Tokens become **USS custom properties**, assigned on a root/theme selector and read with `var()`:
 
@@ -450,18 +463,25 @@ Tokens become **USS custom properties**, assigned on a root/theme selector and r
 | Mockup CSS | USS reality | Do instead |
 |---|---|---|
 | `::before` / `::after` (accent line, hex texture) | USS has **no pseudo-elements** | Add a real child `VisualElement` (e.g. a 3px accent bar) or a background image |
-| `box-shadow` (elevation) | **Not supported** in USS | Fake elevation with a 9-slice background sprite, or a subtle border; or omit |
+| `box-shadow` (elevation) | **Not supported** in USS (still absent in 6.4; App UI fakes it too) | 9-slice sprite or a Vector Graphics (SVG) asset; or a subtle border; or omit. `text-shadow` covers TEXT glow only |
 | `backdrop-filter: blur()` | **Not supported** | Rely on `--panel-bg` alpha alone (no live blur) |
 | `text-transform: uppercase` (section labels) | **Not supported** | Uppercase the **string** in data/binding |
-| `linear-gradient(...)` background (accent line) | Limited / version-dependent | Prefer a solid `--gold-soft` element or a sprite; verify gradient support against the project's Unity version |
+| `linear-gradient(...)` background (accent line) | **Not supported** in USS (verified through Unity 6.4) | A Vector Graphics (SVG) gradient asset, a 9-slice / gradient sprite, or a solid `--gold-soft` element |
 | gradient **border** | not supported in USS at all | per-side border colors (lighter top/left, darker bottom/right) for a faux bevel; or a 9-slice sprite |
 | `font-family` stacks (serif/sans) | USS uses **font assets** | Assign a serif and a sans **font asset** via `-unity-font-definition` |
 | layout (grid) | UI Toolkit is **flexbox-only** | Use flex; there is no CSS grid |
+| flex `gap` / `row-gap` / `column-gap` | **Not supported** (Yoga subset; absent from the USS supported-properties list) | Space items with `margin` |
+| structural selectors `:last-child` / `:first-child` / `:nth-child` / `:not()` | **Not supported** (USS has type/class/name/`*`/`>`/descendant + pseudo-**states** only) | Add a marker class, or accept trailing margin absorbed by padding |
+| implicit `flex-direction: row` | USS default is **`column`**, not `row` | Set `flex-direction` explicitly on every flex container |
 | `position: fixed` (anchoring) | No `fixed` | Anchor with `position: absolute` inside a full-screen root element |
 | rounded clipping of children | Children overflow the radius by default | Set `overflow: hidden` on the rounded parent |
 
-`letter-spacing` **is** supported in USS. When in doubt about a USS feature, verify against the project's Unity
-version (Context7) rather than assuming CSS parity.
+**Verified supported in USS (Unity 6.4):** `letter-spacing`, `word-spacing`, `text-shadow` (+ offset-x / offset-y /
+blur-radius / color; SDF fonts only), `-unity-text-outline`, `opacity`, `rotate` / `scale` / `translate` and
+`transition` (animate hover / active / processing states), the full `background-*` set (`background-position` /
+`-repeat` / `-size`, `-unity-background-image-tint-color`, `-unity-background-scale-mode`), and `-unity-slice-*`
+(9-slice). There is **no** `text-transform` — uppercase the string in data. When in doubt about a USS feature,
+verify against the project's Unity version (the official USS reference) rather than assuming CSS parity.
 
 ---
 
@@ -469,6 +489,10 @@ version (Context7) rather than assuming CSS parity.
 
 How to assemble any panel. This is the default; deviate only with a stated reason.
 
+- **Build from App UI components (§15), reskinned.** Where App UI provides a control (button, dropdown, modal,
+  popover, menu, list, tooltip), use it — do not re-author it from raw `VisualElement`s. The whole Main UI tree
+  lives under one `appui:Panel` root (it provides the theme + the popup/tooltip layer). Author bespoke markup
+  only for structure App UI has no control for (the HUD shell, the discrete context blocks).
 - **Author the full skeleton in one UXML.** All *known* blocks, in canonical (progressive-disclosure) order.
   The skeleton is the single source of visual structure. The bottom panel is **one shell with two pre-authored
   sub-panels** (turn + context).
@@ -524,8 +548,8 @@ exists today.
 | Put a permanent panel on the left/right edge or over the center | Eats the map; breaks "UI on the edges" | Top bar, bottom panel, or an on-demand window |
 | Render a conditional section with no data | Dead space; breaks progressive disclosure | Omit it (except the bottom panel's designed empty STATE) |
 | Make the bottom panel appear/disappear on selection | Layout jump; loses the muscle-memory anchor | Keep the shell permanent; swap only the context CONTENT |
-| Dock a permanent «Дії мера» button, or an inline action button on a state block | Violates state-vs-agency | District actions are **cards** in the Дії tab; the global action deck opens on demand (§9) |
-| Put an action button on a state panel | Muddies the mental model | Move it to a Mayor card (only HUD action = «Завершити хід») |
+| Use a card / card-deck / card-fan for any agency | Cards are removed from the design | Action button → submenu / detail subpanel / modal (§9) |
+| Make an action open as a floating standalone card | No cards; breaks the panels+submenus model | Open it as a submenu/subpanel of its host panel, or a focused modal |
 | Strike through each produced value (`потенціал ~~+8~~ −2`) | Duplicates the cause already on the labor line | State the shortage ONCE on the labor line |
 | Use the word «вихід» in any UI string | Wrong term | Use «виробництво» |
 | A stacked split-bar for the production split | Does not scale to multiple goods; reads as decoration | Production table (row per good, role columns) |
@@ -537,4 +561,48 @@ exists today.
 | Restate a window's content here | This doc is GENERAL | Put it in that window's own doc |
 | Translate `box-shadow` / `::before` / blur straight to USS | USS does not support them | Use the §11 gotcha workarounds |
 | Insert each block dynamically per subsystem | Loses authored order; churns GC | Author the skeleton; toggle `display: none` (§12) |
+| Rebuild an overlay / list / menu / dropdown from raw elements when App UI has it | Reinvents a maintained, themed, accessible control | Use the App UI control (§15), reskinned via `appui--cozy` |
+| Expect App UI to add `box-shadow` / gradients | App UI is components + theming, not new pixel effects | Gradients/elevation via Vector Graphics (SVG) or 9-slice (§11, §15) |
 | Hide a block with `visibility: hidden` | Leaves an empty gap | Use `display: none` — it collapses layout |
+
+---
+
+## 15. Component Foundation — Unity App UI
+
+The project's component layer is **Unity App UI** (`com.unity.dt.app-ui`, already a dependency). App UI is the
+official Unity design system **on top of** UI Toolkit: a maintained library of controls + a theming system + an
+overlay/focus/layering layer. It is the **DEFAULT source of controls** — do not rebuild a control App UI already
+provides.
+
+### Non-negotiables
+- **All App UI markup lives under one `appui:Panel` root.** The Panel propagates the theme, language, and layout
+  direction, and owns the layering for popups / menus / tooltips / toasts. No Panel → components render wrong.
+  UXML declares the namespace `xmlns:appui="Unity.AppUI.UI"`; controls are `<appui:Button title="…" />`, etc.
+- **No MVVM.** We do NOT use App UI's MVVM app-builder. Components are plain `VisualElement`s; our **ECS systems
+  drive them** (resolve by name, write via the control's API) exactly like the current views. App UI's
+  MVVM / state / localization layers are out of scope unless explicitly adopted later.
+- **Reskin via one theme, `appui--cozy`.** App UI ships Material-ish defaults. Map App UI's design tokens
+  (`--appui-*`, e.g. `--appui-primary-100`, `--appui-spacing-100`) onto OUR tokens (§6) in a single
+  `.appui--cozy` theme (`.tss` referencing a `.uss`). Per-control tweaks override the control class
+  (`.appui-button { … }`). Our tokens (§6) stay the source of truth; the cozy theme is the bridge.
+
+### Use App UI for
+- **overlays:** Modal / Dialog / AlertDialog, Popover, Tray, Drawer — our submenus and the district-build modal;
+- **navigation / commands:** Menu / ContextMenu, Tabs — the context tab row, action menus;
+- **inputs:** Button / ActionButton / IconButton, Dropdown / Picker, Slider, Toggle, TextField, Stepper;
+- **data:** ListView / GridView (virtualized) — action lists, building lists, the picker's master list;
+- **feedback / decor:** Toast / Notification, Tooltip, ProgressBar, Chip, Badge, Avatar, Divider, Icon.
+
+App UI's **Components manual is the canonical catalog** — confirm the exact control exists there before authoring.
+
+### App UI does NOT change the USS limits (§11)
+App UI is components + theming, not new pixel effects. `box-shadow`, background gradients, and `backdrop-filter`
+are STILL absent (App UI itself fakes elevation with sprites). The cozy elevation, the gold accent line, soft
+glows, and gradient fills are produced with **Vector Graphics (SVG, `com.unity.modules.vectorgraphics`) or
+9-slice sprites**; text glow uses `text-shadow` (§11). Do not expect App UI to supply these.
+
+### Bespoke vs App UI
+- **Bespoke (hand-authored UXML/USS):** the HUD shell + region layout (top bar, the one bottom-panel shell with
+  its two sub-panels, the discrete context blocks) — App UI has no "our HUD" control.
+- **App UI:** every actual control inside that layout. About to write a button, list, dropdown, menu, popover,
+  modal, or tooltip from raw elements? Stop — use App UI.

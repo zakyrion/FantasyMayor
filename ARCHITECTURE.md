@@ -20,6 +20,7 @@ related:
 - Asset loading: Unity `Addressables`
 - Input: Unity `InputSystem`
 - Rendering: Universal Render Pipeline
+- UI: Unity `UI Toolkit` (UXML/USS); `Unity App UI` (`com.unity.dt.app-ui`) is the component foundation — see `GENERAL_UI_STYLE.md` §15
 
 ## Repository Map
 

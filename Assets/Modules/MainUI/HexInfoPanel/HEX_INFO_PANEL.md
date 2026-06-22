@@ -21,10 +21,10 @@ selected hex. Grows by progressive disclosure.
 
 ## Purpose
 The right half of the always-present bottom panel (`GENERAL_UI_STYLE.md` §4). Shows everything known about the
-selected hex. **State only — no actions** (actions are Mayor cards). The bottom-panel SHELL is permanent; only
-this sub-panel's CONTENT is contextual — it swaps between the **filled** blocks (a hex is selected) and an
-**empty placeholder** (nothing selected). The left sub-panel (turn + End Turn) is a separate window — see
-`EndTurn/END_TURN.md`.
+selected hex **and hosts that hex's actions** (e.g. district build) as buttons that open a submenu — panels are
+no longer read-only (`GENERAL_UI_STYLE.md` §9). The bottom-panel SHELL is permanent; only this sub-panel's
+CONTENT is contextual — it swaps between the **filled** blocks (a hex is selected) and an **empty placeholder**
+(nothing selected). The left sub-panel (turn + End Turn) is a separate window — see `EndTurn/END_TURN.md`.
 
 ## Ownership split (read this first)
 Three orthogonal layers, each with one owner — none overlaps:
@@ -115,7 +115,7 @@ One system per block (per `GENERAL_UI_STYLE` Panel Construction; roles per `ARCH
 - **One unified, fixed-height bottom-panel shell.** `Prefabs/HexInfoPanel.uxml` is the single Main UI
   `UIDocument`. Its bottom panel (`BottomPanel`) is **one shell with two sub-panels** divided by a vertical
   divider: the turn sub-panel (`TurnPanel`, owned by `EndTurnView`) and this context sub-panel (`ContextPanel`).
-  They are NOT two floating cards (the named anti-pattern in `GENERAL_UI_STYLE.md` §14). The shell has a **fixed
+  They are NOT two floating boxes (the named anti-pattern in `GENERAL_UI_STYLE.md` §14). The shell has a **fixed
   height** (`.bottom-panel`, `height` in USS) and clips overflow, so swapping panes/selection never resizes it.
 - **`Show/Hide` semantics.** This view has no whole-panel `Show/Hide`; it exposes `ShowSelection()` /
   `ShowEmpty()` that swap `ContextFilled` ↔ `ContextEmpty`. The shell is revealed by `EndTurnView`.

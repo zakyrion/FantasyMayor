@@ -46,13 +46,10 @@ MonoBehaviour:
     - Core
     - CurveBuilders
     - DefaultECS.Extensions
+    - Domains.Actors
+    - Domains.Economy
     - Dreamteck.Splines
     - Dreamteck.Utilities
-    - glTFast
-    - glTFast.Documentation.Examples
-    - glTFast.dots
-    - glTFast.Export
-    - glTFast.Newtonsoft
     - Hexes.Core
     - HexIcons
     - HexResources

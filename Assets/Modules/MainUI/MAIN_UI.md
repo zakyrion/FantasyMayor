@@ -35,7 +35,7 @@ this doc, the asmdef) stay at the root. Windows:
 The shared full-screen UI root is module **`MainCanvas`** (`IMainCanvasProvider.RootGO`). Under it, the whole
 Main UI is **one addressable prefab `UI/MainUI`** with **one `UIDocument`** whose UXML tree carries every
 window's markup. The Gameplay HUD is **one unified bottom-panel shell** (`BottomPanel`) split into two
-sub-panels by a vertical divider — `TurnPanel` (left) and `ContextPanel` (right) — NOT two floating cards
+sub-panels by a vertical divider — `TurnPanel` (left) and `ContextPanel` (right) — NOT two floating boxes
 (the named anti-pattern in `GENERAL_UI_STYLE.md` §14). Each window's view is a MonoBehaviour that references
 **that same `UIDocument`** and queries only its own elements:
 - `EndTurnView` owns the **shell**: `Show/Hide` toggle the `BottomPanel` element's `display` (the turn corner
