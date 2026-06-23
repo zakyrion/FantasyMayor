@@ -3,13 +3,13 @@ using DefaultEcs;
 using DefaultECSExtensions;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
-using Modules.HexCore.Components;
-using Modules.HexCore.Tags;
+using Domains.Map.Hex.Components;
+using Domains.Map.Hex.Data;
+using Domains.Map.Hex.Tags;
 using Modules.MainUI.HexInfoPanel.Components;
 using Modules.MainUI.HexInfoPanel.Configs;
-using Modules.MainUI.HexInfoPanel.Data;
-using Modules.TerrainView.Components;
-using Modules.TerrainView.Events;
+using Presentation.Terrain.Components;
+using Presentation.Terrain.Events;
 using UnityEngine;
 
 namespace Modules.MainUI.HexInfoPanel.Systems
@@ -70,38 +70,28 @@ namespace Modules.MainUI.HexInfoPanel.Systems
             view.SetHeader(sprite, displayName);
         }
 
-        private bool TryGetHexTerrainType(HexCoord coords, out HexTerrainType terrainType)
+        private bool TryGetHexTerrainType(HexCoord coords, out HexType type)
         {
-            terrainType = default;
+            type = default;
 
             foreach (var hexEntity in _hexSet.GetEntities())
             {
                 if (hexEntity.Get<HexIdComponent>().Coords != coords)
                     continue;
 
-                if (hexEntity.Has<HexPlainTag>())
-                    terrainType = HexTerrainType.Plain;
-                else if (hexEntity.Has<HexMountTag>())
-                    terrainType = HexTerrainType.Mount;
-                else if (hexEntity.Has<HexBedhillTag>())
-                    terrainType = HexTerrainType.Bedhill;
-                else if (hexEntity.Has<HexWaterTag>())
-                    terrainType = HexTerrainType.Water;
-                else
-                    return false;
-
+                type = hexEntity.Get<HexTypeComponent>().Type;
                 return true;
             }
 
             return false;
         }
 
-        private bool TryGetTerrainEntry(HexTerrainIconConfig config, HexTerrainType type, out Sprite sprite,
+        private bool TryGetTerrainEntry(HexTerrainIconConfig config, HexType type, out Sprite sprite,
             out string displayName)
         {
             foreach (var entry in config.Entries)
             {
-                if (entry.TerrainType != type)
+                if (entry.Type != type)
                     continue;
 
                 sprite = entry.Sprite;

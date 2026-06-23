@@ -21,7 +21,7 @@ namespace Modules.MainUI.Systems
     ///     publish its component. Owns the single addressable handle for the whole Main UI.
     /// </summary>
     [UsedImplicitly]
-    internal sealed class MainUISpawnSystem : IPrioritizedUniTaskSystem<TerrainGenerationStep>
+    internal sealed class MainUISpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
         private const int ExecutionPriority = 800;
         private const string MainUIPath = "UI/MainUI";
@@ -46,7 +46,7 @@ namespace Modules.MainUI.Systems
                 .ToArray();
         }
 
-        public async UniTask Update(TerrainGenerationStep state, CancellationToken cancellationToken)
+        public async UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
         {
             if (_world.Has<MainUIComponent>())
                 return;

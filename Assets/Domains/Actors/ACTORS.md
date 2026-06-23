@@ -41,7 +41,7 @@ This slice ships only the City and Mayor identities.
   folder. One asmdef still covers the whole domain.
 - Per-type ids (not one shared `ActorId`): in SoA the distinguishing fact "owned by a city vs a mayor"
   IS which id component is attached, so a single polymorphic owner key would be a step backwards.
-- `ActorsSpawnSystem` is a one-shot **Pipeline Stage** (`IPrioritizedUniTaskSystem<TerrainGenerationStep>`,
+- `ActorsSpawnSystem` is a one-shot **Pipeline Stage** (`IPrioritizedUniTaskSystem<MapGenerationStep>`,
   priority 900) run by `MapCreation` — actor creation is world-init, not per-frame or reactive. It is
   auto-collected by DI as the interface; no `Boot` wiring change.
 - Allocator save/load is a **contract only** for now — the counter is shaped to persist, but Easy Save 3

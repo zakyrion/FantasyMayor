@@ -1,18 +1,19 @@
 using DefaultEcs;
 using DefaultECSExtensions;
 using Domains.Actors.Installer;
+using Domains.Economy.Installer;
 using Installers.Addressable;
-using Installers.TerrainView;
+using Presentation.Terrain.Installer;
 using Modules.Boot.Core;
-using Modules.HexIcons.Installer;
-using Modules.HexResources.Installer;
-using Modules.HexResourcesView.Installer;
+using Presentation.Icons.Installer;
+using Domains.Map.HexResources.Installer;
+using Presentation.Resources.Installer;
 using Modules.MainUI.Installer;
 using Modules.MainCanvas.Core;
 using Modules.MainCanvas.Implementation;
 using Modules.Cameras.Components;
-using Modules.Pathfinding.Installer;
-using Modules.TerrainGenerator.Installer;
+using Domains.Map.Pathfinding.Installer;
+using Domains.Map.Generation.Installer;
 using Modules.Turn.Installer;
 using Modules.UserInput.Components;
 using Modules.UserInput.Systems;
@@ -77,6 +78,7 @@ namespace Installers.World
             new HexIconsInstaller().Install(builder);
             new TurnInstaller().Install(builder);
             new ActorsInstaller().Install(builder);
+            new EconomyInstaller().Install(builder);
         }
     }
 }

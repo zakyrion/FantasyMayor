@@ -4,15 +4,15 @@ using DefaultEcs;
 using DefaultECSExtensions;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
-using Modules.HexCore.Components;
-using Modules.HexIcons.Components;
-using Modules.HexIcons.Configs;
+using Domains.Map.Hex.Components;
+using Presentation.Icons.Components;
+using Presentation.Icons.Configs;
 using Modules.MainUI.HexInfoPanel.Components;
 using Modules.MainUI.HexInfoPanel.Views;
-using Modules.HexResources.Components;
-using Modules.HexResources.Data;
-using Modules.TerrainView.Components;
-using Modules.TerrainView.Events;
+using Domains.Map.HexResources.Components;
+using Domains.Map.HexResources.Data;
+using Presentation.Terrain.Components;
+using Presentation.Terrain.Events;
 using UnityEngine;
 
 namespace Modules.MainUI.HexInfoPanel.Systems

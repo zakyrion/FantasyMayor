@@ -48,23 +48,17 @@ MonoBehaviour:
     - DefaultECS.Extensions
     - Domains.Actors
     - Domains.Economy
+    - Domains.Map
     - Dreamteck.Splines
     - Dreamteck.Utilities
-    - Hexes.Core
-    - HexIcons
-    - HexResources
-    - HexResourcesView
     - Installers
     - Installers.World
     - MainCanvas.Core
     - MainCanvas.Implementation
     - MainUI
-    - Pathfinding
-    - Pathfinding.Installer
+    - Presentation
     - Sirenix.OdinInspector.Modules.Unity.Addressables
     - Sirenix.OdinInspector.Modules.UnityLocalization
-    - Terrain.Generator
-    - Terrain.View
     - Turn
     - UniTask
     - UniTask.Addressables

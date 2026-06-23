@@ -11,7 +11,7 @@ namespace Domains.Actors.Installer
         public void Install(IContainerBuilder builder)
         {
             builder.Register<ActorsSpawnSystem>(Lifetime.Singleton)
-                .As<ActorsSpawnSystem, IPrioritizedUniTaskSystem<TerrainGenerationStep>>();
+                .As<ActorsSpawnSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
         }
     }
 }

@@ -28,7 +28,7 @@ namespace Modules.MainUI.Installer
             // Main UI spawn — orchestrator (generation pipeline, collected by interface) instantiates the
             // Main UI root and runs the window spawn subsystems (collected as MainUISpawnSubSystem).
             builder.Register<MainUISpawnSystem>(Lifetime.Singleton)
-                .As<MainUISpawnSystem, IPrioritizedUniTaskSystem<TerrainGenerationStep>>();
+                .As<MainUISpawnSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
             builder.Register<HexInfoPanelSpawnSubSystem>(Lifetime.Singleton)
                 .As<HexInfoPanelSpawnSubSystem, MainUISpawnSubSystem>();
             builder.Register<EndTurnSpawnSubSystem>(Lifetime.Singleton)

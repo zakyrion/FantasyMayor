@@ -5,13 +5,13 @@ using DefaultEcs;
 using DefaultECSExtensions;
 using Modules.Boot.Core;
 using Modules.Boot.Implementation.States;
-using Modules.HexIcons.Systems;
-using Modules.HexResourcesView.Systems;
+using Presentation.Icons.Systems;
+using Presentation.Resources.Systems;
 using Modules.MainUI.ContextTabs.Systems;
 using Modules.MainUI.EndTurn.Systems;
 using Modules.MainUI.GeneratorMenu.Systems;
 using Modules.MainUI.HexInfoPanel.Systems;
-using Modules.TerrainView.Systems;
+using Presentation.Terrain.Systems;
 using Modules.Turn.Systems;
 using Modules.UserInput.Systems;
 using UnityEngine;
@@ -71,7 +71,7 @@ namespace Modules.Boot.Implementation
         [Inject]
         public void Construct(
             IReadOnlyList<IUniTaskSystem<ConfigLoadStep>> configLoadSystems,
-            IReadOnlyList<IPrioritizedUniTaskSystem<TerrainGenerationStep>> generationPipeline,
+            IReadOnlyList<IPrioritizedUniTaskSystem<MapGenerationStep>> generationPipeline,
             ShowHexesUISystem showHexesUI,
             HexSelectionSystem hexSelection,
             HexSelectionViewSystem hexSelectionView,

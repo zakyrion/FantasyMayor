@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Modules.MainUI.HexInfoPanel.Data;
+using Domains.Map.Hex.Data;
 using UnityEngine;
 
 namespace Modules.MainUI.HexInfoPanel.Configs
@@ -16,11 +16,11 @@ namespace Modules.MainUI.HexInfoPanel.Configs
         [Serializable]
         public struct TerrainIconEntry
         {
-            [SerializeField] private HexTerrainType _terrainType;
+            [SerializeField] private HexType _type;
             [SerializeField] private Sprite _sprite;
             [SerializeField] private string _displayName;
 
-            public HexTerrainType TerrainType => _terrainType;
+            public HexType Type => _type;
             public Sprite Sprite => _sprite;
             public string DisplayName => _displayName;
         }

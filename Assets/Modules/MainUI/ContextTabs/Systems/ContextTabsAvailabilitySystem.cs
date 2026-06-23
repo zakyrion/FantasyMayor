@@ -3,8 +3,8 @@ using DefaultECSExtensions;
 using JetBrains.Annotations;
 using Modules.MainUI.ContextTabs.Components;
 using Modules.MainUI.ContextTabs.Data;
-using Modules.TerrainView.Components;
-using Modules.TerrainView.Events;
+using Presentation.Terrain.Components;
+using Presentation.Terrain.Events;
 
 namespace Modules.MainUI.ContextTabs.Systems
 {

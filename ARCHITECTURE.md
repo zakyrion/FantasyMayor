@@ -27,7 +27,9 @@ related:
 ```text
 FantasyMayor/
 ├─ Assets/
-│  ├─ Modules/                # Domain and feature modules
+│  ├─ Domains/                # Game-rule bounded contexts (Map, Economy, Actors) — one asmdef each
+│  ├─ Presentation/           # Render/view layer (terrain, resources, icons) — one asmdef
+│  ├─ Modules/                # Engine-facing / infra / UI feature modules
 │  ├─ Scripts/                # Shared runtime primitives and app-root installers
 │  ├─ Addressables/           # Authored addressable content and config assets
 │  ├─ AddressableAssetsData/  # Addressables editor configuration
@@ -86,25 +88,42 @@ FantasyMayor/
 
 ## Current Modules
 
+Modules are now **engine-facing / infra / UI only**. The former Hex/Terrain feature modules became the
+`Map` rule-domain and the `Presentation` layer (see below).
+
 | Module | Assemblies | Current responsibility |
 |---|---|---|
 | `Addressable` | `Addressables.Core`, `Addressables.Implementations` | Public addressable loading contract and implementation |
-| `AxialSystem` | `AxialSystem` | Axial hex math, coordinates, generic axial grid primitives |
-| `Boot` | `Boot.Core`, `Boot.Implementation` | Boot phase markers, boot MonoBehaviour, and the hand-wired `GameModeMachine` (per-state system composition) |
+| `AxialSystem` | `AxialSystem` | Axial hex math, coordinates, generic axial grid primitives (shared kernel; domains may depend on it) |
+| `Boot` | `Boot.Core`, `Boot.Implementation` | Boot phase markers (incl. `MapGenerationStep`), boot MonoBehaviour, and the hand-wired `GameModeMachine` (per-state system composition) |
 | `Cameras` | `Cameras` | Owns the active scene camera as a world component (`CameraComponent`), decoupled from consumers |
 | `Configs` | no dedicated asmdef | Generic config provider abstractions used by runtime code |
 | `CurveBuilders` | `CurveBuilders` | Shared curve builder contract |
-| `HexCore` | `Hex.Core` | Hex domain data, tags, grid and utility operations |
-| `HexIcons` | `HexIcons` | Screen-space per-hex icon overlay: container entities, per-frame projection, event-driven icon rebuild |
 | `MainUI` | `MainUI` | Main UI module (per-window subfolders): generator menu (MainMenu state), selection-driven hex info panel (Gameplay), End Turn button (Gameplay HUD) |
 | `MainCanvas` | `MainCanvas.Core`, `MainCanvas.Implementation` | Root canvas abstraction and provider implementation; DI registration lives in `WorldInstaller` |
-| `Pathfinding` | `Pathfinding`, `Pathfinding.Installer` | Hex pathfinding utility and its DI registration |
-| `TerrainGenerator` | `Terrain.Generator` | Terrain generation configs, generation trigger event, generation systems for mountains, rivers, lakes, sea |
-| `TerrainView` | `Terrain.View` | Terrain mesh, textures, water view, isolines, smoothing, runtime view systems |
 | `UserInput` | `UserInput` | Camera and player input ECS bridge plus camera movement config flow |
-| `HexResources` | `HexResources` | Resource components, generation systems, config flow for Forest, Clay, Fish |
-| `HexResourcesView` | `HexResourcesView` | Resource visualization: one-shot startup build per resource (Forest planted + ground painted; Clay depression + gradient; Fish scaffold) plus dormant reactive runtime upkeep for forest (`ForestSpawnSystem`/`ForestDespawnSystem`) |
 | `Turn` | `Turn` | Turn-phase orchestration engine: on a turn pulse runs ordered phase subsystems off the main thread and signals "turn in progress" via a world component. SCAFFOLD — no phases yet |
+
+## Current Domains (`Assets/Domains/<Name>/`, one asmdef each)
+
+Game-rule bounded contexts — pure data + logic, with **no view/render dependency**.
+
+| Domain | Assembly | Current responsibility |
+|---|---|---|
+| `Map` | `Domains.Map` | The world-map bounded context: hex grid + terrain types (`Hex/`), procedural map generation (`Generation/` — `MapGenerationSystem` + Mountain/River/Lake/Sea subsystems, on `MapGenerationStep`), natural per-hex resources (`HexResources/`: Forest/Clay/Fish), hex pathfinding (`Pathfinding/`) |
+| `Economy` | `Domains.Economy` | Inventory resources + districts; reads `Domains.Map` (hex types) and `Domains.Actors` (owner ids) |
+| `Actors` | `Domains.Actors` | Actor identities (City, Mayor) — id components + spawn |
+
+## Presentation Layer (`Assets/Presentation/`, one asmdef `Presentation`)
+
+The entire render/view layer, consolidated into one assembly. Depends one-way on `Domains.Map`
+(plus `Cameras`, `CurveBuilders`); **domains never depend on it**.
+
+| Sub-area | Former module | Responsibility |
+|---|---|---|
+| `Terrain/` | `Terrain.View` | Terrain mesh, textures, water view, isolines, smoothing, runtime view systems |
+| `Resources/` | `HexResourcesView` | Resource visualization (forest/clay/fish views, ground painting) |
+| `Icons/` | `HexIcons` | Screen-space per-hex icon overlay |
 
 ## Module Layout Rules
 
@@ -161,22 +180,30 @@ Folder contract:
 - `UserInput` currently has `Components`, `Configs`, and `Systems`, but no module-local installer folder.
 - `Assets/Scripts/Extentions` is a legacy typo-named folder and should be treated as existing structure, not a naming standard.
 
-## Domains And Modules (PLANNED — not started)
-Status: planned direction only. No code has moved. The Module Layout Rules above stay in force
-until the first domain lands.
+## Domains, Presentation & Modules (architecture)
+Three top-level code layers, boundary enforced by asmdef references:
 
-- **Domain** = the game-rule layer from `GAMEPLAY_FOUNDATION.md`: owns domain entity tables and
-  turn-phase logic (actors, districts, economy, population, turn flow).
-- **Module** = infrastructure and engine-facing features: rendering, input, addressables,
-  UI plumbing.
-- Target shape: a separate root `Assets/Domains/<DomainName>/`, parallel to `Assets/Modules/`,
-  with the boundary enforced by asmdef references.
-- Some existing modules will become domains, some stay modules. The concrete split is deliberately
-  NOT named yet — it is decided at the District design session.
-- Cross-domain component reads are expected (domain logic is cross-cutting) and MUST be declared
-  in `ECS_REFERENCE.md` (Cross-Module Component Reads).
-- The Repository Map above intentionally does not list `Assets/Domains/` — the root does not
-  exist yet.
+- **Domain** (`Assets/Domains/<Name>/`) = a game-rule **bounded context** (DDD-strategic): owns its
+  entity tables and turn-phase logic. Pure data + logic, **free of any view/render dependency**.
+  Current: `Map`, `Economy`, `Actors`.
+- **Presentation** (`Assets/Presentation/`) = the consolidated **render/view layer** (one assembly):
+  terrain/resource/icon views. Depends one-way on the domains it renders; **domains never depend on it**.
+- **Module** (`Assets/Modules/`) = engine-facing infrastructure & UI plumbing: addressables, input,
+  cameras, canvas, boot, config providers, shared kernels (`AxialSystem`, `CurveBuilders`), UI windows.
+
+**Why this shape.** This is **DDD-strategic bounded contexts + a layered presentation tier**, on top of a
+**DoD/ECS** data substrate. DDD (Evans) deliberately isolates the domain model from UI/infra, so pulling
+all views into one layer is *pro*-DDD, not vertical-slice. DoD's "no hierarchy" is about data/types
+(flat tables, composition, no inheritance — see the Table Rule); it is orthogonal to this code-layering.
+We borrow DDD's **strategic** half (contexts, ubiquitous language, layering), not its OO **tactical**
+patterns (aggregates/repositories), which ECS expresses as tables + systems.
+
+- One asmdef per domain and one for presentation (feature subfolders inside; namespaces follow:
+  `Domains.Map.Hex.*`, `Presentation.Terrain.*`, …).
+- Cross-domain reads are expected (e.g. `Economy → Map` for hex types, `Economy → Actors` for owner ids)
+  and MUST be declared in `ECS_REFERENCE.md` (Cross-Module Component Reads).
+- The Module Layout Rules above apply to all three layers (each feature/sub-area keeps the
+  `Components`/`Systems`/… split).
 
 ## Public Contract Split
 - When a module exposes a reusable public API, prefer a `Core/` contract assembly plus an `Implementation/` assembly.
@@ -192,7 +219,7 @@ in docs, reviews, and design discussions. `SYSTEMTEMPLATE.md` carries the concre
 | Role | Base type | Driven by | Lifecycle |
 |---|---|---|---|
 | **Config Loader** | `ConfigLoaderSystem` (`IUniTaskSystem<ConfigLoadStep>`) | Boot bootstrap, once at startup | one-shot; `MarkAsLoaded()` guards re-entry |
-| **Pipeline Stage** | `IPrioritizedUniTaskSystem<TerrainGenerationStep>` | `MapCreation` state, sequential, ascending `Priority` | one-shot async |
+| **Pipeline Stage** | `IPrioritizedUniTaskSystem<MapGenerationStep>` | `MapCreation` state, sequential, ascending `Priority` | one-shot async |
 | **Pipeline Orchestrator** | a Pipeline Stage that fans out into SubSystems | `MapCreation` state | one-shot; NO domain logic of its own |
 | **Pipeline SubSystem** | per-orchestrator abstract base (async `ViewSubSystem : IUniTaskSystem<GameState>` or sync `HexResourcesViewSubSystem : ISystem<GameState>`) | its orchestrator, ascending `Priority`, `IsEnabled` honored | one-shot |
 | **Per-frame System** | `UpdatedSystem` / `LateUpdatedSystem` (`AEntitySetSystem<GameState>`) | the ACTIVE game state only | every frame; must justify why it cannot be reactive |
@@ -457,14 +484,15 @@ An entity "table" is defined by its query, and a query MUST name the table, not 
 ## Boot And System Flow
 
 - Boot phase markers live in `Boot.Core`: `ConfigLoadStep` (the one-time config bootstrap driven by
-  `Boot` at startup) and `TerrainGenerationStep` (the world-init pipeline). `FirstUIStep` survives
-  only as a marker argument — it is not a boot phase.
+  `Boot` at startup) and `MapGenerationStep` (the world-init pipeline; renamed from the
+  feature-specific `TerrainGenerationStep` — it is the shared world-init step, not terrain-only).
+  `FirstUIStep` survives only as a marker argument — it is not a boot phase.
 - After the bootstrap, `Boot` hands off to the hand-wired `GameModeMachine`
   (states: `MainMenu`, `MapCreation`, `MapLoading`, `Gameplay`). **Only the active state's systems
   run.** Each state lists its Update / LateUpdate systems explicitly in `Boot.Construct` —
   composition is manual and visible in one place. See `Assets/Modules/Boot/BOOT.md`.
-- The world-init pipeline (`IPrioritizedUniTaskSystem<TerrainGenerationStep>`) is run by the
-  `MapCreation` state: stages execute sequentially in ascending priority (terrain gen → resources →
+- The world-init pipeline (`IPrioritizedUniTaskSystem<MapGenerationStep>`) is run by the
+  `MapCreation` state: stages execute sequentially in ascending priority (map gen → resources →
   terrain view → resource views → selection view → debug → icon containers → info panel).
 - Within a state, per-frame systems tick in ascending `Priority`; `EventCleanupSystem`
   (`int.MaxValue`) always runs last and disposes the frame's event entities.
@@ -479,29 +507,34 @@ An entity "table" is defined by its query, and a query MUST name the table, not 
 - For ECS entity archetypes, world components, and event flows, read `ECS_REFERENCE.md` (root)
 - For `IAddressable`, `Box<T>`, `Result<T>`, or addressable ownership rules, read `Assets/Modules/Addressable/ADDRESSABLE_PATTERNS.md`
 - For terrain transition work, pre-read:
-  - `Assets/Modules/TerrainView/Isolines/FieldBasedIsolineBuilder.cs`
-  - `Assets/Modules/TerrainView/Isolines/IsolineSlopeTransition.cs`
-  - `Assets/Modules/TerrainView/Smooth/HeightSmoothing.cs`
-- For water-view-specific setup details, read `Assets/Modules/TerrainView/WATER_VIEW_SETUP.md`
+  - `Assets/Presentation/Terrain/Isolines/FieldBasedIsolineBuilder.cs`
+  - `Assets/Presentation/Terrain/Isolines/IsolineSlopeTransition.cs`
+  - `Assets/Presentation/Terrain/Smooth/HeightSmoothing.cs`
+- For water-view-specific setup details, read `Assets/Presentation/Terrain/WATER_VIEW_SETUP.md`
 
-## Module Reference Files
-Each module has an MD file in its root folder. Read it before touching any code in that module.
+## Module / Domain / Presentation Reference Files
+Each module, domain, and presentation sub-area has an MD file in its folder. Read it before touching
+any code there.
 
-| Module | Reference File |
+| Area | Reference File |
 |---|---|
 | `AxialSystem` | `Assets/Modules/AxialSystem/AXIAL_SYSTEM.md` |
 | `Boot` | `Assets/Modules/Boot/BOOT.md` |
 | `Cameras` | `Assets/Modules/Cameras/CAMERAS.md` |
 | `Configs` | `Assets/Modules/Configs/CONFIGS.md` |
 | `CurveBuilders` | `Assets/Modules/CurveBuilders/CURVE_BUILDERS.md` |
-| `HexIcons` | `Assets/Modules/HexIcons/HEXICONS.md` |
-| `HexResources` | `Assets/Modules/HexResources/HEXRESOURCES.md` |
-| `HexResourcesView` | `Assets/Modules/HexResourcesView/HEXRESOURCESVIEW.md` |
-| `HexCore` | `Assets/Modules/HexCore/HEX_CORE.md` |
 | `MainUI` | `Assets/Modules/MainUI/MAIN_UI.md` |
 | `MainCanvas` | `Assets/Modules/MainCanvas/MAIN_CANVAS.md` |
-| `Pathfinding` | `Assets/Modules/Pathfinding/PATHFINDING.md` |
-| `TerrainGenerator` | `Assets/Modules/TerrainGenerator/TERRAIN_GENERATOR.md` |
-| `TerrainView` | `Assets/Modules/TerrainView/TERRAIN_VIEW.md` |
-| `Turn` | `Assets/Modules/Turn/TURN.md` |
 | `UserInput` | `Assets/Modules/UserInput/USER_INPUT.md` |
+| `Turn` | `Assets/Modules/Turn/TURN.md` |
+| domain `Map` | `Assets/Domains/Map/MAP.md` |
+| `Map/Hex` | `Assets/Domains/Map/Hex/HEX_CORE.md` |
+| `Map/Generation` | `Assets/Domains/Map/Generation/TERRAIN_GENERATOR.md` |
+| `Map/HexResources` | `Assets/Domains/Map/HexResources/HEXRESOURCES.md` |
+| `Map/Pathfinding` | `Assets/Domains/Map/Pathfinding/PATHFINDING.md` |
+| domain `Economy` | `Assets/Domains/Economy/ECONOMY.md` |
+| domain `Actors` | `Assets/Domains/Actors/ACTORS.md` |
+| `Presentation` | `Assets/Presentation/PRESENTATION.md` |
+| `Presentation/Terrain` | `Assets/Presentation/Terrain/TERRAIN_VIEW.md` |
+| `Presentation/Resources` | `Assets/Presentation/Resources/HEXRESOURCESVIEW.md` |
+| `Presentation/Icons` | `Assets/Presentation/Icons/HEXICONS.md` |

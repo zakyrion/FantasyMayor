@@ -1,6 +1,6 @@
 using DefaultEcs;
 using DefaultECSExtensions;
-using Modules.TerrainGenerator.Components;
+using Domains.Map.Generation.Components;
 using UnityEngine;
 using UnityEngine.UIElements;
 using VContainer;

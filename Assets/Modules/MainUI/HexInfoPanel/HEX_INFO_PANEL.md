@@ -63,13 +63,12 @@ this panel's — see `ContextTabs/CONTEXT_TABS.md`):
 The `OverviewPane` is a row of discrete blocks (mockup `.blocks`):
 
 #### 1. Block «Гекс» — hex identity + resources
-- **Terrain icon + name** (`HexHead`: `HeaderIcon` + `HeaderTitle`): from the terrain tag on the selected hex
-  entity — `HexPlainTag` / `HexMountTag` / `HexBedhillTag` / `HexWaterTag` (data-less tags; tag *presence* is the
-  type). Each tag maps to one sprite + label.
+- **Terrain icon + name** (`HexHead`: `HeaderIcon` + `HeaderTitle`): from `HexTypeComponent.Type` on the
+  selected hex entity (`HexType`: Plain / Mount / Bedhill / Water). Each type maps to one sprite + label.
 - **No coordinate.** The design dropped it; `SetHeader(icon, title)` has no coord argument.
-  `HexSelectedComponent.Coords` is still read by the system to resolve the terrain tag, just not displayed.
-- **Required prerequisite:** a hex must carry exactly one terrain tag. None → throw (fail-loud). This is *not*
-  an "optional block absent" case.
+  `HexSelectedComponent.Coords` is still read by the system to resolve the hex, just not displayed.
+- **Empty selection is valid:** a non-grid coord resolves to no hex → the header is skipped (the panel
+  shows empty), not an error.
 - **Resources** (`ResourcesSection` / `ResourcesContainer`): the **dedicated** resource entities
   (`HexIdComponent + HexResourcesComponent`), matched by `HexIdComponent` (resources are **not** on the hex
   entity). `HexResourcesComponent.Type` → one chip (icon + label) per resource, built from a pooled item
@@ -101,7 +100,7 @@ One system per block (per `GENERAL_UI_STYLE` Panel Construction; roles per `ARCH
   (`ShowSelection` for a real hex via `HexExists`, else `ShowEmpty`). Does **not** show/hide the shell, does
   **not** fill blocks.
 - **`HexInfoPanelHeaderSystem`** — Reactive System (560) on `SelectedHexChangedEvent`: reads
-  `HexSelectedComponent.Coords`, resolves the terrain tag → header block (icon + name, no coord). Skips
+  `HexSelectedComponent.Coords`, resolves the hex terrain type → header block (icon + name, no coord). Skips
   gracefully on no selection / a non-grid coord (no throw — that is a valid empty selection).
 - **`HexInfoPanelResourcesSystem`** — Reactive System (561) on `SelectedHexChangedEvent`: resource entities of
   the selected hex → chips; hides the block when none (or nothing selected).
@@ -125,7 +124,7 @@ One system per block (per `GENERAL_UI_STYLE` Panel Construction; roles per `ARCH
   on those two ancestors only (`picking-mode` is unsupported in USS in this Unity version; the panel keeps the
   default pickable mode). Relies on `HexSelectionSystem`'s `EventSystem.IsPointerOverGameObject()` guard + an
   EventSystem in the scene.
-- **Coordinate resolution:** resolve `Coords` to the hex entity (for terrain tags) and to resource entities
+- **Coordinate resolution:** resolve `Coords` to the hex entity (for terrain type) and to resource entities
   (by `HexIdComponent`). The lookup mechanism is an implementation detail.
 - **USS / construction gotchas:** authored skeleton + `display` toggle; no `box-shadow` / `::before` / blur /
   gradient — see `GENERAL_UI_STYLE.md` Panel Construction + USS Mapping. Sizes are scaled +50% from the mockup
@@ -137,7 +136,7 @@ One system per block (per `GENERAL_UI_STYLE` Panel Construction; roles per `ARCH
 asset (`Assets/Addressables/Configs/HexIconsConfigs/`) exist and are addressable. The context sub-panel is a
 **fixed-height** shell with a **permanent tab row** over a filled/empty swap; the filled state holds three tab
 panes (`OverviewPane` / `BuildingsPane` / `ActionsPane`), one shown at a time by `ContextTabsView`. The Overview
-pane's «Гекс» block binds to existing components (`HexCore` terrain tags, `HexResources`); the «Район» +
+pane's «Гекс» block binds to existing components (`Map` `HexTypeComponent`, `HexResources`); the «Район» +
 «Праця та виробництво» blocks are SCAFFOLD, hidden by `HexInfoPanelDistrictPlaceholderSystem`, pending gameplay
 components; `BuildingsPane` / `ActionsPane` are **empty named containers** (content later); the empty state is
 intentionally blank. The systems are wired into `Boot` (spawn in the pipeline, the rest in `Gameplay`) — see the

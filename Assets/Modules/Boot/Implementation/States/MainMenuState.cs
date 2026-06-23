@@ -4,7 +4,7 @@ using DefaultEcs;
 using DefaultECSExtensions;
 using Modules.Boot.Core;
 using Modules.MainUI.GeneratorMenu.Systems;
-using Modules.TerrainGenerator.Components;
+using Domains.Map.Generation.Components;
 
 namespace Modules.Boot.Implementation.States
 {

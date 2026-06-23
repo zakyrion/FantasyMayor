@@ -13,7 +13,7 @@ namespace Domains.Actors.Systems
 {
     // One-shot world-init stage: seeds the id allocators and creates the City and Mayor actor entities.
     [UsedImplicitly]
-    internal sealed class ActorsSpawnSystem : IPrioritizedUniTaskSystem<TerrainGenerationStep>
+    internal sealed class ActorsSpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
         // After the terrain stages (100..800); actors are terrain-independent, so the exact value is cosmetic.
         private const int ExecutionPriority = 900;
@@ -27,7 +27,7 @@ namespace Domains.Actors.Systems
             _world = world;
         }
 
-        public UniTask Update(TerrainGenerationStep state, CancellationToken cancellationToken)
+        public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
         {
             if (cancellationToken.IsCancellationRequested)
                 return UniTask.CompletedTask;

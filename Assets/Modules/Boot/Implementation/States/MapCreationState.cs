@@ -10,7 +10,7 @@ namespace Modules.Boot.Implementation.States
 {
     /// <summary>
     ///     Builds a fresh world: runs the one-shot generation pipeline
-    ///     (<see cref="IPrioritizedUniTaskSystem{T}" /> for <see cref="TerrainGenerationStep" />) in priority order,
+    ///     (<see cref="IPrioritizedUniTaskSystem{T}" /> for <see cref="MapGenerationStep" />) in priority order,
     ///     then ticks its per-frame systems for a few "settle" frames (e.g. event cleanup) before transitioning
     ///     to <see cref="GameMode.Gameplay" />. View building is done synchronously inside the pipeline.
     /// </summary>
@@ -21,7 +21,7 @@ namespace Modules.Boot.Implementation.States
         // extra ticks are no-ops.
         private const int SettleFrames = 3;
 
-        private readonly IReadOnlyList<IPrioritizedUniTaskSystem<TerrainGenerationStep>> _pipeline;
+        private readonly IReadOnlyList<IPrioritizedUniTaskSystem<MapGenerationStep>> _pipeline;
         private readonly IReadOnlyList<IUpdatedSystem> _systems;
 
         private GameMode? _requestedMode;
@@ -31,7 +31,7 @@ namespace Modules.Boot.Implementation.States
         public GameMode? RequestedMode => _requestedMode;
 
         public MapCreationState(
-            IReadOnlyList<IPrioritizedUniTaskSystem<TerrainGenerationStep>> pipeline,
+            IReadOnlyList<IPrioritizedUniTaskSystem<MapGenerationStep>> pipeline,
             params IUpdatedSystem[] systems)
         {
             _pipeline = pipeline.OrderBy(stage => stage.Priority).ToArray();
@@ -43,7 +43,7 @@ namespace Modules.Boot.Implementation.States
             _requestedMode = null;
             _settledFrames = 0;
 
-            var step = new TerrainGenerationStep();
+            var step = new MapGenerationStep();
             foreach (var stage in _pipeline)
             {
                 cancellationToken.ThrowIfCancellationRequested();

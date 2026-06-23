@@ -1,0 +1,29 @@
+{
+    "name": "Presentation",
+    "rootNamespace": "",
+    "references": [
+        "Core",
+        "Domains.Map",
+        "AxialSystem",
+        "VContainer",
+        "DefaultECS.Extensions",
+        "Addressables.Core",
+        "UniTask",
+        "Boot.Core",
+        "CurveBuilders",
+        "Cameras",
+        "Unity.AppUI",
+        "Unity.Mathematics",
+        "Unity.Collections",
+        "Unity.Burst"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

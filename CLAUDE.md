@@ -155,9 +155,9 @@ Task budget:
 
 ## Terrain / Isoline Pre-read
 Before modifying terrain transitions, read these files first:
-- `Assets/Modules/TerrainView/Isolines/FieldBasedIsolineBuilder.cs`
-- `Assets/Modules/TerrainView/Isolines/IsolineSlopeTransition.cs`
-- `Assets/Modules/TerrainView/Smooth/HeightSmoothing.cs`
+- `Assets/Presentation/Terrain/Isolines/FieldBasedIsolineBuilder.cs`
+- `Assets/Presentation/Terrain/Isolines/IsolineSlopeTransition.cs`
+- `Assets/Presentation/Terrain/Smooth/HeightSmoothing.cs`
 
 ## Unity Build Policy
 - This is a Unity project.

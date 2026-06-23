@@ -13,14 +13,11 @@
         "MainUI",
         "MainCanvas.Core",
         "MainCanvas.Implementation",
-        "Pathfinding.Installer",
-        "Terrain.Generator",
-        "Terrain.View",
-        "HexResources",
-        "HexResourcesView",
-        "HexIcons",
+        "Domains.Map",
+        "Presentation",
         "Turn",
-        "Domains.Actors"
+        "Domains.Actors",
+        "Domains.Economy"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

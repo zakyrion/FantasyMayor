@@ -71,24 +71,30 @@ Event entities live in the Event Registry below.
 
 ```
 ENTITY: Hex  (table — one row per map cell)
-  Components: HexIdComponent (PK), HexLevelComponent, HexTag
-              (+ Hex{Plain,Mount,Water,Bedhill}Tag added by SyncHexTags at the end of generation)
+  Components: HexIdComponent (PK), HexLevelComponent, HexTag, HexTypeComponent (terrain kind —
+              one column set at end of generation; replaced the 4 data-less terrain tags)
   Discriminator: HexTag
-  WRITES: TerrainGenerationSystem (creates rows, pipeline 100; sets levels),
+  WRITES: MapGenerationSystem (creates rows, pipeline 100; sets levels),
           Mountain/River/Lake/Sea GenerationSubSystem (mutate HexLevelComponent via Set),
-          SyncHexTags (adds the type tag)
+          AssignHexTypes (sets HexTypeComponent from the final level, via Set)
   READS (by table query With<HexTag> + With<HexIdComponent>):
           ForestResourceViewSubSystem, ForestSpawnSystem (square UV rect),
           HexInfoPanelSystem, HexInfoPanelHeaderSystem
   READS (by With<HexIdComponent> + With<HexLevelComponent>):
-          TerrainGenerationSystem, Lake/Mountain/River/Sea GenerationSubSystem, TerrainViewDebugSystem
+          MapGenerationSystem, Lake/Mountain/River/Sea GenerationSubSystem, TerrainViewDebugSystem
+  READS (by terrain-type index With<HexTag> → AsMultiMap<HexTypeComponent>):
+          Forest/Fish/ClayResourceGenerationSubSystem (Water bucket), TerrainViewGenerationSubSystem
+          (Mount/Water/elevated buckets), WaterViewSubSystem (Water bucket)
+  READS (HexTypeComponent per-entity): TerrainViewTextureSubSystem (base type; coastline is
+          presentation-derived, NOT a hex type), HexInfoPanelHeaderSystem (header terrain name/icon)
   READS (⚠ BARE-KEY LEGACY — see audit list):
           TerrainViewSystem, TerrainViewGenerationSubSystem, TerrainViewTextureSubSystem,
           WaterViewSubSystem, TerrainViewDebugSystem (primary), CameraMovementSystem,
           ClayResourceViewSubSystem
   Lifecycle: created once per map generation; never destroyed (no teardown/regeneration flow yet).
-  Note: APPROACH A example — single-valued cell-intrinsic data lives directly on this entity.
-        Resources do NOT (see Modeling Rule).
+  Note: APPROACH A example — single-valued cell-intrinsic data lives directly on this entity
+        (terrain kind = HexTypeComponent, one column, group-queryable via AsMultiMap<HexTypeComponent>;
+        it replaced the 4 data-less terrain tags). Resources do NOT (see Modeling Rule).
 
 ENTITY: HexResource  (table — logical resource layer)
   Components: HexIdComponent (FK), HexResourcesComponent (carries ResourceType)
@@ -151,17 +157,36 @@ ENTITY: Mayor  (table — actor identity; exactly one, singleton actor)
   Note: single mayor — MayorIdComponent is always 1. Kept as a PK table (not a world component) so it is
         queryable as an OwnerFK target, the same shape as City.
 
-ENTITY: Resource  (table — inventory resource stack; SCAFFOLD — NO spawner yet)
+ENTITY: Resource  (table — inventory resource stack)
   Components: <owner FK: CityIdComponent | MayorIdComponent>, ResourceComponent (Type + Amount), ResourceTag
   Discriminator: ResourceTag
-  WRITES: none yet — SCAFFOLD. Types defined (domain Economy, data-only slice); no entity created.
+  WRITES: ResourceInitSpawnSystem (domain Economy, pipeline 1000 — one row per ResourceType for EVERY City
+          and Mayor at map creation, via the ResourceLoadoutSpawner helper). Mayor amounts come from
+          MayorConfigComponent (the authored loadout; ResourceTypes the author omits start at 0); City
+          amounts are all 0 (no City config yet). Noble-owned stacks are NOT written yet (deferred reactive
+          system — see Note).
   READS: none yet.
-  Lifecycle: not instantiated yet. Planned: one row per (owner, type); query a given owner's stacks via
-        With<OwnerFK> + With<ResourceTag> → AsMultiMap<OwnerFK> (NEVER bare — the owner id is a PK on the
-        actor AND a FK here).
+  Lifecycle: created once at map creation for City + Mayor; never destroyed yet. Query a given owner's
+        stacks via With<OwnerFK> + With<ResourceTag> → AsMultiMap<OwnerFK> (NEVER bare — the owner id is a
+        PK on the actor AND a FK here).
   Note: SoA ownership — the owner's id component IS the FK (no polymorphic OwnerId). Composite key
-        (OwnerFK + ResourceComponent.Type); NO surrogate ResourceId. The resource-spawn system (next slice)
-        will make domain Economy read CityIdComponent/MayorIdComponent (cross-domain).
+        (OwnerFK + ResourceComponent.Type); NO surrogate ResourceId. Economy reads CityIdComponent /
+        MayorIdComponent (cross-domain, see Cross-Module Reads). Noble loadouts are DEFERRED: Nobles emerge
+        at runtime, so ResourceNobleSpawnSystem (reactive, on a payload-less NobleSpawnEvent — reconciles
+        against the Noble table) ships when the Noble actor exists. Design in ECONOMY_ACTORS.canvas.
+
+ENTITY: District  (table — district identity; SCAFFOLD — NO spawner yet, player-built at runtime)
+  Components: DistrictIdComponent (PK), DistrictTag
+  Discriminator: DistrictTag
+  WRITES: none yet — SCAFFOLD. Types defined (domain Economy, data-only slice); no entity created.
+          District creation is PLAYER-ACTION-DRIVEN (reactive), NOT a world-init spawn — deliberately
+          unlike City/Mayor (ActorsSpawnSystem). The build-flow lands in a later slice.
+  READS: none yet.
+  Lifecycle: not instantiated yet. Planned: one row per built district; the id is allocated from
+        DistrictIdAllocatorComponent. Columns omitted this slice: HexIdComponent (FK → Hex),
+        OwnerFK (CityId | MayorId | NobleId), Type, Price, Actions. Buildings carry DistrictId as a FK.
+  Note: DistrictIdComponent is the PK here AND the FK carried by anything scoped to a district (Buildings).
+        Query via With<DistrictIdComponent> + With<DistrictTag> (NEVER bare). See Economy/ECONOMY.md.
 ```
 
 ### Singletons (exactly one row; justified by entity-query consumers)
@@ -229,7 +254,7 @@ World components are NOT entities: stored via `world.Set<T>()`, read via `world.
 with `world.Has<T>()`), invisible to `With<T>` / `WhenAdded<T>` / `WhenChanged<T>`. Contract and
 decision rule: `ARCHITECTURE.md` → "State Storage Taxonomy".
 
-### Runtime world components (11)
+### Runtime world components (12)
 
 ```
 WORLD: CameraComponent  (module Cameras)
@@ -237,7 +262,7 @@ WORLD: CameraComponent  (module Cameras)
   WRITES: WorldInstaller (world.Set at startup; ReferenceFieldOfView snapshotted from the camera)
   READS: CameraMovementSystem, HexSelectionSystem, HexIconsContainerPositionSystem (zoom baseline)
 
-WORLD: VertexGridComponent  (module TerrainView)
+WORLD: VertexGridComponent  (Presentation/Terrain)
   WRITES: TerrainViewConfigLoaderSystem (world.Set ONCE at ConfigLoadStep)
   READS: TerrainViewSystem, TerrainViewGenerationSubSystem, TerrainViewTextureSubSystem,
          HexSelectionViewSystem, HexResourcesViewSubSystem (TryGetVertexGrid Try-pattern),
@@ -247,7 +272,7 @@ WORLD: VertexGridComponent  (module TerrainView)
         mutation — readers always see the live grid. Not reactive. Direct readers throw on a missing
         component (fail-loud); the Try-method reports the miss as a bool.
 
-WORLD: TerrainTextureComponent  (module TerrainView)
+WORLD: TerrainTextureComponent  (Presentation/Terrain)
   WRITES: TerrainViewTextureSubSystem (world.Set once in the view pipeline)
   READS: TerrainViewSystem (applies the Texture2D to the mesh material),
          ClayResourceViewSubSystem (clay gradient paint target),
@@ -257,11 +282,11 @@ WORLD: TerrainTextureComponent  (module TerrainView)
         (SetPixels32 + Apply); the material keeps reflecting mutations without re-applying.
         PERSISTENT — never disposed.
 
-WORLD: HexIconsViewComponent  (module HexIcons)
+WORLD: HexIconsViewComponent  (Presentation/Icons)
   WRITES: HexIconsSpawnSystem (the screen-space icon overlay view)
   READS: HexIconsContainerPositionSystem, HexIconsVisibilitySystem
 
-WORLD: HexIconsVisibilityComponent  (module HexIcons)
+WORLD: HexIconsVisibilityComponent  (Presentation/Icons)
   WRITES: GameplayState.EnterAsync (initial IsVisible = true); later a UI toggle
   READS: HexIconsVisibilitySystem (on a HexIconsVisibilityChangedEvent)
   Note: mutable bool "are per-hex icons shown" — the single source of truth. The paired event is a
@@ -313,23 +338,31 @@ WORLD: MayorIdAllocatorComponent  (domain Actors)
   WRITES: ActorsSpawnSystem (self-init Next = 1; advances by +1, but only one mayor is created)
   READS: ActorsSpawnSystem
   Note: kept for symmetry with CityIdAllocatorComponent and the save/load contract; yields a constant 1.
+
+WORLD: DistrictIdAllocatorComponent  (domain Economy)  [SCAFFOLD]
+  Fields: Next (the id the next District will take)
+  WRITES: none yet — SCAFFOLD. Defined (data-only slice) but NOT set on the world; the player-driven
+          district build-flow (later slice) will self-init and advance it.
+  READS: none yet.
+  Note: monotonic DistrictId source, shaped like CityIdAllocatorComponent. Persisted via save/load
+        (contract only — ES3 wiring deferred).
 ```
 
-### Config world components (20)
+### Config world components (21)
 
 All written ONCE by their module's Config Loader at `ConfigLoadStep` (`CONFIGTEMPLATE.md`).
 Reader lists name the consuming systems.
 
 ```
-WORLD: TerrainGenerationConfigComponent  (TerrainGenerator)
+WORLD: TerrainGenerationConfigComponent  (Map/Generation)
   WRITES: TerrainGenerationConfigLoaderSystem
-  READS: TerrainGenerationSystem, Lake/River/Sea GenerationSubSystem
+  READS: MapGenerationSystem, Lake/River/Sea GenerationSubSystem
 
-WORLD: LakeConfigComponent / MountainConfigComponent / RiverConfigComponent / SeaConfigComponent  (TerrainGenerator)
+WORLD: LakeConfigComponent / MountainConfigComponent / RiverConfigComponent / SeaConfigComponent  (Map/Generation)
   WRITES: TerrainGenerator config loaders
   READS: the matching GenerationSubSystem
 
-WORLD: TerrainViewConfigComponent  (TerrainView)
+WORLD: TerrainViewConfigComponent  (Presentation/Terrain)
   WRITES: TerrainViewConfigLoaderSystem
   READS: TerrainViewSystem, TerrainViewGenerationSubSystem, TerrainViewTextureSubSystem,
          WaterViewSubSystem, TerrainViewDebugSystem, ClayResourceViewSubSystem,
@@ -337,11 +370,11 @@ WORLD: TerrainViewConfigComponent  (TerrainView)
          CameraMovementSystem, HexSelectionSystem (cross-module — see Cross-Module Reads)
 
 WORLD: TerrainTextureConfigComponent / InnerIsolineConfigComponent / OuterIsolineConfigComponent /
-       HeightSmoothingConfigComponent / HydraulicErosionConfigComponent / WindErosionConfigComponent  (TerrainView)
+       HeightSmoothingConfigComponent / HydraulicErosionConfigComponent / WindErosionConfigComponent  (Presentation/Terrain)
   WRITES: TerrainViewConfigLoaderSystem
   READS: TerrainViewTextureSubSystem (texture config); TerrainViewGenerationSubSystem (the rest)
 
-WORLD: WaterViewConfigComponent  (TerrainView)
+WORLD: WaterViewConfigComponent  (Presentation/Terrain)
   WRITES: TerrainViewConfigLoaderSystem
   READS: WaterViewSubSystem
 
@@ -349,25 +382,25 @@ WORLD: CameraMovementConfigComponent  (UserInput)
   WRITES: UserInput config loader
   READS: CameraMovementSystem
 
-WORLD: HexResourcesConfigComponent  (HexResources)
+WORLD: HexResourcesConfigComponent  (Map/HexResources)
   WRITES: HexResourcesConfigLoaderSystem
   READS: HexResourcesSubSystem
 
-WORLD: HexResourcesViewConfigComponent  (HexResourcesView)
+WORLD: HexResourcesViewConfigComponent  (Presentation/Resources)
   WRITES: HexResourcesViewConfigLoaderSystem
   READS: HexResourcesViewSubSystem base (prefab lookup), ForestResourceViewSubSystem, ForestSpawnSystem
 
-WORLD: ClayViewConfigComponent  (HexResourcesView)
+WORLD: ClayViewConfigComponent  (Presentation/Resources)
   WRITES: ClayViewConfigLoaderSystem (flattened from ClayViewConfig SO; SO not retained)
   READS: ClayResourceViewSubSystem
   Note: dedicated clay config — clay is prefab-less and does NOT live in HexResourcesViewConfig
         (whose entries require a prefab). Carries the footprint and the center/rim clay colors.
 
-WORLD: HexIconsConfigComponent  (HexIcons)
+WORLD: HexIconsConfigComponent  (Presentation/Icons)
   WRITES: HexIconsConfigLoaderSystem
   READS: HexIconsContainerPositionSystem, HexIconsVisibilitySystem
 
-WORLD: HexResourceIconConfigComponent  (HexIcons)
+WORLD: HexResourceIconConfigComponent  (Presentation/Icons)
   WRITES: HexIconsConfigLoaderSystem
   READS: HexIconsVisibilitySystem (icon rebuild), HexInfoPanelResourcesSystem (cross-module —
          resource rows in the info panel)
@@ -375,6 +408,13 @@ WORLD: HexResourceIconConfigComponent  (HexIcons)
 WORLD: HexTerrainIconConfigComponent  (HexesUI)
   WRITES: HexTerrainIconConfigLoaderSystem
   READS: HexInfoPanelHeaderSystem (terrain icon + name in the panel header)
+
+WORLD: MayorConfigComponent  (domain Economy)
+  WRITES: MayorConfigLoaderSystem
+  READS: ResourceInitSpawnSystem (seeds the Mayor's starting resource amounts at map creation)
+  Note: flattened from the MayorConfig SO — Resources array copied out, SO released after load. Also
+        carries StartActionPoints: published but NOT yet consumed (no Action Points system exists). AP
+        lives in Economy (not Actors) to avoid an Actors↔Economy asmdef cycle. See Economy/ECONOMY.md.
 ```
 
 ---
@@ -486,12 +526,12 @@ MainMenu state
   → ShowHexesUISystem → loads + shows the HexGeneratorUI (Generate button)
   → Generate click → TerrainGenerationGenerateEventComponent → state switch to MapCreation
 
-World-init pipeline (run by the MapCreation state; IPrioritizedUniTaskSystem<TerrainGenerationStep>
+World-init pipeline (run by the MapCreation state; IPrioritizedUniTaskSystem<MapGenerationStep>
 stages awaited sequentially in ascending priority, then settle frames, then switch to Gameplay):
 
-  → TerrainGenerationSystem (100)        → creates Hex rows (HexIdComponent + HexLevelComponent)
+  → MapGenerationSystem (100)        → creates Hex rows (HexIdComponent + HexLevelComponent)
       → Mountain / River / Lake / Sea GenerationSubSystem → mutate HexLevelComponent
-      → SyncHexTags → adds Hex{Plain,Mount,Water,Bedhill}Tag from the final level
+      → AssignHexTypes → sets HexTypeComponent from the final level
   → HexResourcesSystem (200)             → generation subsystems create HexResource rows
   → TerrainViewSystem (300, orchestrator, async):
       → TerrainViewGenerationSubSystem   → mutates VertexGrid in place
@@ -543,16 +583,24 @@ Gameplay state, per-frame (LateUpdate):
 
 Components read outside their owner module — potential coupling points.
 
+Layer model: `Presentation → Map` reads are expected and one-way (the render layer reads the world it
+draws); reads that used to cross the old HexResourcesView/HexIcons/TerrainView module borders are now
+**intra-Presentation** (same assembly) and no longer coupling points.
+
 ```
-TerrainViewConfigComponent     read by UserInput (CameraMovementSystem, HexSelectionSystem)
+TerrainViewConfigComponent     (Presentation) read by UserInput (CameraMovementSystem, HexSelectionSystem)
                                → CellSize used for raycast plane and camera bounds
-HexIdComponent                 read by HexResourcesView, HexIcons, HexesUI
+HexIdComponent                 (Map) read by Presentation (resource + icon views) and HexesUI (MainUI)
                                → the universal hex foreign key (joins across all hex-keyed tables)
-HexResourcesComponent          read by HexIcons (icon rebuild), HexesUI (info panel resource rows)
-VertexGridComponent            read by HexResourcesView (planting heights), HexIcons (projection),
-                               HexSelectionViewSystem (selection ring)
-TerrainTextureComponent        read by HexResourcesView (clay + forest ground painting)
-HexResourceIconConfigComponent read by HexesUI (HexInfoPanelResourcesSystem — shared icon set)
+HexResourcesComponent          (Map) read by Presentation (icon rebuild), HexesUI (info panel rows)
+VertexGridComponent            (Presentation) read within Presentation (planting heights, icon
+                               projection, selection ring) — intra-layer now, not cross-module
+TerrainTextureComponent        (Presentation) read within Presentation (clay + forest ground painting)
+HexResourceIconConfigComponent (Presentation) read by HexesUI (HexInfoPanelResourcesSystem — shared icons)
 HexSelectedComponent           read by HexesUI (HexInfoPanelSystem + Header/Resources/District block
-                               systems + ContextTabsAvailabilitySystem) and TerrainView (HexSelectionViewSystem)
+                               systems + ContextTabsAvailabilitySystem) and Presentation (HexSelectionViewSystem)
+CityIdComponent / MayorIdComponent  read by Economy (ResourceInitSpawnSystem — resolves City/Mayor owners
+                               to attach as the resource OwnerFK). Cross-domain Economy→Actors.
+MapGenerationConfig hex types (HexTerrainType)  read by Economy (DistrictBuildingConfig) — cross-domain
+                               Economy→Map (districts gate on hex type).
 ```

@@ -2,7 +2,7 @@ using DefaultEcs;
 using DefaultECSExtensions;
 using JetBrains.Annotations;
 using Modules.MainUI.HexInfoPanel.Components;
-using Modules.TerrainView.Events;
+using Presentation.Terrain.Events;
 
 namespace Modules.MainUI.HexInfoPanel.Systems
 {
