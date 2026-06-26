@@ -1,17 +1,19 @@
+using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using DefaultEcs;
 using DefaultECSExtensions;
 using Domains.Actors.City.Components;
-using Domains.Actors.City.Tags;
+using Domains.Actors.Components;
+using Domains.Actors.Data;
 using Domains.Economy.Resource.Helpers;
 using JetBrains.Annotations;
 using Modules.Boot.Core;
 
 namespace Domains.Actors.City.Systems
 {
-    // One-shot world-init stage: seeds the City id allocator, creates the City actor row, and gives it a
-    // full inventory loadout (one stack per ResourceType, all at 0 — no City config yet). Open-Closed:
+    // One-shot world-init stage: seeds the City id allocator, creates the City actor row, and seeds its
+    // inventory loadout from CityConfigComponent (ResourceTypes the author omits start at 0). Open-Closed:
     // a new actor kind adds its own spawn stage, this one never changes.
     [UsedImplicitly]
     internal sealed class CitySpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
@@ -38,6 +40,12 @@ namespace Domains.Actors.City.Systems
             if (_world.Has<CityIdAllocatorComponent>())
                 return UniTask.CompletedTask;
 
+            if (!_world.Has<CityConfigComponent>())
+                throw new InvalidOperationException(
+                    "CitySpawnSystem: CityConfigComponent missing — CityConfigLoaderSystem must run at ConfigLoadStep first.");
+
+            var config = _world.Get<CityConfigComponent>();
+
             _world.Set(new CityIdAllocatorComponent { Next = 1 });
 
             // Take the next id, advance the allocator, create the row (PK + discriminator).
@@ -47,9 +55,9 @@ namespace Domains.Actors.City.Systems
             var cityIdComponent = new CityIdComponent { Value = cityId };
             var city = _world.CreateEntity();
             city.Set(cityIdComponent);
-            city.Set(new CityTag());
+            city.Set(new ActorTypeComponent { Type = ActorType.City });
 
-            ResourceLoadoutSpawner.SpawnLoadout(_world, cityIdComponent);
+            ResourceLoadoutSpawner.SpawnLoadout(_world, cityIdComponent, config.Resources);
 
             return UniTask.CompletedTask;
         }

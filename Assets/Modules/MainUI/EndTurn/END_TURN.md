@@ -54,7 +54,7 @@ Switched by class/`display` (§12). Two states now, one future.
 
 ## Implementation (module `MainUI`, window `EndTurn/`)
 Mirrors the HexInfoPanel pattern; the click-emit mirrors the generator UI (`HexesUI`).
-- **`EndTurnView`** (`Views/`) — MonoBehaviour over the **shared** Main UI `UIDocument` (the same document as
+- **`EndTurnView`** (`Views/`) — MonoBehaviour over the **shared** Main UI `PanelRenderer` (the same document as
   the hex info panel — see `MAIN_UI.md`). `[Inject] Construct(World)`. On click (Ready only) creates an entity
   with `NextTurnEvent` + `EventTag` — the emitter `TURN.md` was missing. **Owns the shell reveal:** `Show/Hide`
   toggle the whole **`BottomPanel`** shell's `display` (the turn corner is its always-present part), NOT the
@@ -94,5 +94,5 @@ authoritative backstop; the View's `_processing` self-guard is defence in depth.
   `Prefabs/HexInfoPanel.uss`. There is no standalone `EndTurnView.uxml`/`.uss`. «Хід N» binds to
   `TurnCountComponent` (module `Turn`); the two AP tiles are static placeholders (no system touches them).
 - **User-side (Unity):** `EndTurnView` is a MonoBehaviour on the single `UI/MainUI` prefab, referencing the
-  **same `UIDocument`** as `HexInfoPanelView`. There is no separate `UI/EndTurnView` address. The prefab is
+  **same `PanelRenderer`** as `HexInfoPanelView`. There is no separate `UI/EndTurnView` address. The prefab is
   authored in Unity; not a code artifact.

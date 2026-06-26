@@ -5,12 +5,13 @@ using DefaultEcs;
 using DefaultECSExtensions;
 using Modules.Boot.Core;
 using Modules.Boot.Implementation.States;
-using Presentation.Icons.Systems;
-using Presentation.Resources.Systems;
+using Presentation.HexIcons.Systems;
+using Presentation.HexResources.Systems;
 using Modules.MainUI.ContextTabs.Systems;
 using Modules.MainUI.EndTurn.Systems;
 using Modules.MainUI.GeneratorMenu.Systems;
 using Modules.MainUI.HexInfoPanel.Systems;
+using Modules.MainUI.ResourceBar.Systems;
 using Presentation.Terrain.Systems;
 using Modules.Turn.Systems;
 using Modules.UserInput.Systems;
@@ -83,6 +84,7 @@ namespace Modules.Boot.Implementation
             HexInfoPanelHeaderSystem hexInfoPanelHeader,
             HexInfoPanelResourcesSystem hexInfoPanelResources,
             HexInfoPanelDistrictPlaceholderSystem hexInfoPanelDistrict,
+            ResourceBarSystem resourceBar,
             EndTurnSystem endTurn,
             ContextTabSelectionSystem contextTabSelection,
             ContextTabsAvailabilitySystem contextTabsAvailability,
@@ -106,7 +108,8 @@ namespace Modules.Boot.Implementation
                 {
                     hexSelection, hexSelectionView, forestSpawn, forestDespawn, hexIconsVisibility,
                     hexInfoPanel, hexInfoPanelHeader, hexInfoPanelResources, hexInfoPanelDistrict,
-                    endTurn, contextTabSelection, contextTabsAvailability, turnProcessor, turnCount, eventCleanup
+                    resourceBar, endTurn, contextTabSelection, contextTabsAvailability, turnProcessor,
+                    turnCount, eventCleanup
                 },
                 new ILateUpdatedSystem[] { cameraMovement, hexIconsContainerPosition });
 

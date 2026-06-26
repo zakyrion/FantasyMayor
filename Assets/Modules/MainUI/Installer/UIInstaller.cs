@@ -4,6 +4,7 @@ using Modules.MainUI.ContextTabs.Systems;
 using Modules.MainUI.EndTurn.Systems;
 using Modules.MainUI.GeneratorMenu.Systems;
 using Modules.MainUI.HexInfoPanel.Systems;
+using Modules.MainUI.ResourceBar.Systems;
 using Modules.MainUI.Systems;
 using VContainer;
 using VContainer.Unity;
@@ -25,6 +26,9 @@ namespace Modules.MainUI.Installer
             builder.Register<HexTerrainIconConfigLoaderSystem>(Lifetime.Singleton)
                 .As<HexTerrainIconConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
 
+            builder.Register<InventoryResourceIconConfigLoaderSystem>(Lifetime.Singleton)
+                .As<InventoryResourceIconConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
+
             // Main UI spawn — orchestrator (generation pipeline, collected by interface) instantiates the
             // Main UI root and runs the window spawn subsystems (collected as MainUISpawnSubSystem).
             builder.Register<MainUISpawnSystem>(Lifetime.Singleton)
@@ -35,6 +39,8 @@ namespace Modules.MainUI.Installer
                 .As<EndTurnSpawnSubSystem, MainUISpawnSubSystem>();
             builder.Register<ContextTabsSpawnSubSystem>(Lifetime.Singleton)
                 .As<ContextTabsSpawnSubSystem, MainUISpawnSubSystem>();
+            builder.Register<ResourceBarSpawnSubSystem>(Lifetime.Singleton)
+                .As<ResourceBarSpawnSubSystem, MainUISpawnSubSystem>();
 
             // Per-frame view systems, wired into GameplayState by Boot (concrete singletons).
             builder.Register<HexInfoPanelSystem>(Lifetime.Singleton)
@@ -43,6 +49,8 @@ namespace Modules.MainUI.Installer
                 .As<HexInfoPanelHeaderSystem>();
             builder.Register<HexInfoPanelResourcesSystem>(Lifetime.Singleton)
                 .As<HexInfoPanelResourcesSystem>();
+            builder.Register<ResourceBarSystem>(Lifetime.Singleton)
+                .As<ResourceBarSystem>();
             builder.Register<HexInfoPanelDistrictPlaceholderSystem>(Lifetime.Singleton)
                 .As<HexInfoPanelDistrictPlaceholderSystem>();
             builder.Register<EndTurnSystem>(Lifetime.Singleton)

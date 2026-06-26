@@ -564,3 +564,99 @@
     flex-grow: 1;
     min-height: 0;
 }
+
+/* ============ TOP BAR — resource strip (GENERAL_UI_STYLE.md §4 center) ============
+   Full-width, pinned to the top edge, opaque warm surface, NO accent line (§4 — only the bottom panel
+   carries the gold rim). Holds ONLY the owner×resource matrix (Місто / Мер rows). Sizes follow the same
+   density as the bottom panel. Columns are built at runtime; the matrix rows align via fixed cell heights. */
+.top-bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    padding-left: 24px;
+    padding-right: 24px;
+    background-color: rgb(24, 20, 16);
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(217, 164, 65, 0.28);
+}
+
+/* The matrix: a leading owner-label column + one resource column per authored resource. */
+.res-pool {
+    flex-direction: row;
+    align-items: flex-start;
+}
+
+/* Leading owner-label column — labels align with the value rows via the spacer (= icon row height). */
+.res-owners {
+    flex-direction: column;
+    align-items: flex-end;
+    margin-right: 18px;
+}
+
+.res-owner-spacer {
+    height: 48px;
+    margin-bottom: 10px;
+}
+
+.res-owner-lbl {
+    height: 30px;
+    font-size: 16px;
+    -unity-text-align: middle-right;
+    -unity-font-style: bold;
+}
+
+.res-owner-lbl--city {
+    color: rgb(91, 139, 176);
+}
+
+.res-owner-lbl--mayor {
+    color: rgb(224, 178, 90);
+}
+
+/* One resource column: icon header over the two owner values (Місто / Мер). */
+.res-col {
+    flex-direction: column;
+    align-items: center;
+    margin-right: 22px;
+    min-width: 48px;
+}
+
+.res-col-icon {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 10px;
+    background-color: rgba(255, 255, 255, 0.08);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgba(255, 255, 255, 0.10);
+    border-right-color: rgba(255, 255, 255, 0.10);
+    border-top-color: rgba(255, 255, 255, 0.10);
+    border-bottom-color: rgba(255, 255, 255, 0.10);
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+
+.res-val {
+    height: 30px;
+    font-size: 20px;
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
+}
+
+.res-val--city {
+    color: rgb(91, 139, 176);
+}
+
+.res-val--mayor {
+    color: rgb(224, 178, 90);
+}

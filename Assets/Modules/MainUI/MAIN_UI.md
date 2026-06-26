@@ -30,14 +30,17 @@ this doc, the asmdef) stay at the root. Windows:
   `ui:Toggle` group, active-tab state, the change event, a stub availability system, **and the swap of the three
   content panes** (`OverviewPane` / `BuildingsPane` / `ActionsPane`) it drives via `SetActive`. Design:
   `ContextTabs/CONTEXT_TABS.md`.
+- `ResourceBar/` — the **top-bar resource strip** (`GENERAL_UI_STYLE.md` §4 top-bar CENTER only): the City +
+  Mayor inventory pools as an owner×resource matrix. Owns its own icon config (`InventoryResourceIconConfig`)
+  whose entries define the columns. Design: `ResourceBar/RESOURCE_BAR.md`.
 
 ## UI root and the single Main UI prefab
 The shared full-screen UI root is module **`MainCanvas`** (`IMainCanvasProvider.RootGO`). Under it, the whole
-Main UI is **one addressable prefab `UI/MainUI`** with **one `UIDocument`** whose UXML tree carries every
-window's markup. The Gameplay HUD is **one unified bottom-panel shell** (`BottomPanel`) split into two
-sub-panels by a vertical divider — `TurnPanel` (left) and `ContextPanel` (right) — NOT two floating boxes
-(the named anti-pattern in `GENERAL_UI_STYLE.md` §14). Each window's view is a MonoBehaviour that references
-**that same `UIDocument`** and queries only its own elements:
+Main UI is **one addressable prefab `UI/MainUI`** with **one `PanelRenderer`** (Unity 6 world-space UI host)
+whose UXML tree carries every window's markup. The Gameplay HUD is **one unified bottom-panel shell**
+(`BottomPanel`) split into two sub-panels by a vertical divider — `TurnPanel` (left) and `ContextPanel`
+(right) — NOT two floating boxes (the named anti-pattern in `GENERAL_UI_STYLE.md` §14). Each window's view is
+a MonoBehaviour that references **that same `PanelRenderer`** and queries only its own elements:
 - `EndTurnView` owns the **shell**: `Show/Hide` toggle the `BottomPanel` element's `display` (the turn corner
   is its always-present part).
 - `HexInfoPanelView` owns the **context content**: `ShowSelection` / `ShowEmpty` swap `ContextFilled` ↔
@@ -58,6 +61,10 @@ that resolves it.
   are **Reactive Systems** anchored on the **same `SelectedHexChangedEvent` pulse** — each fills its panel
   block from the current `HexSelectedComponent` (no intermediary refresh event; each gates on a real hex /
   skips gracefully when nothing is selected).
+- `ResourceBarSystem` is a **Per-frame System** (Gameplay, anchored on the `ResourceBarViewComponent`
+  singleton): it reveals the top-bar strip (spawns hidden) and fills the City + Mayor inventory amounts each
+  frame. Per-frame is a deliberate override of Reactive-by-default — no `ResourcesChanged` pulse exists yet
+  (justification in `ResourceBar/RESOURCE_BAR.md`). Not an event trigger.
 - `EndTurnSystem` is a **Per-frame System** (Gameplay, anchored on the `EndTurnViewComponent` singleton):
   it reveals the whole bottom panel (it owns the shell reveal), mirrors `TurnProcessorComponent` presence into
   the Processing look, and pushes the current turn number (`TurnCountComponent`, module `Turn`) into «Хід N».
@@ -72,9 +79,17 @@ that resolves it.
   Roles: `ARCHITECTURE.md` "System Taxonomy".
 
 ## Non-Obvious Invariants
+- **The shared `PanelRenderer` builds its visual tree asynchronously** (unlike `UIDocument`, whose root is
+  ready in `OnEnable`). Each of the four shared-host views (`HexInfoPanelView` / `EndTurnView` /
+  `ContextTabsView` / `ResourceBarView`) registers `PanelRenderer.RegisterUIReloadCallback` in `OnEnable`,
+  binds its elements + (re)hooks button/toggle callbacks **in that callback**, and **replays its logical
+  state** there — so view methods called by the spawn subsystems before the root exists just record intent
+  and apply once the panel is ready (also survives a live UI reload, which recreates the elements). The
+  generator menu (`HexesUI`) is a **separate** `UIDocument` prefab and is unaffected.
 - **USS `picking-mode` is not supported in this Unity version.** Raycast-transparency is applied from C#
-  in each view's `Start()` via `EnablePicking(false)` (Unity.AppUI). The `raycast-transparent` USS class is
-  only a semantic tag marking which elements to disable in code — setting it in USS alone does nothing.
+  in each shared-host view's reload callback (`HexInfoPanelView.ConfigurePicking` / the `raycast-transparent`
+  sweep) via `EnablePicking(false)` (Unity.AppUI). The `raycast-transparent` USS class is only a semantic tag
+  marking which elements to disable in code — setting it in USS alone does nothing.
 - The full-screen `Root` is marked `raycast-transparent` and only the interactive sub-elements stay pickable
   (the bottom panel itself; the End Turn button). Clicks pass through the rest of the overlay to the map
   underneath — but the full-width bottom panel blocks clicks across the whole bottom strip by design.
@@ -106,10 +121,15 @@ that resolves it.
 - Turn sub-panel (EndTurn): **implemented** (View/Component/Spawn/System + markup in the shared document). The
   End Turn button and **«Хід N» (live, bound to `TurnCountComponent`)** work; the two AP tiles («Дії зараз» /
   «наст. хід») are visible placeholders (dashes) until the AP model lands. See `EndTurn/END_TURN.md`.
+- Resource strip (ResourceBar): **code implemented** — config + loader/component, View, Spawn subsystem,
+  per-frame `ResourceBarSystem`, `TopBar` markup in the shared document + USS, DI + Boot wiring. Needs
+  Unity-side authoring: the `InventoryResourceIconConfig.asset` (+ sprites) at key `"InventoryResourceIconConfig"`
+  and a `ResourceBarView` MonoBehaviour on the `UI/MainUI` prefab with the shared `PanelRenderer` assigned
+  (else the spawn subsystem throws). See `ResourceBar/RESOURCE_BAR.md`.
 - Context tabs (ContextTabs): **implemented** — components/event/enum/View/Spawn + selection & availability
   systems, registered in `UIInstaller`, wired into Gameplay by `Boot`; the three `ui:Toggle` tabs (active via
   `:checked`) and the three content panes live in the shared document, and `SetActive` swaps both. Requires the
-  `ContextTabsView` MonoBehaviour on the `UI/MainUI` prefab with its `UIDocument` assigned (else the spawn
+  `ContextTabsView` MonoBehaviour on the `UI/MainUI` prefab with its `PanelRenderer` assigned (else the spawn
   subsystem throws). Availability is a stub (all tabs enabled); `BuildingsPane` / `ActionsPane` content is
   pending. See `ContextTabs/CONTEXT_TABS.md`.
 
@@ -122,3 +142,5 @@ that resolves it.
 - `ContextTabs/CONTEXT_TABS.md` — the permanent context tab row (Огляд / Будівлі / Дії): `ContextTab` enum, the
   active-tab state component, the change event, the markup name-constant contract (tabs + the three content panes),
   the pane swap in `SetActive`, the selection/availability split.
+- `ResourceBar/RESOURCE_BAR.md` — the top-bar resource strip (City + Mayor pools): the owner×resource matrix,
+  the config-defines-columns rule, the per-frame justification, the Table-Rule resource reads, prefab prereqs.

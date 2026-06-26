@@ -5,6 +5,10 @@ namespace Domains.Economy.Resource.Data
         Unknown = 0,
         Grain,
         Clay,
-        Wood
+        Wood,
+        RawMeat,
+        RawFish,
+        SmokedMeat,
+        SmokedFish,
     }
 }

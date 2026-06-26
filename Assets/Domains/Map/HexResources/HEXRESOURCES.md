@@ -3,7 +3,7 @@ category: A
 read: reference
 tags: [hex, resources, ecs, generation]
 related:
-  - "[HEXRESOURCESVIEW](../../../Presentation/Resources/HEXRESOURCESVIEW.md)"
+  - "[HEXRESOURCESVIEW](../../../Presentation/HexResources/HEXRESOURCESVIEW.md)"
   - "[ECS_REFERENCE](../../../../ECS_REFERENCE.md)"
 status: implemented
 ---

@@ -33,13 +33,13 @@ three content panes, and the pane swap in `SetActive`. There is no AP / economy 
 (all tabs always enabled); `BuildingsPane` / `ActionsPane` are empty named containers pending content.
 
 **Pending (Unity-side, NOT a code task):** the `ContextTabsView` MonoBehaviour must be added to the `UI/MainUI`
-prefab and its `UIDocument` field assigned. Until then `ContextTabsSpawnSubSystem` throws "ContextTabsView is
+prefab and its `PanelRenderer` field assigned. Until then `ContextTabsSpawnSubSystem` throws "ContextTabsView is
 missing from the Main UI prefab" (`GetComponentInChildren<ContextTabsView>` returns null — this is the prefab
 component, not the UXML markup).
 
 ## Markup contract
 The view (`ContextTabsView`) resolves three `Toggle`s **and** three content panes off the shared Main UI
-`UIDocument` by name. The markup authors (already in `HexInfoPanel.uxml`):
+`PanelRenderer` by name. The markup authors (already in `HexInfoPanel.uxml`):
 - `ui:Toggle` elements named **`TabOverview`**, **`TabBuildings`**, **`TabActions`**, class `ctx-tab`, inside the
   **permanent** `ContextTabs` row (a sibling above `ContextFilled`/`ContextEmpty`, so it never hides on no
   selection);
@@ -74,7 +74,7 @@ The view (`ContextTabsView`) resolves three `Toggle`s **and** three content pane
 
 ## Implementation (module `MainUI`, window `ContextTabs/`)
 Mirrors the EndTurn pattern; the click-emit mirrors `EndTurnView` / the generator UI.
-- **`ContextTabsView`** (`Views/`) — MonoBehaviour over the **shared** Main UI `UIDocument`. `[Inject]
+- **`ContextTabsView`** (`Views/`) — MonoBehaviour over the **shared** Main UI `PanelRenderer`. `[Inject]
   Construct(World)`. Binds each tab's `ChangeEvent<bool>`; on a real selection writes `ActiveContextTabComponent`
   (`World.Set`) then creates an entity with a payload-less `ContextTabChangedEvent` + `EventTag`. Exposes
   `SetActive(ContextTab)` — mirrors the active tab via `SetValueWithoutNotify` (`:checked` does the highlight)
@@ -97,7 +97,7 @@ Mirrors the EndTurn pattern; the click-emit mirrors `EndTurnView` / the generato
 
 ## Scaffold / not done
 - **Prefab wiring (Unity-side)** — add the `ContextTabsView` MonoBehaviour to the `UI/MainUI` prefab + assign its
-  `UIDocument` (see Current state). Until then the spawn subsystem throws.
+  `PanelRenderer` (see Current state). Until then the spawn subsystem throws.
 - **Availability rules** — `IsAvailable` is a stub (always true). Wire real player-action gating (action
   points, ownership, turn phase) when that model lands, not as a UI task.
 - **Tab content** — switching the active tab now swaps the visible pane (`OverviewPane` / `BuildingsPane` /

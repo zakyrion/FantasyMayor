@@ -4,8 +4,8 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using DefaultEcs;
 using DefaultECSExtensions;
-using Presentation.Icons.Components;
-using Presentation.Icons.Events;
+using Presentation.HexIcons.Components;
+using Presentation.HexIcons.Events;
 using Modules.Turn.Components;
 
 namespace Modules.Boot.Implementation.States

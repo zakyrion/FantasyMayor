@@ -11,7 +11,7 @@ related:
 
 Generated doc map for FantasyMayor. **Do not hand-edit** — run `python3 Tools/gen_index.py` after changing any doc's frontmatter. Data source: each doc's frontmatter (`category`/`read`/`trigger`/`status`) and its first line. See `DOC_STANDARD.md`.
 
-Totals: 34 docs — 4 always · 5 trigger · 25 reference.
+Totals: 35 docs — 4 always · 5 trigger · 26 reference.
 
 ## Read at start (always)
 
@@ -58,11 +58,12 @@ Per-module navigation docs. `status` mirrors each module's `## Current State`.
 | [Turn Corner (End Turn) — Turn Sub-Panel](Assets/Modules/MainUI/EndTurn/END_TURN.md) | B | — | The **TURN sub-panel** (left) of the shared bottom panel (`GENERAL_UI_STYLE.md` §4): the turn number «Хід N», two |
 | [Hex Info Panel — Context Sub-Panel](Assets/Modules/MainUI/HexInfoPanel/HEX_INFO_PANEL.md) | B | — | The read-only **CONTEXT sub-panel** (right) of the shared bottom panel: everything known about the currently |
 | [MainUI](Assets/Modules/MainUI/MAIN_UI.md) | A | partial | The **Main UI module** — the game's UI-window home. Currently owns three windows: the terrain-generator |
+| [ResourceBar](Assets/Modules/MainUI/ResourceBar/RESOURCE_BAR.md) | A | partial | The top-bar **resource strip**: the `GENERAL_UI_STYLE.md` §4 top-bar CENTER only — the resource pool as an |
 | [Turn](Assets/Modules/Turn/TURN.md) | A | scaffold | Engine that runs a game turn: on a turn pulse it fires an ordered set of phase subsystems off the main thread and signals "a turn is being processed" so other systems can gate. |
 | [UserInput](Assets/Modules/UserInput/USER_INPUT.md) | A | implemented | Bridges Unity InputSystem to ECS: camera pan/drag/zoom and hex selection. |
-| [HexIcons](Assets/Presentation/Icons/HEXICONS.md) | A | partial | Manages per-hex UI icon badges using a UI Toolkit Screen-Space overlay. |
+| [HexIcons](Assets/Presentation/HexIcons/HEXICONS.md) | A | partial | Manages per-hex UI icon badges using a UI Toolkit Screen-Space overlay. |
+| [HexResourcesView](Assets/Presentation/HexResources/HEXRESOURCESVIEW.md) | A | partial | Visualizes resource entities from `HexResources` by instantiating prefabs on terrain. |
 | [Presentation](Assets/Presentation/PRESENTATION.md) | A | implemented | The consolidated render/view layer: terrain mesh + water, resource visuals, and the screen-space hex-icon overlay. |
-| [HexResourcesView](Assets/Presentation/Resources/HEXRESOURCESVIEW.md) | A | partial | Visualizes resource entities from `HexResources` by instantiating prefabs on terrain. |
 | [TerrainView](Assets/Presentation/Terrain/TERRAIN_VIEW.md) | A | implemented | Renders procedural terrain: subdivided hex mesh, isoline height fields, erosion, procedural |
 | [WATER_VIEW_SETUP.md](Assets/Presentation/Terrain/WATER_VIEW_SETUP.md) | A | stub | Замінити на Uber-Stylized-Water. |
 

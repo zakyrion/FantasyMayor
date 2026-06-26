@@ -46,7 +46,7 @@ MapLoading  : stub (no save/load flow yet)
 
 ### Why a "settle" frame pump in MapCreation
 The generation pipeline (`IPrioritizedUniTaskSystem<MapGenerationStep>`) builds both logical data and
-the views synchronously (forest is now built one-shot by `ForestResourceViewSubSystem` inside the pipeline,
+the views synchronously (forest is now built one-shot by `ForestHexResourceViewSubSystem` inside the pipeline,
 not reactively over later frames). `MapCreation` still ticks its settle-frame systems (`EventCleanupSystem`)
 for a small fixed number of frames (`SettleFrames`, 1–3) to drain anything the pipeline raised before
 handing off to `Gameplay`. Safe — those systems are idempotent, so extra ticks are no-ops.
@@ -66,7 +66,7 @@ A system may belong to several states — it is simply referenced from each. Cur
 - `EventCleanupSystem` → `MapCreation` and `Gameplay`.
 
 (Forest no longer overlaps states: the startup build is a one-shot pipeline subsystem
-`ForestResourceViewSubSystem`, and `ForestSpawnSystem`/`ForestDespawnSystem` are `Gameplay`-only.)
+`ForestHexResourceViewSubSystem`, and `ForestSpawnSystem`/`ForestDespawnSystem` are `Gameplay`-only.)
 
 `EventCleanupSystem` lives in `DefaultECS.Extensions` (not the installer assembly) so Boot can wire it
 without an assembly cycle (`Installers.World` already references `Boot.Implementation`).

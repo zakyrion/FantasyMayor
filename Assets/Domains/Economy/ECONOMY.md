@@ -55,8 +55,8 @@ moved to `Actors` (see Design Decisions).
   generic `ResourceLoadoutSpawner` helper (creates one stack per `ResourceType` for a given owner FK).
   That helper is the only logic Economy ships — it has **no systems**. The config flow and per-actor
   loadout spawn now live in `Actors` (`MayorConfig*` + `City/MayorSpawnSystem`, which call
-  `ResourceLoadoutSpawner`). The Mayor's amounts come from `MayorConfigComponent` (`ResourceType`s the
-  author omits start at 0); the City starts every stack at 0 (no City config yet). Noble loadouts are
+  `ResourceLoadoutSpawner`). The Mayor's amounts come from `MayorConfigComponent` and the City's from
+  `CityConfigComponent` (`ResourceType`s the author omits start at 0). Noble loadouts are
   still DEFERRED (Nobles emerge during play — a reactive spawn in `Actors`, on a payload-less
   `NobleSpawnEvent`, lands with the Noble actor). Design recorded in `ECONOMY_ACTORS.canvas`.
 

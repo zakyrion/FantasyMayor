@@ -111,8 +111,9 @@ One system per block (per `GENERAL_UI_STYLE` Panel Construction; roles per `ARCH
 ## Implementation Notes
 - **One shared instance** (selection is singular), not a panel per hex. World-space per-hex badges are a
   separate concern (HexIcons).
-- **One unified, fixed-height bottom-panel shell.** `Prefabs/HexInfoPanel.uxml` is the single Main UI
-  `UIDocument`. Its bottom panel (`BottomPanel`) is **one shell with two sub-panels** divided by a vertical
+- **One unified, fixed-height bottom-panel shell.** `Prefabs/HexInfoPanel.uxml` is the single Main UI document,
+  hosted by the shared `PanelRenderer` (Unity 6 world-space UI host). Its bottom panel (`BottomPanel`) is **one
+  shell with two sub-panels** divided by a vertical
   divider: the turn sub-panel (`TurnPanel`, owned by `EndTurnView`) and this context sub-panel (`ContextPanel`).
   They are NOT two floating boxes (the named anti-pattern in `GENERAL_UI_STYLE.md` §14). The shell has a **fixed
   height** (`.bottom-panel`, `height` in USS) and clips overflow, so swapping panes/selection never resizes it.
@@ -146,8 +147,8 @@ Block → System map above.
 component. Resource sprites reuse `HexIcons.HexResourceIconConfigComponent` (made `public`). Resource chip
 label = the `ResourceType` name until a localized name source exists.
 
-Editor preview: open `Prefabs/HexInfoPanel.uxml` in **UI Builder** to see the panel populated — a UIDocument
-does **not** render in the Scene/Game view in edit mode, so opening the prefab shows nothing. The Overview pane
+Editor preview: open `Prefabs/HexInfoPanel.uxml` in **UI Builder** to see the panel populated — a runtime UI
+Toolkit panel does **not** render in the Scene/Game view in edit mode, so opening the prefab shows nothing. The Overview pane
 is authored visible (Buildings/Actions panes + `ContextEmpty` authored `display:none`) so UI Builder previews the
 filled overview. The header text, the two chips, the District kv-list, and the Production table are
 **preview-only**; at runtime the systems overwrite the header, `HexInfoPanelView` strips the sample chips before

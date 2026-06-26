@@ -15,6 +15,16 @@ MonoBehaviour:
   m_GroupName: Economy
   m_GUID: adbb23e90ab364637ae2bb52bfb1464b
   m_SerializeEntries:
+  - m_GUID: 2a510757888b14876896ba59a31b2a0c
+    m_Address: CityConfig
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: bb743d5519c0044bc87047470c70bb31
+    m_Address: InventoryResourceIconConfig
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: d2b2c333b6eb94124895f53873204824
     m_Address: MayorConfig
     m_ReadOnly: 0

@@ -3,8 +3,9 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using DefaultEcs;
 using DefaultECSExtensions;
+using Domains.Actors.Components;
+using Domains.Actors.Data;
 using Domains.Actors.Mayor.Components;
-using Domains.Actors.Mayor.Tags;
 using Domains.Economy.Resource.Helpers;
 using JetBrains.Annotations;
 using Modules.Boot.Core;
@@ -53,7 +54,7 @@ namespace Domains.Actors.Mayor.Systems
             var mayorIdComponent = new MayorIdComponent { Value = mayorId };
             var mayor = _world.CreateEntity();
             mayor.Set(mayorIdComponent);
-            mayor.Set(new MayorTag());
+            mayor.Set(new ActorTypeComponent { Type = ActorType.Mayor });
             mayor.Set(new MayorAPComponent { Value = config.StartActionPoints });
 
             ResourceLoadoutSpawner.SpawnLoadout(_world, mayorIdComponent, config.Resources);

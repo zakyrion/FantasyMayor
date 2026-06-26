@@ -10,12 +10,14 @@ namespace Modules.MainUI.EndTurn.Views
 {
     /// <summary>
     ///     View for the End Turn button AND the owner of the shared bottom-panel shell reveal. Owns the
-    ///     UIDocument's button + turn number, emits the turn-commit event on click, and switches between Ready
+    ///     PanelRenderer's button + turn number, emits the turn-commit event on click, and switches between Ready
     ///     and Processing looks. The turn corner is the always-present part of the bottom panel, so this view
-    ///     toggles the whole BottomPanel shell (Show/Hide) — never the document root (that would blank the whole
+    ///     toggles the whole BottomPanel shell (Show/Hide) — never the panel root (that would blank the whole
     ///     Main UI). The CONTEXT sub-panel content is swapped independently by HexInfoPanelView. Holds no game
     ///     logic beyond raising the one-frame event — the Processing state is driven by EndTurnSystem. The
     ///     full-screen root stays click-through; only the button blocks clicks (mirrors the generator UI rules).
+    ///     PanelRenderer builds its tree asynchronously, so the button is hooked and state replayed in the reload
+    ///     callback (re-hooked on every reload, since a reload recreates the button).
     /// </summary>
     public sealed class EndTurnView : MonoBehaviour
     {
@@ -28,14 +30,21 @@ namespace Modules.MainUI.EndTurn.Views
         private const string ReadyLabel = "ЗАВЕРШИТИ ХІД";
         private const string ProcessingLabel = "ОБРАХУНОК ХОДУ…";
 
-        [SerializeField] private UIDocument _document;
+        [SerializeField] private PanelRenderer _renderer;
 
         private World _world;
+        private VisualElement _root;
         private VisualElement _panel;
         private Button _button;
         private Label _turnNumber;
-        private bool _processing;
         private bool _cached;
+
+        // Logical state replayed on (re)bind. Default hidden so the shell does not flash during MapCreation;
+        // EndTurnSystem re-pushes visibility / turn / processing every frame in Gameplay.
+        private bool _visible;
+        private bool _processing;
+        private bool _turnValueSet;
+        private int _turnValue;
 
         [Inject]
         public void Construct(World world)
@@ -43,42 +52,63 @@ namespace Modules.MainUI.EndTurn.Views
             _world = world;
         }
 
-        private void Start()
+        private void OnEnable()
         {
-            EnsureCached();
-            _button.clicked += OnClicked;
-            ApplyRaycastTransparent();
+            // PanelRenderer delivers the (re)built root via this callback — for both the initial build and a
+            // late registration (it invokes a pending callback if the tree already exists) — so binding never
+            // races the async tree build. The callback also re-fires on a live UXML reload.
+            _renderer.RegisterUIReloadCallback(OnUiReloaded);
         }
 
-        private void OnDestroy()
+        private void OnDisable()
         {
-            if (_button != null)
-                _button.clicked -= OnClicked;
+            _renderer.UnregisterUIReloadCallback(OnUiReloaded);
+            UnhookButton();
+        }
+
+        // PanelRenderer (re)built its visual tree: re-query elements, re-hook the (recreated) button, reapply
+        // picking, and replay the last state.
+        private void OnUiReloaded(PanelRenderer renderer, VisualElement root)
+        {
+            UnhookButton();
+            _root = root;
+            _cached = false;
+
+            if (!TryCache())
+                return;
+
+            _button.clicked += OnClicked;
+            ApplyRaycastTransparent();
+            ApplyState();
         }
 
         /// <summary>
         ///     Reveals the whole bottom panel (turn sub-panel + context sub-panel). It spawns hidden so it does
-        ///     not flash during map creation. Toggles the BottomPanel shell only — the UIDocument is shared, so
-        ///     touching the document root here would blank the whole Main UI. The context content inside is
-        ///     swapped separately by HexInfoPanelView.
+        ///     not flash during map creation. Toggles the BottomPanel shell only — the PanelRenderer is shared, so
+        ///     touching the panel root here would blank the whole Main UI. The context content inside is swapped
+        ///     separately by HexInfoPanelView.
         /// </summary>
         public void Show()
         {
-            EnsureCached();
-            _panel.style.display = DisplayStyle.Flex;
+            _visible = true;
+            if (TryCache())
+                _panel.style.display = DisplayStyle.Flex;
         }
 
         public void Hide()
         {
-            EnsureCached();
-            _panel.style.display = DisplayStyle.None;
+            _visible = false;
+            if (TryCache())
+                _panel.style.display = DisplayStyle.None;
         }
 
         /// <summary>Sets the turn-number label ("Хід N"). Driven by EndTurnSystem from TurnCountComponent.</summary>
         public void SetTurnNumber(int turnNumber)
         {
-            EnsureCached();
-            _turnNumber.text = $"Хід {turnNumber}";
+            _turnValueSet = true;
+            _turnValue = turnNumber;
+            if (TryCache())
+                _turnNumber.text = $"Хід {turnNumber}";
         }
 
         /// <summary>
@@ -87,14 +117,12 @@ namespace Modules.MainUI.EndTurn.Views
         /// </summary>
         public void SetProcessing(bool processing)
         {
-            EnsureCached();
             if (_processing == processing)
                 return;
 
             _processing = processing;
-            _button.text = processing ? ProcessingLabel : ReadyLabel;
-            _button.SetEnabled(!processing);
-            _button.EnableInClassList(ProcessingClass, processing);
+            if (TryCache())
+                ApplyProcessing();
         }
 
         private void OnClicked()
@@ -108,10 +136,37 @@ namespace Modules.MainUI.EndTurn.Views
             entity.Set(new EventTag());
         }
 
+        private void ApplyState()
+        {
+            _panel.style.display = _visible ? DisplayStyle.Flex : DisplayStyle.None;
+            if (_turnValueSet)
+                _turnNumber.text = $"Хід {_turnValue}";
+            ApplyProcessing();
+        }
+
+        private void ApplyProcessing()
+        {
+            _button.text = _processing ? ProcessingLabel : ReadyLabel;
+            _button.SetEnabled(!_processing);
+            _button.EnableInClassList(ProcessingClass, _processing);
+        }
+
         private void ApplyRaycastTransparent()
         {
-            foreach (var element in _document.rootVisualElement.Query(className: "raycast-transparent").ToList())
+            foreach (var element in _root.Query(className: "raycast-transparent").ToList())
                 element.EnablePicking(false);
+        }
+
+        private void UnhookButton()
+        {
+            if (_button != null)
+                _button.clicked -= OnClicked;
+        }
+
+        private bool TryCache()
+        {
+            EnsureCached();
+            return _cached;
         }
 
         private void EnsureCached()
@@ -119,10 +174,13 @@ namespace Modules.MainUI.EndTurn.Views
             if (_cached)
                 return;
 
-            var root = _document.rootVisualElement;
-            _panel = root.Q<VisualElement>(PanelName);
-            _button = root.Q<Button>(ButtonName);
-            _turnNumber = root.Q<Label>(TurnNumberName);
+            // PanelRenderer hands the root via the reload callback; until then there is nothing to bind.
+            if (_root == null)
+                return;
+
+            _panel = _root.Q<VisualElement>(PanelName);
+            _button = _root.Q<Button>(ButtonName);
+            _turnNumber = _root.Q<Label>(TurnNumberName);
             _cached = true;
         }
     }

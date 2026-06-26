@@ -65,10 +65,12 @@ loadouts it depends on `Economy` (`Actors → Economy`); see Design Decisions.
 
 ## Current State
 City + Mayor are functional: PK id components, discriminator tags, the two id allocator world
-components, the Mayor config flow (`MayorConfig` + `MayorConfigLoaderSystem` → `MayorConfigComponent`),
-and the two per-actor spawn stages. `CitySpawnSystem` creates the City with a full resource loadout
-(all 0). `MayorSpawnSystem` creates the Mayor, seeds `MayorAPComponent` from `StartActionPoints`, and a
-loadout from the config. Both call Economy's generic `ResourceLoadoutSpawner`. AP **pool/spending**
+components, both actor config flows (`MayorConfig` + `MayorConfigLoaderSystem` → `MayorConfigComponent`;
+`CityConfig` + `CityConfigLoaderSystem` → `CityConfigComponent`), and the two per-actor spawn stages.
+`CitySpawnSystem` creates the City and seeds its resource loadout from `CityConfigComponent` (resources
+only — the City has no Action Points). `MayorSpawnSystem` creates the Mayor, seeds `MayorAPComponent`
+from `StartActionPoints`, and a loadout from the config. Both call Economy's generic
+`ResourceLoadoutSpawner`. AP **pool/spending**
 mechanics are NOT built (only the starting value is seeded). Noble and Population are NOT built; the
 Noble loadout spawn is deferred (reactive, on a `NobleSpawnEvent`). Archetypes: see `ECS_REFERENCE.md`
 (`City`, `Mayor`, `Resource`).

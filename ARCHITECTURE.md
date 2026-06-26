@@ -123,8 +123,8 @@ The entire render/view layer, consolidated into one assembly. Depends one-way on
 | Sub-area | Former module | Responsibility |
 |---|---|---|
 | `Terrain/` | `Terrain.View` | Terrain mesh, textures, water view, isolines, smoothing, runtime view systems |
-| `Resources/` | `HexResourcesView` | Resource visualization (forest/clay/fish views, ground painting) |
-| `Icons/` | `HexIcons` | Screen-space per-hex icon overlay |
+| `HexResources/` | `HexResourcesView` | Resource visualization (forest/clay/fish views, ground painting) |
+| `HexIcons/` | `HexIcons` | Screen-space per-hex icon overlay |
 
 ## Module Layout Rules
 
@@ -301,7 +301,7 @@ when designing or reviewing any system.
 
 **The split recipe** (worked example: `ForestViewSyncSystem` → 3 systems):
 1. The startup bulk becomes a **Pipeline SubSystem** (one-shot, runs once inside `MapCreation`):
-   `ForestResourceViewSubSystem` plants every forest hex and paints ground once.
+   `ForestHexResourceViewSubSystem` plants every forest hex and paints ground once.
 2. Each runtime responsibility becomes its own **Reactive System** in `Gameplay`:
    `ForestSpawnSystem` (on `ForestHexAppearedEvent`) and `ForestDespawnSystem`
    (on `ForestHexRemovedEvent`).
@@ -540,5 +540,5 @@ any code there.
 | domain `Actors` | `Assets/Domains/Actors/ACTORS.md` |
 | `Presentation` | `Assets/Presentation/PRESENTATION.md` |
 | `Presentation/Terrain` | `Assets/Presentation/Terrain/TERRAIN_VIEW.md` |
-| `Presentation/Resources` | `Assets/Presentation/Resources/HEXRESOURCESVIEW.md` |
-| `Presentation/Icons` | `Assets/Presentation/Icons/HEXICONS.md` |
+| `Presentation/HexResources` | `Assets/Presentation/HexResources/HEXRESOURCESVIEW.md` |
+| `Presentation/HexIcons` | `Assets/Presentation/HexIcons/HEXICONS.md` |

@@ -23,9 +23,9 @@ is the layered (DDD-strategic) boundary described in `ARCHITECTURE.md`.
 ## Layout (one asmdef `Presentation`, feature sub-areas)
 - `Terrain/` (`Presentation.Terrain.*`, was `Terrain.View`) — terrain mesh, textures, water view,
   isolines, smoothing, runtime view systems. Terrain-transition pre-read files live here.
-- `Resources/` (`Presentation.Resources.*`, was `HexResourcesView`) — forest/clay/fish views and ground
-  painting.
-- `Icons/` (`Presentation.Icons.*`, was `HexIcons`) — screen-space per-hex icon overlay (UI Toolkit).
+- `HexResources/` (`Presentation.HexResources.*`, was `Resources/`) — forest/clay/fish views and ground
+  painting. Renamed from `Resources/` to avoid the magic Unity folder name and economy-`Resource` confusion.
+- `HexIcons/` (`Presentation.HexIcons.*`, was `Icons/`) — screen-space per-hex icon overlay (UI Toolkit).
 
 ## Non-Obvious Invariants
 - Single assembly is deliberate: the terrain ↔ resource-view ↔ icon coupling (e.g. resource views read

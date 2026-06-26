@@ -11,6 +11,9 @@ namespace Domains.Actors.Installer
     {
         public void Install(IContainerBuilder builder)
         {
+            builder.Register<CityConfigLoaderSystem>(Lifetime.Singleton)
+                .As<CityConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
+
             builder.Register<MayorConfigLoaderSystem>(Lifetime.Singleton)
                 .As<MayorConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
 
