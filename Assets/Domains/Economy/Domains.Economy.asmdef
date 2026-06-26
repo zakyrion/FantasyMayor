@@ -2,15 +2,8 @@
     "name": "Domains.Economy",
     "rootNamespace": "",
     "references": [
-        "Domains.Actors",
-        "DefaultECS.Extensions",
-        "Boot.Core",
-        "VContainer",
-        "UniTask",
         "Domains.Map",
-        "Addressables.Core",
-        "Core",
-        "Unity.Collections"
+        "VContainer"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

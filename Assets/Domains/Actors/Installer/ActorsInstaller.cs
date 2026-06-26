@@ -1,5 +1,6 @@
 using DefaultECSExtensions;
-using Domains.Actors.Systems;
+using Domains.Actors.City.Systems;
+using Domains.Actors.Mayor.Systems;
 using Modules.Boot.Core;
 using VContainer;
 using VContainer.Unity;
@@ -10,8 +11,14 @@ namespace Domains.Actors.Installer
     {
         public void Install(IContainerBuilder builder)
         {
-            builder.Register<ActorsSpawnSystem>(Lifetime.Singleton)
-                .As<ActorsSpawnSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
+            builder.Register<MayorConfigLoaderSystem>(Lifetime.Singleton)
+                .As<MayorConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
+
+            builder.Register<CitySpawnSystem>(Lifetime.Singleton)
+                .As<CitySpawnSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
+
+            builder.Register<MayorSpawnSystem>(Lifetime.Singleton)
+                .As<MayorSpawnSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
         }
     }
 }

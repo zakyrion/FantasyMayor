@@ -57,8 +57,6 @@ MonoBehaviour:
     - MainCanvas.Implementation
     - MainUI
     - Presentation
-    - Sirenix.OdinInspector.Modules.Unity.Addressables
-    - Sirenix.OdinInspector.Modules.UnityLocalization
     - Turn
     - UniTask
     - UniTask.Addressables
@@ -70,6 +68,7 @@ MonoBehaviour:
     showAdvancedSettings: 0
   addMgrToSceneAutomatically: 0
   autoUpdateReferences: 1
+  onlyAddReferencesFromObjectsWithES3Referenceable: 0
   addAllPrefabsToManager: 1
   collectDependenciesDepth: 4
   collectDependenciesTimeout: 10

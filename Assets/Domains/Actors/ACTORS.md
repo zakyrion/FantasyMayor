@@ -6,17 +6,21 @@ related:
   - "[ECS_REFERENCE](../../../ECS_REFERENCE.md)"
   - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
   - "[ECONOMY](../Economy/ECONOMY.md)"
-status: scaffold
+  - "[ACTIONS](../Actions/ACTIONS.md)"
+status: partial
 ---
 
 # Actors
 
-Game-rule domain owning actor identities. First domain under `Assets/Domains/` (precedent for the root).
+Game-rule domain owning actor identities **and their startup composition**. First domain under
+`Assets/Domains/` (precedent for the root).
 
 ## Purpose
 Actors are the agents that own and act in the game (City, Mayor, and later Noble, Population). Other
 domains never store an actor `Entity` handle — they carry an actor **id component** as a foreign key.
-This slice ships only the City and Mayor identities.
+This domain owns each actor's identity AND what it starts with: it creates the City and Mayor and seeds
+their starting state (resource loadout, and the Mayor's Action Points + config). To attach resource
+loadouts it depends on `Economy` (`Actors → Economy`); see Design Decisions.
 
 ## Non-Obvious Invariants
 - An actor id component (`CityIdComponent`, `MayorIdComponent`) is the **primary key on the actor row**
@@ -25,30 +29,46 @@ This slice ships only the City and Mayor identities.
   component is itself the FK (and the join discriminator). One id type per actor kind.
 - Id generation lives in **world components** (`CityIdAllocatorComponent`, `MayorIdAllocatorComponent`),
   never in a static counter or a system field. `Next` is the only mutable state, and it lives on the world.
-- `ActorsSpawnSystem` is **idempotent via the allocator's presence**: if `CityIdAllocatorComponent`
-  already exists the stage returns immediately, so a pipeline re-entry (or a future load flow that
-  pre-sets the allocators) never spawns duplicate actors.
+- Each per-actor spawn stage is **idempotent via its own allocator's presence**: `CitySpawnSystem`
+  returns immediately if `CityIdAllocatorComponent` exists, `MayorSpawnSystem` if
+  `MayorIdAllocatorComponent` exists. A pipeline re-entry (or a future load flow that pre-sets the
+  allocators) never spawns duplicate actors.
 - Mayor is a **singleton actor**: `MayorIdComponent` is always `1`. `MayorIdAllocatorComponent` is kept
   only for symmetry with City and the save/load contract; it yields a constant.
 - Querying an actor table or resolving an OwnerFK obeys the Table Rule — `With<CityIdComponent>` +
   `With<CityTag>` (never a bare key). See `ARCHITECTURE.md` → "Relational Modeling — Table Rule".
+- `Actors → Economy`, never the reverse. Actors depends on Economy's owner-agnostic substrate
+  (`ResourceComponent`, `ResourceType`, the generic `ResourceLoadoutSpawner`) to attach loadouts.
+  Owner-keyed logic (which actor owns which stacks) lives HERE, not in Economy — the invariant that
+  keeps the DAG acyclic.
 
 ## Design Decisions
 - **Feature-first layout** (same convention as Economy): split by actor (`City/`, `Mayor/`, later
-  `Noble/`, `Population/`), each keeping its `Components`/`Tags`/… inside; namespaces follow
-  (`Domains.Actors.City.*`). **Cross-actor** code stays at the domain root — `ActorsSpawnSystem`
-  (`Systems/`) and `ActorsInstaller` (`Installer/`) span all actors, so they belong to no single actor
-  folder. One asmdef still covers the whole domain.
+  `Noble/`, `Population/`), each keeping its `Components`/`Tags`/`Systems`/… inside; namespaces follow
+  (`Domains.Actors.City.*`). Per-actor spawn lives in the actor's own `Systems/` folder
+  (`City/Systems/CitySpawnSystem`, `Mayor/Systems/MayorSpawnSystem`), and the Mayor's config + loader in
+  `Mayor/` too. Only `ActorsInstaller` (`Installer/`) is cross-actor at the domain root. One asmdef
+  covers the whole domain.
 - Per-type ids (not one shared `ActorId`): in SoA the distinguishing fact "owned by a city vs a mayor"
   IS which id component is attached, so a single polymorphic owner key would be a step backwards.
-- `ActorsSpawnSystem` is a one-shot **Pipeline Stage** (`IPrioritizedUniTaskSystem<MapGenerationStep>`,
-  priority 900) run by `MapCreation` — actor creation is world-init, not per-frame or reactive. It is
-  auto-collected by DI as the interface; no `Boot` wiring change.
+- **Per-actor spawn, not one shared `ActorsSpawnSystem`.** Each actor has its own one-shot **Pipeline
+  Stage** (`IPrioritizedUniTaskSystem<MapGenerationStep>`): `CitySpawnSystem` (900), `MayorSpawnSystem`
+  (910). Each creates its identity row AND attaches its starting state in one place. This is Open-Closed:
+  a new actor kind adds a new stage, no shared system is edited. Stages are auto-collected by DI as the
+  interface and run by `MapCreation` — `Boot` stays the init engine, no `Boot` wiring change.
+- **Mayor startup state is seeded from `MayorConfig` at spawn.** `MayorConfigLoaderSystem` (Config
+  Loader, `ConfigLoadStep`) loads + validates the SO and publishes `MayorConfigComponent`;
+  `MayorSpawnSystem` reads it to seed the Mayor's resource loadout and `MayorAPComponent`
+  (`= StartActionPoints`). Config + loader live with the Mayor because that state is actor-intrinsic.
 - Allocator save/load is a **contract only** for now — the counter is shaped to persist, but Easy Save 3
   wiring is deferred to a later slice.
 
 ## Current State
-SCAFFOLD. Only City + Mayor identities exist: their PK id components, discriminator tags, the two id
-allocator world components, and `ActorsSpawnSystem` (creates one City and one Mayor during map creation).
-Noble and Population are NOT built. Nothing reads the actors yet — the first OwnerFK consumer arrives
-with the Economy resource-spawn system. Archetypes: see `ECS_REFERENCE.md` (`City`, `Mayor`).
+City + Mayor are functional: PK id components, discriminator tags, the two id allocator world
+components, the Mayor config flow (`MayorConfig` + `MayorConfigLoaderSystem` → `MayorConfigComponent`),
+and the two per-actor spawn stages. `CitySpawnSystem` creates the City with a full resource loadout
+(all 0). `MayorSpawnSystem` creates the Mayor, seeds `MayorAPComponent` from `StartActionPoints`, and a
+loadout from the config. Both call Economy's generic `ResourceLoadoutSpawner`. AP **pool/spending**
+mechanics are NOT built (only the starting value is seeded). Noble and Population are NOT built; the
+Noble loadout spawn is deferred (reactive, on a `NobleSpawnEvent`). Archetypes: see `ECS_REFERENCE.md`
+(`City`, `Mayor`, `Resource`).

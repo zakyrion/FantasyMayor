@@ -141,7 +141,8 @@ ENTITY: HexIconContainer  (table — UI overlay layer)
 ENTITY: City  (table — actor identity; one row per city, currently exactly one)
   Components: CityIdComponent (PK), CityTag
   Discriminator: CityTag
-  WRITES: ActorsSpawnSystem (creates the row, pipeline 900; allocates the id from CityIdAllocatorComponent)
+  WRITES: CitySpawnSystem (domain Actors, pipeline 900; allocates the id from CityIdAllocatorComponent,
+          then attaches a full 0-amount Resource loadout)
   READS: none yet (future: OwnerFK resolution — EntityMap<CityIdComponent> once ownables carry the FK)
   Lifecycle: created once during MapCreation; never destroyed (no teardown/load flow yet).
   Note: first table under the new Assets/Domains/ root (domain Actors). CityIdComponent is the PK here
@@ -149,9 +150,10 @@ ENTITY: City  (table — actor identity; one row per city, currently exactly one
         full +1 allocator — the model allows N cities even though one exists today.
 
 ENTITY: Mayor  (table — actor identity; exactly one, singleton actor)
-  Components: MayorIdComponent (PK), MayorTag
+  Components: MayorIdComponent (PK), MayorTag, MayorAPComponent (starting Action Points)
   Discriminator: MayorTag
-  WRITES: ActorsSpawnSystem (creates the row, pipeline 900; id stays 1)
+  WRITES: MayorSpawnSystem (domain Actors, pipeline 910; id stays 1; seeds MayorAPComponent from
+          MayorConfigComponent.StartActionPoints, then attaches the config Resource loadout)
   READS: none yet (future: OwnerFK resolution — EntityMap<MayorIdComponent>)
   Lifecycle: created once during MapCreation; never destroyed.
   Note: single mayor — MayorIdComponent is always 1. Kept as a PK table (not a world component) so it is
@@ -160,9 +162,9 @@ ENTITY: Mayor  (table — actor identity; exactly one, singleton actor)
 ENTITY: Resource  (table — inventory resource stack)
   Components: <owner FK: CityIdComponent | MayorIdComponent>, ResourceComponent (Type + Amount), ResourceTag
   Discriminator: ResourceTag
-  WRITES: ResourceInitSpawnSystem (domain Economy, pipeline 1000 — one row per ResourceType for EVERY City
-          and Mayor at map creation, via the ResourceLoadoutSpawner helper). Mayor amounts come from
-          MayorConfigComponent (the authored loadout; ResourceTypes the author omits start at 0); City
+  WRITES: CitySpawnSystem + MayorSpawnSystem (domain Actors, pipeline 900/910 — each attaches one row per
+          ResourceType to its own actor at map creation, via Economy's generic ResourceLoadoutSpawner).
+          Mayor amounts come from MayorConfigComponent (ResourceTypes the author omits start at 0); City
           amounts are all 0 (no City config yet). Noble-owned stacks are NOT written yet (deferred reactive
           system — see Note).
   READS: none yet.
@@ -170,17 +172,18 @@ ENTITY: Resource  (table — inventory resource stack)
         stacks via With<OwnerFK> + With<ResourceTag> → AsMultiMap<OwnerFK> (NEVER bare — the owner id is a
         PK on the actor AND a FK here).
   Note: SoA ownership — the owner's id component IS the FK (no polymorphic OwnerId). Composite key
-        (OwnerFK + ResourceComponent.Type); NO surrogate ResourceId. Economy reads CityIdComponent /
-        MayorIdComponent (cross-domain, see Cross-Module Reads). Noble loadouts are DEFERRED: Nobles emerge
-        at runtime, so ResourceNobleSpawnSystem (reactive, on a payload-less NobleSpawnEvent — reconciles
-        against the Noble table) ships when the Noble actor exists. Design in ECONOMY_ACTORS.canvas.
+        (OwnerFK + ResourceComponent.Type); NO surrogate ResourceId. Actors writes these rows via Economy's
+        owner-agnostic ResourceLoadoutSpawner (cross-domain Actors→Economy, see Cross-Module Reads). Noble
+        loadouts are DEFERRED: Nobles emerge at runtime, so ResourceNobleSpawnSystem (reactive, on a
+        payload-less NobleSpawnEvent — reconciles against the Noble table; domain Actors) ships when the
+        Noble actor exists. Design in ECONOMY_ACTORS.canvas.
 
 ENTITY: District  (table — district identity; SCAFFOLD — NO spawner yet, player-built at runtime)
   Components: DistrictIdComponent (PK), DistrictTag
   Discriminator: DistrictTag
   WRITES: none yet — SCAFFOLD. Types defined (domain Economy, data-only slice); no entity created.
           District creation is PLAYER-ACTION-DRIVEN (reactive), NOT a world-init spawn — deliberately
-          unlike City/Mayor (ActorsSpawnSystem). The build-flow lands in a later slice.
+          unlike City/Mayor (City/MayorSpawnSystem). The build-flow lands in a later slice.
   READS: none yet.
   Lifecycle: not instantiated yet. Planned: one row per built district; the id is allocated from
         DistrictIdAllocatorComponent. Columns omitted this slice: HexIdComponent (FK → Hex),
@@ -327,16 +330,16 @@ WORLD: ActiveContextTabComponent  (module MainUI, window ContextTabs)
 
 WORLD: CityIdAllocatorComponent  (domain Actors)
   Fields: Next (the id the next City will take)
-  WRITES: ActorsSpawnSystem (self-init Next = 1 on first run; advances by +1 per city via world.Set)
-  READS: ActorsSpawnSystem (reads Next to allocate)
-  Note: monotonic CityId source. Its PRESENCE doubles as the one-shot guard — ActorsSpawnSystem skips if
+  WRITES: CitySpawnSystem (self-init Next = 1 on first run; advances by +1 per city via world.Set)
+  READS: CitySpawnSystem (reads Next to allocate)
+  Note: monotonic CityId source. Its PRESENCE doubles as the one-shot guard — CitySpawnSystem skips if
         it already exists (no duplicate actors on pipeline re-entry / future load). Persisted via
         save/load (contract only — ES3 wiring deferred).
 
 WORLD: MayorIdAllocatorComponent  (domain Actors)
   Fields: Next (effectively constant 1 — single mayor)
-  WRITES: ActorsSpawnSystem (self-init Next = 1; advances by +1, but only one mayor is created)
-  READS: ActorsSpawnSystem
+  WRITES: MayorSpawnSystem (self-init Next = 1; advances by +1, but only one mayor is created)
+  READS: MayorSpawnSystem
   Note: kept for symmetry with CityIdAllocatorComponent and the save/load contract; yields a constant 1.
 
 WORLD: DistrictIdAllocatorComponent  (domain Economy)  [SCAFFOLD]
@@ -409,12 +412,12 @@ WORLD: HexTerrainIconConfigComponent  (HexesUI)
   WRITES: HexTerrainIconConfigLoaderSystem
   READS: HexInfoPanelHeaderSystem (terrain icon + name in the panel header)
 
-WORLD: MayorConfigComponent  (domain Economy)
+WORLD: MayorConfigComponent  (domain Actors)
   WRITES: MayorConfigLoaderSystem
-  READS: ResourceInitSpawnSystem (seeds the Mayor's starting resource amounts at map creation)
-  Note: flattened from the MayorConfig SO — Resources array copied out, SO released after load. Also
-        carries StartActionPoints: published but NOT yet consumed (no Action Points system exists). AP
-        lives in Economy (not Actors) to avoid an Actors↔Economy asmdef cycle. See Economy/ECONOMY.md.
+  READS: MayorSpawnSystem (seeds the Mayor's starting resource loadout + MayorAPComponent at map creation)
+  Note: flattened from the MayorConfig SO — Resources array copied out, SO released after load. Carries
+        StartActionPoints, seeded onto MayorAPComponent at spawn (AP pool/spending mechanics are a later
+        slice). Lives in Actors/Mayor — actor-intrinsic startup state. See Actors/ACTORS.md.
 ```
 
 ---
@@ -599,8 +602,9 @@ TerrainTextureComponent        (Presentation) read within Presentation (clay + f
 HexResourceIconConfigComponent (Presentation) read by HexesUI (HexInfoPanelResourcesSystem — shared icons)
 HexSelectedComponent           read by HexesUI (HexInfoPanelSystem + Header/Resources/District block
                                systems + ContextTabsAvailabilitySystem) and Presentation (HexSelectionViewSystem)
-CityIdComponent / MayorIdComponent  read by Economy (ResourceInitSpawnSystem — resolves City/Mayor owners
-                               to attach as the resource OwnerFK). Cross-domain Economy→Actors.
+ResourceComponent / ResourceType / ResourceLoadoutSpawner  (Economy) used by Actors (City/MayorSpawnSystem
+                               attach per-owner resource stacks via the generic helper). Cross-domain
+                               Actors→Economy (owner-keyed logic in Actors; Economy stays owner-agnostic).
 MapGenerationConfig hex types (HexTerrainType)  read by Economy (DistrictBuildingConfig) — cross-domain
                                Economy→Map (districts gate on hex type).
 ```

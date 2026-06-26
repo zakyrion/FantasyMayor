@@ -1,7 +1,9 @@
 {
 	"nodes":[
+		{"id":"8bae948f0f64384f","x":-1855,"y":1620,"width":1830,"height":838,"type":"group","label":"My domain view"},
 		{"id":"grp_ownables","type":"group","x":260,"y":-160,"width":1180,"height":1240,"label":"Ownables — each carries one OwnerFK + a Tag"},
 		{"id":"grp_owners","type":"group","x":-1140,"y":-80,"width":860,"height":800,"label":"Owners — actors with an Id used as OwnerFK"},
+		{"id":"grp_resspawn","type":"group","x":240,"y":1120,"width":780,"height":260,"label":"Resource spawn — data → systems"},
 		{"id":"economy","type":"text","text":"Economy","x":-1700,"y":200,"width":180,"height":70,"color":"6"},
 		{"id":"legend","type":"text","text":"ЛЕГЕНДА\n\nPK = власний унікальний id сутності\nFK = збережений PK іншої сутності\nTag = дискримінатор таблиці (key + Tag)\nOwnerFK = один з {CityId, MayorId, NobleId} на ownable\n\nВузли:\n  🟢 зелений = PK\n  🟠 помаранчевий = Tag (дискримінатор)\n  🟣 фіолетовий = FK / OwnerFK\n  🔵 блакитний = IdAllocator (world)\n\nРебра:\n  звичайне = composition / ownership\n  🟣 (FK) = крос-сутнісний зовнішній ключ\n  🔵 (allocates) = генерація id\n\nВласність (SoA): ownable несе один owner-FK.\nЗапит: With<OwnerId> + With<Tag> →\nAsMultiMap<OwnerId>  (ніколи bare)","x":-1720,"y":360,"width":440,"height":520,"color":"3"},
 		{"id":"22be04823c9ee3ee","type":"text","text":"Mayor","x":-1100,"y":0,"width":200,"height":60},
@@ -43,11 +45,17 @@
 		{"id":"alloc_b","type":"text","text":"BuildingIdAllocator\nworld • next:int • +1 • save/load","x":1170,"y":370,"width":250,"height":70,"color":"5"},
 		{"id":"rtag","type":"text","text":"ResourceTag","x":580,"y":690,"width":190,"height":46,"color":"2"},
 		{"id":"rofk","type":"text","text":"OwnerFK: CityId | MayorId | NobleId","x":580,"y":760,"width":300,"height":46,"color":"6"},
-		{"id":"dd4a52aea3da996d","x":580,"y":980,"width":190,"height":50,"type":"text","text":"ResourceCategory"},
-		{"id":"grp_resspawn","type":"group","x":240,"y":1120,"width":780,"height":260,"label":"Resource spawn — data → systems"},
+		{"id":"dd4a52aea3da996d","type":"text","text":"ResourceCategory","x":580,"y":980,"width":190,"height":50},
 		{"id":"sys_resinit","type":"text","text":"✅ ResourceInitSpawnSystem\n@MapCreation • City + Mayor\n→ full loadout (Amount 0)\nhelper: ResourceLoadoutSpawner","x":300,"y":1170,"width":300,"height":90},
 		{"id":"evt_noblespawn","type":"text","text":"⏳ NobleSpawnEvent (deferred)\npayload-less pulse • domain Noble","x":300,"y":1290,"width":300,"height":70,"color":"1"},
-		{"id":"sys_resnoble","type":"text","text":"⏳ ResourceNobleSpawnSystem (deferred)\nreactive @Gameplay • reconcile Noble table → loadout","x":660,"y":1290,"width":340,"height":70,"color":"1"}
+		{"id":"sys_resnoble","type":"text","text":"⏳ ResourceNobleSpawnSystem (deferred)\nreactive @Gameplay • reconcile Noble table → loadout","x":660,"y":1290,"width":340,"height":70,"color":"1"},
+		{"id":"93c2fcdf659c252d","type":"text","text":"Resource","x":-1570,"y":1780,"width":250,"height":60,"color":"1"},
+		{"id":"9391cdb203583887","type":"text","text":"Population","x":-1080,"y":2080,"width":250,"height":60},
+		{"id":"bfa73e45cc6ede06","type":"text","text":"Districts","x":-1055,"y":1810,"width":250,"height":60},
+		{"id":"54261eaf6164d9d9","type":"text","text":"Buildings","x":-715,"y":1810,"width":250,"height":60},
+		{"id":"318ce56ea4aac14b","x":-846,"y":2378,"width":250,"height":60,"color":"1","type":"text","text":"Actions"},
+		{"id":"e07f213d6de6f3ad","x":-1835,"y":1961,"width":390,"height":417,"color":"3","type":"text","text":"Це ресурси такі як: дерево, глина, зерно, пиво, хліб.\nАле так само: житло, задоволення таверною, комфорт це теж може бути зведене до ресурсу.\nТоді ми маємо 2 типи ресурсів:\n1 - накопичувальний/витратний - це такі ресурси як глина, зерно. Ми їх накопичуємо кожен крок і витрачаємо так само.\n2 - лімітований - наприклад житло, чи таверна. Вони задають планку максимального значення. Наприклад якщо в нас будинків на 200 людей, то це той максимум який задовольняє потребу.\n"},
+		{"id":"4481b529c302816c","type":"text","text":"Actors","x":-295,"y":1640,"width":250,"height":60,"color":"1"}
 	],
 	"edges":[
 		{"id":"e1","fromNode":"economy","fromSide":"right","toNode":"district","toSide":"left"},
@@ -94,6 +102,21 @@
 		{"id":"496b2784f7f4fda4","fromNode":"resources","fromSide":"right","toNode":"dd4a52aea3da996d","toSide":"left"},
 		{"id":"e_resinit_w","fromNode":"sys_resinit","fromSide":"top","toNode":"resources","toSide":"bottom","label":"writes"},
 		{"id":"e_noble_trig","fromNode":"evt_noblespawn","fromSide":"right","toNode":"sys_resnoble","toSide":"left","label":"triggers"},
-		{"id":"e_resnoble_w","fromNode":"sys_resnoble","fromSide":"top","toNode":"resources","toSide":"bottom","label":"writes (Noble)"}
+		{"id":"e_resnoble_w","fromNode":"sys_resnoble","fromSide":"top","toNode":"resources","toSide":"bottom","label":"writes (Noble)"},
+		{"id":"5c169caabd8b4110","fromNode":"93c2fcdf659c252d","fromSide":"right","toNode":"4481b529c302816c","toSide":"left"},
+		{"id":"fb6029b249539d82","fromNode":"bfa73e45cc6ede06","fromSide":"right","toNode":"54261eaf6164d9d9","toSide":"left"},
+		{"id":"f1e0dfc98a19e6f8","fromNode":"93c2fcdf659c252d","fromSide":"right","toNode":"9391cdb203583887","toSide":"left"},
+		{"id":"0793266d3a1b5a11","fromNode":"93c2fcdf659c252d","fromSide":"right","toNode":"bfa73e45cc6ede06","toSide":"left"},
+		{"id":"0c9b600bfe928d85","fromNode":"bfa73e45cc6ede06","fromSide":"right","toNode":"4481b529c302816c","toSide":"left"},
+		{"id":"4ab86168d01b21f2","fromNode":"54261eaf6164d9d9","fromSide":"right","toNode":"4481b529c302816c","toSide":"left"},
+		{"id":"76836c356a4896f8","fromNode":"9391cdb203583887","fromSide":"right","toNode":"bfa73e45cc6ede06","toSide":"left"},
+		{"id":"baded4b5d7297128","fromNode":"9391cdb203583887","fromSide":"right","toNode":"54261eaf6164d9d9","toSide":"left"},
+		{"id":"1bdf40704c121e86","fromNode":"9391cdb203583887","fromSide":"right","toNode":"4481b529c302816c","toSide":"left"},
+		{"id":"3d8e436a04d0b7c9","fromNode":"93c2fcdf659c252d","fromSide":"bottom","toNode":"e07f213d6de6f3ad","toSide":"top"},
+		{"id":"6e37a90d84ff76cb","fromNode":"93c2fcdf659c252d","fromSide":"bottom","toNode":"318ce56ea4aac14b","toSide":"left"},
+		{"id":"7b9cd5139c4dea31","fromNode":"9391cdb203583887","fromSide":"bottom","toNode":"318ce56ea4aac14b","toSide":"top"},
+		{"id":"dae0d638b1a2273c","fromNode":"bfa73e45cc6ede06","fromSide":"bottom","toNode":"318ce56ea4aac14b","toSide":"top"},
+		{"id":"769b6a45dc79595f","fromNode":"54261eaf6164d9d9","fromSide":"bottom","toNode":"318ce56ea4aac14b","toSide":"top"},
+		{"id":"82a2e983fef6b28c","fromNode":"4481b529c302816c","fromSide":"bottom","toNode":"318ce56ea4aac14b","toSide":"top"}
 	]
 }

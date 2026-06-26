@@ -11,7 +11,7 @@ related:
 
 Generated doc map for FantasyMayor. **Do not hand-edit** — run `python3 Tools/gen_index.py` after changing any doc's frontmatter. Data source: each doc's frontmatter (`category`/`read`/`trigger`/`status`) and its first line. See `DOC_STANDARD.md`.
 
-Totals: 33 docs — 4 always · 5 trigger · 24 reference.
+Totals: 34 docs — 4 always · 5 trigger · 25 reference.
 
 ## Read at start (always)
 
@@ -40,7 +40,8 @@ Per-module navigation docs. `status` mirrors each module's `## Current State`.
 
 | Doc | Cat | Status | What it is |
 |---|---|---|---|
-| [Actors](Assets/Domains/Actors/ACTORS.md) | A | scaffold | Game-rule domain owning actor identities. First domain under `Assets/Domains/` (precedent for the root). |
+| [Actions](Assets/Domains/Actions/ACTIONS.md) | A | scaffold | The application / orchestration layer: actor verbs and cross-domain turn processing. Depends on both |
+| [Actors](Assets/Domains/Actors/ACTORS.md) | A | partial | Game-rule domain owning actor identities **and their startup composition**. First domain under |
 | [Economy](Assets/Domains/Economy/ECONOMY.md) | A | partial | Game-rule domain owning economic objects: inventory resources now; districts and buildings later. |
 | [TerrainGenerator](Assets/Domains/Map/Generation/TERRAIN_GENERATOR.md) | A | implemented | Procedural terrain generation: hex grid creation, mountains with foothills, and water (river / lake / sea). |
 | [HexCore](Assets/Domains/Map/Hex/HEX_CORE.md) | A | implemented | Core hex grid data structures and the per-hex terrain type. |

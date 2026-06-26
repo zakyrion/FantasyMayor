@@ -2,8 +2,12 @@
     "name": "Domains.Actors",
     "rootNamespace": "",
     "references": [
+        "Domains.Economy",
         "DefaultECS.Extensions",
         "Boot.Core",
+        "Core",
+        "Addressables.Core",
+        "Unity.Collections",
         "VContainer",
         "UniTask"
     ],

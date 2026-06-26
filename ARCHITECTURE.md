@@ -111,8 +111,9 @@ Game-rule bounded contexts — pure data + logic, with **no view/render dependen
 | Domain | Assembly | Current responsibility |
 |---|---|---|
 | `Map` | `Domains.Map` | The world-map bounded context: hex grid + terrain types (`Hex/`), procedural map generation (`Generation/` — `MapGenerationSystem` + Mountain/River/Lake/Sea subsystems, on `MapGenerationStep`), natural per-hex resources (`HexResources/`: Forest/Clay/Fish), hex pathfinding (`Pathfinding/`) |
-| `Economy` | `Domains.Economy` | Inventory resources + districts; reads `Domains.Map` (hex types) and `Domains.Actors` (owner ids) |
-| `Actors` | `Domains.Actors` | Actor identities (City, Mayor) — id components + spawn |
+| `Economy` | `Domains.Economy` | Owner-agnostic economic substrate: inventory resource types + the generic `ResourceLoadoutSpawner` mechanism, district scaffold; reads `Domains.Map` (hex types). No actor dependency |
+| `Actors` | `Domains.Actors` | Actor identities (City, Mayor) + startup composition: per-actor spawn, Mayor config/loader, resource loadout; reads `Domains.Economy` |
+| `Actions` | `Domains.Actions` | Application/orchestration layer: actor verbs + cross-domain turn processing; reads `Domains.Economy` + `Domains.Actors`. SCAFFOLD — no systems yet |
 
 ## Presentation Layer (`Assets/Presentation/`, one asmdef `Presentation`)
 
@@ -185,7 +186,8 @@ Three top-level code layers, boundary enforced by asmdef references:
 
 - **Domain** (`Assets/Domains/<Name>/`) = a game-rule **bounded context** (DDD-strategic): owns its
   entity tables and turn-phase logic. Pure data + logic, **free of any view/render dependency**.
-  Current: `Map`, `Economy`, `Actors`.
+  Current: `Map`, `Economy`, `Actors`, `Actions`. They form the DAG **substrate → agents → verbs**:
+  `Map`/`Economy` (leaves) → `Actors` (agents) → `Actions` (verbs).
 - **Presentation** (`Assets/Presentation/`) = the consolidated **render/view layer** (one assembly):
   terrain/resource/icon views. Depends one-way on the domains it renders; **domains never depend on it**.
 - **Module** (`Assets/Modules/`) = engine-facing infrastructure & UI plumbing: addressables, input,
@@ -200,8 +202,10 @@ patterns (aggregates/repositories), which ECS expresses as tables + systems.
 
 - One asmdef per domain and one for presentation (feature subfolders inside; namespaces follow:
   `Domains.Map.Hex.*`, `Presentation.Terrain.*`, …).
-- Cross-domain reads are expected (e.g. `Economy → Map` for hex types, `Economy → Actors` for owner ids)
-  and MUST be declared in `ECS_REFERENCE.md` (Cross-Module Component Reads).
+- Cross-domain dependencies are expected (e.g. `Economy → Map` for hex types, `Actors → Economy` for the
+  resource substrate, `Actions → {Economy, Actors}`) and MUST be declared in `ECS_REFERENCE.md`
+  (Cross-Module Component Reads). Direction follows the substrate→agents→verbs DAG — owner-keyed logic
+  lives in `Actors`/`Actions`, never in the owner-agnostic `Economy` substrate.
 - The Module Layout Rules above apply to all three layers (each feature/sub-area keeps the
   `Components`/`Systems`/… split).
 
