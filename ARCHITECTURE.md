@@ -28,8 +28,8 @@ related:
 FantasyMayor/
 ├─ Assets/
 │  ├─ Domains/                # Game-rule bounded contexts (Map, Economy, Actors) — one asmdef each
-│  ├─ Presentation/           # Render/view layer (terrain, resources, icons) — one asmdef
-│  ├─ Modules/                # Engine-facing / infra / UI feature modules
+│  ├─ Presentation/           # Render/view tier: world views (Presentation) + HUD (Presentation.UI under UI/)
+│  ├─ Modules/                # Engine-facing / infra feature modules
 │  ├─ Scripts/                # Shared runtime primitives and app-root installers
 │  ├─ Addressables/           # Authored addressable content and config assets
 │  ├─ AddressableAssetsData/  # Addressables editor configuration
@@ -59,7 +59,7 @@ FantasyMayor/
 ## Source Of Truth
 | What | Where |
 |---|---|
-| Feature and domain runtime code | `Assets/Modules/*` |
+| Feature and domain runtime code | `Assets/Modules/*`, `Assets/Domains/*`, `Assets/Presentation/*` |
 | Shared utility primitives (`Box<T>`, `Result<T>`, `FrameBox<T>`, `StateAllowedAttribute`) | `Assets/Scripts/Core` |
 | Shared ECS base systems and loop contracts | `Assets/Scripts/DefaultECSExtensions` |
 | App-root DI composition | `Assets/Scripts/Installers/*` |
@@ -99,7 +99,6 @@ Modules are now **engine-facing / infra / UI only**. The former Hex/Terrain feat
 | `Cameras` | `Cameras` | Owns the active scene camera as a world component (`CameraComponent`), decoupled from consumers |
 | `Configs` | no dedicated asmdef | Generic config provider abstractions used by runtime code |
 | `CurveBuilders` | `CurveBuilders` | Shared curve builder contract |
-| `MainUI` | `MainUI` | Main UI module (per-window subfolders): generator menu (MainMenu state), selection-driven hex info panel (Gameplay), End Turn button (Gameplay HUD) |
 | `MainCanvas` | `MainCanvas.Core`, `MainCanvas.Implementation` | Root canvas abstraction and provider implementation; DI registration lives in `WorldInstaller` |
 | `UserInput` | `UserInput` | Camera and player input ECS bridge plus camera movement config flow |
 | `Turn` | `Turn` | Turn-phase orchestration engine: on a turn pulse runs ordered phase subsystems off the main thread and signals "turn in progress" via a world component. SCAFFOLD — no phases yet |
@@ -115,16 +114,22 @@ Game-rule bounded contexts — pure data + logic, with **no view/render dependen
 | `Actors` | `Domains.Actors` | Actor identities (City, Mayor) + startup composition: per-actor spawn, Mayor config/loader, resource loadout; reads `Domains.Economy` |
 | `Actions` | `Domains.Actions` | Application/orchestration layer: actor verbs + cross-domain turn processing; reads `Domains.Economy` + `Domains.Actors`. SCAFFOLD — no systems yet |
 
-## Presentation Layer (`Assets/Presentation/`, one asmdef `Presentation`)
+## Presentation Layer (`Assets/Presentation/`)
 
-The entire render/view layer, consolidated into one assembly. Depends one-way on `Domains.Map`
-(plus `Cameras`, `CurveBuilders`); **domains never depend on it**.
+The render/view **tier**. Two dev-assemblies, both one-way onto the domains they render; **domains never
+depend on either**:
+- **`Presentation`** — the world/scene view (terrain, hex resources, hex icons), `Assets/Presentation/`
+  root. Depends one-way on `Domains.Map` (plus `Cameras`, `CurveBuilders`).
+- **`Presentation.UI`** — the screen-space HUD (UI Toolkit + App UI), `Assets/Presentation/UI/`. The former
+  `MainUI` module, relocated into this tier. Depends on `Presentation` (shares icon configs) plus
+  `Domains.Map` / `Domains.Economy` / `Domains.Actors` / `Turn`. Namespaces `Presentation.UI.*`.
 
-| Sub-area | Former module | Responsibility |
-|---|---|---|
-| `Terrain/` | `Terrain.View` | Terrain mesh, textures, water view, isolines, smoothing, runtime view systems |
-| `HexResources/` | `HexResourcesView` | Resource visualization (forest/clay/fish views, ground painting) |
-| `HexIcons/` | `HexIcons` | Screen-space per-hex icon overlay |
+| Sub-area | Assembly | Former module | Responsibility |
+|---|---|---|---|
+| `Terrain/` | `Presentation` | `Terrain.View` | Terrain mesh, textures, water view, isolines, smoothing, runtime view systems |
+| `HexResources/` | `Presentation` | `HexResourcesView` | Resource visualization (forest/clay/fish views, ground painting) |
+| `HexIcons/` | `Presentation` | `HexIcons` | Screen-space per-hex icon overlay |
+| `UI/` | `Presentation.UI` | `MainUI` | Screen-space HUD (per-window subfolders): generator menu (MainMenu state), selection-driven hex info panel (Gameplay), End Turn button + context tabs, left-edge resource bar |
 
 ## Module Layout Rules
 
@@ -188,10 +193,11 @@ Three top-level code layers, boundary enforced by asmdef references:
   entity tables and turn-phase logic. Pure data + logic, **free of any view/render dependency**.
   Current: `Map`, `Economy`, `Actors`, `Actions`. They form the DAG **substrate → agents → verbs**:
   `Map`/`Economy` (leaves) → `Actors` (agents) → `Actions` (verbs).
-- **Presentation** (`Assets/Presentation/`) = the consolidated **render/view layer** (one assembly):
-  terrain/resource/icon views. Depends one-way on the domains it renders; **domains never depend on it**.
-- **Module** (`Assets/Modules/`) = engine-facing infrastructure & UI plumbing: addressables, input,
-  cameras, canvas, boot, config providers, shared kernels (`AxialSystem`, `CurveBuilders`), UI windows.
+- **Presentation** (`Assets/Presentation/`) = the **render/view tier**: world/scene views (`Presentation`
+  assembly: terrain/resource/icon) + the screen-space HUD (`Presentation.UI` assembly: the former `MainUI`,
+  under `UI/`). Each depends one-way on the domains it renders; **domains never depend on it**.
+- **Module** (`Assets/Modules/`) = engine-facing infrastructure plumbing: addressables, input,
+  cameras, canvas, boot, config providers, shared kernels (`AxialSystem`, `CurveBuilders`).
 
 **Why this shape.** This is **DDD-strategic bounded contexts + a layered presentation tier**, on top of a
 **DoD/ECS** data substrate. DDD (Evans) deliberately isolates the domain model from UI/infra, so pulling
@@ -200,8 +206,9 @@ all views into one layer is *pro*-DDD, not vertical-slice. DoD's "no hierarchy" 
 We borrow DDD's **strategic** half (contexts, ubiquitous language, layering), not its OO **tactical**
 patterns (aggregates/repositories), which ECS expresses as tables + systems.
 
-- One asmdef per domain and one for presentation (feature subfolders inside; namespaces follow:
-  `Domains.Map.Hex.*`, `Presentation.Terrain.*`, …).
+- One asmdef per domain; the presentation tier has two (`Presentation` for world views, `Presentation.UI`
+  for the HUD) — feature subfolders inside; namespaces follow: `Domains.Map.Hex.*`, `Presentation.Terrain.*`,
+  `Presentation.UI.ResourceBar.*`, …).
 - Cross-domain dependencies are expected (e.g. `Economy → Map` for hex types, `Actors → Economy` for the
   resource substrate, `Actions → {Economy, Actors}`) and MUST be declared in `ECS_REFERENCE.md`
   (Cross-Module Component Reads). Direction follows the substrate→agents→verbs DAG — owner-keyed logic
@@ -527,7 +534,6 @@ any code there.
 | `Cameras` | `Assets/Modules/Cameras/CAMERAS.md` |
 | `Configs` | `Assets/Modules/Configs/CONFIGS.md` |
 | `CurveBuilders` | `Assets/Modules/CurveBuilders/CURVE_BUILDERS.md` |
-| `MainUI` | `Assets/Modules/MainUI/MAIN_UI.md` |
 | `MainCanvas` | `Assets/Modules/MainCanvas/MAIN_CANVAS.md` |
 | `UserInput` | `Assets/Modules/UserInput/USER_INPUT.md` |
 | `Turn` | `Assets/Modules/Turn/TURN.md` |
@@ -542,3 +548,4 @@ any code there.
 | `Presentation/Terrain` | `Assets/Presentation/Terrain/TERRAIN_VIEW.md` |
 | `Presentation/HexResources` | `Assets/Presentation/HexResources/HEXRESOURCESVIEW.md` |
 | `Presentation/HexIcons` | `Assets/Presentation/HexIcons/HEXICONS.md` |
+| `Presentation/UI` (`Presentation.UI`) | `Assets/Presentation/UI/MAIN_UI.md` |

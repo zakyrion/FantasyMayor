@@ -246,12 +246,12 @@ ENTITY: EndTurnView  (singleton)
   READS: EndTurnSystem (base/anchor set — per-frame Gameplay state mirror; also reads TurnCountComponent)
   Note: the cluster starts hidden; EndTurnSystem reveals it in Gameplay, reflects TurnProcessorComponent
         presence as the Processing look, and pushes TurnCountComponent.Value into "Хід N". The
-        click→NextTurnEvent emit lives in EndTurnView (module MainUI).
+        click→NextTurnEvent emit lives in EndTurnView (Presentation.UI).
 
 ENTITY: ResourceBarView  (singleton)
   Components: ResourceBarViewComponent (View → the ResourceBarView MonoBehaviour), UITag
   WRITES: ResourceBarSpawnSubSystem (run by MainUISpawnSystem at pipeline 800 — GetComponentInChildren off
-          the shared UI/MainUI instance; builds the strip columns from InventoryResourceIconConfigComponent,
+          the shared UI/MainUI instance; builds the left-panel resource rows from InventoryResourceIconConfigComponent,
           then leaves the bar hidden)
   READS: ResourceBarSystem (base/anchor set — per-frame Gameplay; reveals the strip and fills City + Mayor
          inventory amounts each frame)
@@ -319,11 +319,11 @@ WORLD: TurnCountComponent  (module Turn)
   Fields: Value (current turn number; immutable readonly struct — advance via world.Set)
   WRITES: GameplayState.EnterAsync (seed Value = 1 on Gameplay enter),
           TurnCountSystem (Set Value + 1 on each TurnCompletedEvent)
-  READS: EndTurnSystem (module MainUI — pushes Value into the "Хід N" label; throws if unseeded)
+  READS: EndTurnSystem (Presentation.UI — pushes Value into the "Хід N" label; throws if unseeded)
   Note: the current-turn counter. First Mayor Phase = turn 1; TurnCountSystem (Priority 1010, above the
         processor's 1000) increments on the TurnCompletedEvent pulse the same frame it is emitted.
 
-WORLD: ContextTabsViewComponent  (module MainUI, window ContextTabs)
+WORLD: ContextTabsViewComponent  (Presentation.UI, window ContextTabs)
   Fields: View (→ the ContextTabsView MonoBehaviour)
   WRITES: ContextTabsSpawnSubSystem (world.Set at pipeline 800 — GetComponentInChildren off the shared
           UI/MainUI instance)
@@ -332,7 +332,7 @@ WORLD: ContextTabsViewComponent  (module MainUI, window ContextTabs)
   Note: world singleton (this window has NO singleton entity) — same view-reference role as the
         entity-based EndTurnView/HexInfoPanelView, but stored on the world.
 
-WORLD: ActiveContextTabComponent  (module MainUI, window ContextTabs)
+WORLD: ActiveContextTabComponent  (Presentation.UI, window ContextTabs)
   Fields: Value (ContextTab enum: Overview | Buildings | Actions; Unknown=0 sentinel)
   WRITES: ContextTabsSpawnSubSystem (seed Overview on spawn), ContextTabsView (World.Set on tab click)
   READS: ContextTabSelectionSystem (reconciles the active highlight on the tab-changed pulse)
@@ -423,7 +423,7 @@ WORLD: HexTerrainIconConfigComponent  (HexesUI)
   WRITES: HexTerrainIconConfigLoaderSystem
   READS: HexInfoPanelHeaderSystem (terrain icon + name in the panel header)
 
-WORLD: InventoryResourceIconConfigComponent  (module MainUI, window ResourceBar)
+WORLD: InventoryResourceIconConfigComponent  (Presentation.UI, window ResourceBar)
   WRITES: InventoryResourceIconConfigLoaderSystem
   READS: ResourceBarSpawnSubSystem (builds the resource-strip columns from the entries at MapCreation)
   Note: wraps the InventoryResourceIconConfig Box so sprites stay loaded. The entry list also DEFINES the
@@ -484,7 +484,7 @@ EVENT: SelectedHexChangedEvent
         payload).
 
 EVENT: ContextTabChangedEvent
-  Producer: ContextTabsView (module MainUI, window ContextTabs) — on a tab click, after it writes the
+  Producer: ContextTabsView (Presentation.UI, window ContextTabs) — on a tab click, after it writes the
             new ActiveContextTabComponent
   Consumer: ContextTabSelectionSystem (560) — reconciles the active-tab highlight from
             ActiveContextTabComponent
@@ -501,7 +501,7 @@ EVENT: ForestHexAppearedEvent / ForestHexRemovedEvent
         these pulses cover runtime changes only.
 
 EVENT: NextTurnEvent
-  Producer: EndTurnView (module MainUI) — the End Turn button creates NextTurnEvent + EventTag on click
+  Producer: EndTurnView (Presentation.UI) — the End Turn button creates NextTurnEvent + EventTag on click
             (future: AI turn advance may also emit)
   Consumer: TurnProcessorSystem — starts a turn: Set TurnProcessorComponent, run phases off-thread
   Lifetime: 1 frame
@@ -618,7 +618,7 @@ draws); reads that used to cross the old HexResourcesView/HexIcons/TerrainView m
 ```
 TerrainViewConfigComponent     (Presentation) read by UserInput (CameraMovementSystem, HexSelectionSystem)
                                → CellSize used for raycast plane and camera bounds
-HexIdComponent                 (Map) read by Presentation (resource + icon views) and HexesUI (MainUI)
+HexIdComponent                 (Map) read by Presentation (resource + icon views) and HexesUI (Presentation.UI)
                                → the universal hex foreign key (joins across all hex-keyed tables)
 HexResourcesComponent          (Map) read by Presentation (icon rebuild), HexesUI (info panel rows)
 VertexGridComponent            (Presentation) read within Presentation (planting heights, icon
@@ -633,7 +633,7 @@ ResourceComponent / ResourceType / ResourceLoadoutSpawner  (Economy) used by Act
 MapGenerationConfig hex types (HexTerrainType)  read by Economy (DistrictBuildingConfig) — cross-domain
                                Economy→Map (districts gate on hex type).
 CityIdComponent / CityTag / MayorIdComponent / MayorTag  (Actors) and ResourceComponent / ResourceTag
-                               (Economy)  read by MainUI (ResourceBarSystem) — fills the top-bar resource
-                               strip with City + Mayor pools. Cross-layer MainUI→{Actors,Economy} (UI reads
-                               domain state; domains never depend on MainUI).
+                               (Economy)  read by Presentation.UI (ResourceBarSystem) — fills the left-edge
+                               resource panel with City + Mayor pools. Cross-layer Presentation.UI→{Actors,
+                               Economy} (UI reads domain state; domains never depend on Presentation.UI).
 ```

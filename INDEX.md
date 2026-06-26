@@ -54,11 +54,6 @@ Per-module navigation docs. `status` mirrors each module's `## Current State`.
 | [Configs](Assets/Modules/Configs/CONFIGS.md) | A | implemented | Generic async loader pattern for ScriptableObject configs from Addressables. |
 | [CurveBuilders](Assets/Modules/CurveBuilders/CURVE_BUILDERS.md) | A | implemented | Interface contract for building and evaluating animation curves used in terrain generation. |
 | [MainCanvas](Assets/Modules/MainCanvas/MAIN_CANVAS.md) | A | implemented | Singleton provider for the main UI canvas root, behind an interface for DI. |
-| [Context Tabs — Tab Row of the Context Sub-Panel](Assets/Modules/MainUI/ContextTabs/CONTEXT_TABS.md) | B | — | The **tab row** (Огляд / Будівлі / Дії) of the bottom panel's context sub-panel |
-| [Turn Corner (End Turn) — Turn Sub-Panel](Assets/Modules/MainUI/EndTurn/END_TURN.md) | B | — | The **TURN sub-panel** (left) of the shared bottom panel (`GENERAL_UI_STYLE.md` §4): the turn number «Хід N», two |
-| [Hex Info Panel — Context Sub-Panel](Assets/Modules/MainUI/HexInfoPanel/HEX_INFO_PANEL.md) | B | — | The read-only **CONTEXT sub-panel** (right) of the shared bottom panel: everything known about the currently |
-| [MainUI](Assets/Modules/MainUI/MAIN_UI.md) | A | partial | The **Main UI module** — the game's UI-window home. Currently owns three windows: the terrain-generator |
-| [ResourceBar](Assets/Modules/MainUI/ResourceBar/RESOURCE_BAR.md) | A | partial | The top-bar **resource strip**: the `GENERAL_UI_STYLE.md` §4 top-bar CENTER only — the resource pool as an |
 | [Turn](Assets/Modules/Turn/TURN.md) | A | scaffold | Engine that runs a game turn: on a turn pulse it fires an ordered set of phase subsystems off the main thread and signals "a turn is being processed" so other systems can gate. |
 | [UserInput](Assets/Modules/UserInput/USER_INPUT.md) | A | implemented | Bridges Unity InputSystem to ECS: camera pan/drag/zoom and hex selection. |
 | [HexIcons](Assets/Presentation/HexIcons/HEXICONS.md) | A | partial | Manages per-hex UI icon badges using a UI Toolkit Screen-Space overlay. |
@@ -66,4 +61,9 @@ Per-module navigation docs. `status` mirrors each module's `## Current State`.
 | [Presentation](Assets/Presentation/PRESENTATION.md) | A | implemented | The consolidated render/view layer: terrain mesh + water, resource visuals, and the screen-space hex-icon overlay. |
 | [TerrainView](Assets/Presentation/Terrain/TERRAIN_VIEW.md) | A | implemented | Renders procedural terrain: subdivided hex mesh, isoline height fields, erosion, procedural |
 | [WATER_VIEW_SETUP.md](Assets/Presentation/Terrain/WATER_VIEW_SETUP.md) | A | stub | Замінити на Uber-Stylized-Water. |
+| [Context Tabs — Tab Row of the Context Sub-Panel](Assets/Presentation/UI/ContextTabs/CONTEXT_TABS.md) | B | — | The **tab row** (Огляд / Будівлі / Дії) of the bottom panel's context sub-panel |
+| [Turn Corner (End Turn) — Turn Sub-Panel](Assets/Presentation/UI/EndTurn/END_TURN.md) | B | — | The **TURN sub-panel** (left) of the shared bottom panel (`GENERAL_UI_STYLE.md` §4): the turn number «Хід N», two |
+| [Hex Info Panel — Context Sub-Panel](Assets/Presentation/UI/HexInfoPanel/HEX_INFO_PANEL.md) | B | — | The read-only **CONTEXT sub-panel** (right) of the shared bottom panel: everything known about the currently |
+| [MainUI](Assets/Presentation/UI/MAIN_UI.md) | A | partial | The **`Presentation.UI` assembly** (`Assets/Presentation/UI/`, namespaces `Presentation.UI.*`) — the |
+| [ResourceBar](Assets/Presentation/UI/ResourceBar/RESOURCE_BAR.md) | A | partial | The **left-edge resource panel**: the two inventory pools (City / Mayor) as a vertical scroll list. The |
 

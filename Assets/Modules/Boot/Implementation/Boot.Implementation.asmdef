@@ -7,7 +7,7 @@
         "DefaultECS.Extensions",
         "UniTask",
         "Domains.Map",
-        "MainUI",
+        "Presentation.UI",
         "UserInput",
         "Presentation",
         "Turn"

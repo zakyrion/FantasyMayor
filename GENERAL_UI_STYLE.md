@@ -4,8 +4,8 @@ read: trigger
 trigger: "before creating or changing UI (UI Toolkit, panels, tokens, USS)"
 tags: [ui, style, reference]
 related:
-  - "[MAIN_UI](Assets/Modules/MainUI/MAIN_UI.md)"
-  - "[HEX_INFO_PANEL](Assets/Modules/MainUI/HexInfoPanel/HEX_INFO_PANEL.md)"
+  - "[MAIN_UI](Assets/Presentation/UI/MAIN_UI.md)"
+  - "[HEX_INFO_PANEL](Assets/Presentation/UI/HexInfoPanel/HEX_INFO_PANEL.md)"
 ---
 
 # GENERAL_UI_STYLE.md
@@ -31,6 +31,10 @@ tokens, a component catalog, and the procedure for designing any new panel or wi
 > Open it when a verbal description is ambiguous. It renders the FILLED context state; the empty STATE is
 > described in §4. (The earlier `index.html` / `main-screen.html` mockups were superseded by this render and
 > removed — do NOT look for them.)
+>
+> **Layout drift since the render:** the render shows the resource pool in the TOP bar. The live layout moved
+> resources to a permanent **LEFT-edge panel** and thinned the top bar (§4). For resource placement, §4 is
+> authoritative over this render.
 
 ---
 
@@ -62,8 +66,8 @@ How to use it:
   actions next to the state it shows — see §9. The **«Завершити хід»** turn-commit is just the most prominent
   such action, not a special exception.
 - **UI on the edges, center always clean.** The map center is where play happens. All permanent HUD lives on
-  the top edge and the bottom edge; the left and right edges stay free of permanent panels. Never cover the
-  center with a permanent panel.
+  the top edge, the bottom edge, and the **left edge** (the resource panel); the **right edge** stays free of
+  permanent panels. Never cover the center with a permanent panel.
 - **Progressive disclosure.** A panel is one surface that **grows in sections** with the data available. An
   always-present part first, then conditional sections appended only when their data exists. **Never render an
   empty section** as a placeholder — omit it (the bottom panel's empty STATE is a deliberate, designed
@@ -110,13 +114,14 @@ regions. The render reference is `design-mockups/FantasyMayor-HUD.html`.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  TOP BAR (full width)                                         │
-│  [global windows]      [resource pool]      [system icons]    │
-│                                                               │
-│                                                               │
-│                     MAP — center stays clean                  │
-│                                                               │
-│                                                               │
+│  TOP BAR (full width, thin)  [global windows]  [system icons] │
+│ ┌────────┐                                                    │
+│ │RESOURCE│                                                    │
+│ │ PANEL  │              MAP — center stays clean              │
+│ │ (left  │                                                    │
+│ │  edge) │                                                    │
+│ │City/Мер│                                                    │
+│ └────────┘                                                    │
 │  ┌──────────────┬──────────────────────────────────────────┐ │
 │  │ TURN          │  CONTEXT — selected hex / district        │ │
 │  │ (state+commit)│  (tabs → full window)                     │ │
@@ -127,15 +132,17 @@ regions. The render reference is `design-mockups/FantasyMayor-HUD.html`.
 
 ### Regions
 
-- **Top bar — full width, permanent.** Three zones:
+- **Top bar — full width, permanent, THIN.** Two zones (the resource pool moved OUT to the left panel, so the
+  bar is now a thin strip):
   - **left — global window openers.** Buttons that open read-only full-screen state windows (Огляд,
     Населення, Економіка, Райони, …). These are global (not tied to a selection).
-  - **center — resource pool, as an owner×resource matrix.** Rows = the pool owners (Мер, Місто); columns =
-    the shared resource set (золото, їжа, колоди, дошки, …) as `icon + value`, with the Мер row also carrying
-    its AP (⚖️) and a second leadership stat (🔥). Each owner reads its own value in the same column; values
-    are role-colored where a role owns them. A trailing `⋯` expander opens the fuller resource window.
   - **right — system icons.** Events (with a count badge) and settings. **No season / turn-calendar here** —
     season and phase are not shown anywhere on the HUD.
+- **Left edge — resource panel, permanent.** The two inventory pools (City `Місто` / Mayor `Мер`) as a
+  **vertical scroll list**: one row per resource (`icon + City value + Mayor value`, role-colored — city blue,
+  mayor gold), with a static owner header (`Місто` / `Мер`) above the scroll area. The icon is the unified
+  square plate (§7). Resources-only: the Mayor's AP / leadership stats live in the turn sub-panel, not here.
+  This panel eats map WIDTH (not height), so it sits outside the vertical HUD-height budget.
 - **Bottom panel — full width, permanent, two sub-panels** divided by a vertical divider:
   - **left sub-panel — turn (state + commit).** «Хід N», two AP tiles (`Дії зараз` / `наст. хід`), and the
     **«Завершити хід»** button pinned to the bottom (`margin-top: auto`). This is the player's turn corner;
@@ -148,8 +155,8 @@ regions. The render reference is `design-mockups/FantasyMayor-HUD.html`.
     k-v), **ПРАЦЯ ТА ВИРОБНИЦТВО** (one labor line + production table). The **Дії** tab hosts the selected
     district's actions as a **list of action buttons** (icon + name + AP cost); clicking one opens its
     submenu / detail subpanel (§9).
-- **Left edge / right edge — free.** No permanent panels. (There is NO right-side hex inspector — its role is
-  the bottom panel's right sub-panel.)
+- **Left edge — the resource panel** (see above). **Right edge — free.** No permanent panel on the right.
+  (There is NO right-side hex inspector — its role is the bottom panel's right sub-panel.)
 - **Center — the map.** Never covered by a permanent panel.
 
 ### Region roles
@@ -510,7 +517,7 @@ How to assemble any panel. This is the default; deviate only with a stated reaso
 - **A root/controller system owns the shared instance.** It loads the panel (addressables), owns the instance
   and handle (dispose per `ADDRESSABLE_PATTERNS.md`), and shows/hides the whole panel. Block systems own only
   their own block. (Current idiom: `MainUISpawnSystem` instantiates one `UI/MainUI` prefab; spawn subsystems
-  resolve their view off it — see `Assets/Modules/MainUI/MAIN_UI.md`.)
+  resolve their view off it — see `Assets/Presentation/UI/MAIN_UI.md`.)
 - **One shared panel instance, not per-entity.** Selection is singular, so the context panel is reused.
 - **Absence is not an error; a missing prerequisite is.** An optional block with no data → hide it (normal). A
   required prerequisite that must always exist → throw, per `ARCHITECTURE.md` fail-loud.
@@ -533,7 +540,7 @@ This file is the **general** language. Every concrete window/panel gets its **ow
 **Rule:** every **new** UI window gets its own design doc. The current TerrainGenerator / generation overlay is
 **temporary UI** — do not write a design doc for it and do not treat it as a style reference.
 
-Current per-window docs live under `Assets/Modules/MainUI/*` (e.g. `HexInfoPanel/HEX_INFO_PANEL.md`,
+Current per-window docs live under `Assets/Presentation/UI/*` (e.g. `HexInfoPanel/HEX_INFO_PANEL.md`,
 `EndTurn/END_TURN.md`). NOTE: these docs describe the CURRENT implementation, which predates the §4 layout
 model above (the End Turn cluster and hex panel are not yet merged into one bottom panel). They are updated
 when the new layout is actually built — this file describes the TARGET, the per-window docs describe what
@@ -545,7 +552,7 @@ exists today.
 
 | Wrong | Why | Right |
 |---|---|---|
-| Put a permanent panel on the left/right edge or over the center | Eats the map; breaks "UI on the edges" | Top bar, bottom panel, or an on-demand window |
+| Put a permanent panel on the RIGHT edge or over the center | Eats the map; breaks "UI on the edges" | Top bar, bottom panel, the left resource panel, or an on-demand window |
 | Render a conditional section with no data | Dead space; breaks progressive disclosure | Omit it (except the bottom panel's designed empty STATE) |
 | Make the bottom panel appear/disappear on selection | Layout jump; loses the muscle-memory anchor | Keep the shell permanent; swap only the context CONTENT |
 | Use a card / card-deck / card-fan for any agency | Cards are removed from the design | Action button → submenu / detail subpanel / modal (§9) |

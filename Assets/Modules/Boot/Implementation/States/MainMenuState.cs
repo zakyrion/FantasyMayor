@@ -3,7 +3,7 @@ using Cysharp.Threading.Tasks;
 using DefaultEcs;
 using DefaultECSExtensions;
 using Modules.Boot.Core;
-using Modules.MainUI.GeneratorMenu.Systems;
+using Presentation.UI.GeneratorMenu.Systems;
 using Domains.Map.Generation.Components;
 
 namespace Modules.Boot.Implementation.States

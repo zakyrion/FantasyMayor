@@ -40,7 +40,7 @@ runtime order is NOT the presentation order in `GAMEPLAY_FOUNDATION.md`. By asce
 ## Trigger
 `TurnProcessorSystem` consumes the one-frame `NextTurnEvent`. It is NOT a `WhenAdded`/reactive
 set — it queries `With<NextTurnEvent>` from a per-frame poller (see Design Decisions). The emitter is
-the **MainUI End Turn button** (`EndTurnView`, module `MainUI`): clicking it in the Mayor Phase creates
+the **End Turn button** (`EndTurnView`, assembly `Presentation.UI`): clicking it in the Mayor Phase creates
 a `NextTurnEvent` + `EventTag` entity. Full producer→consumer flow: `ECS_REFERENCE.md`.
 
 ## Public Contract & Gotchas

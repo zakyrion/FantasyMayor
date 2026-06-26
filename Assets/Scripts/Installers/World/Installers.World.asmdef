@@ -10,7 +10,7 @@
         "Unity.InputSystem",
         "Boot.Core",
         "Boot.Implementation",
-        "MainUI",
+        "Presentation.UI",
         "MainCanvas.Core",
         "MainCanvas.Implementation",
         "Domains.Map",

@@ -8,7 +8,7 @@ using Modules.Boot.Core;
 using Presentation.HexIcons.Installer;
 using Domains.Map.HexResources.Installer;
 using Presentation.HexResources.Installer;
-using Modules.MainUI.Installer;
+using Presentation.UI.Installer;
 using Modules.MainCanvas.Core;
 using Modules.MainCanvas.Implementation;
 using Modules.Cameras.Components;
