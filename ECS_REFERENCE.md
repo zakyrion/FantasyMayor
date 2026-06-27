@@ -272,9 +272,9 @@ decision rule: `ARCHITECTURE.md` → "State Storage Taxonomy".
 
 ```
 WORLD: CameraComponent  (module Cameras)
-  Fields: Camera (live scene camera) + ReferenceFieldOfView (authored startup FOV = neutral 1x zoom baseline)
-  WRITES: WorldInstaller (world.Set at startup; ReferenceFieldOfView snapshotted from the camera)
-  READS: CameraMovementSystem, HexSelectionSystem, HexIconsContainerPositionSystem (zoom baseline)
+  Fields: Camera (live scene camera)
+  WRITES: WorldInstaller (world.Set at startup)
+  READS: CameraMovementSystem, HexSelectionSystem, HexIconsContainerPositionSystem (projection)
 
 WORLD: VertexGridComponent  (Presentation/Terrain)
   WRITES: TerrainViewConfigLoaderSystem (world.Set ONCE at ConfigLoadStep)

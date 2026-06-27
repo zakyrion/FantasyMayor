@@ -19,21 +19,21 @@ namespace Modules.UserInput.Configs
         [Tooltip("World-units per screen-pixel applied while drag-panning with the right mouse button or touch.")]
         private float _dragPanSpeed = 0.3f;
 
-        [Header("Zoom")]
+        [Header("Zoom (dolly along camera forward; FOV stays fixed)")]
         [SerializeField]
-        [Tooltip("Field-of-view degrees applied for one mouse-wheel scroll tick.")]
-        private float _zoomStep = 4f;
+        [Tooltip("World-Y units the target camera height changes per mouse-wheel scroll tick.")]
+        private float _zoomStep = 5f;
 
         [SerializeField]
-        [Tooltip("Closest allowed field of view. Lower values zoom in further.")]
-        private float _minFieldOfView = 25f;
+        [Tooltip("Lowest allowed camera height (world Y). Closest zoom-in.")]
+        private float _minHeight = 10f;
 
         [SerializeField]
-        [Tooltip("Farthest allowed field of view. Higher values zoom out further.")]
-        private float _maxFieldOfView = 65f;
+        [Tooltip("Highest allowed camera height (world Y). Farthest zoom-out.")]
+        private float _maxHeight = 60f;
 
         [SerializeField]
-        [Tooltip("Lerp speed toward target field of view. Higher values snap faster.")]
+        [Tooltip("Lerp speed toward the target height. Higher values snap faster.")]
         private float _zoomSpeed = 8f;
 
         /// <summary>World-units per second applied while the move input is held.</summary>
@@ -42,16 +42,16 @@ namespace Modules.UserInput.Configs
         /// <summary>World-units per screen-pixel applied while drag-panning.</summary>
         public float DragPanSpeed => _dragPanSpeed;
 
-        /// <summary>Field-of-view degrees applied for one mouse-wheel scroll tick.</summary>
+        /// <summary>World-Y units the target camera height changes per mouse-wheel scroll tick.</summary>
         public float ZoomStep => _zoomStep;
 
-        /// <summary>Closest allowed field of view.</summary>
-        public float MinFieldOfView => _minFieldOfView;
+        /// <summary>Lowest allowed camera height (world Y).</summary>
+        public float MinHeight => _minHeight;
 
-        /// <summary>Farthest allowed field of view.</summary>
-        public float MaxFieldOfView => _maxFieldOfView;
+        /// <summary>Highest allowed camera height (world Y).</summary>
+        public float MaxHeight => _maxHeight;
 
-        /// <summary>Lerp speed toward the target field of view.</summary>
+        /// <summary>Lerp speed toward the target camera height.</summary>
         public float ZoomSpeed => _zoomSpeed;
     }
 }

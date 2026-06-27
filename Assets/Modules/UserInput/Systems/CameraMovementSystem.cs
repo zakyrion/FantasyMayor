@@ -19,10 +19,11 @@ namespace Modules.UserInput.Systems
     [UsedImplicitly]
     public sealed class CameraMovementSystem : LateUpdatedSystem
     {
-        private const float UninitializedFov = -1f;
-
         /// <summary>World-space Y of the horizontal plane used for the center-ray bounds check.</summary>
         private const float BoundsPlaneHeight = 1f;
+
+        /// <summary>Below this |forward.y| the camera looks too flat to change height by dollying — skip.</summary>
+        private const float MinForwardPitch = 1e-4f;
 
         private readonly EntitySet _hexIdSet;
         private readonly EntitySet _playerInputSet;
@@ -34,7 +35,8 @@ namespace Modules.UserInput.Systems
         private InputAction _moveAction;
         private Vector2 _panInput;
         private InputAction _rightClickAction;
-        private float _targetFov = UninitializedFov;
+        private float _targetHeight;
+        private bool _targetHeightInitialized;
         private InputAction _zoomAction;
         private float _zoomTicks;
 
@@ -78,7 +80,7 @@ namespace Modules.UserInput.Systems
             var cameraTransform = camera.transform;
 
             MoveCamera(cameraTransform, config, state.DeltaTime);
-            ApplyZoom(camera, config, state.DeltaTime);
+            ApplyDolly(cameraTransform, config, state.DeltaTime);
             ClampCameraPosition(cameraTransform, camera);
         }
 
@@ -179,27 +181,43 @@ namespace Modules.UserInput.Systems
         }
 
         /// <summary>
-        ///     Smoothly moves the camera field of view toward <c>_targetFov</c> using a lerp.
-        ///     Accumulated scroll ticks update the target; deltaTime drives the lerp speed.
+        ///     Zooms by dollying the camera strictly along its own forward axis, so the tilt (pitch) and FOV
+        ///     stay fixed and only the camera height changes. Accumulated scroll ticks move the target height
+        ///     (clamped to <see cref="CameraMovementConfigComponent.MinHeight" />/<c>MaxHeight</c>); deltaTime
+        ///     drives the lerp. The forward translation is solved from the desired height delta so the camera
+        ///     stays on its view line — X/Z shift together with Y and the framed point does not jump.
         /// </summary>
-        /// <param name="camera">Camera being controlled.</param>
+        /// <param name="cameraTransform">Transform of the camera being controlled.</param>
         /// <param name="config">Zoom settings loaded into ECS.</param>
         /// <param name="deltaTime">Frame delta time in seconds.</param>
-        private void ApplyZoom(Camera camera, in CameraMovementConfigComponent config, float deltaTime)
+        private void ApplyDolly(Transform cameraTransform, in CameraMovementConfigComponent config, float deltaTime)
         {
-            if (_targetFov < 0f)
-                _targetFov = camera.fieldOfView;
+            var pos = cameraTransform.position;
+            var forward = cameraTransform.forward;
+
+            if (!_targetHeightInitialized)
+            {
+                _targetHeight = Mathf.Clamp(pos.y, config.MinHeight, config.MaxHeight);
+                _targetHeightInitialized = true;
+            }
 
             if (!Mathf.Approximately(_zoomTicks, 0f))
             {
-                _targetFov = Mathf.Clamp(
-                    _targetFov - _zoomTicks * config.ZoomStep,
-                    config.MinFieldOfView,
-                    config.MaxFieldOfView);
+                // Positive scroll = zoom in = lower the camera. ZoomStep is world-Y units per tick.
+                _targetHeight = Mathf.Clamp(
+                    _targetHeight - _zoomTicks * config.ZoomStep,
+                    config.MinHeight,
+                    config.MaxHeight);
                 _zoomTicks = 0f;
             }
 
-            camera.fieldOfView = Mathf.Lerp(camera.fieldOfView, _targetFov, deltaTime * config.ZoomSpeed);
+            // A near-horizontal camera cannot change height by moving along forward — leave it untouched.
+            if (Mathf.Abs(forward.y) < MinForwardPitch)
+                return;
+
+            var newHeight = Mathf.Lerp(pos.y, _targetHeight, deltaTime * config.ZoomSpeed);
+            var distanceAlongForward = (newHeight - pos.y) / forward.y;
+            cameraTransform.position = pos + forward * distanceAlongForward;
         }
 
         /// <summary>

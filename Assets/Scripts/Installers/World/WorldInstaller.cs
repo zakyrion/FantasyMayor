@@ -46,11 +46,9 @@ namespace Installers.World
             builder.Register<IMainCanvasProvider, MainCanvasProvider>(Lifetime.Scoped).WithParameter(_uiRoot);
 
             // CameraComponent is single-instance world state, stored as a world component, not an entity.
-            // ReferenceFieldOfView snapshots the authored startup FOV here, before any zoom input mutates it.
             world.Set(new CameraComponent
             {
-                Camera = _mainCamera,
-                ReferenceFieldOfView = _mainCamera.fieldOfView
+                Camera = _mainCamera
             });
 
             var playerInputEntity = world.CreateEntity();

@@ -21,9 +21,9 @@ namespace Presentation.HexIcons.Systems
     ///     Runs in LateUpdate so it projects AFTER CameraMovementSystem has moved the camera this frame —
     ///     in Update it would lag the camera by one frame and the icons would visibly slide. Runs
     ///     unconditionally (no camera-moved gate yet).
-    ///     Sizing is per-hex perspective: a map-wide zoom baseline (<see cref="ComputeZoomScale" />) times a
-    ///     per-hex factor (focus depth / hex depth), so the same hex is bigger near the bottom of the screen
-    ///     and smaller in the distance, while still growing/shrinking with zoom.
+    ///     Sizing is pure per-hex perspective (focus depth / hex depth), so the same hex is bigger near the
+    ///     bottom of the screen and smaller in the distance. There is no map-wide zoom term: zoom is a
+    ///     fixed-FOV dolly and the depth ratio is dolly-invariant, so icons keep a constant on-screen size.
     /// </summary>
     [UsedImplicitly]
     public sealed class HexIconsContainerPositionSystem : LateUpdatedSystem
@@ -34,12 +34,11 @@ namespace Presentation.HexIcons.Systems
 
         private readonly World _world;
 
-        // The frame's shared projection inputs — panel/camera/grid, the world Y offset, and the resolved
-        // zoom scale + focus depth — computed once in PreUpdate and read by the per-entity Update. Held in a
-        // frame-stamped FrameBox so the references are valid only within this tick: a stale read throws, and
-        // the box drops the references on Dispose so a destroyed Camera/VertexGrid never dangles on this
-        // singleton system between ticks. The system holds no cross-frame state — the zoom baseline is the
-        // camera's startup FOV (CameraComponent.ReferenceFieldOfView), not a latched runtime value.
+        // The frame's shared projection inputs — panel/camera/grid, the world Y offset, and the focus depth —
+        // computed once in PreUpdate and read by the per-entity Update. Held in a frame-stamped FrameBox so the
+        // references are valid only within this tick: a stale read throws, and the box drops the references on
+        // Dispose so a destroyed Camera/VertexGrid never dangles on this singleton system between ticks. The
+        // system holds no cross-frame state.
         [StateAllowed("Per-frame projection inputs; frame-stamped FrameBox, filled in PreUpdate, valid one frame.")]
         private FrameBox<FramePose> _pose;
 
@@ -91,15 +90,16 @@ namespace Presentation.HexIcons.Systems
             container.style.left = panelPoint.x;
             container.style.top = panelPoint.y;
 
-            // Per-hex perspective layered on the zoom baseline: scale = zoomScale * (focusDepth / hexDepth).
-            // The factor is 1 at the focus point, >1 nearer the camera (bottom of screen → bigger) and <1
-            // farther (distance → smaller) — the screenshot look. Equivalent to a true per-hex
-            // pixels-per-world-unit (pppu ∝ 1/depth) but reuses screenPoint.z, no extra projection. The
-            // focusDepth > 0 guard keeps it at factor 1 on a degenerate focus ray. Scale is around the
-            // element's center (default transform-origin), so it composes with the creation-time
-            // `-50% -50%` centering translate without shifting the anchor (icons stay pinned, no sliding).
-            var perspective = pose.FocusDepth > 0f ? pose.FocusDepth / screenPoint.z : 1f;
-            var finalScale = pose.ZoomScale * perspective;
+            // Per-hex perspective only: scale = focusDepth / hexDepth. The factor is 1 at the focus point,
+            // >1 nearer the camera (bottom of screen → bigger) and <1 farther (distance → smaller) — the
+            // screenshot look. There is NO map-wide zoom term: zoom is now a fixed-FOV dolly, and this depth
+            // ratio is dolly-invariant (both depths scale together), so icons keep a constant on-screen size
+            // at every zoom level. Equivalent to a true per-hex pixels-per-world-unit (pppu ∝ 1/depth) but
+            // reuses screenPoint.z, no extra projection. The focusDepth > 0 guard keeps it at factor 1 on a
+            // degenerate focus ray. Scale is around the element's center (default transform-origin), so it
+            // composes with the creation-time `-50% -50%` centering translate without shifting the anchor
+            // (icons stay pinned, no sliding).
+            var finalScale = pose.FocusDepth > 0f ? pose.FocusDepth / screenPoint.z : 1f;
             container.style.scale = new Scale(new Vector2(finalScale, finalScale));
         }
 
@@ -122,8 +122,7 @@ namespace Presentation.HexIcons.Systems
             if (panel == null)
                 throw new InvalidOperationException("HexIconsContainerPositionSystem: panel is not ready.");
 
-            var cameraComponent = _world.Get<CameraComponent>();
-            var camera = cameraComponent.Camera;
+            var camera = _world.Get<CameraComponent>().Camera;
             if (camera == null)
                 throw new InvalidOperationException("HexIconsContainerPositionSystem: scene camera is null.");
 
@@ -139,11 +138,10 @@ namespace Presentation.HexIcons.Systems
                     "HexIconsContainerPositionSystem: HexIconsConfigComponent is missing.");
 
             var worldYOffset = _world.Get<HexIconsConfigComponent>().Value.WorldYOffset;
-            var zoomScale = ComputeZoomScale(camera, cameraComponent.ReferenceFieldOfView);
             var focusDepth = ComputeFocusDepth(camera);
 
             _pose = FrameBox<FramePose>.OneFrame(
-                new FramePose(panel, camera, grid, worldYOffset, zoomScale, focusDepth));
+                new FramePose(panel, camera, grid, worldYOffset, focusDepth));
         }
 
         // View-space depth of the screen-center point on the ground plane (y = 0): the per-hex perspective
@@ -163,18 +161,6 @@ namespace Presentation.HexIcons.Systems
             return camera.WorldToScreenPoint(focus).z;
         }
 
-        // Map-wide zoom baseline. Zoom is FOV-driven (CameraMovementSystem changes fieldOfView), so the on-
-        // screen size of a fixed world span scales with 1/tan(fov/2). Icons are 1× at the camera's startup FOV
-        // (ReferenceFieldOfView); zooming in (smaller FOV) enlarges the world, so the factor grows. This is the
-        // analytic equivalent of measuring pixels-per-world-unit, but with no latched reference and no per-hex
-        // depth term (that is the separate perspective factor in Update) — the focus depth cancels out.
-        private float ComputeZoomScale(Camera camera, float referenceFieldOfView)
-        {
-            var referenceTan = Mathf.Tan(referenceFieldOfView * Mathf.Deg2Rad * 0.5f);
-            var currentTan = Mathf.Tan(camera.fieldOfView * Mathf.Deg2Rad * 0.5f);
-            return referenceTan / currentTan;
-        }
-
         // This frame's shared projection inputs, broadcast from PreUpdate to the per-entity Update. Private and
         // nested: it is an internal transport for one tick, not a reusable type.
         private readonly struct FramePose
@@ -183,17 +169,15 @@ namespace Presentation.HexIcons.Systems
             public readonly Camera Camera;
             public readonly VertexGrid Grid;
             public readonly float WorldYOffset;
-            public readonly float ZoomScale;
             public readonly float FocusDepth;
 
             public FramePose(IPanel panel, Camera camera, VertexGrid grid, float worldYOffset,
-                float zoomScale, float focusDepth)
+                float focusDepth)
             {
                 Panel = panel;
                 Camera = camera;
                 Grid = grid;
                 WorldYOffset = worldYOffset;
-                ZoomScale = zoomScale;
                 FocusDepth = focusDepth;
             }
         }

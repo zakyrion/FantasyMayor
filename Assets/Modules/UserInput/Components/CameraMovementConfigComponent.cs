@@ -14,16 +14,16 @@ namespace Modules.UserInput.Components
         /// <summary>World-units per screen-pixel applied while drag-panning.</summary>
         public float DragPanSpeed;
 
-        /// <summary>Field-of-view degrees applied for one scroll tick.</summary>
+        /// <summary>World-Y units the target camera height changes per scroll tick.</summary>
         public float ZoomStep;
 
-        /// <summary>Closest allowed field of view.</summary>
-        public float MinFieldOfView;
+        /// <summary>Lowest allowed camera height (world Y).</summary>
+        public float MinHeight;
 
-        /// <summary>Farthest allowed field of view.</summary>
-        public float MaxFieldOfView;
+        /// <summary>Highest allowed camera height (world Y).</summary>
+        public float MaxHeight;
 
-        /// <summary>Lerp speed toward the target field of view.</summary>
+        /// <summary>Lerp speed toward the target camera height.</summary>
         public float ZoomSpeed;
 
         /// <summary>Returns a safe fallback config when no ScriptableObject asset is assigned.</summary>
@@ -31,9 +31,9 @@ namespace Modules.UserInput.Components
         {
             PanSpeed = 12f,
             DragPanSpeed = 0.3f,
-            ZoomStep = 4f,
-            MinFieldOfView = 25f,
-            MaxFieldOfView = 65f,
+            ZoomStep = 5f,
+            MinHeight = 10f,
+            MaxHeight = 60f,
             ZoomSpeed = 8f
         };
 
@@ -47,8 +47,8 @@ namespace Modules.UserInput.Components
                 PanSpeed = config.PanSpeed,
                 DragPanSpeed = config.DragPanSpeed,
                 ZoomStep = config.ZoomStep,
-                MinFieldOfView = config.MinFieldOfView,
-                MaxFieldOfView = config.MaxFieldOfView,
+                MinHeight = config.MinHeight,
+                MaxHeight = config.MaxHeight,
                 ZoomSpeed = config.ZoomSpeed
             };
         }
