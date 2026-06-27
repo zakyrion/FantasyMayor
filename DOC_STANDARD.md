@@ -107,7 +107,7 @@ Field rules:
 - **`read`** — **required in every file.** The agent's read-priority signal, and the data `INDEX.md` is
   generated from. One of:
   - `always` — read on every session start. Reserved for the few orientation docs (this file,
-    `ARCHITECTURE.md`, `GAMEPLAY_FOUNDATION.md`, `CLAUDE.md`, `INDEX.md`). Keep this set tiny.
+    `ARCHITECTURE.md`, `CLAUDE.md`, `INDEX.md`). Keep this set tiny.
   - `trigger` — read **only** when a specific condition holds. Requires a `trigger` field naming that
     condition (e.g. templates, `ECS_REFERENCE.md`, `ADDRESSABLE_PATTERNS.md`, `GENERAL_UI_STYLE.md`).
   - `reference` — consult on demand, no fixed trigger. Default for per-module navigation docs (Category A):

@@ -11,7 +11,7 @@ related:
 
 Generated doc map for FantasyMayor. **Do not hand-edit** — run `python3 Tools/gen_index.py` after changing any doc's frontmatter. Data source: each doc's frontmatter (`category`/`read`/`trigger`/`status`) and its first line. See `DOC_STANDARD.md`.
 
-Totals: 35 docs — 4 always · 5 trigger · 26 reference.
+Totals: 35 docs — 3 always · 6 trigger · 26 reference.
 
 ## Read at start (always)
 
@@ -20,7 +20,6 @@ Read these every session before doing anything else.
 - [FantasyMayor — Architecture Reference](ARCHITECTURE.md) — Modules are now **engine-facing / infra / UI only**. The former Hex/Terrain feature modules became the
 - [CLAUDE.md](CLAUDE.md) — This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 - [DOC_STANDARD.md](DOC_STANDARD.md) — Single source of truth for how to write Markdown docs in this project.
-- [FantasyMayor - Gameplay Foundation](GAMEPLAY_FOUNDATION.md) — `FantasyMayor` - це покрокова гра про управління містом через дефіцит `Action Points`, обмежені ресурси, населення як виробничу й політичну силу та нестабільний баланс влади між мером і місцевими елітами.
 
 ## Read on demand (by trigger)
 
@@ -31,6 +30,7 @@ Do **not** preload. Read only when the trigger condition holds.
 | [IAddressable Contract](Assets/Modules/Addressable/ADDRESSABLE_PATTERNS.md) | before writing/editing/reviewing Addressables, IAddressable, Box<T> or Result<T> code | Single source of truth for addressable loading. Read this; do not grep. |
 | [FantasyMayor — Config Template Catalog](CONFIGTEMPLATE.md) | before working with a config, config component, or loader flow | How to create config-related classes: the authored `ScriptableObject`, its flattened ECS component, |
 | [ECS_REFERENCE.md](ECS_REFERENCE.md) | before writing an ECS query, entity table/join, or adding an archetype | Central registry of ECS state in FantasyMayor: every unique entity (archetype), every world |
+| [FantasyMayor - Gameplay Foundation](GAMEPLAY_FOUNDATION.md) | before gameplay / mechanics / district / turn / economy / actor design work | `FantasyMayor` is a turn-based game about governing a city through a scarcity of `Action Points`, limited resources, population as a productive and political force, and an unstable balance of power between the mayor and the local elites. |
 | [GENERAL_UI_STYLE.md](GENERAL_UI_STYLE.md) | before creating or changing UI (UI Toolkit, panels, tokens, USS) | The general UI design language for FantasyMayor: the global HUD layout model, design principles, visual |
 | [FantasyMayor — System Template Catalog](SYSTEMTEMPLATE.md) | before creating or editing an ECS system or subsystem | How to create a new system. Pick the role first, then follow that role's template and rules. |
 
