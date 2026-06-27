@@ -55,8 +55,8 @@ MonoBehaviour:
     - Installers.World
     - MainCanvas.Core
     - MainCanvas.Implementation
-    - MainUI
     - Presentation
+    - Presentation.UI
     - Turn
     - UniTask
     - UniTask.Addressables
