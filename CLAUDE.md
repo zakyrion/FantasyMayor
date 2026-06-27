@@ -107,6 +107,14 @@ Task budget:
 - module MD files: unlimited
 - source file reads: max 1, only after graph narrowing
 
+## Discovery Scouts (Haiku delegation)
+Heavy discovery and audit run on dedicated read-only Haiku subagents in `.claude/agents/`, so the main loop stays lean and fast and the Opus budget is spent on reasoning, not raw output. Delegate (auto via their `description`, or explicitly with `@agent-<name>`) instead of doing the legwork inline:
+- **graphify-scout** — symbol lookup, call / dependency chains, blast-radius (follows the Graphify Search Policy above; returns distilled findings, not raw graph dumps).
+- **arch-scout** — `arch-check` audit (stateful systems + System.Collections.Generic bans); detector only.
+- **asset-scout** — `unity-asset-graph` queries (build contents, asset usage, dead/unused, serialized enum values).
+
+All three are read-only (no Edit/Write) and return distilled reports; the main agent keeps the reasoning, decisions, and edits.
+
 ## Engineering Task Template
 - **HARD GATE — no actions before a confirmed task statement. For any engineering task you MUST first restate the task using the template below AND, if you have any doubt that you understood the task correctly, ask me your own clarifying questions in the same message. Then STOP and wait for my explicit confirmation. Only AFTER I confirm the statement may you create a plan or do any work. Forming a plan, entering plan mode, reading-for-implementation, or editing anything before that confirmation is a process violation. The duty to ask is yours: when in doubt, ask me — do not assume, and do not wait for me to question you. This overrides any default "just start planning" behavior.**
 - Use the following template for engineering tasks by default. Engineering tasks include coding, architecture changes, refactors, module documentation, config-flow work, and other repository changes.

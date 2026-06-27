@@ -8,6 +8,7 @@ using Modules.Boot.Implementation.States;
 using Presentation.HexIcons.Systems;
 using Presentation.HexResources.Systems;
 using Presentation.UI.ContextTabs.Systems;
+using Presentation.UI.DistrictBuild.Systems;
 using Presentation.UI.EndTurn.Systems;
 using Presentation.UI.GeneratorMenu.Systems;
 using Presentation.UI.HexInfoPanel.Systems;
@@ -83,7 +84,8 @@ namespace Modules.Boot.Implementation
             HexInfoPanelSystem hexInfoPanel,
             HexInfoPanelHeaderSystem hexInfoPanelHeader,
             HexInfoPanelResourcesSystem hexInfoPanelResources,
-            HexInfoPanelDistrictPlaceholderSystem hexInfoPanelDistrict,
+            HexInfoPanelDistrictSystem hexInfoPanelDistrict,
+            DistrictBuildActionSystem districtBuildAction,
             ResourceBarSystem resourceBar,
             EndTurnSystem endTurn,
             ContextTabSelectionSystem contextTabSelection,
@@ -108,8 +110,8 @@ namespace Modules.Boot.Implementation
                 {
                     hexSelection, hexSelectionView, forestSpawn, forestDespawn, hexIconsVisibility,
                     hexInfoPanel, hexInfoPanelHeader, hexInfoPanelResources, hexInfoPanelDistrict,
-                    resourceBar, endTurn, contextTabSelection, contextTabsAvailability, turnProcessor,
-                    turnCount, eventCleanup
+                    districtBuildAction, resourceBar, endTurn, contextTabSelection, contextTabsAvailability,
+                    turnProcessor, turnCount, eventCleanup
                 },
                 new ILateUpdatedSystem[] { cameraMovement, hexIconsContainerPosition });
 

@@ -293,6 +293,80 @@
     margin-right: 0;
 }
 
+/* ---- District build prompt — "no district yet" state (mockup .block.dist-empty / .buildslot) ----
+   UI Toolkit USS has no dashed border, so the slot uses a solid thin gold border (USS-faithful read of the
+   mockup's dashed slot). The whole slot is the click target (DistrictBuildButton). */
+.block--district-build {
+    width: 290px;
+    flex-shrink: 0;
+}
+
+.buildslot {
+    flex-grow: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(224, 178, 90, 0.025);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgba(217, 164, 65, 0.30);
+    border-right-color: rgba(217, 164, 65, 0.30);
+    border-top-color: rgba(217, 164, 65, 0.30);
+    border-bottom-color: rgba(217, 164, 65, 0.30);
+    border-top-left-radius: 9px;
+    border-top-right-radius: 9px;
+    border-bottom-left-radius: 9px;
+    border-bottom-right-radius: 9px;
+}
+
+.buildslot:hover {
+    background-color: rgba(224, 178, 90, 0.06);
+    border-left-color: rgba(217, 164, 65, 0.50);
+    border-right-color: rgba(217, 164, 65, 0.50);
+    border-top-color: rgba(217, 164, 65, 0.50);
+    border-bottom-color: rgba(217, 164, 65, 0.50);
+}
+
+.buildslot-plus {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 12px;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(224, 178, 90, 0.10);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgba(217, 164, 65, 0.45);
+    border-right-color: rgba(217, 164, 65, 0.45);
+    border-top-color: rgba(217, 164, 65, 0.45);
+    border-bottom-color: rgba(217, 164, 65, 0.45);
+    border-top-left-radius: 24px;
+    border-top-right-radius: 24px;
+    border-bottom-left-radius: 24px;
+    border-bottom-right-radius: 24px;
+}
+
+.buildslot-plus-glyph {
+    font-size: 30px;
+    color: rgb(224, 178, 90);
+}
+
+.buildslot-lab {
+    font-size: 14px;
+    margin-bottom: 6px;
+    color: rgb(241, 231, 214);
+    -unity-font-style: bold;
+}
+
+.buildslot-hint {
+    font-size: 11px;
+    color: rgb(125, 114, 100);
+}
+
 /* Block header caption (mockup .bh). */
 .block-h {
     font-size: 11px;

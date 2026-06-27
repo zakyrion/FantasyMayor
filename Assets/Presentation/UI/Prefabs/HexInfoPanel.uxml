@@ -60,7 +60,17 @@
                                     </ui:VisualElement>
                                 </ui:VisualElement>
                             </ui:VisualElement>
-                            <ui:VisualElement name="DistrictSection" class="block block--district">
+                            <ui:VisualElement name="DistrictBuildSection" class="block block--district-build">
+                                <ui:Label text="РАЙОН" class="block-h"/>
+                                <ui:VisualElement name="DistrictBuildButton" class="buildslot">
+                                    <ui:VisualElement class="buildslot-plus">
+                                        <ui:Label text="+" class="buildslot-plus-glyph"/>
+                                    </ui:VisualElement>
+                                    <ui:Label text="Збудувати район" class="buildslot-lab"/>
+                                    <ui:Label text="обрати спеціалізацію для гекса" class="buildslot-hint"/>
+                                </ui:VisualElement>
+                            </ui:VisualElement>
+                            <ui:VisualElement name="DistrictSection" class="block block--district" style="display: none;">
                                 <ui:VisualElement class="block-h-row">
                                     <ui:Label text="РАЙОН" class="block-h-cap"/>
                                     <ui:Label text="рів. 2" class="block-h-lvl"/>
@@ -91,7 +101,7 @@
                                     </ui:VisualElement>
                                 </ui:VisualElement>
                             </ui:VisualElement>
-                            <ui:VisualElement name="ProductionSection" class="block block--prod">
+                            <ui:VisualElement name="ProductionSection" class="block block--prod" style="display: none;">
                                 <ui:Label text="ПРАЦЯ ТА ВИРОБНИЦТВО" class="block-h"/>
                                 <ui:VisualElement class="laborline">
                                     <ui:Label text="ПРАЦЯ" class="laborline-k"/>

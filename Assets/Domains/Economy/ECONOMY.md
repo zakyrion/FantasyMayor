@@ -16,8 +16,9 @@ Game-rule domain owning economic objects: inventory resources now; districts and
 ## Purpose
 Holds the resources, and eventually the districts/buildings, that actors own and that the turn economy
 acts on. This slice ships the **inventory resource** data types plus the generic, owner-agnostic
-`ResourceLoadoutSpawner` mechanism. Economy owns NO actor knowledge and NO spawn/config systems — those
-moved to `Actors` (see Design Decisions).
+`ResourceLoadoutSpawner` mechanism, and the **District build catalogue** config flow. Economy owns NO actor
+knowledge and NO actor spawn/config systems — those moved to `Actors` (see Design Decisions); its own
+District-catalogue config loader stays here.
 
 ## Non-Obvious Invariants
 - **Inventory resources are owner-scoped stacks, distinct from Hex resources.** Module `HexResources`
@@ -59,6 +60,14 @@ moved to `Actors` (see Design Decisions).
   `CityConfigComponent` (`ResourceType`s the author omits start at 0). Noble loadouts are
   still DEFERRED (Nobles emerge during play — a reactive spawn in `Actors`, on a payload-less
   `NobleSpawnEvent`, lands with the Noble actor). Design recorded in `ECONOMY_ACTORS.canvas`.
+
+- **District build catalogue** (`District/`) — the buildable-district config flow is live:
+  `DistrictsBuildConfigLoaderSystem` (Config Loader, `ConfigLoadStep`) loads the `DistrictsBuildConfig` SO
+  (address `"DistrictsBuildConfig"`), validates it, and publishes the world component
+  `DistrictsBuildConfigComponent`, which carries a **reference** to the SO (no copy/flatten — the SO already
+  holds the `DistrictBuildingConfig[]` + their prices/requirements). The loader **retains the addressable Box**
+  for the catalogue's lifetime (the build window reads it throughout play) and releases it in `OnDispose`. This
+  is Economy's first system; registered in `EconomyInstaller`.
 
 SCAFFOLD parts still pending:
 - **District identity** (`District/`) — `DistrictIdComponent` (PK, int), `DistrictTag` (discriminator),

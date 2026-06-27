@@ -54,26 +54,6 @@ namespace Domains.Actors.Mayor.Systems
             if (config.StartActionPoints < 0)
                 throw new InvalidOperationException(
                     $"MayorConfig: StartActionPoints must be >= 0, was {config.StartActionPoints}.");
-
-            // NativeHashSet keys require IEquatable<T>, which enums lack — key on the underlying int.
-            var seenTypes = new NativeHashSet<int>(4, Allocator.Temp);
-            try
-            {
-                foreach (var resource in config.Resources)
-                {
-                    if (resource.Type == ResourceType.Unknown)
-                        throw new InvalidOperationException(
-                            "MayorConfig: Resources contains an entry with ResourceType.Unknown.");
-
-                    if (!seenTypes.Add((int)resource.Type))
-                        throw new InvalidOperationException(
-                            $"MayorConfig: duplicate ResourceType '{resource.Type}' in Resources.");
-                }
-            }
-            finally
-            {
-                seenTypes.Dispose();
-            }
         }
     }
 }

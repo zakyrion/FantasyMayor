@@ -1,0 +1,366 @@
+/* District-build overlay. USS-faithful (GENERAL_UI_STYLE §11/§15): flexbox only, solid colors + rgba alpha,
+   per-side borders, margins for spacing — no gradients / shadows / blur / grid / dashed / text-transform.
+   Colour literals mirror the mockup palette (no :root vars in USS). Sizing scaled up for the tall (80%) window
+   so typography and controls stay legible and fill the card. A global UI-scale config (100%–200%) is a later
+   task — until then these are the baseline (~1.5x of the original mockup). */
+
+.db-root {
+    flex-grow: 1;
+    align-items: center;
+    justify-content: center;
+}
+
+.db-scrim {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(12, 9, 6, 0.62);
+}
+
+.db-picker {
+    width: 1180px;
+    max-width: 92%;
+    height: 80%;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 20px;
+    border-width: 1px;
+    border-color: rgba(217, 164, 65, 0.28);
+    background-color: rgba(30, 25, 20, 0.98);
+}
+
+.db-accent {
+    height: 5px;
+    background-color: rgba(217, 164, 65, 0.85);
+}
+
+.db-head {
+    flex-direction: row;
+    align-items: center;
+    padding: 20px 28px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(217, 164, 65, 0.14);
+}
+
+.db-ticon {
+    width: 62px;
+    height: 62px;
+    align-items: center;
+    justify-content: center;
+    margin-right: 18px;
+    border-radius: 14px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.10);
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.db-ticon-glyph {
+    font-size: 32px;
+    -unity-text-align: middle-center;
+}
+
+.db-title {
+    flex-grow: 1;
+    font-size: 29px;
+    -unity-font-style: bold;
+    color: rgb(241, 231, 214);
+}
+
+.db-x {
+    width: 50px;
+    height: 50px;
+    margin: 0;
+    padding: 0;
+    font-size: 26px;
+    -unity-text-align: middle-center;
+    color: rgb(168, 154, 134);
+    border-radius: 13px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.07);
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+.db-body {
+    flex-grow: 1;
+    flex-direction: row;
+}
+
+/* ---- master list ---- */
+.db-list {
+    width: 420px;
+    padding: 18px;
+    border-right-width: 1px;
+    border-right-color: rgba(217, 164, 65, 0.14);
+}
+
+.drow {
+    flex-direction: row;
+    align-items: center;
+    padding: 17px 19px;
+    margin-bottom: 13px;
+    border-radius: 14px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.08);
+    background-color: rgba(255, 255, 255, 0.025);
+}
+
+.drow--active {
+    border-color: rgba(217, 164, 65, 0.45);
+    background-color: rgba(224, 178, 90, 0.10);
+}
+
+.drow--locked {
+    opacity: 0.5;
+}
+
+.drow-ic {
+    width: 53px;
+    height: 53px;
+    margin-right: 16px;
+    font-size: 28px;
+    -unity-text-align: middle-center;
+    border-radius: 13px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.09);
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.drow-mid {
+    flex-grow: 1;
+}
+
+.drow-name {
+    font-size: 20px;
+    color: rgb(241, 231, 214);
+}
+
+.drow-req--ok {
+    margin-top: 4px;
+    font-size: 16px;
+    color: rgb(191, 224, 168);
+}
+
+.drow-req--no {
+    margin-top: 4px;
+    font-size: 16px;
+    color: rgb(232, 169, 106);
+}
+
+.appill {
+    margin-left: 16px;
+    padding: 5px 13px;
+    font-size: 16px;
+    -unity-text-align: middle-center;
+    color: rgb(224, 178, 90);
+    border-radius: 9px;
+    border-width: 1px;
+    border-color: rgba(224, 178, 90, 0.30);
+    background-color: rgba(224, 178, 90, 0.14);
+}
+
+/* ---- detail ---- */
+.db-detail {
+    flex-grow: 1;
+    padding: 23px 28px;
+}
+
+.ddetail-name {
+    margin-bottom: 7px;
+    font-size: 30px;
+    -unity-font-style: bold;
+    color: rgb(241, 231, 214);
+}
+
+.sec-h {
+    margin-top: 23px;
+    margin-bottom: 14px;
+    font-size: 14px;
+    letter-spacing: 1.8px;
+    color: rgb(125, 114, 100);
+}
+
+.req-line--ok {
+    padding: 8px 0;
+    font-size: 18px;
+    color: rgb(191, 224, 168);
+}
+
+.req-line--no {
+    padding: 8px 0;
+    font-size: 18px;
+    color: rgb(232, 169, 106);
+}
+
+.payer {
+    flex-direction: row;
+    margin-top: 7px;
+}
+
+.payseg {
+    flex-grow: 1;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    padding: 15px;
+    border-radius: 13px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.07);
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.payseg--mayor {
+    margin-right: 11px;
+}
+
+.payseg--on.payseg--mayor {
+    border-color: rgba(217, 164, 65, 0.50);
+    background-color: rgba(224, 178, 90, 0.12);
+}
+
+.payseg--on.payseg--city {
+    border-color: rgba(91, 139, 176, 0.50);
+    background-color: rgba(91, 139, 176, 0.14);
+}
+
+.payseg-pe {
+    margin-right: 11px;
+    font-size: 22px;
+    -unity-text-align: middle-center;
+}
+
+.payseg-who {
+    font-size: 18px;
+    color: rgb(168, 154, 134);
+}
+
+.payseg-own {
+    margin-left: 9px;
+    font-size: 15px;
+    color: rgb(125, 114, 100);
+}
+
+.payseg--on.payseg--mayor .payseg-who {
+    color: rgb(224, 178, 90);
+}
+
+.payseg--on.payseg--city .payseg-who {
+    color: rgb(122, 167, 199);
+}
+
+/* ---- build cost rows ---- */
+.costrow {
+    flex-direction: row;
+    align-items: center;
+    padding: 8px 0;
+}
+
+.costrow-ic {
+    width: 32px;
+    height: 32px;
+    margin-right: 14px;
+    font-size: 18px;
+    -unity-text-align: middle-center;
+    border-radius: 16px;
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.costrow-name {
+    flex-grow: 1;
+    font-size: 18px;
+    color: rgb(168, 154, 134);
+}
+
+.costrow-need {
+    font-size: 18px;
+    -unity-font-style: bold;
+    color: rgb(241, 231, 214);
+}
+
+.costrow-have {
+    min-width: 62px;
+    margin-left: 15px;
+    font-size: 18px;
+    -unity-text-align: middle-right;
+    color: rgb(125, 114, 100);
+}
+
+.costrow--short .costrow-need {
+    color: rgb(232, 169, 106);
+}
+
+.costrow--short .costrow-have {
+    color: rgb(232, 169, 106);
+}
+
+.placeholder-note {
+    padding: 9px 0;
+    font-size: 17px;
+    white-space: normal;
+    -unity-font-style: italic;
+    color: rgb(125, 114, 100);
+}
+
+/* ---- footer ---- */
+.dfoot {
+    margin-top: 21px;
+    flex-direction: row;
+}
+
+.confirm {
+    margin: 0 0 0 auto;
+    padding: 18px 34px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    letter-spacing: 1.8px;
+    -unity-font-style: bold;
+    color: rgb(37, 28, 14);
+    border-radius: 16px;
+    border-width: 1px;
+    border-color: rgb(185, 138, 53);
+    background-color: rgb(217, 164, 65);
+}
+
+.confirm--disabled {
+    color: rgb(125, 114, 100);
+    border-color: rgba(255, 255, 255, 0.07);
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+/* ---- scrollbar: slim, palette-matched, no arrow buttons ---- */
+.db-picker .unity-scroller--vertical {
+    width: 10px;
+    background-color: rgba(255, 255, 255, 0.02);
+    border-left-width: 1px;
+    border-left-color: rgba(217, 164, 65, 0.08);
+}
+
+.db-picker .unity-scroller--vertical .unity-scroller__low-button,
+.db-picker .unity-scroller--vertical .unity-scroller__high-button {
+    display: none;
+}
+
+.db-picker .unity-scroller--vertical .unity-slider {
+    margin: 0;
+}
+
+.db-picker .unity-scroller--vertical .unity-base-slider__tracker {
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    margin: 0;
+}
+
+.db-picker .unity-scroller--vertical .unity-base-slider__dragger {
+    width: 6px;
+    left: 2px;
+    border-width: 0;
+    border-radius: 3px;
+    background-color: rgba(217, 164, 65, 0.32);
+}
+
+.db-picker .unity-scroller--vertical .unity-base-slider__dragger:hover {
+    background-color: rgba(217, 164, 65, 0.55);
+}

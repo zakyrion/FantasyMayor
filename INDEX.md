@@ -11,7 +11,7 @@ related:
 
 Generated doc map for FantasyMayor. **Do not hand-edit** — run `python3 Tools/gen_index.py` after changing any doc's frontmatter. Data source: each doc's frontmatter (`category`/`read`/`trigger`/`status`) and its first line. See `DOC_STANDARD.md`.
 
-Totals: 35 docs — 3 always · 6 trigger · 26 reference.
+Totals: 36 docs — 3 always · 6 trigger · 27 reference.
 
 ## Read at start (always)
 
@@ -62,6 +62,7 @@ Per-module navigation docs. `status` mirrors each module's `## Current State`.
 | [TerrainView](Assets/Presentation/Terrain/TERRAIN_VIEW.md) | A | implemented | Renders procedural terrain: subdivided hex mesh, isoline height fields, erosion, procedural |
 | [WATER_VIEW_SETUP.md](Assets/Presentation/Terrain/WATER_VIEW_SETUP.md) | A | stub | Замінити на Uber-Stylized-Water. |
 | [Context Tabs — Tab Row of the Context Sub-Panel](Assets/Presentation/UI/ContextTabs/CONTEXT_TABS.md) | B | — | The **tab row** (Огляд / Будівлі / Дії) of the bottom panel's context sub-panel |
+| [DistrictBuild](Assets/Presentation/UI/DistrictBuild/DISTRICT_BUILD.md) | A | partial | The district-build **modal overlay** (`Assets/Presentation/UI/DistrictBuild/`, namespaces |
 | [Turn Corner (End Turn) — Turn Sub-Panel](Assets/Presentation/UI/EndTurn/END_TURN.md) | B | — | The **TURN sub-panel** (left) of the shared bottom panel (`GENERAL_UI_STYLE.md` §4): the turn number «Хід N», two |
 | [Hex Info Panel — Context Sub-Panel](Assets/Presentation/UI/HexInfoPanel/HEX_INFO_PANEL.md) | B | — | The read-only **CONTEXT sub-panel** (right) of the shared bottom panel: everything known about the currently |
 | [MainUI](Assets/Presentation/UI/MAIN_UI.md) | A | partial | The **`Presentation.UI` assembly** (`Assets/Presentation/UI/`, namespaces `Presentation.UI.*`) — the |

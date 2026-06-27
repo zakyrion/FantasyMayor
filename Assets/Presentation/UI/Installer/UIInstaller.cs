@@ -1,6 +1,7 @@
 using DefaultECSExtensions;
 using Modules.Boot.Core;
 using Presentation.UI.ContextTabs.Systems;
+using Presentation.UI.DistrictBuild.Systems;
 using Presentation.UI.EndTurn.Systems;
 using Presentation.UI.GeneratorMenu.Systems;
 using Presentation.UI.HexInfoPanel.Systems;
@@ -42,6 +43,11 @@ namespace Presentation.UI.Installer
             builder.Register<ResourceBarSpawnSubSystem>(Lifetime.Singleton)
                 .As<ResourceBarSpawnSubSystem, MainUISpawnSubSystem>();
 
+            // District-build overlay — its OWN UIDocument (separate from the shared Main UI), so it has its own
+            // spawn orchestrator in the generation pipeline rather than a Main UI spawn subsystem.
+            builder.Register<DistrictBuildActionSpawnSystem>(Lifetime.Singleton)
+                .As<DistrictBuildActionSpawnSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
+
             // Per-frame view systems, wired into GameplayState by Boot (concrete singletons).
             builder.Register<HexInfoPanelSystem>(Lifetime.Singleton)
                 .As<HexInfoPanelSystem>();
@@ -51,8 +57,10 @@ namespace Presentation.UI.Installer
                 .As<HexInfoPanelResourcesSystem>();
             builder.Register<ResourceBarSystem>(Lifetime.Singleton)
                 .As<ResourceBarSystem>();
-            builder.Register<HexInfoPanelDistrictPlaceholderSystem>(Lifetime.Singleton)
-                .As<HexInfoPanelDistrictPlaceholderSystem>();
+            builder.Register<HexInfoPanelDistrictSystem>(Lifetime.Singleton)
+                .As<HexInfoPanelDistrictSystem>();
+            builder.Register<DistrictBuildActionSystem>(Lifetime.Singleton)
+                .As<DistrictBuildActionSystem>();
             builder.Register<EndTurnSystem>(Lifetime.Singleton)
                 .As<EndTurnSystem>();
             builder.Register<ContextTabSelectionSystem>(Lifetime.Singleton)

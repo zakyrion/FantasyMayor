@@ -18,4 +18,6 @@ MonoBehaviour:
     Amount: 0
   _hexTypesRequirement: 
   _impossibleToBuildTypes: 03000000
+  _requiredResourceType: 0
+  _needEmptyHexResourcesToBuild: 1
   _actionPointsRequired: 1

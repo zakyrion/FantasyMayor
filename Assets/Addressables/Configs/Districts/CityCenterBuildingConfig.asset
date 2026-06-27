@@ -14,6 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Domains.Economy::Domains.Economy.District.Configs.DistrictBuildingConfig
   _districtType: 1
   _districtPrices: []
-  _hexTypesRequirement: 
+  _hexTypesRequirement: 00000000
   _impossibleToBuildTypes: 03000000
+  _requiredResourceType: 0
+  _needEmptyHexResourcesToBuild: 1
   _actionPointsRequired: 2

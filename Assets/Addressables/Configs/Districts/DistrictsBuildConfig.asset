@@ -15,3 +15,4 @@ MonoBehaviour:
   _districts:
   - {fileID: 11400000, guid: ff9bfba0c1031432d8e6dcf6cd7e6631, type: 2}
   - {fileID: 11400000, guid: 12744a1ffddcf4abba4a06a6e8c35ed6, type: 2}
+  - {fileID: 11400000, guid: 786bbe7ac8a9449ddb227c8c151eda7d, type: 2}

@@ -1,6 +1,10 @@
 using System.Collections.Generic;
+using DefaultEcs;
+using DefaultECSExtensions;
+using Presentation.UI.DistrictBuild.Events;
 using UnityEngine;
 using UnityEngine.UIElements;
+using VContainer;
 using static Unity.AppUI.UI.VisualElementExtensions;
 
 namespace Presentation.UI.HexInfoPanel.Views
@@ -25,11 +29,14 @@ namespace Presentation.UI.HexInfoPanel.Views
         private const string ResourcesContainerName = "ResourcesContainer";
         private const string DistrictSectionName = "DistrictSection";
         private const string ProductionSectionName = "ProductionSection";
+        private const string DistrictBuildSectionName = "DistrictBuildSection";
+        private const string DistrictBuildButtonName = "DistrictBuildButton";
 
         private const string ChipClass = "chip";
 
         [SerializeField] private PanelRenderer _renderer;
 
+        private World _world;
         private VisualElement _root;
         private VisualElement _contextFilled;
         private VisualElement _contextEmpty;
@@ -39,6 +46,8 @@ namespace Presentation.UI.HexInfoPanel.Views
         private VisualElement _resourcesContainer;
         private VisualElement _districtSection;
         private VisualElement _productionSection;
+        private VisualElement _districtBuildSection;
+        private VisualElement _districtBuildButton;
 
         // Logical state replayed on (re)bind. The reactive panel systems re-push on the next selection; this
         // covers the pre-selection initial state and a live UI reload while a hex is selected.
@@ -48,11 +57,17 @@ namespace Presentation.UI.HexInfoPanel.Views
         private string _headerText;
         private bool _resourcesVisible;
         private IReadOnlyList<ResourceChip> _resources;
-        private bool _districtVisible;
+        private DistrictState _districtState;
 
         // Managed UI elements → System.Collections.Generic (NativeContainer holds unmanaged only).
         private readonly List<VisualElement> _chipPool = new();
         private bool _cached;
+
+        [Inject]
+        public void Construct(World world)
+        {
+            _world = world;
+        }
 
         private void OnEnable()
         {
@@ -65,18 +80,21 @@ namespace Presentation.UI.HexInfoPanel.Views
         private void OnDisable()
         {
             _renderer.UnregisterUIReloadCallback(OnUiReloaded);
+            UnhookBuildButton();
         }
 
-        // PanelRenderer (re)built its visual tree: re-query elements off the fresh root, reapply picking,
-        // and replay the last block state.
+        // PanelRenderer (re)built its visual tree: re-query elements off the fresh root, re-hook the (recreated)
+        // build slot, reapply picking, and replay the last block state.
         private void OnUiReloaded(PanelRenderer renderer, VisualElement root)
         {
+            UnhookBuildButton();
             _root = root;
             _cached = false;
 
             if (!TryCache())
                 return;
 
+            _districtBuildButton.RegisterCallback<ClickEvent>(OnBuildClicked);
             ConfigurePicking();
             ApplyState();
         }
@@ -136,19 +154,29 @@ namespace Presentation.UI.HexInfoPanel.Views
         }
 
         /// <summary>
-        ///     Toggles the District-economy scaffold — both the District block (Район) and the "Праця та
-        ///     виробництво" production block. They share the same backing data, so they appear and disappear
-        ///     together. Hidden by HexInfoPanelDistrictPlaceholderSystem until that data lands.
+        ///     "No district yet" state: show the build-prompt block (Район + the build slot), hide the
+        ///     district-details blocks. Mutually exclusive with <see cref="ShowDistrictDetails" /> /
+        ///     <see cref="HideDistrict" /> — exactly one district state is visible at a time.
         /// </summary>
-        public void SetDistrictVisible(bool visible)
+        public void ShowDistrictBuildPrompt() => SetDistrictState(DistrictState.Build);
+
+        /// <summary>
+        ///     "District exists" state: show the District block (Район) and the "Праця та виробництво" production
+        ///     block (they share the same backing data, so they appear together), hide the build prompt.
+        ///     SCAFFOLD content until District-economy components land — unreachable while no district is built.
+        /// </summary>
+        public void ShowDistrictDetails() => SetDistrictState(DistrictState.Details);
+
+        /// <summary>Nothing selected (or no grid hex): hide every district block.</summary>
+        public void HideDistrict() => SetDistrictState(DistrictState.None);
+
+        private void SetDistrictState(DistrictState districtState)
         {
-            _districtVisible = visible;
+            _districtState = districtState;
             if (!TryCache())
                 return;
 
-            var display = visible ? DisplayStyle.Flex : DisplayStyle.None;
-            _districtSection.style.display = display;
-            _productionSection.style.display = display;
+            ApplyDistrictState();
         }
 
         private void ApplyState()
@@ -166,9 +194,30 @@ namespace Presentation.UI.HexInfoPanel.Views
                 FillResources(_resources);
             _resourcesSection.style.display = _resourcesVisible ? DisplayStyle.Flex : DisplayStyle.None;
 
-            var districtDisplay = _districtVisible ? DisplayStyle.Flex : DisplayStyle.None;
-            _districtSection.style.display = districtDisplay;
-            _productionSection.style.display = districtDisplay;
+            ApplyDistrictState();
+        }
+
+        private void ApplyDistrictState()
+        {
+            var detailsDisplay = _districtState == DistrictState.Details ? DisplayStyle.Flex : DisplayStyle.None;
+            _districtSection.style.display = detailsDisplay;
+            _productionSection.style.display = detailsDisplay;
+            _districtBuildSection.style.display =
+                _districtState == DistrictState.Build ? DisplayStyle.Flex : DisplayStyle.None;
+        }
+
+        // The build slot raises a payload-less one-frame request; the future build window reads the current
+        // HexSelectedComponent for the target hex. No consumer yet (dormant emitter).
+        private void OnBuildClicked(ClickEvent evt)
+        {
+            var entity = _world.CreateEntity();
+            entity.Set(new DistrictBuildRequestedEvent());
+            entity.Set(new EventTag());
+        }
+
+        private void UnhookBuildButton()
+        {
+            _districtBuildButton?.UnregisterCallback<ClickEvent>(OnBuildClicked);
         }
 
         private void FillResources(IReadOnlyList<ResourceChip> resources)
@@ -247,12 +296,22 @@ namespace Presentation.UI.HexInfoPanel.Views
             _resourcesContainer = _root.Q<VisualElement>(ResourcesContainerName);
             _districtSection = _root.Q<VisualElement>(DistrictSectionName);
             _productionSection = _root.Q<VisualElement>(ProductionSectionName);
+            _districtBuildSection = _root.Q<VisualElement>(DistrictBuildSectionName);
+            _districtBuildButton = _root.Q<VisualElement>(DistrictBuildButtonName);
             _cached = true;
 
             // A panel reload recreates the elements, so the pooled chips are stale — drop them and strip the
             // editor-preview sample chips authored in UXML; the resources block rebuilds from real data.
             _chipPool.Clear();
             _resourcesContainer.Clear();
+        }
+
+        // Which of the three mutually-exclusive district blocks is shown.
+        private enum DistrictState
+        {
+            None,
+            Build,
+            Details
         }
 
         /// <summary>One resource entry to render as a chip in the resources block.</summary>

@@ -52,6 +52,13 @@ Driven by the `HexSelectedComponent` singleton entity, created / updated / remov
 - The initial empty state is seeded by the spawn subsystem.
 - This reactive trigger is not visible in graphify — full selection flow: `ECS_REFERENCE.md`.
 
+**Outbound event (emitted, not consumed here).** The District build slot (`DistrictBuildButton` in
+`HexInfoPanelView`) raises a payload-less `DistrictBuildRequestedEvent` (+ `EventTag`) on click — the request
+to open the district-build window. Payload-less by design: the consumer reads the current `HexSelectedComponent`
+for the target hex. The event lives in `Presentation.UI.DistrictBuild.Events` (next to its window, not here) and
+**is consumed by `DistrictBuildActionSystem`**, which opens the modal overlay (see `DistrictBuild/DISTRICT_BUILD.md`).
+Event registry: `ECS_REFERENCE.md`.
+
 ## Panes & blocks
 
 ### Filled state — a hex is selected (`ContextFilled`)
@@ -76,16 +83,28 @@ The `OverviewPane` is a row of discrete blocks (mockup `.blocks`):
   icons), built from a pooled item template (`GENERAL_UI_STYLE` Panel Construction). Hidden when no matching
   resource entity exists.
 
-#### 2. Block «Район» + Block «Праця та виробництво» — **SCAFFOLD**
-- Two blocks that share one backing concern: **District** (`DistrictSection`: рівень / Власник / Оператор /
-  Будівлі / Спеціалізація kv-list) and **Production** (`ProductionSection`: Праця labour line + a production
-  table City / Owner / Operator).
-- **Not implemented.** `District` / `Owner` / `Operator` / `Workforce` / `Yield` exist only at the
-  `GAMEPLAY_FOUNDATION.md` level; there are no backing ECS components yet.
-- Driven by **one placeholder system** that keeps **both** blocks hidden (`SetDistrictVisible(false)` toggles
-  `DistrictSection` + `ProductionSection` together) until the real components land. Replace it with the real
-  subsystem when they do.
-- The example data authored in the UXML (Лісозаготівля, 75%, +3/+2/+1, …) is **editor-preview only**.
+#### 2. Block «Район» — three mutually-exclusive states
+The District concern has **three** states, exactly one shown at a time, all driven by
+`HexInfoPanelDistrictSystem` (see Block → System map). The view enforces exclusivity via
+`ShowDistrictBuildPrompt()` / `ShowDistrictDetails()` / `HideDistrict()` (the old `SetDistrictVisible(bool)`
+is gone):
+- **Build prompt — IMPLEMENTED (no district on the hex).** `DistrictBuildSection`: «РАЙОН» header + a single
+  clickable build slot (`DistrictBuildButton`: `+` circle, «Збудувати район», «обрати спеціалізацію для гекса»).
+  The whole slot is the click target; clicking it raises `DistrictBuildRequestedEvent` (see `## Trigger`). This
+  is the **default reachable state** today — nothing builds districts yet, so a selected grid hex always has
+  none. USS note: the mockup's dashed slot border is rendered as a **solid** gold border (UI Toolkit USS has no
+  dashed borders).
+- **Details — SCAFFOLD (a district exists).** Two blocks that share one backing concern: **District**
+  (`DistrictSection`: рівень / Власник / Оператор / Будівлі / Спеціалізація kv-list) and **Production**
+  (`ProductionSection`: Праця labour line + a City / Owner / Operator table). They appear/disappear **together**.
+  `District` / `Owner` / `Operator` / `Workforce` / `Yield` exist only at the `GAMEPLAY_FOUNDATION.md` level;
+  there are no backing ECS components yet, so this branch is **unreachable** (nothing spawns a district). The
+  example data in the UXML (Лісозаготівля, 75%, +3/+2/+1, …) is **editor-preview only**; both blocks are
+  authored `display:none`.
+- **Hidden — nothing (or no grid hex) selected.** All three blocks hidden.
+
+District presence is the real query `With<HexIdComponent>().With<DistrictTag>()` matched on the selected
+coordinate (the District table — key `HexIdComponent`, discriminator `DistrictTag` from `Domains.Economy`).
 
 ### Empty state — nothing selected (`ContextEmpty`)
 - **Intentionally blank** — no hint text. The `ContextEmpty` container exists only as the swap target for the
@@ -106,9 +125,11 @@ One system per block (per `GENERAL_UI_STYLE` Panel Construction; roles per `ARCH
   gracefully on no selection / a non-grid coord (no throw — that is a valid empty selection).
 - **`HexInfoPanelResourcesSystem`** — Reactive System (561) on `SelectedHexChangedEvent`: resource entities of
   the selected hex → chips; hides the block when none (or nothing selected).
-- **`HexInfoPanelDistrictPlaceholderSystem`** — Reactive System (562) on `SelectedHexChangedEvent`, SCAFFOLD;
-  keeps the **District** block (`DistrictSection`) **and** the **Production** block (`ProductionSection`) hidden
-  until real components exist (`SetDistrictVisible(false)` toggles both together).
+- **`HexInfoPanelDistrictSystem`** — Reactive System (562) on `SelectedHexChangedEvent`: resolves the District
+  block's state for the selected hex. No selection → `HideDistrict()`; else queries the District table
+  (`With<HexIdComponent>().With<DistrictTag>()`, matched on the coordinate) → `ShowDistrictBuildPrompt()` when
+  the hex has no district (the live path today), `ShowDistrictDetails()` when it has one (unreachable SCAFFOLD —
+  nothing spawns a district yet). Replaces the former `HexInfoPanelDistrictPlaceholderSystem`.
 
 ## Implementation Notes
 - **One shared instance** (selection is singular), not a panel per hex. World-space per-hex badges are a
@@ -141,11 +162,13 @@ One system per block (per `GENERAL_UI_STYLE` Panel Construction; roles per `ARCH
 asset (`Assets/Addressables/Configs/HexIconsConfigs/`) exist and are addressable. The context sub-panel is a
 **fixed-height** shell with a **permanent tab row** over a filled/empty swap; the filled state holds three tab
 panes (`OverviewPane` / `BuildingsPane` / `ActionsPane`), one shown at a time by `ContextTabsView`. The Overview
-pane's «Гекс» block binds to existing components (`Map` `HexTypeComponent`, `HexResources`); the «Район» +
-«Праця та виробництво» blocks are SCAFFOLD, hidden by `HexInfoPanelDistrictPlaceholderSystem`, pending gameplay
-components; `BuildingsPane` / `ActionsPane` are **empty named containers** (content later); the empty state is
-intentionally blank. The systems are wired into `Boot` (spawn in the pipeline, the rest in `Gameplay`) — see the
-Block → System map above.
+pane's «Гекс» block binds to existing components (`Map` `HexTypeComponent`, `HexResources`). The District concern
+has three states driven by `HexInfoPanelDistrictSystem` (real `DistrictTag` presence query): the **build-prompt**
+block (`DistrictBuildSection`, IMPLEMENTED — the live path, raises `DistrictBuildRequestedEvent` on click) vs the
+**details** blocks (`DistrictSection` + «Праця та виробництво» `ProductionSection`, SCAFFOLD/unreachable — no
+district-economy components yet) vs hidden. `BuildingsPane` / `ActionsPane` are **empty named containers**
+(content later); the empty state is intentionally blank. The systems are wired into `Boot` (spawn in the
+pipeline, the rest in `Gameplay`) — see the Block → System map above.
 
 `HexTerrainIconConfigLoaderSystem` (Config Loader, ConfigLoadStep) loads `HexTerrainIconConfig` → world
 component. Resource sprites reuse `HexIcons.HexResourceIconConfigComponent` (made `public`). Resource chip
@@ -156,7 +179,8 @@ Toolkit panel does **not** render in the Scene/Game view in edit mode, so openin
 is authored visible (Buildings/Actions panes + `ContextEmpty` authored `display:none`) so UI Builder previews the
 filled overview. The header text, the two chips, the District kv-list, and the Production table are
 **preview-only**; at runtime the systems overwrite the header, `HexInfoPanelView` strips the sample chips before
-rebuilding from real data, and the placeholder system hides the District/Production scaffold. The filled-context
+rebuilding from real data, and `HexInfoPanelDistrictSystem` shows the build-prompt block (and hides the
+District/Production details scaffold, which is authored `display:none`). The filled-context
 root element is named `ContextFilled` and the empty one `ContextEmpty`; the panes are `OverviewPane` /
 `BuildingsPane` / `ActionsPane` (must match `HexInfoPanelView`'s and `ContextTabsView`'s constants).
 

@@ -1,0 +1,23 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="DistrictBuildAction.uss"/>
+    <!-- Full-screen modal overlay. Spawned hidden (display:none); DistrictBuildActionSystem toggles it. The
+         scrim + the whole root are pickable by default, so this document (authored above the HUD via a higher
+         PanelSettings sort order) blocks input to everything beneath it. -->
+    <ui:VisualElement name="DistrictBuildRoot" class="db-root" style="display: none;">
+        <ui:VisualElement name="Scrim" class="db-scrim"/>
+        <ui:VisualElement name="Picker" class="db-picker">
+            <ui:VisualElement class="db-accent"/>
+            <ui:VisualElement class="db-head">
+                <ui:VisualElement class="db-ticon">
+                    <ui:Label text="⛰️" class="db-ticon-glyph"/>
+                </ui:VisualElement>
+                <ui:Label text="Збудувати район" class="db-title"/>
+                <ui:Button name="CloseButton" text="✕" class="db-x"/>
+            </ui:VisualElement>
+            <ui:VisualElement class="db-body">
+                <ui:ScrollView name="DistrictList" mode="Vertical" class="db-list"/>
+                <ui:ScrollView name="DistrictDetail" mode="Vertical" class="db-detail"/>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

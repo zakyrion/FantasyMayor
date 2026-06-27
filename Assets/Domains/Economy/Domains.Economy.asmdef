@@ -3,7 +3,12 @@
     "rootNamespace": "",
     "references": [
         "Domains.Map",
-        "VContainer"
+        "VContainer",
+        "DefaultECS.Extensions",
+        "Boot.Core",
+        "Core",
+        "Addressables.Core",
+        "UniTask"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -233,7 +233,7 @@ ENTITY: HexInfoPanelView  (singleton)
   WRITES: HexInfoPanelSpawnSubSystem (run by MainUISpawnSystem at pipeline 800 — GetComponentInChildren off
           the shared UI/MainUI instance; the orchestrator owns the single addressable handle)
   READS: HexInfoPanelSystem (resolves the view to show/hide), HexInfoPanelHeaderSystem /
-         HexInfoPanelResourcesSystem / HexInfoPanelDistrictPlaceholderSystem (resolve the view to fill
+         HexInfoPanelResourcesSystem / HexInfoPanelDistrictSystem (resolve the view to fill
          their block) — all four anchored on the SelectedHexChangedEvent pulse (EntitySet)
   Note: the panel starts empty (HexInfoPanelSpawnSubSystem); on the SelectedHexChangedEvent pulse
         HexInfoPanelSystem reconciles show/hide and the block systems fill from the current
@@ -258,6 +258,16 @@ ENTITY: ResourceBarView  (singleton)
   Note: top-bar resource strip (GENERAL_UI_STYLE.md §4 center). Per-frame (not reactive) because no
         ResourcesChanged pulse exists yet — it reads the City/Mayor Resource stacks directly every frame.
         Reads cross-module Actors + Economy components (see Cross-Module Reads).
+
+ENTITY: DistrictBuildActionView  (singleton)
+  Components: DistrictBuildActionViewComponent (View → the DistrictBuildActionView MonoBehaviour), UITag
+  WRITES: DistrictBuildActionSpawnSystem (pipeline 810 — instantiates the SEPARATE UI/DistrictBuildAction
+          overlay document under IMainCanvasProvider.RootGO; owns its handle in DistrictBuildActionRootComponent)
+  READS: DistrictBuildActionSystem (base/anchor set — per-frame Gameplay; shows on DistrictBuildRequestedEvent
+         filled from HexSelectedComponent + DistrictsBuildConfigComponent + payer stacks, hides on
+         DistrictBuildClosedEvent)
+  Note: modal district-build overlay (separate UIDocument, higher sort order). Spawns hidden. Reads
+        cross-module Actors + Economy components (see Cross-Module Reads).
 ```
 
 ---
@@ -362,7 +372,7 @@ WORLD: DistrictIdAllocatorComponent  (domain Economy)  [SCAFFOLD]
         (contract only — ES3 wiring deferred).
 ```
 
-### Config world components (23)
+### Config world components (24)
 
 All written ONCE by their module's Config Loader at `ConfigLoadStep` (`CONFIGTEMPLATE.md`).
 Reader lists name the consuming systems.
@@ -443,6 +453,13 @@ WORLD: CityConfigComponent  (domain Actors)
   Note: flattened from the CityConfig SO — Resources array copied out, SO released after load. Resources
         only — the City has no Action Points (unlike MayorConfigComponent). Lives in Actors/City —
         actor-intrinsic startup state. See Actors/ACTORS.md.
+
+WORLD: DistrictsBuildConfigComponent  (domain Economy, District)
+  WRITES: DistrictsBuildConfigLoaderSystem (RETAINS the addressable Box — releases it in OnDispose, unlike the
+          copy-out actor loaders; the build window reads the catalogue throughout play)
+  READS: DistrictBuildActionSystem (Presentation.UI — passes the catalogue reference to the overlay view)
+  Note: carries a REFERENCE to the DistrictsBuildConfig SO (Value) — no flatten/copy (the SO holds the
+        Districts + their Prices/requirements). Economy's first config. See ECONOMY.md.
 ```
 
 ---
@@ -475,8 +492,8 @@ EVENT: SelectedHexChangedEvent
   Producer: HexSelectionSystem (module UserInput) — raised on EVERY selection mutation: create,
             deselect (dispose), and re-select to another coord
   Consumers: HexInfoPanelSystem (550 — show/hide), HexInfoPanelHeaderSystem (560),
-             HexInfoPanelResourcesSystem (561), HexInfoPanelDistrictPlaceholderSystem (562) — fill the
-             panel blocks; ContextTabsAvailabilitySystem (560) — per-tab enabled state
+             HexInfoPanelResourcesSystem (561), HexInfoPanelDistrictSystem (562 — district build-prompt /
+             details / hidden) — fill the panel blocks; ContextTabsAvailabilitySystem (560) — per-tab enabled
   Lifetime: 1 frame
   Note: the canonical "selection changed" pulse — payload-less; every consumer reads the current
         HexSelectedComponent (present/value), reconciling its block. Replaced both the consumers' former
@@ -490,6 +507,22 @@ EVENT: ContextTabChangedEvent
             ActiveContextTabComponent
   Lifetime: 1 frame
   Note: payload-less pulse — the active tab lives in the ActiveContextTabComponent world singleton.
+
+EVENT: DistrictBuildRequestedEvent
+  Producer: HexInfoPanelView (Presentation.UI, window HexInfoPanel) — the District build slot
+            (DistrictBuildButton) creates DistrictBuildRequestedEvent + EventTag on click
+  Consumer: DistrictBuildActionSystem (Presentation.UI, window DistrictBuild) — opens the modal overlay,
+            filled from the current HexSelectedComponent + the DistrictsBuildConfigComponent catalogue
+  Lifetime: 1 frame
+  Note: payload-less pulse — "open the district-build window for the selected hex". Event type lives in
+        Presentation.UI.DistrictBuild.Events (next to its window).
+
+EVENT: DistrictBuildClosedEvent
+  Producer: DistrictBuildActionView (Presentation.UI, window DistrictBuild) — the «X», the scrim, and the
+            «ЗБУДУВАТИ» button each create DistrictBuildClosedEvent + EventTag on click
+  Consumer: DistrictBuildActionSystem — hides the overlay
+  Lifetime: 1 frame
+  Note: payload-less pulse. Build itself is dormant for now — «ЗБУДУВАТИ» only closes.
 
 EVENT: ForestHexAppearedEvent / ForestHexRemovedEvent
   Producer: NO emitter yet (future gameplay: planting / chopping)
@@ -587,7 +620,7 @@ Gameplay state, per-frame (Update, ascending priority):
   → HexSelectionSystem (0) / HexSelectionViewSystem     → selection write (raises SelectedHexChangedEvent
                                                           on every mutation) + highlight (poll)
   → HexInfoPanelSystem (550, reactive on SelectedHexChangedEvent) → show/hide (ShowSelection/ShowEmpty)
-  → HexInfoPanelHeader/Resources/DistrictPlaceholder (560–562, reactive on SelectedHexChangedEvent)
+  → HexInfoPanelHeader/Resources/District (560–562, reactive on SelectedHexChangedEvent)
                                                           → fill panel blocks, reading HexSelectedComponent
   → ForestSpawnSystem (600) / ForestDespawnSystem (601, reactive) → reconcile forest views on a pulse (dormant)
   → HexIconsVisibilitySystem (800, reactive)           → clear/rebuild icon containers on the pulse

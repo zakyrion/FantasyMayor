@@ -37,6 +37,10 @@ this doc, the `Presentation.UI.asmdef`) stay at the root. Windows:
   inventory pools as a vertical scroll list (one row per resource: icon + City + Mayor). Also reveals the thin
   empty top-bar strip. Owns its own icon config (`InventoryResourceIconConfig`) whose entries define the rows.
   Design: `ResourceBar/RESOURCE_BAR.md`.
+- `DistrictBuild/` — the **district-build modal overlay** opened from the HexInfoPanel «Район» build slot. The
+  one exception to the shared-`PanelRenderer` rule: it is its **own UIDocument** with a higher sort order so it
+  renders above and blocks the whole HUD. Has its own spawn orchestrator (not a `MainUISpawnSubSystem`). Design:
+  `DistrictBuild/DISTRICT_BUILD.md`.
 
 ## UI root and the single Main UI prefab
 The shared full-screen UI root is module **`MainCanvas`** (`IMainCanvasProvider.RootGO`). Under it, the whole
@@ -148,3 +152,6 @@ that resolves it.
   the pane swap in `SetActive`, the selection/availability split.
 - `ResourceBar/RESOURCE_BAR.md` — the left-edge resource panel (City + Mayor pools): the vertical row list,
   the config-defines-rows rule, the per-frame justification, the Table-Rule resource reads, prefab prereqs.
+- `DistrictBuild/DISTRICT_BUILD.md` — the district-build modal overlay (separate UIDocument): the master-detail
+  picker, the spawn + reactive systems, the open/close pulses, the real-vs-placeholder (Hybrid) split, the
+  flattened `DistrictsBuildConfigComponent` data path, prefab/config prereqs.

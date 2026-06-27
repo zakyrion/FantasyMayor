@@ -5,6 +5,7 @@ namespace Domains.Economy.District.Data
         Unknown = 0,
         CityCenter = 1,
         Farm = 2,
+        Forester = 3,
 
     }
 }
