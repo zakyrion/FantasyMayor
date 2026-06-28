@@ -9,8 +9,13 @@ It is GENERATED — never hand-edit it. Edit the source docs' frontmatter, then 
 Data comes from each project doc's YAML frontmatter (see DOC_STANDARD.md
 "Frontmatter"): category, read (always|trigger|reference), trigger, tags, status.
 The one-line description is each doc's own first content line (no second source of truth).
+
+Obsidian Canvas files (`.canvas`) are also catalogued in a "Canvas map" section.
+Canvases have no frontmatter, so their entry is derived automatically: title =
+filename, description = the canvas's group labels (add a group to give a canvas a
+meaningful description).
 """
-import os, re, sys
+import json, os, re, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -27,8 +32,8 @@ PRUNE = {
 READ_ORDER = {"always": 0, "trigger": 1, "reference": 2}
 
 
-def find_docs():
-    out = []
+def _walk_files():
+    """Yield repo-relative paths of all files outside the PRUNE set."""
     for dirpath, dirnames, filenames in os.walk(ROOT):
         rel = os.path.relpath(dirpath, ROOT)
         # prune
@@ -36,9 +41,16 @@ def find_docs():
                        if os.path.normpath(os.path.join(rel, d)) not in PRUNE
                        and d not in PRUNE]
         for fn in filenames:
-            if fn.endswith(".md") and fn != "INDEX.md":
-                out.append(os.path.normpath(os.path.join(rel, fn)))
-    return sorted(out)
+            yield os.path.normpath(os.path.join(rel, fn))
+
+
+def find_docs():
+    return sorted(p for p in _walk_files()
+                  if p.endswith(".md") and os.path.basename(p) != "INDEX.md")
+
+
+def find_canvases():
+    return sorted(p for p in _walk_files() if p.endswith(".canvas"))
 
 
 def parse(relpath):
@@ -82,9 +94,42 @@ def parse(relpath):
     return meta
 
 
+def parse_canvas(relpath):
+    """Derive a catalog entry for an Obsidian Canvas (JSONCanvas).
+
+    Canvases carry no frontmatter, so this is best-effort and tolerant: a
+    malformed/in-flight canvas degrades to a placeholder instead of aborting.
+    title = filename; desc = group labels, else first text node, else placeholder.
+    """
+    title = os.path.basename(relpath)[:-len(".canvas")]
+    try:
+        data = json.load(open(os.path.join(ROOT, relpath), encoding="utf-8"))
+        nodes = data.get("nodes", [])
+        labels = [n.get("label", "").strip() for n in nodes
+                  if n.get("type") == "group" and n.get("label", "").strip()]
+        if labels:
+            desc = " · ".join(labels)
+        else:
+            desc = "(canvas)"
+            for n in nodes:
+                if n.get("type") == "text":
+                    lines = n.get("text", "").strip().splitlines()
+                    if lines and lines[0].strip():
+                        desc = lines[0].strip()
+                        break
+        if len(desc) > 120:
+            desc = desc[:117].rstrip() + "…"
+    except Exception:
+        desc = "(unparsed canvas)"
+    # escape pipes so free-form labels never break the markdown table
+    desc = desc.replace("|", "\\|")
+    return {"title": title, "desc": desc}
+
+
 def main():
     docs = [(p, parse(p)) for p in find_docs()]
-    # validate
+    canvases = [(p, parse_canvas(p)) for p in find_canvases()]
+    # validate (markdown docs only — canvases have no schema to validate)
     errs = []
     for p, m in docs:
         if m["category"] not in ("A", "B", "C"):
@@ -124,7 +169,8 @@ def main():
              "and its first line. See `DOC_STANDARD.md`.")
     L.append("")
     L.append(f"Totals: {len(docs)} docs — {len(always)} always · "
-             f"{len(trigger)} trigger · {len(ref)} reference.")
+             f"{len(trigger)} trigger · {len(ref)} reference"
+             f" · {len(canvases)} canvas.")
     L.append("")
 
     L.append("## Read at start (always)")
@@ -156,10 +202,21 @@ def main():
                  f"{m['status'] or '—'} | {m['desc']} |")
     L.append("")
 
+    L.append("## Canvas map (on demand)")
+    L.append("")
+    L.append("Visual maps (Obsidian Canvas). Read/edit via Obsidian MCP; not preloaded.")
+    L.append("")
+    L.append("| Canvas | What it maps |")
+    L.append("|---|---|")
+    for p, m in canvases:
+        L.append(f"| [{m['title']}]({p}) | {m['desc']} |")
+    L.append("")
+
     out = "\n".join(L) + "\n"
     open(os.path.join(ROOT, "INDEX.md"), "w", encoding="utf-8").write(out)
     print(f"INDEX.md written: {len(docs)} docs "
-          f"({len(always)} always, {len(trigger)} trigger, {len(ref)} reference)")
+          f"({len(always)} always, {len(trigger)} trigger, {len(ref)} reference), "
+          f"{len(canvases)} canvas")
 
 
 if __name__ == "__main__":

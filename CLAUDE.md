@@ -42,10 +42,19 @@ export GRAPHIFY_OLLAMA_MODEL=openai/codex-mini:free
 When Gemini fails (503, quota, or any error) and a subagent fallback is needed, always use `model: "haiku"` — it is the cheapest available Claude model. Never spawn a fallback subagent without explicitly setting the model to haiku. Same rule applies when using OpenAI-compatible backends (OpenRouter, Ollama): always pick the cheapest/free model tier available.
 
 ## Start Working
-- **Read `INDEX.md` first.** It is the generated doc map and the single source of the start-reading list.
+- **Read `INDEX.md` first** (via Obsidian MCP `vault_read`; fallback plain `Read`). It is the generated doc map and the **single key to every doc and canvas** — start all doc navigation here.
 - Read every doc it marks `read: always` (currently `ARCHITECTURE.md`, `DOC_STANDARD.md`, `GAMEPLAY_FOUNDATION.md`).
 - Do **not** preload anything else. `INDEX.md` lists `trigger` docs (read only when their condition holds — e.g. `SYSTEMTEMPLATE.md`, `CONFIGTEMPLATE.md`, `ECS_REFERENCE.md`, `GENERAL_UI_STYLE.md`, `ADDRESSABLE_PATTERNS.md`) and `reference` docs (per-module, on demand). Glance at the index, then decide.
 - `INDEX.md` is generated — never hand-edit it. After changing any doc's frontmatter, regenerate: `python3 Tools/gen_index.py`.
+
+## Documentation Access (Obsidian-first)
+- **This repo is an Obsidian vault.** All project docs (`.md`) and canvases (`.canvas`) are accessed through the **Obsidian MCP** (`mcp__obsidian__*`) as the primary channel:
+  - read: `vault_read` (supports heading/block/frontmatter targeting) · structure: `vault_get_document_map` · search: `search_query` / `search_simple` · write/edit: `vault_write` / `vault_patch` / `vault_append` · move/delete: `vault_move` / `vault_delete`.
+- **Fallback:** if the `obsidian` server is not connected (Obsidian closed / HTTP server off), use the plain `Read` / `Write` / `Edit` tools. The MCP path needs Obsidian running.
+- **Scope:** Obsidian-first applies to docs (`.md`) and canvases (`.canvas`) only. **Code** files always use `Read` / `Edit` / `Write`.
+- **Excluded-files caveat:** `vault_list` / `vault_read` ignore Obsidian's "Excluded files" (they still see `Library/`, `.csproj`, plugins). For clean discovery use `search_query` / `search_simple` or navigate by `INDEX.md` paths — never wander into `Library/`, `Packages/`, or plugin folders.
+- **`INDEX.md` is generated, not authored:** it is written to disk by `gen_index.py`; the Obsidian-write rule governs authoring docs by hand, not the generator's output.
+- **Canvases** are JSONCanvas `.canvas` files (read/edit via Obsidian MCP) and are catalogued automatically in INDEX's `Canvas map` (title = filename, desc = the canvas's group labels — add a group label to give a canvas a meaningful description). Convention: repo-root, `UPPER_SNAKE_CASE.canvas`.
 
 ## User Process Contract
 - User-defined process and repository rules are mandatory and override agent-default workflows.

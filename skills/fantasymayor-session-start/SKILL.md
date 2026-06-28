@@ -1,6 +1,6 @@
 ---
 name: fantasymayor-session-start
-description: Load and resume working context for the FantasyMayor repository by reading `CLAUDE.md`, following it to `INDEX.md` (the generated doc map), reading only the docs `INDEX.md` marks `read: always`, identifying where work appears to have stopped, surfacing any conflicting status notes between documents, and ending by asking the user what to do next. Use when starting a new session in this repository, when the user asks to resume context, continue prior work, or find the current roadmap before making changes.
+description: Load and resume working context for the FantasyMayor repository by reading `CLAUDE.md` through the Obsidian MCP, following it to `INDEX.md` (the generated doc map), reading only the docs `INDEX.md` marks `read: always`, identifying where work appears to have stopped, surfacing any conflicting status notes between documents, and ending by asking the user what to do next. Use when starting a new session in this repository, when the user asks to resume context, continue prior work, or find the current roadmap before making changes.
 ---
 
 # FantasyMayor Session Start
@@ -20,7 +20,9 @@ Only after provided asnwer you must to continue this skill.
 
 ### 1. Load startup instructions first
 
-Read `CLAUDE.md` before anything else, then read `INDEX.md` (CLAUDE.md "Start Working" points there). `INDEX.md` is the generated doc map and the single source of the start-reading list.
+**Read docs through the Obsidian MCP** (`mcp__obsidian__vault_read`) — this repo is an Obsidian vault and that is the primary channel. If the `obsidian` server is not connected (Obsidian closed / HTTP server off), fall back to the plain `Read` tool.
+
+Read `CLAUDE.md` before anything else, then read `INDEX.md` (CLAUDE.md "Start Working" points there). `INDEX.md` is the generated doc map and the single key to every doc and canvas.
 
 Respect the repository constraints in `CLAUDE.md`, especially:
 - startup-order requirements
@@ -30,9 +32,11 @@ Respect the repository constraints in `CLAUDE.md`, especially:
 
 ### 2. Read only the start-reading set
 
-Read every doc `INDEX.md` marks `read: always` (currently `ARCHITECTURE.md`, `DOC_STANDARD.md`, `GAMEPLAY_FOUNDATION.md`).
+Read every doc `INDEX.md` marks `read: always` (currently `ARCHITECTURE.md`, `DOC_STANDARD.md`, `GAMEPLAY_FOUNDATION.md`) — via the same Obsidian channel as step 1.
 
 Do **not** read all root Markdown, and do **not** preload `trigger` or `reference` docs — `INDEX.md` already summarizes each one. Glance at the index and read a `trigger`/`reference` doc only when the user's task needs it. Ignore nested package/plugin READMEs.
+
+Do **not** enumerate or preload canvases at startup. `INDEX.md` lists them in its `Canvas map`; read a `.canvas` (via Obsidian `vault_read`) only when the user's task needs it.
 
 Treat the always-read docs as potentially inconsistent. Compare them rather than assuming the first one is canonical. For "what is the current state", the `status` column in `INDEX.md` is the fast machine-readable view; the prose `## Current State` in each module doc is the authoritative detail.
 

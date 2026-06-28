@@ -11,7 +11,7 @@ related:
 
 Generated doc map for FantasyMayor. **Do not hand-edit** — run `python3 Tools/gen_index.py` after changing any doc's frontmatter. Data source: each doc's frontmatter (`category`/`read`/`trigger`/`status`) and its first line. See `DOC_STANDARD.md`.
 
-Totals: 36 docs — 3 always · 6 trigger · 27 reference.
+Totals: 36 docs — 3 always · 6 trigger · 27 reference · 2 canvas.
 
 ## Read at start (always)
 
@@ -67,4 +67,13 @@ Per-module navigation docs. `status` mirrors each module's `## Current State`.
 | [Hex Info Panel — Context Sub-Panel](Assets/Presentation/UI/HexInfoPanel/HEX_INFO_PANEL.md) | B | — | The read-only **CONTEXT sub-panel** (right) of the shared bottom panel: everything known about the currently |
 | [MainUI](Assets/Presentation/UI/MAIN_UI.md) | A | partial | The **`Presentation.UI` assembly** (`Assets/Presentation/UI/`, namespaces `Presentation.UI.*`) — the |
 | [ResourceBar](Assets/Presentation/UI/ResourceBar/RESOURCE_BAR.md) | A | partial | The **left-edge resource panel**: the two inventory pools (City / Mayor) as a vertical scroll list. The |
+
+## Canvas map (on demand)
+
+Visual maps (Obsidian Canvas). Read/edit via Obsidian MCP; not preloaded.
+
+| Canvas | What it maps |
+|---|---|
+| [ECONOMY_ACTORS](ECONOMY_ACTORS.canvas) | Ownables — each carries one OwnerFK + a Tag · My domain view · Owners — actors with an Id used as OwnerFK · Resource… |
+| [ENTITIES](ENTITIES.canvas) | Mayor |
 
