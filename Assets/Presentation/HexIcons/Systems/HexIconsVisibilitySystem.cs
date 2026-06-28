@@ -46,7 +46,7 @@ namespace Presentation.HexIcons.Systems
                 .AsSet();
             _resourceSet = world.GetEntities()
                 .With<HexIdComponent>()
-                .With<HexResourcesComponent>()
+                .With<HexResourceComponent>()
                 .AsSet();
         }
 
@@ -87,7 +87,7 @@ namespace Presentation.HexIcons.Systems
                     if (!resourceEntity.Get<HexIdComponent>().Coords.Value.Equals(coords.Value))
                         continue;
 
-                    var type = resourceEntity.Get<HexResourcesComponent>().Type;
+                    var type = resourceEntity.Get<HexResourceComponent>().Type;
                     if (TryFindSprite(entries, type, out var sprite))
                         AddIcon(view, container, iconSize, type, sprite);
                 }
@@ -97,7 +97,7 @@ namespace Presentation.HexIcons.Systems
         // Adds a fixed-size (iconSize) icon as a flow child of the hex's container (the container stacks icons
         // vertically). Picking does not propagate to children in UI Toolkit, so the icon is marked individually
         // so the whole overlay stays click-through.
-        private void AddIcon(HexIconsView view, VisualElement container, float iconSize, ResourceType type,
+        private void AddIcon(HexIconsView view, VisualElement container, float iconSize, HexResourceType type,
             Sprite sprite)
         {
             var icon = new VisualElement { name = $"hex-icon-{type}-{container.childCount}" };
@@ -113,11 +113,11 @@ namespace Presentation.HexIcons.Systems
         // Linear scan for a resource's sprite — there is no Sprite-by-ResourceType lookup API yet. A missing
         // sprite (no entry, or a null sprite on the entry) is a skip, not an error: not every resource needs art.
         private bool TryFindSprite(IReadOnlyList<HexResourceIconConfig.ResourceIconEntry> entries,
-            ResourceType type, out Sprite sprite)
+            HexResourceType type, out Sprite sprite)
         {
             foreach (var entry in entries)
             {
-                if (entry.ResourceType != type || entry.Sprite == null)
+                if (entry.HexResourceType != type || entry.Sprite == null)
                     continue;
 
                 sprite = entry.Sprite;

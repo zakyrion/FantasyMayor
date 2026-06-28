@@ -14,7 +14,7 @@ namespace Domains.Map.HexResources.Systems
         public bool IsEnabled { get; set; } = true;
 
         public abstract int Priority { get; }
-        protected abstract ResourceType TargetResourceType { get; }
+        protected abstract HexResourceType TargetHexResourceType { get; }
 
         protected HexResourcesSubSystem(World world)
         {
@@ -33,7 +33,7 @@ namespace Domains.Map.HexResources.Systems
             var resourcesConfig = _world.Get<HexResourcesConfigComponent>().Value;
             foreach (var resource in resourcesConfig.Resources)
             {
-                if (resource.Type != TargetResourceType)
+                if (resource.Type != TargetHexResourceType)
                     continue;
 
                 config = resource.Config;

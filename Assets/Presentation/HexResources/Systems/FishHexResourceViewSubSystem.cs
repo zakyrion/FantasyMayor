@@ -11,7 +11,7 @@ namespace Presentation.HexResources.Systems
         private const int ExecutionPriority = 300;
 
         public override int Priority => ExecutionPriority;
-        protected override ResourceType TargetResourceType => ResourceType.Fish;
+        protected override HexResourceType TargetHexResourceType => HexResourceType.Fish;
 
         public FishHexResourceViewSubSystem(World world)
             : base(world)

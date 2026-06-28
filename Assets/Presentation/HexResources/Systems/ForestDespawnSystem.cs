@@ -29,7 +29,7 @@ namespace Presentation.HexResources.Systems
         private const int ExecutionPriority = 601;
 
         // HexResource table indexed by its discriminator value -> the Forest bucket is the current truth.
-        private readonly EntityMultiMap<HexResourcesComponent> _resourcesByType;
+        private readonly EntityMultiMap<HexResourceComponent> _resourcesByType;
 
         // ResourceView (forest) table indexed by the hex FK -> N tree entities per coordinate.
         private readonly EntityMultiMap<HexIdComponent> _forestViewsByHex;
@@ -43,8 +43,8 @@ namespace Presentation.HexResources.Systems
         {
             _resourcesByType = world.GetEntities()
                 .With<HexIdComponent>()
-                .With<HexResourcesComponent>()
-                .AsMultiMap<HexResourcesComponent>();
+                .With<HexResourceComponent>()
+                .AsMultiMap<HexResourceComponent>();
 
             _forestViewsByHex = world.GetEntities()
                 .With<HexIdComponent>()
@@ -55,7 +55,7 @@ namespace Presentation.HexResources.Systems
         // The pulse entity itself is ignored — reconciliation is global over current state.
         protected override void Update(GameState state, in Entity pulse)
         {
-            var forestKey = new HexResourcesComponent { Type = ResourceType.Forest };
+            var forestKey = new HexResourceComponent { Type = HexResourceType.Forest };
 
             var forestHexes = new NativeHashSet<HexCoord>(64, Allocator.Temp);
             if (_resourcesByType.TryGetEntities(forestKey, out var forestResources))

@@ -10,7 +10,7 @@ namespace Presentation.HexResources.Components
     /// </summary>
     internal struct ForestViewComponent
     {
-        public ResourceType Type;
+        public HexResourceType Type;
         public ForestView View;
     }
 }

@@ -30,7 +30,7 @@ namespace Presentation.HexResources.Systems
         private const int ExecutionPriority = 600;
 
         // HexResource table indexed by its discriminator value -> the Forest bucket is the wanted set.
-        private readonly EntityMultiMap<HexResourcesComponent> _resourcesByType;
+        private readonly EntityMultiMap<HexResourceComponent> _resourcesByType;
 
         // ResourceView (forest) table indexed by the hex FK -> N tree entities per coordinate.
         private readonly EntityMultiMap<HexIdComponent> _forestViewsByHex;
@@ -51,8 +51,8 @@ namespace Presentation.HexResources.Systems
             _world = world;
             _resourcesByType = world.GetEntities()
                 .With<HexIdComponent>()
-                .With<HexResourcesComponent>()
-                .AsMultiMap<HexResourcesComponent>();
+                .With<HexResourceComponent>()
+                .AsMultiMap<HexResourceComponent>();
 
             _forestViewsByHex = world.GetEntities()
                 .With<HexIdComponent>()
@@ -79,7 +79,7 @@ namespace Presentation.HexResources.Systems
             if (!_world.Has<TerrainViewConfigComponent>() || !_world.Has<HexResourcesViewConfigComponent>())
                 return;
 
-            var forestKey = new HexResourcesComponent { Type = ResourceType.Forest };
+            var forestKey = new HexResourceComponent { Type = HexResourceType.Forest };
             if (!_resourcesByType.TryGetEntities(forestKey, out var forestHexes))
                 return;
 

@@ -76,7 +76,7 @@ namespace Presentation.HexResources.Helpers
 
                 var viewEntity = world.CreateEntity();
                 viewEntity.Set(new HexIdComponent { Coords = hex });
-                viewEntity.Set(new ForestViewComponent { Type = ResourceType.Forest, View = view });
+                viewEntity.Set(new ForestViewComponent { Type = HexResourceType.Forest, View = view });
 
                 if (entry.GroundTint.a > 0f)
                     splats.Add(new ForestGroundPainter.Splat(worldPos, entry.Radius, entry.GroundTint));
@@ -138,7 +138,7 @@ namespace Presentation.HexResources.Helpers
 
             var count = 0;
             for (var i = 0; i < resources.Length; i++)
-                if (resources[i].Type == ResourceType.Forest && resources[i].Prefab != null)
+                if (resources[i].Type == HexResourceType.Forest && resources[i].Prefab != null)
                     count++;
 
             if (count == 0)
@@ -151,7 +151,7 @@ namespace Presentation.HexResources.Helpers
             var seen = 0;
             for (var i = 0; i < resources.Length; i++)
             {
-                if (resources[i].Type != ResourceType.Forest || resources[i].Prefab == null)
+                if (resources[i].Type != HexResourceType.Forest || resources[i].Prefab == null)
                     continue;
 
                 if (seen == pick)

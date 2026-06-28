@@ -13,18 +13,18 @@ MonoBehaviour:
   m_Name: GameResourcesViewConfig
   m_EditorClassIdentifier: GameResourcesView::Modules.GameResourcesView.Configs.GameResourcesViewConfig
   _resources:
-  - Type: 0
+  - Type: 1
     Prefab: {fileID: 231923670769809129, guid: c9b3546c82f63c94e8bde9ebd3f859f8, type: 3}
     ScaleRange: {x: 0.05, y: 0.075}
     Radius: 0.1
     GroundTint: {r: 0, g: 0, b: 0, a: 0}
-  - Type: 0
+  - Type: 1
     Prefab: {fileID: 4372043385601356926, guid: 948097c46b7b63e439261e925a602106,
       type: 3}
     ScaleRange: {x: 0.05, y: 0.075}
     Radius: 0.1
     GroundTint: {r: 0, g: 0, b: 0, a: 0}
-  - Type: 0
+  - Type: 1
     Prefab: {fileID: 1638888196610916009, guid: b71b5f2e3c7c04b42a3fe94a9b52a373,
       type: 3}
     ScaleRange: {x: 0.05, y: 0.075}

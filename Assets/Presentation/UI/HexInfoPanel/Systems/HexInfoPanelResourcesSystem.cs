@@ -47,7 +47,7 @@ namespace Presentation.UI.HexInfoPanel.Systems
             _selectedHexSet = world.GetEntities().With<HexSelectedComponent>().AsSet();
             _resourceSet = world.GetEntities()
                 .With<HexIdComponent>()
-                .With<HexResourcesComponent>()
+                .With<HexResourceComponent>()
                 .AsSet();
         }
 
@@ -79,7 +79,7 @@ namespace Presentation.UI.HexInfoPanel.Systems
                 if (resourceEntity.Get<HexIdComponent>().Coords != coords)
                     continue;
 
-                var type = resourceEntity.Get<HexResourcesComponent>().Type;
+                var type = resourceEntity.Get<HexResourceComponent>().Type;
 
                 // A missing sprite is fine — the chip still shows the USS placeholder, so we keep the result
                 // regardless of the lookup outcome.
@@ -97,11 +97,11 @@ namespace Presentation.UI.HexInfoPanel.Systems
         }
 
         private bool TryGetSprite(IReadOnlyList<HexResourceIconConfig.ResourceIconEntry> entries,
-            ResourceType type, out Sprite sprite)
+            HexResourceType type, out Sprite sprite)
         {
             foreach (var entry in entries)
             {
-                if (entry.ResourceType != type || entry.Sprite == null)
+                if (entry.HexResourceType != type || entry.Sprite == null)
                     continue;
 
                 sprite = entry.Sprite;

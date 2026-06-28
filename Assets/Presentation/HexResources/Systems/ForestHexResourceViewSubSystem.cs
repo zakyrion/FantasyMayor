@@ -32,7 +32,7 @@ namespace Presentation.HexResources.Systems
         private Transform _root;
 
         public override int Priority => ExecutionPriority;
-        protected override ResourceType TargetResourceType => ResourceType.Forest;
+        protected override HexResourceType TargetHexResourceType => HexResourceType.Forest;
 
         public ForestHexResourceViewSubSystem(World world)
             : base(world)

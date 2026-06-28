@@ -66,7 +66,7 @@ namespace Presentation.UI.DistrictBuild.Systems
             _mayorResources = world.GetEntities()
                 .With<MayorIdComponent>().With<ResourceTag>().AsMultiMap<MayorIdComponent>();
             _hexResources = world.GetEntities()
-                .With<HexResourcesComponent>().With<HexIdComponent>().AsMultiMap<HexIdComponent>();
+                .With<HexResourceComponent>().With<HexIdComponent>().AsMultiMap<HexIdComponent>();
         }
 
         protected override void Update(GameState state, in Entity entity)
@@ -150,7 +150,7 @@ namespace Presentation.UI.DistrictBuild.Systems
                 return;
 
             foreach (var resourceEntity in resources)
-                view.AddHexResource(resourceEntity.Get<HexResourcesComponent>().Type);
+                view.AddHexResource(resourceEntity.Get<HexResourceComponent>().Type);
         }
 
         private bool TryGetHexType(HexCoord coords, out HexType type)

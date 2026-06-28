@@ -20,7 +20,7 @@ namespace Domains.Economy.District.Configs
         [SerializeField]
         private List<HexType> _impossibleToBuildTypes;
         [SerializeField]
-        private ResourceType _requiredResourceType;
+        private HexResourceType _requiredHexResourceType;
         [SerializeField]
         private bool _needEmptyHexResourcesToBuild;
         [SerializeField]
@@ -31,14 +31,14 @@ namespace Domains.Economy.District.Configs
         public DistrictType DistrictType => _districtType;
         public List<HexType> HexTypesRequirement => _hexTypesRequirement;
         public List<HexType> ImpossibleToBuildTypes => _impossibleToBuildTypes;
-        public ResourceType RequiredResourceType => _requiredResourceType;
+        public HexResourceType RequiredHexResourceType => _requiredHexResourceType;
         public bool NeedEmptyHexResourcesToBuild => _needEmptyHexResourcesToBuild;
 
         // Single availability gate. Terrain first (impossible list, then requirement list), then the resource gate.
         // The two resource modes are mutually exclusive: NeedEmptyHexResourcesToBuild demands a hex with NO
         // resources; otherwise the hex must carry the one RequiredResourceType. hexResources is the selected hex's
         // HexResources set (empty span = a hex with no resources).
-        public bool CanBuildOn(HexType hexType, ReadOnlySpan<ResourceType> hexResources)
+        public bool CanBuildOn(HexType hexType, ReadOnlySpan<HexResourceType> hexResources)
         {
             if (_impossibleToBuildTypes.Contains(hexType))
                 return false;
@@ -50,7 +50,7 @@ namespace Domains.Economy.District.Configs
                 return hexResources.Length == 0;
 
             foreach (var resource in hexResources)
-                if (resource == _requiredResourceType)
+                if (resource == _requiredHexResourceType)
                     return true;
 
             return false;

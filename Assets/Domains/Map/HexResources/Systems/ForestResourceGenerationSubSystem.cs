@@ -1,13 +1,14 @@
 using DefaultEcs;
 using DefaultECSExtensions;
-using JetBrains.Annotations;
-using Modules.AxialSystem;
 using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Data;
 using Domains.Map.Hex.Tags;
 using Domains.Map.HexResources.Components;
 using Domains.Map.HexResources.Configs;
 using Domains.Map.HexResources.Data;
+using Domains.Map.HexResources.Tags;
+using JetBrains.Annotations;
+using Modules.AxialSystem;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
@@ -21,13 +22,13 @@ namespace Domains.Map.HexResources.Systems
         private const int ExecutionPriority = 100;
         private const float ForestNeighborWeight = 2f;
         private const float WindBonusWeight = 1.5f;
+        private readonly EntityMultiMap<HexTypeComponent> _hexesByType;
+        private readonly EntitySet _hexSet;
 
         private readonly World _world;
-        private readonly EntitySet _hexSet;
-        private readonly EntityMultiMap<HexTypeComponent> _hexesByType;
 
         public override int Priority => ExecutionPriority;
-        protected override ResourceType TargetResourceType => ResourceType.Forest;
+        protected override HexResourceType TargetHexResourceType => HexResourceType.Forest;
 
         public ForestResourceGenerationSubSystem(World world) : base(world)
         {
@@ -113,6 +114,65 @@ namespace Domains.Map.HexResources.Systems
             }
         }
 
+        public override void Dispose()
+        {
+            base.Dispose();
+            _hexSet.Dispose();
+            _hexesByType.Dispose();
+        }
+
+        private void AddEligibleNeighbors(
+            int2 hex,
+            ref NativeParallelHashMap<int2, int> levelMap,
+            ref NativeParallelHashSet<int2> waterCoords,
+            ref NativeParallelHashSet<int2> forestCoords,
+            ref NativeList<int2> frontier,
+            ref NativeParallelHashSet<int2> frontierSet)
+        {
+            if (!levelMap.TryGetValue(hex, out var hexLevel))
+                return;
+
+            for (var d = 0; d < AxialMath.NeighborCount; d++)
+            {
+                var neighbor = hex + AxialMath.NeighborsPointyTop[d];
+
+                if (waterCoords.Contains(neighbor) || forestCoords.Contains(neighbor) || frontierSet.Contains(neighbor))
+                    continue;
+
+                if (!levelMap.TryGetValue(neighbor, out var neighborLevel))
+                    continue;
+
+                if (math.abs(hexLevel - neighborLevel) > 1)
+                    continue;
+
+                frontier.Add(neighbor);
+                frontierSet.Add(neighbor);
+            }
+        }
+
+        private float ComputeScore(
+            int2 hex,
+            ref NativeParallelHashSet<int2> forestCoords,
+            int windDir)
+        {
+            var score = 1f;
+
+            for (var d = 0; d < AxialMath.NeighborCount; d++)
+            {
+                var neighbor = hex + AxialMath.NeighborsPointyTop[d];
+
+                if (!forestCoords.Contains(neighbor))
+                    continue;
+
+                score += ForestNeighborWeight;
+
+                if (d == windDir)
+                    score += WindBonusWeight;
+            }
+
+            return score;
+        }
+
         private void GrowZone(
             int zoneSize,
             int windDir,
@@ -156,7 +216,7 @@ namespace Domains.Map.HexResources.Systems
                     var pickedIdx = WeightedRandomPick(ref frontier, ref forestCoords, windDir, ref tempScores);
                     var pickedHex = frontier[pickedIdx];
 
-                    frontier[pickedIdx] = frontier[frontier.Length - 1];
+                    frontier[pickedIdx] = frontier[^1];
                     frontier.RemoveAt(frontier.Length - 1);
                     frontierSet.Remove(pickedHex);
 
@@ -170,7 +230,8 @@ namespace Domains.Map.HexResources.Systems
                 {
                     var entity = _world.CreateEntity();
                     entity.Set(new HexIdComponent { Coords = new HexCoord(coord) });
-                    entity.Set(new HexResourcesComponent { Type = ResourceType.Forest });
+                    entity.Set(new HexResourceComponent { Type = HexResourceType.Forest });
+                    entity.Set(new HexResourceTag());
                 }
             }
             finally
@@ -179,35 +240,6 @@ namespace Domains.Map.HexResources.Systems
                 frontier.Dispose();
                 frontierSet.Dispose();
                 tempScores.Dispose();
-            }
-        }
-
-        private void AddEligibleNeighbors(
-            int2 hex,
-            ref NativeParallelHashMap<int2, int> levelMap,
-            ref NativeParallelHashSet<int2> waterCoords,
-            ref NativeParallelHashSet<int2> forestCoords,
-            ref NativeList<int2> frontier,
-            ref NativeParallelHashSet<int2> frontierSet)
-        {
-            if (!levelMap.TryGetValue(hex, out var hexLevel))
-                return;
-
-            for (var d = 0; d < AxialMath.NeighborCount; d++)
-            {
-                var neighbor = hex + AxialMath.NeighborsPointyTop[d];
-
-                if (waterCoords.Contains(neighbor) || forestCoords.Contains(neighbor) || frontierSet.Contains(neighbor))
-                    continue;
-
-                if (!levelMap.TryGetValue(neighbor, out var neighborLevel))
-                    continue;
-
-                if (math.abs(hexLevel - neighborLevel) > 1)
-                    continue;
-
-                frontier.Add(neighbor);
-                frontierSet.Add(neighbor);
             }
         }
 
@@ -238,36 +270,6 @@ namespace Domains.Map.HexResources.Systems
             }
 
             return frontier.Length - 1;
-        }
-
-        private float ComputeScore(
-            int2 hex,
-            ref NativeParallelHashSet<int2> forestCoords,
-            int windDir)
-        {
-            var score = 1f;
-
-            for (var d = 0; d < AxialMath.NeighborCount; d++)
-            {
-                var neighbor = hex + AxialMath.NeighborsPointyTop[d];
-
-                if (!forestCoords.Contains(neighbor))
-                    continue;
-
-                score += ForestNeighborWeight;
-
-                if (d == windDir)
-                    score += WindBonusWeight;
-            }
-
-            return score;
-        }
-
-        public override void Dispose()
-        {
-            base.Dispose();
-            _hexSet.Dispose();
-            _hexesByType.Dispose();
         }
     }
 }

@@ -21,14 +21,14 @@ namespace Presentation.HexResources.Systems
         public bool IsEnabled { get; set; } = true;
 
         public abstract int Priority { get; }
-        protected abstract ResourceType TargetResourceType { get; }
+        protected abstract HexResourceType TargetHexResourceType { get; }
 
         protected HexResourcesViewSubSystem(World world)
         {
             _world = world;
             _resourceSet = world.GetEntities()
                 .With<HexIdComponent>()
-                .With<HexResourcesComponent>()
+                .With<HexResourceComponent>()
                 .AsSet();
         }
 
@@ -44,7 +44,7 @@ namespace Presentation.HexResources.Systems
             var viewConfig = _world.Get<HexResourcesViewConfigComponent>().Value;
             foreach (var resource in viewConfig.Resources)
             {
-                if (resource.Type != TargetResourceType)
+                if (resource.Type != TargetHexResourceType)
                     continue;
 
                 prefab = resource.Prefab;
@@ -68,7 +68,7 @@ namespace Presentation.HexResources.Systems
             var result = new List<GameObject>();
 
             foreach (var resource in viewConfig.Resources)
-                if (resource.Type == TargetResourceType && resource.Prefab != null)
+                if (resource.Type == TargetHexResourceType && resource.Prefab != null)
                     result.Add(resource.Prefab);
 
             prefabs = result.ToArray();
@@ -93,7 +93,7 @@ namespace Presentation.HexResources.Systems
 
             for (var i = 0; i < resourceEntities.Length; i++)
             {
-                if (resourceEntities[i].Get<HexResourcesComponent>().Type == TargetResourceType)
+                if (resourceEntities[i].Get<HexResourceComponent>().Type == TargetHexResourceType)
                     matchCount++;
             }
 
@@ -105,7 +105,7 @@ namespace Presentation.HexResources.Systems
 
             for (var i = 0; i < resourceEntities.Length; i++)
             {
-                if (resourceEntities[i].Get<HexResourcesComponent>().Type != TargetResourceType)
+                if (resourceEntities[i].Get<HexResourceComponent>().Type != TargetHexResourceType)
                     continue;
 
                 matchedResources[resultIndex++] = resourceEntities[i];

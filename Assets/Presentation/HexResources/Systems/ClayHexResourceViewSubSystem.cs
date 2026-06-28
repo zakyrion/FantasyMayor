@@ -33,7 +33,7 @@ namespace Presentation.HexResources.Systems
         private readonly EntitySet _terrainViewSet;
 
         public override int Priority => ExecutionPriority;
-        protected override ResourceType TargetResourceType => ResourceType.Clay;
+        protected override HexResourceType TargetHexResourceType => HexResourceType.Clay;
 
         public ClayHexResourceViewSubSystem(World world)
             : base(world)

@@ -5,11 +5,11 @@ using Domains.Economy.District.Configs;
 using Domains.Economy.District.Data;
 using Domains.Economy.Resource.Data;
 using Domains.Map.Hex.Data;
+using Domains.Map.HexResources.Data;
 using Presentation.UI.DistrictBuild.Events;
 using UnityEngine;
 using UnityEngine.UIElements;
 using VContainer;
-using HexResourceType = Domains.Map.HexResources.Data.ResourceType;
 
 namespace Presentation.UI.DistrictBuild.Views
 {
@@ -215,9 +215,9 @@ namespace Presentation.UI.DistrictBuild.Views
             }
             else
             {
-                var hasRequired = HexHasResource(district.RequiredResourceType);
+                var hasRequired = HexHasResource(district.RequiredHexResourceType);
                 _detail.Add(ReqLine(hasRequired,
-                    $"Потрібен ресурс: {HexResourceLabel(district.RequiredResourceType)}"));
+                    $"Потрібен ресурс: {HexResourceLabel(district.RequiredHexResourceType)}"));
             }
 
             // ПЛАТНИК — Мер / Місто (Payer = Owner).

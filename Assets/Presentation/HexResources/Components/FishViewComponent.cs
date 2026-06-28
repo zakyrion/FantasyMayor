@@ -5,7 +5,7 @@ namespace Presentation.HexResources.Components
 {
     internal struct FishViewComponent
     {
-        public ResourceType Type;
+        public HexResourceType Type;
         public FishView View;
     }
 }

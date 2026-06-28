@@ -13,15 +13,15 @@ MonoBehaviour:
   m_Name: HexTerrainIconConfig
   m_EditorClassIdentifier: Hexes.UI::Modules.HexesUI.Configs.HexTerrainIconConfig
   _entries:
-  - _type: 0
+  - _type: 1
     _sprite: {fileID: 1833303288, guid: 7af4982ce72ff43639a0f6d51aac5e00, type: 3}
     _displayName: Plain
-  - _type: 1
+  - _type: 2
     _sprite: {fileID: 300124816, guid: 7af4982ce72ff43639a0f6d51aac5e00, type: 3}
     _displayName: Mount
-  - _type: 2
+  - _type: 3
     _sprite: {fileID: -1582784191, guid: 7af4982ce72ff43639a0f6d51aac5e00, type: 3}
     _displayName: Bedhill
-  - _type: 3
+  - _type: 4
     _sprite: {fileID: -340660782, guid: 7af4982ce72ff43639a0f6d51aac5e00, type: 3}
     _displayName: Water

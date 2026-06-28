@@ -8,6 +8,7 @@ using Domains.Map.Hex.Tags;
 using Domains.Map.HexResources.Components;
 using Domains.Map.HexResources.Configs;
 using Domains.Map.HexResources.Data;
+using Domains.Map.HexResources.Tags;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
@@ -25,7 +26,7 @@ namespace Domains.Map.HexResources.Systems
         private readonly EntityMultiMap<HexTypeComponent> _hexesByType;
 
         public override int Priority => ExecutionPriority;
-        protected override ResourceType TargetResourceType => ResourceType.Fish;
+        protected override HexResourceType TargetHexResourceType => HexResourceType.Fish;
 
         public FishResourceGenerationSubSystem(World world) : base(world)
         {
@@ -183,7 +184,8 @@ namespace Domains.Map.HexResources.Systems
             {
                 var entity = _world.CreateEntity();
                 entity.Set(new HexIdComponent { Coords = new HexCoord(eligible[i]) });
-                entity.Set(new HexResourcesComponent { Type = ResourceType.Fish });
+                entity.Set(new HexResourceComponent { Type = HexResourceType.Fish });
+                entity.Set(new HexResourceTag());
             }
         }
 

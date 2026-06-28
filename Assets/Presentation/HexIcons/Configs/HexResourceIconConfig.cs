@@ -12,10 +12,10 @@ namespace Presentation.HexIcons.Configs
         [Serializable]
         public struct ResourceIconEntry
         {
-            [SerializeField] private ResourceType _resourceType;
+            [SerializeField] private HexResourceType _hexResourceType;
             [SerializeField] private Sprite _sprite;
 
-            public ResourceType ResourceType => _resourceType;
+            public HexResourceType HexResourceType => _hexResourceType;
             public Sprite Sprite => _sprite;
         }
 

@@ -6,7 +6,7 @@ namespace Domains.Map.HexResources.Data
     [Serializable]
     internal struct HexResourcesConfigEntry
     {
-        public ResourceType Type;
+        public HexResourceType Type;
         public ResourceConfig Config;
     }
 }

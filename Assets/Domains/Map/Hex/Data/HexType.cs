@@ -6,9 +6,10 @@ namespace Domains.Map.Hex.Data
     /// </summary>
     public enum HexType
     {
-        Plain = 0,
-        Mount = 1,
-        Bedhill = 2,
-        Water = 3,
+        Unknown = 0,
+        Plain = 1,
+        Mount = 2,
+        Bedhill = 3,
+        Water = 4,
     }
 }

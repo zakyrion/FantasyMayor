@@ -1,13 +1,14 @@
 using DefaultEcs;
 using DefaultECSExtensions;
-using JetBrains.Annotations;
-using Modules.AxialSystem;
 using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Data;
 using Domains.Map.Hex.Tags;
 using Domains.Map.HexResources.Components;
 using Domains.Map.HexResources.Configs;
 using Domains.Map.HexResources.Data;
+using Domains.Map.HexResources.Tags;
+using JetBrains.Annotations;
+using Modules.AxialSystem;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
@@ -20,13 +21,13 @@ namespace Domains.Map.HexResources.Systems
     {
         private const int ExecutionPriority = 200;
         private const int LandLevel = 0;
+        private readonly EntityMultiMap<HexTypeComponent> _hexesByType;
+        private readonly EntitySet _hexSet;
 
         private readonly World _world;
-        private readonly EntitySet _hexSet;
-        private readonly EntityMultiMap<HexTypeComponent> _hexesByType;
 
         public override int Priority => ExecutionPriority;
-        protected override ResourceType TargetResourceType => ResourceType.Clay;
+        protected override HexResourceType TargetHexResourceType => HexResourceType.Clay;
 
         public ClayResourceGenerationSubSystem(World world) : base(world)
         {
@@ -93,29 +94,11 @@ namespace Domains.Map.HexResources.Systems
             }
         }
 
-        private NativeList<int2> BuildShoreline(
-            int capacity,
-            ref NativeParallelHashMap<int2, int> levelMap,
-            ref NativeParallelHashSet<int2> waterCoords)
+        public override void Dispose()
         {
-            var shoreline = new NativeList<int2>(capacity, Allocator.Temp);
-
-            foreach (var pair in levelMap)
-            {
-                if (pair.Value != LandLevel)
-                    continue;
-
-                for (var d = 0; d < AxialMath.NeighborCount; d++)
-                {
-                    if (waterCoords.Contains(pair.Key + AxialMath.NeighborsPointyTop[d]))
-                    {
-                        shoreline.Add(pair.Key);
-                        break;
-                    }
-                }
-            }
-
-            return shoreline;
+            base.Dispose();
+            _hexSet.Dispose();
+            _hexesByType.Dispose();
         }
 
         private NativeList<int2> BuildEligibleZone(
@@ -172,6 +155,31 @@ namespace Domains.Map.HexResources.Systems
             }
         }
 
+        private NativeList<int2> BuildShoreline(
+            int capacity,
+            ref NativeParallelHashMap<int2, int> levelMap,
+            ref NativeParallelHashSet<int2> waterCoords)
+        {
+            var shoreline = new NativeList<int2>(capacity, Allocator.Temp);
+
+            foreach (var pair in levelMap)
+            {
+                if (pair.Value != LandLevel)
+                    continue;
+
+                for (var d = 0; d < AxialMath.NeighborCount; d++)
+                {
+                    if (waterCoords.Contains(pair.Key + AxialMath.NeighborsPointyTop[d]))
+                    {
+                        shoreline.Add(pair.Key);
+                        break;
+                    }
+                }
+            }
+
+            return shoreline;
+        }
+
         private void PlaceClay(ClayResourceConfig config, ref NativeList<int2> eligible)
         {
             if (eligible.Length == 0)
@@ -188,7 +196,8 @@ namespace Domains.Map.HexResources.Systems
             {
                 var entity = _world.CreateEntity();
                 entity.Set(new HexIdComponent { Coords = new HexCoord(eligible[i]) });
-                entity.Set(new HexResourcesComponent { Type = ResourceType.Clay });
+                entity.Set(new HexResourceComponent { Type = HexResourceType.Clay });
+                entity.Set(new HexResourceTag());
             }
         }
 
@@ -199,13 +208,6 @@ namespace Domains.Map.HexResources.Systems
                 var j = Random.Range(0, i + 1);
                 (list[i], list[j]) = (list[j], list[i]);
             }
-        }
-
-        public override void Dispose()
-        {
-            base.Dispose();
-            _hexSet.Dispose();
-            _hexesByType.Dispose();
         }
     }
 }

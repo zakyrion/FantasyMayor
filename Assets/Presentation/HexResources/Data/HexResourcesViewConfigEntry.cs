@@ -7,7 +7,7 @@ namespace Presentation.HexResources.Data
     [Serializable]
     public struct HexResourcesViewConfigEntry
     {
-        public ResourceType Type;
+        public HexResourceType Type;
         public GameObject Prefab;
         public Vector2 ScaleRange;
         public float Radius;

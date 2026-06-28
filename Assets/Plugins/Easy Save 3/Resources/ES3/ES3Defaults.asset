@@ -46,6 +46,7 @@ MonoBehaviour:
     - Core
     - CurveBuilders
     - DefaultECS.Extensions
+    - Domains.Actions
     - Domains.Actors
     - Domains.Economy
     - Domains.Map
