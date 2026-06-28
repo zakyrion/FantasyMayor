@@ -42,18 +42,18 @@ export GRAPHIFY_OLLAMA_MODEL=openai/codex-mini:free
 When Gemini fails (503, quota, or any error) and a subagent fallback is needed, always use `model: "haiku"` — it is the cheapest available Claude model. Never spawn a fallback subagent without explicitly setting the model to haiku. Same rule applies when using OpenAI-compatible backends (OpenRouter, Ollama): always pick the cheapest/free model tier available.
 
 ## Start Working
-- **Read `INDEX.md` first** (via Obsidian MCP `vault_read`; fallback plain `Read`). It is the generated doc map and the **single key to every doc and canvas** — start all doc navigation here.
-- Read every doc it marks `read: always` (currently `ARCHITECTURE.md`, `DOC_STANDARD.md`, `GAMEPLAY_FOUNDATION.md`).
-- Do **not** preload anything else. `INDEX.md` lists `trigger` docs (read only when their condition holds — e.g. `SYSTEMTEMPLATE.md`, `CONFIGTEMPLATE.md`, `ECS_REFERENCE.md`, `GENERAL_UI_STYLE.md`, `ADDRESSABLE_PATTERNS.md`) and `reference` docs (per-module, on demand). Glance at the index, then decide.
-- `INDEX.md` is generated — never hand-edit it. After changing any doc's frontmatter, regenerate: `python3 Tools/gen_index.py`.
+- **Read `INDEX.md` first — and by default ONLY `INDEX.md`** (via Obsidian MCP `vault_read`; fallback plain `Read`). It is the generated doc map and the single key to every doc and canvas: it carries each file's read-priority (`always` / `trigger` / `reference`) plus a one-line description. Let INDEX drive all navigation — do **not** preload anything it does not send you to.
+- Follow INDEX's read-priority: read the docs it marks `read: always` next; open `trigger` docs only when their condition holds, and `reference` (per-module) docs on demand.
+- `INDEX.md` is built in **2 passes**: (1) `python3 Tools/gen_index.py` rebuilds the structural skeleton between its `BEGIN/END GENERATED` markers from each doc's frontmatter + first line; (2) the agent curates descriptions / statuses / context. Re-run pass 1 after any frontmatter change; never edit between the markers, and keep the agent zone below the END marker short and informative.
 
 ## Documentation Access (Obsidian-first)
 - **This repo is an Obsidian vault.** All project docs (`.md`) and canvases (`.canvas`) are accessed through the **Obsidian MCP** (`mcp__obsidian__*`) as the primary channel:
   - read: `vault_read` (supports heading/block/frontmatter targeting) · structure: `vault_get_document_map` · search: `search_query` / `search_simple` · write/edit: `vault_write` / `vault_patch` / `vault_append` · move/delete: `vault_move` / `vault_delete`.
 - **Fallback:** if the `obsidian` server is not connected (Obsidian closed / HTTP server off), use the plain `Read` / `Write` / `Edit` tools. The MCP path needs Obsidian running.
 - **Scope:** Obsidian-first applies to docs (`.md`) and canvases (`.canvas`) only. **Code** files always use `Read` / `Edit` / `Write`.
+- **Reading canvases:** by default read a `.canvas` via a `jq` projection (node `text`/`label` + edges, no positions) — Obsidian MCP cannot project inside a JSON canvas, it only returns the raw file. Use full `vault_read` / `vault_write` only when you need to edit layout/positions.
 - **Excluded-files caveat:** `vault_list` / `vault_read` ignore Obsidian's "Excluded files" (they still see `Library/`, `.csproj`, plugins). For clean discovery use `search_query` / `search_simple` or navigate by `INDEX.md` paths — never wander into `Library/`, `Packages/`, or plugin folders.
-- **`INDEX.md` is generated, not authored:** it is written to disk by `gen_index.py`; the Obsidian-write rule governs authoring docs by hand, not the generator's output.
+- **`INDEX.md` is 2-pass, not free-form:** pass 1 — `gen_index.py` owns and rewrites the skeleton between the `BEGIN/END GENERATED` markers (never hand-edit there); pass 2 — the agent authors the zone below the END marker (preserved across runs). The Obsidian-write rule governs only that agent zone, not the generated skeleton.
 - **Canvases** are JSONCanvas `.canvas` files (read/edit via Obsidian MCP) and are catalogued automatically in INDEX's `Canvas map` (title = filename, desc = the canvas's group labels — add a group label to give a canvas a meaningful description). Convention: repo-root, `UPPER_SNAKE_CASE.canvas`.
 
 ## User Process Contract

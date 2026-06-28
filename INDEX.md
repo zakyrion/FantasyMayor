@@ -9,7 +9,9 @@ related:
 
 # INDEX
 
-Generated doc map for FantasyMayor. **Do not hand-edit** — run `python3 Tools/gen_index.py` after changing any doc's frontmatter. Data source: each doc's frontmatter (`category`/`read`/`trigger`/`status`) and its first line. See `DOC_STANDARD.md`.
+> ⚠️ **Key file — the single entry point for all doc navigation. Keep it short and informative.** Built in 2 passes (like graphify): (1) `python3 Tools/gen_index.py` rebuilds the skeleton between the markers from each doc's frontmatter + first line; (2) the agent curates descriptions, statuses, and context. To change a description or status, edit the doc's first line / `status` frontmatter and re-run pass 1 — do not edit between the markers. The agent zone below the END marker is preserved across runs.
+
+<!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
 Totals: 36 docs — 3 always · 6 trigger · 27 reference · 2 canvas.
 
@@ -75,5 +77,12 @@ Visual maps (Obsidian Canvas). Read/edit via Obsidian MCP; not preloaded.
 | Canvas | What it maps |
 |---|---|
 | [ECONOMY_ACTORS](ECONOMY_ACTORS.canvas) | Ownables — each carries one OwnerFK + a Tag · My domain view · Owners — actors with an Id used as OwnerFK · Resource… |
-| [ENTITIES](ENTITIES.canvas) | Mayor |
+| [ENTITIES](ENTITIES.canvas) | Tables (N rows) · Singletons (one row) |
 
+<!-- END GENERATED — content below is the agent zone (pass 2), preserved across runs -->
+
+## Context & Notes (agent-maintained — pass 2)
+
+Curate what the script can't derive: current focus, stale docs, cross-doc orientation. Keep it short. Preserved across `gen_index.py` runs.
+
+_None yet._

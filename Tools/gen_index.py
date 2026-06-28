@@ -2,7 +2,11 @@
 """Generate INDEX.md from doc frontmatter.
 
 INDEX.md is the agent's doc map and the single source of the start-reading list.
-It is GENERATED — never hand-edit it. Edit the source docs' frontmatter, then run:
+It is built in 2 passes (like graphify): pass 1 = this script rebuilds the structural
+skeleton BETWEEN the generated markers; pass 2 = the agent curates descriptions,
+statuses, and context. Everything below the END marker is the agent zone and is
+PRESERVED across runs. To change a skeleton description/status, edit the source doc's
+first line / frontmatter, then run:
 
     python3 Tools/gen_index.py
 
@@ -30,6 +34,31 @@ PRUNE = {
 }
 
 READ_ORDER = {"always": 0, "trigger": 1, "reference": 2}
+
+# Pass-1 / pass-2 boundary. The script owns everything between the markers and rewrites
+# it every run; the agent owns everything BELOW the END marker, which is preserved.
+GEN_START = ("<!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these "
+             "markers; edits here are overwritten -->")
+GEN_END = ("<!-- END GENERATED — content below is the agent zone (pass 2), preserved across "
+           "runs -->")
+
+GUARDRAIL = (
+    "> ⚠️ **Key file — the single entry point for all doc navigation. Keep it short and "
+    "informative.** Built in 2 passes (like graphify): (1) `python3 Tools/gen_index.py` "
+    "rebuilds the skeleton between the markers from each doc's frontmatter + first line; "
+    "(2) the agent curates descriptions, statuses, and context. To change a description or "
+    "status, edit the doc's first line / `status` frontmatter and re-run pass 1 — do not edit "
+    "between the markers. The agent zone below the END marker is preserved across runs."
+)
+
+DEFAULT_AGENT_ZONE = (
+    "## Context & Notes (agent-maintained — pass 2)\n"
+    "\n"
+    "Curate what the script can't derive: current focus, stale docs, cross-doc orientation. "
+    "Keep it short. Preserved across `gen_index.py` runs.\n"
+    "\n"
+    "_None yet._\n"
+)
 
 
 def _walk_files():
@@ -163,10 +192,9 @@ def main():
     L.append("")
     L.append("# INDEX")
     L.append("")
-    L.append("Generated doc map for FantasyMayor. **Do not hand-edit** — run "
-             "`python3 Tools/gen_index.py` after changing any doc's frontmatter. "
-             "Data source: each doc's frontmatter (`category`/`read`/`trigger`/`status`) "
-             "and its first line. See `DOC_STANDARD.md`.")
+    L.append(GUARDRAIL)
+    L.append("")
+    L.append(GEN_START)
     L.append("")
     L.append(f"Totals: {len(docs)} docs — {len(always)} always · "
              f"{len(trigger)} trigger · {len(ref)} reference"
@@ -211,9 +239,22 @@ def main():
     for p, m in canvases:
         L.append(f"| [{m['title']}]({p}) | {m['desc']} |")
     L.append("")
+    L.append(GEN_END)
 
-    out = "\n".join(L) + "\n"
-    open(os.path.join(ROOT, "INDEX.md"), "w", encoding="utf-8").write(out)
+    # Preserve the agent zone (everything below the previous END marker) across runs.
+    index_path = os.path.join(ROOT, "INDEX.md")
+    existing_tail = ""
+    if os.path.exists(index_path):
+        old = open(index_path, encoding="utf-8").read()
+        i = old.find(GEN_END)
+        if i != -1:
+            existing_tail = old[i + len(GEN_END):]
+
+    out = "\n".join(L)
+    out += existing_tail if existing_tail.strip() else "\n\n" + DEFAULT_AGENT_ZONE
+    if not out.endswith("\n"):
+        out += "\n"
+    open(index_path, "w", encoding="utf-8").write(out)
     print(f"INDEX.md written: {len(docs)} docs "
           f"({len(always)} always, {len(trigger)} trigger, {len(ref)} reference), "
           f"{len(canvases)} canvas")
