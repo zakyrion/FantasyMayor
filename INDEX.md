@@ -42,7 +42,7 @@ Per-module navigation docs. `status` mirrors each module's `## Current State`.
 
 | Doc | Cat | Status | What it is |
 |---|---|---|---|
-| [Actions](Assets/Domains/Actions/ACTIONS.md) | A | scaffold | The application / orchestration layer: actor verbs and cross-domain turn processing. Depends on both |
+| [Actions](Assets/Domains/Actions/ACTIONS.md) | A | partial | The application / orchestration layer: actor verbs and cross-domain turn processing. Depends on both |
 | [Actors](Assets/Domains/Actors/ACTORS.md) | A | partial | Game-rule domain owning actor identities **and their startup composition**. First domain under |
 | [Economy](Assets/Domains/Economy/ECONOMY.md) | A | partial | Game-rule domain owning economic objects: inventory resources now; districts and buildings later. |
 | [TerrainGenerator](Assets/Domains/Map/Generation/TERRAIN_GENERATOR.md) | A | implemented | Procedural terrain generation: hex grid creation, mountains with foothills, and water (river / lake / sea). |
@@ -56,7 +56,7 @@ Per-module navigation docs. `status` mirrors each module's `## Current State`.
 | [Configs](Assets/Modules/Configs/CONFIGS.md) | A | implemented | Generic async loader pattern for ScriptableObject configs from Addressables. |
 | [CurveBuilders](Assets/Modules/CurveBuilders/CURVE_BUILDERS.md) | A | implemented | Interface contract for building and evaluating animation curves used in terrain generation. |
 | [MainCanvas](Assets/Modules/MainCanvas/MAIN_CANVAS.md) | A | implemented | Singleton provider for the main UI canvas root, behind an interface for DI. |
-| [Turn](Assets/Modules/Turn/TURN.md) | A | scaffold | Engine that runs a game turn: on a turn pulse it fires an ordered set of phase subsystems off the main thread and signals "a turn is being processed" so other systems can gate. |
+| [Turn](Assets/Modules/Turn/TURN.md) | A | partial | Engine that runs a game turn: on a turn pulse it fires an ordered set of phase subsystems off the main thread and signals "a turn is being processed" so other systems can gate. |
 | [UserInput](Assets/Modules/UserInput/USER_INPUT.md) | A | implemented | Bridges Unity InputSystem to ECS: camera pan/drag/zoom and hex selection. |
 | [HexIcons](Assets/Presentation/HexIcons/HEXICONS.md) | A | partial | Manages per-hex UI icon badges using a UI Toolkit Screen-Space overlay. |
 | [HexResourcesView](Assets/Presentation/HexResources/HEXRESOURCESVIEW.md) | A | partial | Visualizes resource entities from `HexResources` by instantiating prefabs on terrain. |

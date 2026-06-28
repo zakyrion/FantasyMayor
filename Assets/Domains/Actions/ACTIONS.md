@@ -1,13 +1,16 @@
 ---
 category: A
 read: reference
-tags: [actions, ecs, domain]
+tags:
+  - actions
+  - ecs
+  - domain
 related:
   - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
   - "[GAMEPLAY_FOUNDATION](../../../GAMEPLAY_FOUNDATION.md)"
   - "[ECONOMY](../Economy/ECONOMY.md)"
   - "[ACTORS](../Actors/ACTORS.md)"
-status: scaffold
+status: partial
 ---
 
 # Actions
@@ -22,7 +25,7 @@ to know every other domain, so cross-domain scenarios live here and the lower do
 modification (Open-Closed): a new resource type touches only Economy, a new actor only Actors, a new
 verb / scenario only Actions.
 
-Planned content (none built yet):
+Planned content (first turn phase landed — see Current State; the rest pending):
 - Mayor / Noble verbs — build district, operate district, negotiate, invest, intervene.
 - Turn-phase scenarios that span domains — e.g. the **upkeep** scenario *orchestrates* per-owner
   resource upkeep, while the resource math itself stays an owner-agnostic helper in `Economy`
@@ -39,6 +42,18 @@ Planned content (none built yet):
   phase subsystems; Actions provides the phase content, `Turn` runs it.
 
 ## Current State
-SCAFFOLD. Assembly definition only — `Domains.Actions` references `Domains.Economy` + `Domains.Actors`
-and contains no code yet. Infra references (DefaultECS.Extensions, Boot.Core, VContainer, UniTask, …)
-are added with the first system. No archetypes, systems, or events.
+PARTIAL. First real system landed: the AP-restore turn phase.
+
+- `MayorActionPointsRestoreSubSystem` (`Systems/`) — a `TurnPhaseSubSystem` (Upkeep band) that, at the start
+  of each new turn, resets every Mayor's live `ActionPoint` resource stack to `MayorAPRestoreComponent.Value`.
+  Action Points do not carry over between turns, so it is a SET (reset to full), not an accumulate. Reads the
+  Mayor row (`MayorIdComponent` + `MayorAPRestoreComponent`) and re-Sets the matching `ActionPoint` resource
+  stack found via `EntityMultiMap<MayorIdComponent>`. Runs off the turn thread pool but switches to the main
+  thread before the world write (TURN.md invariant).
+- `ActionsInstaller` registers the phase `.As<…, TurnPhaseSubSystem>()`; VContainer collects it into the list
+  `TurnProcessorSystem` runs. The empty-list stub in `TurnInstaller` was removed when this phase landed.
+- `Domains.Actions` now references `Turn` (+ `DefaultECS.Extensions`, `Core`, `VContainer`, `UniTask`) in
+  addition to `Domains.Economy` + `Domains.Actors`.
+
+Still scaffold: Mayor/Noble verbs, cross-domain turn scenarios (upkeep arithmetic, resolution, yield split),
+and the other turn phases. The pre-existing `Configs/` classes are data only — no system consumes them yet.

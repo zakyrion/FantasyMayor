@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using Modules.Turn.Systems;
 using VContainer;
 using VContainer.Unity;
@@ -10,11 +8,9 @@ namespace Modules.Turn.Installer
     {
         public void Install(IContainerBuilder builder)
         {
-            // No turn phases exist yet — inject an explicit empty list so the processor resolves cleanly.
-            // When the first PhaseNSubSystem lands, remove this line and register each phase
-            // .As<PhaseN, TurnPhaseSubSystem>(), as HexResourcesViewInstaller does for view subsystems.
-            builder.RegisterInstance<IReadOnlyList<TurnPhaseSubSystem>>(Array.Empty<TurnPhaseSubSystem>());
-
+            // Turn phases are registered by their owning domain (.As<…, TurnPhaseSubSystem>()); VContainer
+            // collects them into the IReadOnlyList<TurnPhaseSubSystem> that TurnProcessorSystem consumes.
+            // First phase: Domains.Actions.MayorActionPointsRestoreSubSystem (see ActionsInstaller).
             builder.Register<TurnProcessorSystem>(Lifetime.Singleton)
                 .As<TurnProcessorSystem>();
 

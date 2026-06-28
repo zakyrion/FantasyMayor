@@ -58,8 +58,9 @@ loadouts it depends on `Economy` (`Actors → Economy`); see Design Decisions.
   interface and run by `MapCreation` — `Boot` stays the init engine, no `Boot` wiring change.
 - **Mayor startup state is seeded from `MayorConfig` at spawn.** `MayorConfigLoaderSystem` (Config
   Loader, `ConfigLoadStep`) loads + validates the SO and publishes `MayorConfigComponent`;
-  `MayorSpawnSystem` reads it to seed the Mayor's resource loadout and `MayorAPComponent`
-  (`= StartActionPoints`). Config + loader live with the Mayor because that state is actor-intrinsic.
+  `MayorSpawnSystem` reads it to seed the Mayor's resource loadout, the per-turn `MayorAPRestoreComponent`,
+  and the Mayor's initial `ActionPoint` resource stack — all from `StartActionPoints`. Config + loader live
+  with the Mayor because that state is actor-intrinsic.
 - Allocator save/load is a **contract only** for now — the counter is shaped to persist, but Easy Save 3
   wiring is deferred to a later slice.
 
@@ -68,9 +69,11 @@ City + Mayor are functional: PK id components, discriminator tags, the two id al
 components, both actor config flows (`MayorConfig` + `MayorConfigLoaderSystem` → `MayorConfigComponent`;
 `CityConfig` + `CityConfigLoaderSystem` → `CityConfigComponent`), and the two per-actor spawn stages.
 `CitySpawnSystem` creates the City and seeds its resource loadout from `CityConfigComponent` (resources
-only — the City has no Action Points). `MayorSpawnSystem` creates the Mayor, seeds `MayorAPComponent`
-from `StartActionPoints`, and a loadout from the config. Both call Economy's generic
-`ResourceLoadoutSpawner`. AP **pool/spending**
-mechanics are NOT built (only the starting value is seeded). Noble and Population are NOT built; the
+only — the City has no Action Points). `MayorSpawnSystem` creates the Mayor, seeds the per-turn
+`MayorAPRestoreComponent` from `StartActionPoints`, attaches the inventory loadout, and seeds the Mayor's
+initial `ActionPoint` resource stack (= `StartActionPoints`) — the **live AP pool is now a resource stack**,
+not a component value. Both actors call Economy's generic `ResourceLoadoutSpawner` (which now excludes
+`ActionPoint` from the generic loadout). AP is **restored each turn** by the Actions-domain phase
+`MayorActionPointsRestoreSubSystem`; AP **spending** mechanics are NOT built yet. Noble and Population are NOT built; the
 Noble loadout spawn is deferred (reactive, on a `NobleSpawnEvent`). Archetypes: see `ECS_REFERENCE.md`
 (`City`, `Mayor`, `Resource`).

@@ -1,12 +1,15 @@
 ---
 category: A
 read: reference
-tags: [turn, ecs, gameplay]
+tags:
+  - turn
+  - ecs
+  - gameplay
 related:
   - "[MAIN_UI](../MainUI/MAIN_UI.md)"
   - "[END_TURN](../MainUI/EndTurn/END_TURN.md)"
   - "[ECS_REFERENCE](../../../ECS_REFERENCE.md)"
-status: scaffold
+status: partial
 ---
 
 # Turn
@@ -18,7 +21,7 @@ Infrastructure the gameplay domains consume. The turn phases of `GAMEPLAY_FOUNDA
 (Start Preview → Mayor → Citizen → Resolution → Upkeep → Consequences) plug in here later as
 phase subsystems; this module is only the runner + lifecycle, no phase logic.
 
-## Phase Order (planned — no phases exist yet)
+## Phase Order (planned — only the Upkeep AP-restore phase is live so far)
 The engine runs phases on a `NextTurnEvent` pulse, i.e. AFTER the player has finished acting. So the
 runtime order is NOT the presentation order in `GAMEPLAY_FOUNDATION.md`. By ascending `Priority`:
 
@@ -70,7 +73,8 @@ a `NextTurnEvent` + `EventTag` entity. Full producer→consumer flow: `ECS_REFER
 ## Non-Obvious Invariants
 - **Nesting is by reuse, not a recursive base.** A phase that needs children is itself an orchestrator
   over its own `TurnPhaseSubSystem` list, reusing `TurnPhaseRunner`. There is no separate composite
-  type. Concrete phases are named (`Phase1SubSystem`, …) so the tree stays explicit and readable.
+  type. Concrete phases carry intent names (`MayorActionPointsRestoreSubSystem`, …) so the tree stays
+  explicit and readable.
 
 ## Design Decisions
 - **`TurnProcessorSystem` is a deliberate per-frame system** (implements `IUpdatedSystem` directly, no
@@ -81,15 +85,17 @@ a `NextTurnEvent` + `EventTag` entity. Full producer→consumer flow: `ECS_REFER
   signal are all `TurnProcessorComponent` (a world component). The system stays stateless.
 
 ## Current State
-- **SKELETON.** The engine runs but there are ZERO phases: `TurnPhaseSubSystem` has no concrete
-  descendants, and `TurnInstaller` injects an explicit empty phase list. A turn therefore starts, runs
-  an empty pool body, and completes immediately.
-- Two `Debug.Log` lines (turn started / completed) exist ONLY to make the empty skeleton observable in
-  Play mode — remove when real phases land.
+- **FIRST PHASE LIVE.** `TurnPhaseSubSystem` has one concrete descendant:
+  `MayorActionPointsRestoreSubSystem` (domain `Actions`), which resets the Mayor's `ActionPoint` resource
+  stack each turn. The empty-list `RegisterInstance` was removed from `TurnInstaller`; phases are now
+  collected by VContainer from the `.As<…, TurnPhaseSubSystem>()` registrations (the phase's owning domain
+  registers it — here `ActionsInstaller`).
+- Two `Debug.Log` lines (turn started / completed) still exist to make the pipeline observable in Play
+  mode — remove once the phase set is mature.
 - The `NextTurnEvent` emitter now exists: the MainUI End Turn button (`EndTurnView`). The button also
   reflects pipeline state — it shows "Processing" while `TurnProcessorComponent` is present.
-- The **turn counter is live**: `TurnCountComponent` + `TurnCompletedEvent` + `TurnCountSystem`. Even on the
-  empty skeleton, each completed turn raises `TurnCompletedEvent` and bumps "Хід N" in the MainUI turn cluster.
-- **Migration:** when the first `PhaseNSubSystem` lands, remove the empty-list `RegisterInstance` in
-  `TurnInstaller` and register each phase `.As<PhaseN, TurnPhaseSubSystem>()`, exactly as
-  `HexResourcesViewInstaller` does for view subsystems.
+- The **turn counter is live**: `TurnCountComponent` + `TurnCompletedEvent` + `TurnCountSystem`. Each
+  completed turn raises `TurnCompletedEvent` and bumps "Хід N" in the MainUI turn cluster.
+- **Adding a phase:** register it `.As<PhaseN, TurnPhaseSubSystem>()` in its owning domain's installer
+  (pattern: `ActionsInstaller`), exactly as `HexResourcesViewInstaller` does for view subsystems. Do NOT
+  re-introduce the empty-list `RegisterInstance` in `TurnInstaller`.

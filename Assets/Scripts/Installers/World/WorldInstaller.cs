@@ -1,5 +1,6 @@
 using DefaultEcs;
 using DefaultECSExtensions;
+using Domains.Actions.Installer;
 using Domains.Actors.Installer;
 using Domains.Economy.Installer;
 using Installers.Addressable;
@@ -77,6 +78,7 @@ namespace Installers.World
             new TurnInstaller().Install(builder);
             new ActorsInstaller().Install(builder);
             new EconomyInstaller().Install(builder);
+            new ActionsInstaller().Install(builder);
         }
     }
 }

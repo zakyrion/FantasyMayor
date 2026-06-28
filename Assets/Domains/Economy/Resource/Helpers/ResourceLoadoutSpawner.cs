@@ -18,14 +18,24 @@ namespace Domains.Economy.Resource.Helpers
         {
             foreach (ResourceType type in Enum.GetValues(typeof(ResourceType)))
             {
-                if (type == ResourceType.Unknown)
+                // ActionPoint is NOT part of the generic inventory loadout: only AP owners (Mayor, later
+                // Important Citizens) hold an AP stack, seeded explicitly via SpawnResource. The City has none.
+                if (type == ResourceType.Unknown || type == ResourceType.ActionPoint)
                     continue;
 
-                var entity = world.CreateEntity();
-                entity.Set(owner);
-                entity.Set(new ResourceComponent { Type = type, Amount = AmountFor(type, startingAmounts) });
-                entity.Set(new ResourceTag());
+                SpawnResource(world, owner, type, AmountFor(type, startingAmounts));
             }
+        }
+
+        // Creates a single SoA resource stack (owner FK + ResourceComponent + ResourceTag). Use for
+        // owner-specific stacks excluded from the generic loadout (e.g. the Mayor's ActionPoint pool).
+        public static void SpawnResource<TOwnerId>(World world, in TOwnerId owner, ResourceType type, int amount)
+            where TOwnerId : struct
+        {
+            var entity = world.CreateEntity();
+            entity.Set(owner);
+            entity.Set(new ResourceComponent { Type = type, Amount = amount });
+            entity.Set(new ResourceTag());
         }
 
         private static int AmountFor(ResourceType type, ReadOnlySpan<ResourceComponent> startingAmounts)

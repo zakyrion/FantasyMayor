@@ -6,6 +6,7 @@ using DefaultECSExtensions;
 using Domains.Actors.Components;
 using Domains.Actors.Data;
 using Domains.Actors.Mayor.Components;
+using Domains.Economy.Resource.Data;
 using Domains.Economy.Resource.Helpers;
 using JetBrains.Annotations;
 using Modules.Boot.Core;
@@ -13,8 +14,10 @@ using Modules.Boot.Core;
 namespace Domains.Actors.Mayor.Systems
 {
     // One-shot world-init stage: seeds the Mayor id allocator, creates the singleton Mayor actor, and seeds
-    // its starting state from MayorConfigComponent — Action Points (MayorAPComponent) and the inventory
-    // loadout. Open-Closed: a new actor kind adds its own spawn stage, this one never changes.
+    // its starting state from MayorConfigComponent — the inventory loadout, the per-turn AP restore amount
+    // (MayorAPRestoreComponent), and the starting ActionPoint resource stack (the live AP pool, seeded here
+    // because the AP-restore turn phase only runs from turn 2 onward). Open-Closed: a new actor kind adds its
+    // own spawn stage, this one never changes.
     [UsedImplicitly]
     internal sealed class MayorSpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
@@ -55,9 +58,11 @@ namespace Domains.Actors.Mayor.Systems
             var mayor = _world.CreateEntity();
             mayor.Set(mayorIdComponent);
             mayor.Set(new ActorTypeComponent { Type = ActorType.Mayor });
-            mayor.Set(new MayorAPComponent { Value = config.StartActionPoints });
+            mayor.Set(new MayorAPRestoreComponent { Value = config.StartActionPoints });
 
             ResourceLoadoutSpawner.SpawnLoadout(_world, mayorIdComponent, config.Resources);
+            ResourceLoadoutSpawner.SpawnResource(_world, mayorIdComponent, ResourceType.ActionPoint,
+                config.StartActionPoints);
 
             return UniTask.CompletedTask;
         }

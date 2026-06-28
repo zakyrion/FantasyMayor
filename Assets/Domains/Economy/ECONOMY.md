@@ -23,8 +23,12 @@ District-catalogue config loader stays here.
 ## Non-Obvious Invariants
 - **Inventory resources are owner-scoped stacks, distinct from Hex resources.** Module `HexResources`
   owns the natural per-hex resource layer (Forest / Clay / Fish, keyed by `HexIdComponent`). This domain's
-  `ResourceType` (`Grain`, `Clay`, `Wood`) is a **different enum in a different namespace** — `Clay`
+  `ResourceType` (`Grain`, `Clay`, `Wood`, …) is a **different enum in a different namespace** — `Clay`
   appears in both with unrelated meaning. Do not confuse or join them.
+- **`ResourceType.ActionPoint` is a resource value but NOT a generic-loadout member.** Action Points are
+  modelled as an inventory stack (the live AP pool), but only AP owners hold one. `ResourceLoadoutSpawner.SpawnLoadout`
+  therefore SKIPS `ActionPoint`; AP owners (Mayor; later Important Citizens) seed it explicitly via
+  `ResourceLoadoutSpawner.SpawnResource`. The City has no AP stack.
 - Ownership is SoA: a resource entity carries the **owner's id component** (`CityIdComponent` |
   `MayorIdComponent`) as its foreign key, plus `ResourceTag` as the table discriminator. There is no
   polymorphic owner field. Economy never NAMES an owner id type — `ResourceLoadoutSpawner<TOwnerId>`
@@ -53,10 +57,11 @@ District-catalogue config loader stays here.
 
 ## Current State
 - **Resource** — data types (`ResourceComponent`, `ResourceTag`, `ResourceType` enum) plus the stateless
-  generic `ResourceLoadoutSpawner` helper (creates one stack per `ResourceType` for a given owner FK).
-  That helper is the only logic Economy ships — it has **no systems**. The config flow and per-actor
-  loadout spawn now live in `Actors` (`MayorConfig*` + `City/MayorSpawnSystem`, which call
-  `ResourceLoadoutSpawner`). The Mayor's amounts come from `MayorConfigComponent` and the City's from
+  generic `ResourceLoadoutSpawner` helper. `SpawnLoadout` creates one stack per `ResourceType` for a given
+  owner FK (excluding `Unknown` and `ActionPoint`); `SpawnResource` creates a single stack for the
+  owner-specific cases excluded from the loadout (e.g. the Mayor's `ActionPoint` pool). That helper is the
+  only logic Economy ships — it has **no systems**. The config flow and per-actor loadout spawn now live in
+  `Actors` (`MayorConfig*` + `City/MayorSpawnSystem`, which call `ResourceLoadoutSpawner`). The Mayor's amounts come from `MayorConfigComponent` and the City's from
   `CityConfigComponent` (`ResourceType`s the author omits start at 0). Noble loadouts are
   still DEFERRED (Nobles emerge during play — a reactive spawn in `Actors`, on a payload-less
   `NobleSpawnEvent`, lands with the Noble actor). Design recorded in `ECONOMY_ACTORS.canvas`.

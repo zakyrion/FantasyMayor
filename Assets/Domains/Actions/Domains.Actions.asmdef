@@ -3,7 +3,12 @@
     "rootNamespace": "",
     "references": [
         "Domains.Economy",
-        "Domains.Actors"
+        "Domains.Actors",
+        "Turn",
+        "DefaultECS.Extensions",
+        "Core",
+        "VContainer",
+        "UniTask"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

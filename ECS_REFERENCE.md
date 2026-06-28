@@ -150,11 +150,15 @@ ENTITY: City  (table — actor identity; one row per city, currently exactly one
         full +1 allocator — the model allows N cities even though one exists today.
 
 ENTITY: Mayor  (table — actor identity; exactly one, singleton actor)
-  Components: MayorIdComponent (PK), MayorTag, MayorAPComponent (starting Action Points)
+  Components: MayorIdComponent (PK), MayorTag, MayorAPRestoreComponent (per-turn AP restore amount)
   Discriminator: MayorTag
-  WRITES: MayorSpawnSystem (domain Actors, pipeline 910; id stays 1; seeds MayorAPComponent from
-          MayorConfigComponent.StartActionPoints, then attaches the config Resource loadout)
-  READS: none yet (future: OwnerFK resolution — EntityMap<MayorIdComponent>)
+  WRITES: MayorSpawnSystem (domain Actors, pipeline 910; id stays 1; seeds MayorAPRestoreComponent from
+          MayorConfigComponent.StartActionPoints, attaches the config Resource loadout, and seeds the
+          Mayor's ActionPoint Resource stack — the live AP pool — also from StartActionPoints)
+  READS: MayorActionPointsRestoreSubSystem (domain Actions, turn phase; reads MayorAPRestoreComponent to
+         reset the AP stack each turn). Future: OwnerFK resolution — EntityMap<MayorIdComponent>.
+  Note: MayorAPRestoreComponent is NOT the live AP pool — the live pool is the Mayor's ActionPoint Resource
+        stack (see ENTITY: Resource). The restore component only carries the per-turn refill amount.
   Lifecycle: created once during MapCreation; never destroyed.
   Note: single mayor — MayorIdComponent is always 1. Kept as a PK table (not a world component) so it is
         queryable as an OwnerFK target, the same shape as City.
@@ -165,9 +169,13 @@ ENTITY: Resource  (table — inventory resource stack)
   WRITES: CitySpawnSystem + MayorSpawnSystem (domain Actors, pipeline 900/910 — each attaches one row per
           ResourceType to its own actor at map creation, via Economy's generic ResourceLoadoutSpawner).
           Mayor amounts come from MayorConfigComponent and City amounts from CityConfigComponent
-          (ResourceTypes the author omits start at 0). Noble-owned stacks are NOT written yet (deferred
-          reactive system — see Note).
-  READS: none yet.
+          (ResourceTypes the author omits start at 0). ResourceType.ActionPoint is EXCLUDED from the generic
+          loadout (no City AP); MayorSpawnSystem seeds the Mayor's ActionPoint stack separately via
+          ResourceLoadoutSpawner.SpawnResource (= StartActionPoints). MayorActionPointsRestoreSubSystem
+          (domain Actions, turn phase) re-Sets the Mayor's ActionPoint stack to MayorAPRestoreComponent.Value
+          at the start of each turn. Noble-owned stacks are NOT written yet (deferred reactive system — see Note).
+  READS: DistrictBuildActionSystem (Presentation.UI — reads the Mayor's stacks; the ActionPoint stack is the
+         live AP shown in the build overlay).
   Lifecycle: created once at map creation for City + Mayor; never destroyed yet. Query a given owner's
         stacks via With<OwnerFK> + With<ResourceTag> → AsMultiMap<OwnerFK> (NEVER bare — the owner id is a
         PK on the actor AND a FK here).
@@ -442,10 +450,12 @@ WORLD: InventoryResourceIconConfigComponent  (Presentation.UI, window ResourceBa
 
 WORLD: MayorConfigComponent  (domain Actors)
   WRITES: MayorConfigLoaderSystem
-  READS: MayorSpawnSystem (seeds the Mayor's starting resource loadout + MayorAPComponent at map creation)
+  READS: MayorSpawnSystem (seeds the Mayor's starting resource loadout, MayorAPRestoreComponent, and the
+         initial ActionPoint Resource stack at map creation)
   Note: flattened from the MayorConfig SO — Resources array copied out, SO released after load. Carries
-        StartActionPoints, seeded onto MayorAPComponent at spawn (AP pool/spending mechanics are a later
-        slice). Lives in Actors/Mayor — actor-intrinsic startup state. See Actors/ACTORS.md.
+        StartActionPoints, which at spawn seeds BOTH MayorAPRestoreComponent (per-turn refill) and the
+        Mayor's initial ActionPoint Resource stack (live pool). AP spending mechanics are a later slice.
+        Lives in Actors/Mayor — actor-intrinsic startup state. See Actors/ACTORS.md.
 
 WORLD: CityConfigComponent  (domain Actors)
   WRITES: CityConfigLoaderSystem

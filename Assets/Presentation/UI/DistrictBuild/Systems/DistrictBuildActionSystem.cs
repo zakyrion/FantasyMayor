@@ -7,6 +7,7 @@ using Domains.Actors.Data;
 using Domains.Actors.Mayor.Components;
 using Domains.Economy.District.Components;
 using Domains.Economy.Resource.Components;
+using Domains.Economy.Resource.Data;
 using Domains.Economy.Resource.Tags;
 using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Data;
@@ -115,17 +116,19 @@ namespace Presentation.UI.DistrictBuild.Systems
         private void FillPayers(DistrictBuildActionView view)
         {
             if (_actors.TryGetEntities(new ActorTypeComponent { Type = ActorType.Mayor }, out var mayors)
-                && mayors.Length > 0)
+                && mayors.Length > 0
+                && _mayorResources.TryGetEntities(mayors[0].Get<MayorIdComponent>(), out var mayorStacks))
             {
-                view.SetMayorAp(mayors[0].Get<MayorAPComponent>().Value);
-
-                if (_mayorResources.TryGetEntities(mayors[0].Get<MayorIdComponent>(), out var mayorStacks))
+                foreach (var stack in mayorStacks)
                 {
-                    foreach (var stack in mayorStacks)
-                    {
-                        var resource = stack.Get<ResourceComponent>();
+                    var resource = stack.Get<ResourceComponent>();
+
+                    // The Mayor's live AP pool is now an ActionPoint resource stack (not a separate component):
+                    // route it to the AP field, every other stack to the inventory pools.
+                    if (resource.Type == ResourceType.ActionPoint)
+                        view.SetMayorAp(resource.Amount);
+                    else
                         view.SetMayorResource(resource.Type, resource.Amount);
-                    }
                 }
             }
 
