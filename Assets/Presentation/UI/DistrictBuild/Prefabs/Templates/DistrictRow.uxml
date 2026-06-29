@@ -1,0 +1,13 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <!-- One district roster row (master list). Cloned per district by DistrictListBinder, which binds Icon /
+         Name / Status / ApPill and marks the active and locked rows. Styling comes from the host panel's
+         stylesheet at runtime (the .uss cascades to these cloned descendants). -->
+    <ui:VisualElement name="DistrictRow" class="drow">
+        <ui:Label name="Icon" class="drow-ic"/>
+        <ui:VisualElement class="drow-mid">
+            <ui:Label name="Name" class="drow-name"/>
+            <ui:Label name="Status" class="drow-req"/>
+        </ui:VisualElement>
+        <ui:Label name="ApPill" class="appill"/>
+    </ui:VisualElement>
+</ui:UXML>

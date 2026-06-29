@@ -4,6 +4,7 @@ using DefaultECSExtensions;
 using Domains.Actors.City.Components;
 using Domains.Actors.Components;
 using Domains.Actors.Data;
+using Domains.Actions.Components;
 using Domains.Actors.Mayor.Components;
 using Domains.Economy.District.Components;
 using Domains.Economy.Resource.Components;
@@ -97,14 +98,22 @@ namespace Presentation.UI.DistrictBuild.Systems
                 throw new InvalidOperationException(
                     "DistrictBuildUISystem: DistrictsBuildConfigComponent is missing (config not loaded).");
 
+            if (!_world.Has<ActionsDistrictsBuildConfigComponent>())
+                throw new InvalidOperationException(
+                    "DistrictBuildUISystem: ActionsDistrictsBuildConfigComponent is missing (config not loaded).");
+
             var coords = _selectedHexSet.GetEntities()[0].Get<HexSelectedComponent>().Coords;
 
             // A non-grid coordinate carries no hex — a valid empty selection; nothing to build on, so skip.
             if (!TryGetHexType(coords, out var hexType))
                 return;
 
-            // Reference, not a copy — the SO holds the catalogue; the loader keeps it alive.
-            view.SetContext(_world.Get<DistrictsBuildConfigComponent>().Value, hexType);
+            // References, not copies — the SOs hold the catalogues; the loaders keep them alive. Gating comes from
+            // the Economy catalogue, cost (AP + prices) from the Actions catalogue; the view joins them by DistrictType.
+            view.SetContext(
+                _world.Get<DistrictsBuildConfigComponent>().Value,
+                _world.Get<ActionsDistrictsBuildConfigComponent>().Value,
+                hexType);
 
             FillHexResources(view, coords);
             FillPayers(view);

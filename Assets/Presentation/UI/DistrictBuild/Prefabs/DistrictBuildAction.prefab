@@ -105,3 +105,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Presentation.UI::Presentation.UI.DistrictBuild.Views.DistrictBuildActionView
   _renderer: {fileID: 120019418656823439}
+  _districtRowTemplate: {fileID: 9197481963319205126, guid: ba74915c489ef450fa7a15ab300c1198,
+    type: 3}
+  _reqLineTemplate: {fileID: 9197481963319205126, guid: 7421da3600cb74ab6bf7cfa056405a6e,
+    type: 3}
+  _costRowTemplate: {fileID: 9197481963319205126, guid: 83a2c49b1de614743816b28543a6d113,
+    type: 3}
