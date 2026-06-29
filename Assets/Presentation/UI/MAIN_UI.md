@@ -73,7 +73,7 @@ that resolves it.
   singleton): it reveals the left resource panel + the thin top-bar strip (both spawn hidden) and fills the
   City + Mayor inventory amounts each frame. Per-frame is a deliberate override of Reactive-by-default — no
   `ResourcesChanged` pulse exists yet (justification in `ResourceBar/RESOURCE_BAR.md`). Not an event trigger.
-- `EndTurnSystem` is a **Per-frame System** (Gameplay, anchored on the `EndTurnViewComponent` singleton):
+- `EndTurnViewSystem` is a **Per-frame System** (Gameplay, anchored on the `EndTurnViewComponent` singleton):
   it reveals the whole bottom panel (it owns the shell reveal), mirrors `TurnProcessorComponent` presence into
   the Processing look, and pushes the current turn number (`TurnCountComponent`, module `Turn`) into «Хід N».
   The button emits `NextTurnEvent` from `EndTurnView` on click. See `EndTurn/END_TURN.md`.
@@ -111,7 +111,7 @@ that resolves it.
   ordered by Priority): `HexInfoPanelSpawnSubSystem` (0), `EndTurnSpawnSubSystem` (10) and
   `ContextTabsSpawnSubSystem` (20). Each subsystem instantiates nothing — it `GetComponentInChildren`s its view
   off the shared instance and publishes the view singleton. `HexInfoPanelSpawnSubSystem` sets the context to
-  its empty state; `EndTurnSpawnSubSystem` leaves the whole bottom-panel shell hidden — `EndTurnSystem` reveals
+  its empty state; `EndTurnSpawnSubSystem` leaves the whole bottom-panel shell hidden — `EndTurnViewSystem` reveals
   it on entering Gameplay; `ContextTabsSpawnSubSystem` seeds the view + active tab (Overview) as **world
   singletons** (no entity) + applies the initial highlight.
 
@@ -119,7 +119,7 @@ that resolves it.
 - Generator screen: three buttons (Generate, Second Step, Generate Mesh). **Only Generate is wired to
   logic** — the other two are placeholders.
 - Bottom panel: **one unified shell** with two sub-panels (UXML/USS + systems + prefab + configs), revealed in
-  Gameplay by `EndTurnSystem`.
+  Gameplay by `EndTurnViewSystem`.
 - Context sub-panel (HexInfoPanel): **implemented**. Fixed-height shell, permanent tab row over a filled/empty
   swap, with three tab panes inside the filled state (`OverviewPane` / `BuildingsPane` / `ActionsPane`). The
   Overview pane's «Гекс» block (icon + name + Resources) binds to real components; the «Район» + «Праця та
@@ -127,8 +127,9 @@ that resolves it.
   components land; `BuildingsPane` / `ActionsPane` are empty named containers; the empty state is intentionally
   blank.
 - Turn sub-panel (EndTurn): **implemented** (View/Component/Spawn/System + markup in the shared document). The
-  End Turn button and **«Хід N» (live, bound to `TurnCountComponent`)** work; the two AP tiles («Дії зараз» /
-  «наст. хід») are visible placeholders (dashes) until the AP model lands. See `EndTurn/END_TURN.md`.
+  End Turn button, **«Хід N» (live, bound to `TurnCountComponent`)**, and the **two AP tiles** («Дії зараз» /
+  «наст. хід», fed by `EndTurnViewSystem` from the Mayor's live `ActionPoint` stack / `MayorAPRestoreComponent`)
+  all work. See `EndTurn/END_TURN.md`.
 - Resource strip (ResourceBar): **code implemented** — config + loader/component, View, Spawn subsystem,
   per-frame `ResourceBarSystem`, `TopBar` markup in the shared document + USS, DI + Boot wiring. Needs
   Unity-side authoring: the `InventoryResourceIconConfig.asset` (+ sprites) at key `"InventoryResourceIconConfig"`
@@ -145,8 +146,8 @@ that resolves it.
 - `HexInfoPanel/HEX_INFO_PANEL.md` — the selected-hex context sub-panel (right): blocks, the filled ↔ empty
   states, ECS bindings, block→system map, the EndTurn-owns-the-shell split.
 - `EndTurn/END_TURN.md` — the turn sub-panel (left) + shell reveal: state-vs-agency exception, Ready/Processing,
-  «Хід N» binding to `TurnCountComponent`, «Дії» placeholder, `NextTurnEvent` / `TurnProcessorComponent`.
-  Implemented.
+  «Хід N» binding to `TurnCountComponent`, the two live AP tiles (Mayor AP), `NextTurnEvent` /
+  `TurnProcessorComponent`. Implemented.
 - `ContextTabs/CONTEXT_TABS.md` — the permanent context tab row (Огляд / Будівлі / Дії): `ContextTab` enum, the
   active-tab state component, the change event, the markup name-constant contract (tabs + the three content panes),
   the pane swap in `SetActive`, the selection/availability split.

@@ -29,11 +29,11 @@
                     <ui:VisualElement name="TurnActions" class="turn-ap">
                         <ui:VisualElement class="turn-ap-tile turn-ap-tile--cur">
                             <ui:Label text="⚡ ДІЇ ЗАРАЗ" class="turn-ap-tile-cap"/>
-                            <ui:Label text="—" class="turn-ap-tile-num turn-ap-tile-num--cur"/>
+                            <ui:Label name="TurnApCurrent" text="—" class="turn-ap-tile-num turn-ap-tile-num--cur"/>
                         </ui:VisualElement>
                         <ui:VisualElement class="turn-ap-tile turn-ap-tile--nxt">
                             <ui:Label text="НАСТ. ХІД" class="turn-ap-tile-cap"/>
-                            <ui:Label text="—" class="turn-ap-tile-num turn-ap-tile-num--nxt"/>
+                            <ui:Label name="TurnApNext" text="—" class="turn-ap-tile-num turn-ap-tile-num--nxt"/>
                         </ui:VisualElement>
                     </ui:VisualElement>
                     <ui:Button name="EndTurnButton" text="ЗАВЕРШИТИ ХІД" class="end-turn-button"/>

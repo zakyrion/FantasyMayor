@@ -14,7 +14,7 @@ namespace Presentation.UI.EndTurn.Views
     ///     and Processing looks. The turn corner is the always-present part of the bottom panel, so this view
     ///     toggles the whole BottomPanel shell (Show/Hide) — never the panel root (that would blank the whole
     ///     Main UI). The CONTEXT sub-panel content is swapped independently by HexInfoPanelView. Holds no game
-    ///     logic beyond raising the one-frame event — the Processing state is driven by EndTurnSystem. The
+    ///     logic beyond raising the one-frame event — the Processing state is driven by EndTurnViewSystem. The
     ///     full-screen root stays click-through; only the button blocks clicks (mirrors the generator UI rules).
     ///     PanelRenderer builds its tree asynchronously, so the button is hooked and state replayed in the reload
     ///     callback (re-hooked on every reload, since a reload recreates the button).
@@ -24,6 +24,8 @@ namespace Presentation.UI.EndTurn.Views
         private const string PanelName = "BottomPanel";
         private const string ButtonName = "EndTurnButton";
         private const string TurnNumberName = "TurnNumber";
+        private const string ApCurrentName = "TurnApCurrent";
+        private const string ApNextName = "TurnApNext";
         private const string ProcessingClass = "is-processing";
 
         // Labels are uppercased in DATA — USS has no text-transform (GENERAL_UI_STYLE.md §9).
@@ -37,14 +39,20 @@ namespace Presentation.UI.EndTurn.Views
         private VisualElement _panel;
         private Button _button;
         private Label _turnNumber;
+        private Label _apCurrentLabel;
+        private Label _apNextLabel;
         private bool _cached;
 
         // Logical state replayed on (re)bind. Default hidden so the shell does not flash during MapCreation;
-        // EndTurnSystem re-pushes visibility / turn / processing every frame in Gameplay.
+        // EndTurnViewSystem re-pushes visibility / turn / processing every frame in Gameplay.
         private bool _visible;
         private bool _processing;
         private bool _turnValueSet;
         private int _turnValue;
+        private bool _apCurrentSet;
+        private int _apCurrentValue;
+        private bool _apNextSet;
+        private int _apNextValue;
 
         [Inject]
         public void Construct(World world)
@@ -102,13 +110,40 @@ namespace Presentation.UI.EndTurn.Views
                 _panel.style.display = DisplayStyle.None;
         }
 
-        /// <summary>Sets the turn-number label ("Хід N"). Driven by EndTurnSystem from TurnCountComponent.</summary>
+        /// <summary>Sets the turn-number label ("Хід N"). Driven by EndTurnViewSystem from TurnCountComponent.</summary>
         public void SetTurnNumber(int turnNumber)
         {
             _turnValueSet = true;
             _turnValue = turnNumber;
             if (TryCache())
                 _turnNumber.text = $"Хід {turnNumber}";
+        }
+
+        /// <summary>
+        ///     «ДІЇ ЗАРАЗ» tile — the Mayor's live AP. Stateful guard: skips the UI write when the value is
+        ///     unchanged, so the per-frame push from EndTurnViewSystem does not redraw the label every frame.
+        /// </summary>
+        public void SetActionPointsCurrent(int value)
+        {
+            if (_apCurrentSet && _apCurrentValue == value)
+                return;
+
+            _apCurrentSet = true;
+            _apCurrentValue = value;
+            if (TryCache())
+                _apCurrentLabel.text = value.ToString();
+        }
+
+        /// <summary>«НАСТ. ХІД» tile — the Mayor's per-turn AP restore amount. Same unchanged-value guard.</summary>
+        public void SetActionPointsNext(int value)
+        {
+            if (_apNextSet && _apNextValue == value)
+                return;
+
+            _apNextSet = true;
+            _apNextValue = value;
+            if (TryCache())
+                _apNextLabel.text = value.ToString();
         }
 
         /// <summary>
@@ -141,6 +176,10 @@ namespace Presentation.UI.EndTurn.Views
             _panel.style.display = _visible ? DisplayStyle.Flex : DisplayStyle.None;
             if (_turnValueSet)
                 _turnNumber.text = $"Хід {_turnValue}";
+            if (_apCurrentSet)
+                _apCurrentLabel.text = _apCurrentValue.ToString();
+            if (_apNextSet)
+                _apNextLabel.text = _apNextValue.ToString();
             ApplyProcessing();
         }
 
@@ -181,6 +220,8 @@ namespace Presentation.UI.EndTurn.Views
             _panel = _root.Q<VisualElement>(PanelName);
             _button = _root.Q<Button>(ButtonName);
             _turnNumber = _root.Q<Label>(TurnNumberName);
+            _apCurrentLabel = _root.Q<Label>(ApCurrentName);
+            _apNextLabel = _root.Q<Label>(ApNextName);
             _cached = true;
         }
     }

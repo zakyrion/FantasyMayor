@@ -32,8 +32,8 @@ panels carry actions; this is the most prominent one). It is not tied to any sel
   divider. It never appears/disappears — the muscle-memory turn corner.
 - The sub-panel stacks top-to-bottom: **«Хід N»** → **two AP tiles** («Дії зараз» / «наст. хід») →
   **End Turn button**. The button is pinned to the bottom with `margin-top: auto`, so the two sub-panels share a
-  common bottom edge. «Хід N» is live (bound to `TurnCountComponent`); the two AP tiles are visible placeholders
-  (dashes) until the AP model lands — see Scaffold. No «ПОТОЧНИЙ ХІД» cap, no season / phase
+  common bottom edge. «Хід N» is live (bound to `TurnCountComponent`); the two AP tiles are also live — fed by
+  `EndTurnViewSystem` from the Mayor's AP (see Implementation). No «ПОТОЧНИЙ ХІД» cap, no season / phase
   (`GENERAL_UI_STYLE.md` §4).
 - Design reference: `design-mockups/FantasyMayor-HUD.html` (the `.turn` sub-panel).
 
@@ -67,12 +67,17 @@ Mirrors the HexInfoPanel pattern; the click-emit mirrors the generator UI (`Hexe
 - **`EndTurnSpawnSubSystem`** (`Systems/`, a `MainUISpawnSubSystem` run by `MainUISpawnSystem` at pipeline 800,
   Priority 10) — resolves `EndTurnView` off the shared `UI/MainUI` instance (`GetComponentInChildren`),
   publishes the component, leaves the whole **bottom panel hidden**. Instantiates nothing.
-- **`EndTurnSystem`** (`Systems/`, per-frame, wired into GameplayState by `Boot`) — each Gameplay tick reveals
+- **`EndTurnViewSystem`** (`Systems/`, per-frame, wired into GameplayState by `Boot`) — each Gameplay tick reveals
   the bottom panel (idempotent `Show()` — it owns the shell reveal), mirrors
-  `view.SetProcessing(world.Has<TurnProcessorComponent>())`, and pushes
-  `view.SetTurnNumber(world.Get<TurnCountComponent>().Value)` (throws if the counter is unseeded — fail-loud).
-  The turn counter itself lives in module `Turn` (`TurnCountComponent` / `TurnCompletedEvent` /
-  `TurnCountSystem`) — see `TURN.md`; this window only displays it.
+  `view.SetProcessing(world.Has<TurnProcessorComponent>())`, pushes
+  `view.SetTurnNumber(world.Get<TurnCountComponent>().Value)` (throws if the counter is unseeded — fail-loud),
+  and feeds the **two AP tiles**: «ДІЇ ЗАРАЗ» = the Mayor's live `ActionPoint` resource stack `Amount`,
+  «НАСТ. ХІД» = `MayorAPRestoreComponent.Value`. AP is read from the single Mayor via an
+  `EntityMultiMap<MayorIdComponent>` over the resource stacks (mirrors `ResourceBarSystem` /
+  `MayorActionPointsRestoreSubSystem`); fail-loud if the Mayor or its AP stack is unseeded. The turn counter
+  itself lives in module `Turn` (`TurnCountComponent` / `TurnCompletedEvent` / `TurnCountSystem`) — see
+  `TURN.md`; this window only displays it. **Renamed from `EndTurnSystem`** — that name is reserved for future
+  turn-flow logic.
 
 **Why click-emit in the View but state-reconcile in the System:** the View raising a one-frame event on click
 follows the generator-UI precedent; per-frame ECS polling (the Processing mirror) must not live in a
@@ -82,18 +87,20 @@ authoritative backstop; the View's `_processing` self-guard is defence in depth.
 
 ## Scaffold / not done
 - «Хід N» is **live** (module `Turn`: `TurnCountComponent`).
-- The **two AP tiles** («Дії зараз» / «наст. хід») are **visible placeholders only** — authored and shown with
-  dash values, but **no AP model exists yet** and no system touches them. Wire them when the action-points
-  mechanic lands (`GAMEPLAY_FOUNDATION.md` level), not as a UI task.
+- The **two AP tiles** («Дії зараз» / «наст. хід») are now **live** — wired to the Mayor's AP by
+  `EndTurnViewSystem` (see Implementation). The `EndTurnView` AP setters carry an **unchanged-value guard**
+  (the View is stateful — it stores the last shown value and skips the label write when the per-frame push
+  brings the same number), so the per-frame read does not redraw every frame.
 - `Locked` state is future (needs phase/turn ownership).
 
 ## Current State
-- **Implemented:** `EndTurnView` + `EndTurnViewComponent` + `EndTurnSpawnSubSystem` + `EndTurnSystem`, registered
+- **Implemented:** `EndTurnView` + `EndTurnViewComponent` + `EndTurnSpawnSubSystem` + `EndTurnViewSystem`, registered
   in `UIInstaller`, wired into Gameplay by `Boot`. The turn corner **markup lives in the shared Main UI
   document** — `TurnPanel` (the `.bp-turn` sub-panel with `TurnNumber`, the two AP tiles, and
   `EndTurnButton`) is the left sub-panel of the `BottomPanel` shell in `Prefabs/HexInfoPanel.uxml`, styled by
   `Prefabs/HexInfoPanel.uss`. There is no standalone `EndTurnView.uxml`/`.uss`. «Хід N» binds to
-  `TurnCountComponent` (module `Turn`); the two AP tiles are static placeholders (no system touches them).
+  `TurnCountComponent` (module `Turn`); the two AP tiles (`TurnApCurrent` / `TurnApNext`) are fed by
+  `EndTurnViewSystem` from the Mayor's AP.
 - **User-side (Unity):** `EndTurnView` is a MonoBehaviour on the single `UI/MainUI` prefab, referencing the
   **same `PanelRenderer`** as `HexInfoPanelView`. There is no separate `UI/EndTurnView` address. The prefab is
   authored in Unity; not a code artifact.

@@ -15,7 +15,7 @@ namespace Presentation.UI.ResourceBar.Systems
     /// <summary>
     ///     Fills the top-bar resource strip each Gameplay frame with the City and Mayor inventory amounts, and
     ///     reveals it (the strip spawns hidden, like the bottom panel). Anchored on the ResourceBarViewComponent
-    ///     singleton so it ticks once per frame, mirroring EndTurnSystem.
+    ///     singleton so it ticks once per frame, mirroring EndTurnViewSystem.
     ///     Per-frame justification (Reactive-by-default override): there is no ResourcesChanged pulse yet — a
     ///     per-frame read keeps the strip live the moment economy actions begin mutating stacks, at trivial cost
     ///     (2 owners × N columns), without a god-system. Replace with a reactive consumer once such a pulse lands.

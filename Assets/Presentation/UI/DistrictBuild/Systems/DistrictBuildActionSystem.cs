@@ -25,7 +25,7 @@ namespace Presentation.UI.DistrictBuild.Systems
 {
     /// <summary>
     ///     Drives the district-build overlay's visibility + content. Anchored on the DistrictBuildActionViewComponent
-    ///     singleton so it ticks once per frame (like EndTurnSystem / ResourceBarSystem): it coalesces the two
+    ///     singleton so it ticks once per frame (like EndTurnViewSystem / ResourceBarSystem): it coalesces the two
     ///     one-frame pulses for this one window — <see cref="DistrictBuildRequestedEvent" /> (open) and
     ///     <see cref="DistrictBuildClosedEvent" /> (hide). On open it pushes the catalogue reference + each payer's
     ///     stockpile amounts straight into the view (one call per stack, no intermediate collection — the

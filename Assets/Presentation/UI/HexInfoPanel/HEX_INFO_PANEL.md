@@ -29,7 +29,7 @@ CONTENT is contextual — it swaps between the **filled** blocks (a hex is selec
 ## Ownership split (read this first)
 Three orthogonal layers, each with one owner — none overlaps:
 - **Shell height + reveal** — the bottom-panel **shell** (`BottomPanel`) is revealed/hidden by **`EndTurnView` /
-  `EndTurnSystem`** (the turn corner is its always-present part) and has a **fixed height** (`.bottom-panel`,
+  `EndTurnViewSystem`** (the turn corner is its always-present part) and has a **fixed height** (`.bottom-panel`,
   USS) so it never grows with content. This panel does **not** touch the shell.
 - **Selection swap** — this panel owns only the context content swap: `HexInfoPanelView.ShowSelection()`
   (filled) ↔ `ShowEmpty()` (placeholder). Both toggle `display` on the `ContextFilled` / `ContextEmpty`

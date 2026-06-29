@@ -12,7 +12,7 @@ namespace Presentation.UI.EndTurn.Systems
     /// <summary>
     ///     Main UI spawn subsystem: resolves the end-turn view from the shared Main UI instance and publishes
     ///     EndTurnViewComponent. Instantiates nothing — the orchestrator owns the Main UI handle. Leaves the
-    ///     whole bottom-panel shell hidden; EndTurnSystem reveals it in Gameplay.
+    ///     whole bottom-panel shell hidden; EndTurnViewSystem reveals it in Gameplay.
     /// </summary>
     [UsedImplicitly]
     internal sealed class EndTurnSpawnSubSystem : MainUISpawnSubSystem
@@ -41,7 +41,7 @@ namespace Presentation.UI.EndTurn.Systems
             entity.Set(new EndTurnViewComponent(view));
             entity.Set<UITag>();
 
-            // Whole bottom panel hidden until Gameplay; EndTurnSystem reveals it.
+            // Whole bottom panel hidden until Gameplay; EndTurnViewSystem reveals it.
             view.Hide();
         }
     }

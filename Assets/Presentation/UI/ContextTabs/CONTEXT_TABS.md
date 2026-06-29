@@ -60,7 +60,7 @@ The view (`ContextTabsView`) resolves three `Toggle`s **and** three content pane
 2. **Selection** — `ContextTabSelectionSystem` (reactive, anchored on the event set) reads the current
    `ActiveContextTabComponent` and reconciles the view via `view.SetActive(active)`, which highlights the checked
    tab **and shows the matching content pane** (hiding the other two). Keeping the trigger in a system (not the
-   MonoBehaviour) mirrors the `EndTurnView`/`EndTurnSystem` split; fail-loud if the state is missing or `Unknown`.
+   MonoBehaviour) mirrors the `EndTurnView`/`EndTurnViewSystem` split; fail-loud if the state is missing or `Unknown`.
    Idempotent.
 3. **Availability** — `ContextTabsAvailabilitySystem` (**reactive** on the `SelectedHexChangedEvent` pulse
    raised by `UserInput.HexSelectionSystem`; reads the world view singleton + whether a `HexSelectedComponent`

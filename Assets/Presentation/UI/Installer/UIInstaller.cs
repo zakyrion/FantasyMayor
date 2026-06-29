@@ -61,8 +61,8 @@ namespace Presentation.UI.Installer
                 .As<HexInfoPanelDistrictSystem>();
             builder.Register<DistrictBuildActionSystem>(Lifetime.Singleton)
                 .As<DistrictBuildActionSystem>();
-            builder.Register<EndTurnSystem>(Lifetime.Singleton)
-                .As<EndTurnSystem>();
+            builder.Register<EndTurnViewSystem>(Lifetime.Singleton)
+                .As<EndTurnViewSystem>();
             builder.Register<ContextTabSelectionSystem>(Lifetime.Singleton)
                 .As<ContextTabSelectionSystem>();
             builder.Register<ContextTabsAvailabilitySystem>(Lifetime.Singleton)
