@@ -25,13 +25,13 @@ the per-element `EnablePicking` sweep the shared HUD uses. Toggling this documen
 (it is not shared, so it never blanks the HUD).
 
 ## Spawn + lifecycle
-- `DistrictBuildActionSpawnSystem` — **world-init Pipeline Stage 810** (`IPrioritizedUniTaskSystem<MapGenerationStep>`,
+- `DistrictBuildUISpawnSystem` — **world-init Pipeline Stage 810** (`IPrioritizedUniTaskSystem<MapGenerationStep>`,
   auto-collected by the generation pipeline, **no Boot wiring**). Mirrors the loading half of `MainUISpawnSystem`:
   instantiates the addressable prefab `UI/DistrictBuildAction` under `IMainCanvasProvider.RootGO`, owns the
-  addressable handle in the **world component** `DistrictBuildActionRootComponent` (Box<GameObject>), resolves
-  `DistrictBuildActionView` off the instance, publishes the `DistrictBuildActionViewComponent` singleton entity
+  addressable handle in the **world component** `DistrictBuildUIRootComponent` (Box<GameObject>), resolves
+  `DistrictBuildUIView` off the instance, publishes the `DistrictBuildUIViewComponent` singleton entity
   (+`UITag`), and leaves the overlay **hidden**.
-- `DistrictBuildActionSystem` — **Gameplay per-frame system** anchored on the `DistrictBuildActionViewComponent`
+- `DistrictBuildUISystem` — **Gameplay per-frame system** anchored on the `DistrictBuildUIViewComponent`
   singleton (Priority 565; wired into Gameplay by `Boot`). It coalesces the two one-frame pulses for this one
   window: `DistrictBuildRequestedEvent` (open) and `DistrictBuildClosedEvent` (close). Per-frame (not reactive)
   is deliberate — one `AEntitySetSystem` cannot anchor on two event sets, and a singleton-anchored per-frame
@@ -39,7 +39,7 @@ the per-element `EnablePicking` sweep the shared HUD uses. Toggling this documen
 
 ## Open / close flow
 - **Open:** `HexInfoPanelView`'s build slot raises payload-less `DistrictBuildRequestedEvent`. On the next tick
-  `DistrictBuildActionSystem` reads the current `HexSelectedComponent`, resolves the hex's `HexTypeComponent`
+  `DistrictBuildUISystem` reads the current `HexSelectedComponent`, resolves the hex's `HexTypeComponent`
   (same scan as `HexInfoPanelHeaderSystem`), reads the `DistrictsBuildConfigComponent` catalogue + both payers'
   resource stockpiles + the Mayor's AP, pushes them via `view.SetContext(...)`, and shows the overlay. The
   window is modal, so the selection cannot change while it is open — it fills once on open.
@@ -61,7 +61,7 @@ The domain models only part of the screen; the rest is **marked static placehold
   a single marked note in the detail pane.
 
 ## Data path: the district catalogue (zero-allocation)
-`DistrictBuildActionSystem` reads the **world component** `DistrictsBuildConfigComponent`, published at
+`DistrictBuildUISystem` reads the **world component** `DistrictsBuildConfigComponent`, published at
 config-load by `DistrictsBuildConfigLoaderSystem` (Economy/District; see `ECONOMY.md`). The component carries a
 **reference** to the `DistrictsBuildConfig` SO — no copy/flatten (the SO already holds the data; the loader
 keeps its addressable Box alive and releases it on teardown). The system itself **allocates nothing**: it passes
@@ -85,7 +85,7 @@ and reads the SO's `List<>` fields directly when rendering.
 
 ## Prefab prerequisites (Unity-side, authored by the user)
 - Addressable prefab at key **`UI/DistrictBuildAction`** carrying the overlay UXML/USS on a `PanelRenderer`,
-  with a **`DistrictBuildActionView`** MonoBehaviour whose `PanelRenderer` field is assigned (else the spawn
+  with a **`DistrictBuildUIView`** MonoBehaviour whose `PanelRenderer` field is assigned (else the spawn
   system throws), and a `PanelSettings` whose **sort order is higher than the Main UI's**.
 - Addressable **`DistrictsBuildConfig`** SO (the district catalogue) — else `DistrictsBuildConfigLoaderSystem`
   throws at config-load.

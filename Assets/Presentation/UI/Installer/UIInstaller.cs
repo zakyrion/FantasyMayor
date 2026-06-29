@@ -45,8 +45,8 @@ namespace Presentation.UI.Installer
 
             // District-build overlay — its OWN UIDocument (separate from the shared Main UI), so it has its own
             // spawn orchestrator in the generation pipeline rather than a Main UI spawn subsystem.
-            builder.Register<DistrictBuildActionSpawnSystem>(Lifetime.Singleton)
-                .As<DistrictBuildActionSpawnSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
+            builder.Register<DistrictBuildUISpawnSystem>(Lifetime.Singleton)
+                .As<DistrictBuildUISpawnSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
 
             // Per-frame view systems, wired into GameplayState by Boot (concrete singletons).
             builder.Register<HexInfoPanelSystem>(Lifetime.Singleton)
@@ -59,8 +59,8 @@ namespace Presentation.UI.Installer
                 .As<ResourceBarSystem>();
             builder.Register<HexInfoPanelDistrictSystem>(Lifetime.Singleton)
                 .As<HexInfoPanelDistrictSystem>();
-            builder.Register<DistrictBuildActionSystem>(Lifetime.Singleton)
-                .As<DistrictBuildActionSystem>();
+            builder.Register<DistrictBuildUISystem>(Lifetime.Singleton)
+                .As<DistrictBuildUISystem>();
             builder.Register<EndTurnViewSystem>(Lifetime.Singleton)
                 .As<EndTurnViewSystem>();
             builder.Register<ContextTabSelectionSystem>(Lifetime.Singleton)

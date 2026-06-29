@@ -24,7 +24,7 @@ using UnityEngine;
 namespace Presentation.UI.DistrictBuild.Systems
 {
     /// <summary>
-    ///     Drives the district-build overlay's visibility + content. Anchored on the DistrictBuildActionViewComponent
+    ///     Drives the district-build overlay's visibility + content. Anchored on the DistrictBuildUIViewComponent
     ///     singleton so it ticks once per frame (like EndTurnViewSystem / ResourceBarSystem): it coalesces the two
     ///     one-frame pulses for this one window — <see cref="DistrictBuildRequestedEvent" /> (open) and
     ///     <see cref="DistrictBuildClosedEvent" /> (hide). On open it pushes the catalogue reference + each payer's
@@ -33,7 +33,7 @@ namespace Presentation.UI.DistrictBuild.Systems
     ///     while it is open; it fills once on open.
     /// </summary>
     [UsedImplicitly]
-    public sealed class DistrictBuildActionSystem : UpdatedSystem
+    public sealed class DistrictBuildUISystem : UpdatedSystem
     {
         private const int ExecutionPriority = 565;
 
@@ -52,8 +52,8 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public override int Priority => ExecutionPriority;
 
-        public DistrictBuildActionSystem(World world)
-            : base(world.GetEntities().With<DistrictBuildActionViewComponent>().AsSet())
+        public DistrictBuildUISystem(World world)
+            : base(world.GetEntities().With<DistrictBuildUIViewComponent>().AsSet())
         {
             _world = world;
             _requestedSet = world.GetEntities().With<DistrictBuildRequestedEvent>().AsSet();
@@ -72,10 +72,10 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         protected override void Update(GameState state, in Entity entity)
         {
-            var view = entity.Get<DistrictBuildActionViewComponent>().View;
+            var view = entity.Get<DistrictBuildUIViewComponent>().View;
             if (view == null)
             {
-                Debug.Log($"[skh] no DistrictBuildActionViewComponent");
+                Debug.Log($"[skh] no DistrictBuildUIViewComponent");
                 return;
             }
 
@@ -86,16 +86,16 @@ namespace Presentation.UI.DistrictBuild.Systems
                 Open(view);
         }
 
-        private void Open(DistrictBuildActionView view)
+        private void Open(DistrictBuildUIView view)
         {
-            Debug.Log($"[skh] Open DistrictBuildActionViewComponent");
+            Debug.Log($"[skh] Open DistrictBuildUIViewComponent");
             // The build prompt only exists while a hex is selected; a stray request without one is a no-op.
             if (_selectedHexSet.Count == 0)
                 return;
 
             if (!_world.Has<DistrictsBuildConfigComponent>())
                 throw new InvalidOperationException(
-                    "DistrictBuildActionSystem: DistrictsBuildConfigComponent is missing (config not loaded).");
+                    "DistrictBuildUISystem: DistrictsBuildConfigComponent is missing (config not loaded).");
 
             var coords = _selectedHexSet.GetEntities()[0].Get<HexSelectedComponent>().Coords;
 
@@ -113,7 +113,7 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         // Pushes each payer's AP + per-type stockpile amounts straight into the view (no collection crosses the
         // boundary — the view resets its own pools in SetContext, then records each amount by type).
-        private void FillPayers(DistrictBuildActionView view)
+        private void FillPayers(DistrictBuildUIView view)
         {
             if (_actors.TryGetEntities(new ActorTypeComponent { Type = ActorType.Mayor }, out var mayors)
                 && mayors.Length > 0
@@ -147,7 +147,7 @@ namespace Presentation.UI.DistrictBuild.Systems
         // Pushes the selected hex's resource types into the view (one per stack, no collection crosses the
         // boundary — same push pattern as FillPayers). A hex with no resource entities pushes nothing, so the
         // view's reset buffer reads as empty — which is exactly what the empty-hex build gate needs.
-        private void FillHexResources(DistrictBuildActionView view, HexCoord coords)
+        private void FillHexResources(DistrictBuildUIView view, HexCoord coords)
         {
             if (!_hexResources.TryGetEntities(new HexIdComponent { Coords = coords }, out var resources))
                 return;

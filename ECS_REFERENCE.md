@@ -174,7 +174,7 @@ ENTITY: Resource  (table — inventory resource stack)
           ResourceLoadoutSpawner.SpawnResource (= StartActionPoints). MayorActionPointsRestoreSubSystem
           (domain Actions, turn phase) re-Sets the Mayor's ActionPoint stack to MayorAPRestoreComponent.Value
           at the start of each turn. Noble-owned stacks are NOT written yet (deferred reactive system — see Note).
-  READS: DistrictBuildActionSystem (Presentation.UI — reads the Mayor's stacks; the ActionPoint stack is the
+  READS: DistrictBuildUISystem (Presentation.UI — reads the Mayor's stacks; the ActionPoint stack is the
          live AP shown in the build overlay).
   Lifecycle: created once at map creation for City + Mayor; never destroyed yet. Query a given owner's
         stacks via With<OwnerFK> + With<ResourceTag> → AsMultiMap<OwnerFK> (NEVER bare — the owner id is a
@@ -267,11 +267,11 @@ ENTITY: ResourceBarView  (singleton)
         ResourcesChanged pulse exists yet — it reads the City/Mayor Resource stacks directly every frame.
         Reads cross-module Actors + Economy components (see Cross-Module Reads).
 
-ENTITY: DistrictBuildActionView  (singleton)
-  Components: DistrictBuildActionViewComponent (View → the DistrictBuildActionView MonoBehaviour), UITag
-  WRITES: DistrictBuildActionSpawnSystem (pipeline 810 — instantiates the SEPARATE UI/DistrictBuildAction
-          overlay document under IMainCanvasProvider.RootGO; owns its handle in DistrictBuildActionRootComponent)
-  READS: DistrictBuildActionSystem (base/anchor set — per-frame Gameplay; shows on DistrictBuildRequestedEvent
+ENTITY: DistrictBuildUIView  (singleton)
+  Components: DistrictBuildUIViewComponent (View → the DistrictBuildUIView MonoBehaviour), UITag
+  WRITES: DistrictBuildUISpawnSystem (pipeline 810 — instantiates the SEPARATE UI/DistrictBuildAction
+          overlay document under IMainCanvasProvider.RootGO; owns its handle in DistrictBuildUIRootComponent)
+  READS: DistrictBuildUISystem (base/anchor set — per-frame Gameplay; shows on DistrictBuildRequestedEvent
          filled from HexSelectedComponent + DistrictsBuildConfigComponent + payer stacks, hides on
          DistrictBuildClosedEvent)
   Note: modal district-build overlay (separate UIDocument, higher sort order). Spawns hidden. Reads
@@ -467,7 +467,7 @@ WORLD: CityConfigComponent  (domain Actors)
 WORLD: DistrictsBuildConfigComponent  (domain Economy, District)
   WRITES: DistrictsBuildConfigLoaderSystem (RETAINS the addressable Box — releases it in OnDispose, unlike the
           copy-out actor loaders; the build window reads the catalogue throughout play)
-  READS: DistrictBuildActionSystem (Presentation.UI — passes the catalogue reference to the overlay view)
+  READS: DistrictBuildUISystem (Presentation.UI — passes the catalogue reference to the overlay view)
   Note: carries a REFERENCE to the DistrictsBuildConfig SO (Value) — no flatten/copy (the SO holds the
         Districts + their Prices/requirements). Economy's first config. See ECONOMY.md.
 ```
@@ -521,16 +521,16 @@ EVENT: ContextTabChangedEvent
 EVENT: DistrictBuildRequestedEvent
   Producer: HexInfoPanelView (Presentation.UI, window HexInfoPanel) — the District build slot
             (DistrictBuildButton) creates DistrictBuildRequestedEvent + EventTag on click
-  Consumer: DistrictBuildActionSystem (Presentation.UI, window DistrictBuild) — opens the modal overlay,
+  Consumer: DistrictBuildUISystem (Presentation.UI, window DistrictBuild) — opens the modal overlay,
             filled from the current HexSelectedComponent + the DistrictsBuildConfigComponent catalogue
   Lifetime: 1 frame
   Note: payload-less pulse — "open the district-build window for the selected hex". Event type lives in
         Presentation.UI.DistrictBuild.Events (next to its window).
 
 EVENT: DistrictBuildClosedEvent
-  Producer: DistrictBuildActionView (Presentation.UI, window DistrictBuild) — the «X», the scrim, and the
+  Producer: DistrictBuildUIView (Presentation.UI, window DistrictBuild) — the «X», the scrim, and the
             «ЗБУДУВАТИ» button each create DistrictBuildClosedEvent + EventTag on click
-  Consumer: DistrictBuildActionSystem — hides the overlay
+  Consumer: DistrictBuildUISystem — hides the overlay
   Lifetime: 1 frame
   Note: payload-less pulse. Build itself is dormant for now — «ЗБУДУВАТИ» only closes.
 

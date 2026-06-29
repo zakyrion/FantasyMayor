@@ -56,7 +56,7 @@ Driven by the `HexSelectedComponent` singleton entity, created / updated / remov
 `HexInfoPanelView`) raises a payload-less `DistrictBuildRequestedEvent` (+ `EventTag`) on click — the request
 to open the district-build window. Payload-less by design: the consumer reads the current `HexSelectedComponent`
 for the target hex. The event lives in `Presentation.UI.DistrictBuild.Events` (next to its window, not here) and
-**is consumed by `DistrictBuildActionSystem`**, which opens the modal overlay (see `DistrictBuild/DISTRICT_BUILD.md`).
+**is consumed by `DistrictBuildUISystem`**, which opens the modal overlay (see `DistrictBuild/DISTRICT_BUILD.md`).
 Event registry: `ECS_REFERENCE.md`.
 
 ## Panes & blocks

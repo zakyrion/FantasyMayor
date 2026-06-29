@@ -26,7 +26,7 @@ namespace Presentation.UI.DistrictBuild.Views
     ///     Мер/Місто; the unmodelled ДІЇ/ЕФЕКТ block is a marked placeholder. PanelRenderer builds its tree
     ///     asynchronously, so elements bind + state replays in the reload callback.
     /// </summary>
-    public sealed class DistrictBuildActionView : MonoBehaviour
+    public sealed class DistrictBuildUIView : MonoBehaviour
     {
         private const string OverlayName = "DistrictBuildRoot";
         private const string ScrimName = "Scrim";
@@ -321,7 +321,7 @@ namespace Presentation.UI.DistrictBuild.Views
         private void OnCloseClicked() => RaiseClose();
         private void OnScrimClicked(ClickEvent evt) => RaiseClose();
 
-        // One-frame close pulse; DistrictBuildActionSystem hides the window. Build is dormant for now.
+        // One-frame close pulse; DistrictBuildUISystem hides the window. Build is dormant for now.
         private void RaiseClose()
         {
             var entity = _world.CreateEntity();

@@ -85,7 +85,7 @@ namespace Modules.Boot.Implementation
             HexInfoPanelHeaderSystem hexInfoPanelHeader,
             HexInfoPanelResourcesSystem hexInfoPanelResources,
             HexInfoPanelDistrictSystem hexInfoPanelDistrict,
-            DistrictBuildActionSystem districtBuildAction,
+            DistrictBuildUISystem districtBuildUI,
             ResourceBarSystem resourceBar,
             EndTurnViewSystem endTurnViewSystem,
             ContextTabSelectionSystem contextTabSelection,
@@ -110,7 +110,7 @@ namespace Modules.Boot.Implementation
                 {
                     hexSelection, hexSelectionView, forestSpawn, forestDespawn, hexIconsVisibility,
                     hexInfoPanel, hexInfoPanelHeader, hexInfoPanelResources, hexInfoPanelDistrict,
-                    districtBuildAction, resourceBar, endTurnViewSystem, contextTabSelection, contextTabsAvailability,
+                    districtBuildUI, resourceBar, endTurnViewSystem, contextTabSelection, contextTabsAvailability,
                     turnProcessor, turnCount, eventCleanup
                 },
                 new ILateUpdatedSystem[] { cameraMovement, hexIconsContainerPosition });

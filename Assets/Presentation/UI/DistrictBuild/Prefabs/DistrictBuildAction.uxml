@@ -1,6 +1,6 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
     <Style src="DistrictBuildAction.uss"/>
-    <!-- Full-screen modal overlay. Spawned hidden (display:none); DistrictBuildActionSystem toggles it. The
+    <!-- Full-screen modal overlay. Spawned hidden (display:none); DistrictBuildUISystem toggles it. The
          scrim + the whole root are pickable by default, so this document (authored above the HUD via a higher
          PanelSettings sort order) blocks input to everything beneath it. -->
     <ui:VisualElement name="DistrictBuildRoot" class="db-root" style="display: none;">
