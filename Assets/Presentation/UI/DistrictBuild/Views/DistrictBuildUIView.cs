@@ -8,7 +8,7 @@ using Domains.Economy.Resource.Data;
 using Domains.Map.Hex.Data;
 using Domains.Map.HexResources.Data;
 using Presentation.UI.DistrictBuild.Events;
-using Presentation.UI.DistrictBuild.Views.Binders;
+using Presentation.UI.DistrictBuild.Views.SubViews;
 using UnityEngine;
 using UnityEngine.UIElements;
 using VContainer;
@@ -16,19 +16,20 @@ using VContainer;
 namespace Presentation.UI.DistrictBuild.Views
 {
     /// <summary>
-    ///     Coordinator for the district-build overlay (a separate UIDocument from the HUD). The design is authored
-    ///     in UXML (<c>DistrictBuildAction.uxml</c> chrome + detail skeleton, plus the <c>DistrictRow</c> /
-    ///     <c>ReqLine</c> / <c>CostRow</c> item templates); this view only binds data into it. It owns the data
-    ///     pushed by the driving system with no collection crossing the boundary — references to the gating
-    ///     (<see cref="DistrictsBuildConfig" />, Economy) + cost (<see cref="ActionsDistrictsBuildConfig" />,
-    ///     Actions) catalogues + the selected hex type (<see cref="SetContext" />), the hex's HexResources
+    ///     Coordinator for the district-build overlay (a separate UIDocument from the HUD). It is the MonoBehaviour
+    ///     DI resolves and the system pushes data into; it owns the pushed data + the <see cref="IDistrictBuildData" />
+    ///     read-model and acts as a thin **mediator** over the per-panel sub-views (`Views/SubViews/`), which own
+    ///     their own elements, interaction state (selection / payer) and rendering. The view holds NO selection or
+    ///     payer state — those live in the list / payer sub-views; the coordinator only routes their
+    ///     <c>SelectionChanged</c> / <c>PayerChanged</c> signals into re-binds. Chrome (close / scrim) and the footer
+    ///     confirm button stay here (trivial). The system contract is unchanged: references to the gating
+    ///     (<see cref="DistrictsBuildConfig" />, Economy) + cost (<see cref="ActionsDistrictsBuildConfig" />, Actions)
+    ///     catalogues + the selected hex type (<see cref="SetContext" />), the hex's HexResources
     ///     (<see cref="AddHexResource" />), and each payer's AP / per-type stockpile one call at a time
     ///     (<see cref="SetMayorAp" /> / <see cref="SetMayorResource" /> / <see cref="SetCityResource" />), recorded
     ///     in pre-allocated managed pools (MonoBehaviour view — exempt from the system no-managed-collection rule).
-    ///     Rendering is delegated to per-section binders (list / requirements / cost / payer / actions); this class
-    ///     stays the single source of selection + payer state and of the authoritative <see cref="IsAvailable" />
-    ///     gate. PanelRenderer builds its tree asynchronously, so binders are (re)constructed and state replays in
-    ///     the reload callback.
+    ///     PanelRenderer builds its tree asynchronously, so sub-views are (re)constructed and state replays in the
+    ///     reload callback.
     /// </summary>
     public sealed class DistrictBuildUIView : MonoBehaviour, IDistrictBuildData
     {
@@ -62,11 +63,11 @@ namespace Presentation.UI.DistrictBuild.Views
         private Label _detailName;
         private bool _cached;
 
-        private DistrictListBinder _listBinder;
-        private DistrictRequirementsBinder _requirementsBinder;
-        private DistrictCostBinder _costBinder;
-        private DistrictPayerBinder _payerBinder;
-        private DistrictActionsBinder _actionsBinder;
+        private DistrictListSubView _listSubView;
+        private DistrictRequirementsSubView _requirementsSubView;
+        private DistrictCostSubView _costSubView;
+        private DistrictPayerSubView _payerSubView;
+        private DistrictActionsSubView _actionsSubView;
 
         // Logical state, replayed on (re)bind. Pools are indexed by (int)ResourceType, pre-allocated once.
         private bool _visible;
@@ -81,8 +82,6 @@ namespace Presentation.UI.DistrictBuild.Views
         // The selected hex's HexResources (≤ one per type). Filled by the system on open; drives the resource gate.
         private readonly HexResourceType[] _hexResources = new HexResourceType[HexResourceTypeCount];
         private int _hexResourceCount;
-        private int _selected;
-        private Payer _payer;
 
         [Inject]
         public void Construct(World world)
@@ -90,16 +89,16 @@ namespace Presentation.UI.DistrictBuild.Views
             _world = world;
         }
 
-        // ---- IDistrictBuildData (read surface for the section binders) -------------------------------------
+        // ---- IDistrictBuildData (read surface for the panel sub-views) ------------------------------------
 
         public HexType SelectedHexType => _hexType;
         public int MayorAp => _mayorAp;
         public ReadOnlySpan<HexResourceType> HexResources => _hexResources.AsSpan(0, _hexResourceCount);
 
-        public int AmountOfActivePayer(ResourceType type)
+        public int AmountOf(Payer payer, ResourceType type)
         {
             var index = (int)type;
-            var pool = _payer == Payer.Mayor ? _mayorAmounts : _cityAmounts;
+            var pool = payer == Payer.Mayor ? _mayorAmounts : _cityAmounts;
             return index >= 0 && index < pool.Length ? pool[index] : 0;
         }
 
@@ -199,7 +198,7 @@ namespace Presentation.UI.DistrictBuild.Views
                 _overlay.style.display = DisplayStyle.None;
         }
 
-        // ---- binding --------------------------------------------------------------------------------------
+        // ---- binding (mediator over the sub-views) --------------------------------------------------------
 
         private void ApplyState()
         {
@@ -214,8 +213,7 @@ namespace Presentation.UI.DistrictBuild.Views
             if (_config?.Districts == null)
                 return;
 
-            _selected = Mathf.Clamp(_selected, 0, Mathf.Max(0, _config.Districts.Length - 1));
-            _listBinder.Bind(_config, _selected);
+            _listSubView.Bind(_config);
             BindDetail();
         }
 
@@ -226,10 +224,10 @@ namespace Presentation.UI.DistrictBuild.Views
                 return;
 
             _detailName.text = DistrictBuildLabels.DistrictName(district.DistrictType);
-            _requirementsBinder.Bind(district);
-            _payerBinder.Bind(_payer);
-            _costBinder.Bind(district);
-            _actionsBinder.Bind();
+            _requirementsSubView.Bind(district);
+            _payerSubView.Bind();
+            _costSubView.Bind(district, _payerSubView.Current);
+            _actionsSubView.Bind();
             BindConfirm(district);
         }
 
@@ -247,24 +245,21 @@ namespace Presentation.UI.DistrictBuild.Views
             if (_config?.Districts == null || _config.Districts.Length == 0)
                 return null;
 
-            _selected = Mathf.Clamp(_selected, 0, _config.Districts.Length - 1);
-            return _config.Districts[_selected];
+            var index = Mathf.Clamp(_listSubView.SelectedIndex, 0, _config.Districts.Length - 1);
+            return _config.Districts[index];
         }
 
-        private void OnDistrictSelected(int index)
+        private void OnSelectionChanged(int index)
         {
-            _selected = index;
-            BindAll();
+            _listSubView.Bind(_config); // refresh the active-row highlight from the new selection
+            BindDetail();
         }
 
-        private void OnPayerSelected(Payer payer)
+        private void OnPayerChanged(Payer payer)
         {
-            _payer = payer;
-            _payerBinder.Bind(_payer);
-
             var district = CurrentDistrict();
             if (district != null)
-                _costBinder.Bind(district);
+                _costSubView.Bind(district, payer);
         }
 
         // ---- close flow -----------------------------------------------------------------------------------
@@ -311,6 +306,8 @@ namespace Presentation.UI.DistrictBuild.Views
             return false;
         }
 
+        // ---- caching + sub-view construction --------------------------------------------------------------
+
         private bool TryCache()
         {
             EnsureCached();
@@ -345,12 +342,16 @@ namespace Presentation.UI.DistrictBuild.Views
                 || payerCity == null || apRow == null || costRows == null || actionsPlaceholder == null)
                 return;
 
-            // Templates are validated in OnEnable (fail-loud), so they are guaranteed non-null here.
-            _listBinder = new DistrictListBinder(list, _districtRowTemplate, this, OnDistrictSelected);
-            _requirementsBinder = new DistrictRequirementsBinder(reqLines, _reqLineTemplate, this);
-            _costBinder = new DistrictCostBinder(apRow, costRows, _costRowTemplate, this);
-            _payerBinder = new DistrictPayerBinder(payerMayor, payerCity, OnPayerSelected);
-            _actionsBinder = new DistrictActionsBinder(actionsPlaceholder);
+            // Sub-views are recreated per reload (fresh element refs). They are the short-lived publishers, so the
+            // event subscriptions below die with the old instances — no manual unsubscribe needed.
+            _listSubView = new DistrictListSubView(list, _districtRowTemplate, this);
+            _requirementsSubView = new DistrictRequirementsSubView(reqLines, _reqLineTemplate, this);
+            _costSubView = new DistrictCostSubView(apRow, costRows, _costRowTemplate, this);
+            _payerSubView = new DistrictPayerSubView(payerMayor, payerCity);
+            _actionsSubView = new DistrictActionsSubView(actionsPlaceholder);
+
+            _listSubView.SelectionChanged += OnSelectionChanged;
+            _payerSubView.PayerChanged += OnPayerChanged;
             _cached = true;
         }
     }

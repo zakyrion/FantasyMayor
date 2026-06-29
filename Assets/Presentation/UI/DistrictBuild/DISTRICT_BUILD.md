@@ -61,32 +61,38 @@ The domain models only part of the screen; the rest is **marked static placehold
   resource) rows, district descriptions, and the 3 screenshot districts that have no `DistrictType`. Rendered as
   a single marked note in the detail pane.
 
-## View composition: authored UXML + per-section binders
+## View composition: authored UXML + per-panel sub-views
 The design is **authored in UXML/USS**, not built in C#. `Prefabs/DistrictBuildAction.uxml` carries the
 modal chrome **and the detail skeleton** (the section headers, the two payer segments, the AP row, the
 ДІЇ placeholder and the confirm button) with named anchors; the three **repeating** rows are separate
 **item templates** under `Prefabs/Templates/` — `DistrictRow.uxml`, `ReqLine.uxml`, `CostRow.uxml` —
-cloned at runtime (variable-count content can't be authored statically). Each template `<Style>`-references
-the shared `.uss`, so it renders styled when opened standalone in UI Builder.
+cloned at runtime (variable-count content can't be authored statically). The templates carry **no
+`<Style>`** of their own (a relative `..` src breaks the importer, and XML comments must avoid `--`); they
+inherit the host panel's stylesheet, which cascades to the cloned descendants.
 
-`DistrictBuildUIView` is now a thin **coordinator**: it owns the pushed data + the selection/payer state,
-exposes a read-only `IDistrictBuildData` surface (selected hex type, Mayor AP, hex resources, the
-active-payer stockpile, the `IsAvailable` gate, the `CostFor` join), and delegates rendering to flat
-per-section binders in `Views/Binders/`:
-- `DistrictListBinder` — clones a `DistrictRow` per roster district (icon / name / availability / AP pill);
-  a row click reports its index, the view re-binds list + detail.
-- `DistrictRequirementsBinder` — clones a `ReqLine` per **active** requirement dimension (✓/✕ from the
-  `CanBuildOn` predicates; unset dimensions render nothing).
-- `DistrictCostBinder` — binds the static AP row + clones a `CostRow` per resource price vs the active
-  payer's stockpile (shortfall marking); re-binds on payer toggle.
-- `DistrictPayerBinder` — toggles the two static Мер/Місто segments; a click re-binds the cost "have" column.
-- `DistrictActionsBinder` — **scaffold only** (the ДІЇ/ЕФЕКТ model is unbuilt; this is the seam where
-  per-action rows clone later — `Bind()` is a deliberate no-op for now).
+`DistrictBuildUIView` is a thin **coordinator / mediator**. It is the MonoBehaviour DI resolves and the
+system pushes into, so it owns the pushed data and exposes the read-only `IDistrictBuildData` surface
+(selected hex type, Mayor AP, hex resources, `AmountOf(payer, type)`, the `IsAvailable` gate, the `CostFor`
+join) — but it holds **no selection or payer state**. Each content panel is a self-contained **sub-view**
+in `Views/SubViews/` that owns its elements + its interaction state + its events + its rendering:
+- `DistrictListSubView` — **owns the selected index**; clones a `DistrictRow` per roster district (icon /
+  name / availability / AP pill). A row click updates the selection and raises `SelectionChanged`.
+- `DistrictRequirementsSubView` — display only; clones a `ReqLine` per **active** requirement dimension
+  (✓/✕ from the `CanBuildOn` predicates; unset dimensions render nothing).
+- `DistrictCostSubView` — display only; binds the static AP row + clones a `CostRow` per resource price vs
+  `AmountOf(payer, type)` for the payer the coordinator passes in (shortfall marking).
+- `DistrictPayerSubView` — **owns the payer** (the `Payer` enum); a click toggles the Мер/Місто highlight
+  and raises `PayerChanged`. `Current` is the canonical payer.
+- `DistrictActionsSubView` — **scaffold only** (the ДІЇ/ЕФЕКТ model is unbuilt; the seam where per-action
+  rows clone later — `Bind()` is a deliberate no-op for now).
 
-Binders are (re)constructed in the PanelRenderer reload callback (the tree rebuilds asynchronously) and
-re-bound on open / selection / payer toggle. The Ukrainian label + emoji maps live in the stateless
-`DistrictBuildLabels` helper, shared by the binders. The view stays the **single source of state** and of
-the authoritative gate, so the per-row ✓/✕ and the overall availability can never diverge.
+The coordinator subscribes to `SelectionChanged` (→ re-bind list highlight + detail) and `PayerChanged`
+(→ re-bind only the cost panel for the current district); chrome (close / scrim) and the footer confirm
+button stay wired in the coordinator. Sub-views are (re)constructed in the PanelRenderer reload callback
+(the tree rebuilds asynchronously) and are the short-lived publishers, so those subscriptions die with the
+old instances — no manual unsubscribe. The Ukrainian label + emoji maps live in the stateless
+`DistrictBuildLabels` helper, shared by the sub-views. The per-row ✓/✕ and the overall availability both
+flow from the same `IsAvailable` gate, so they can never diverge.
 
 ## Data path: the district catalogue (zero-allocation)
 `DistrictBuildUISystem` reads the **world component** `DistrictsBuildConfigComponent`, published at
@@ -99,7 +105,7 @@ pushes the **selected hex's HexResources** one at a time (`AddHexResource`), rea
 `EntityMultiMap` over the dedicated `HexResourcesComponent` entities — the view needs them to evaluate the
 resource / empty-hex gate. The view — a MonoBehaviour, exempt from the system no-managed-collection rule — records
 amounts + hex resources in its own pre-allocated pools and passes them to `CanBuildOn` as a `ReadOnlySpan<>`; the
-section binders then read the SO's `List<>` fields and these pools through the view's `IDistrictBuildData` surface
+panel sub-views then read the SO's `List<>` fields and these pools through the view's `IDistrictBuildData` surface
 when rendering (see *View composition*).
 
 ## Block → producer map

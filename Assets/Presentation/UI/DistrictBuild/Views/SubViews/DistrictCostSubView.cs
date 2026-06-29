@@ -1,14 +1,14 @@
 using Domains.Economy.District.Configs;
 using UnityEngine.UIElements;
 
-namespace Presentation.UI.DistrictBuild.Views.Binders
+namespace Presentation.UI.DistrictBuild.Views.SubViews
 {
     /// <summary>
-    ///     БУДІВНИЦТВО section. Binds the static AP row (cost vs the Mayor's pool — AP is always Mayor-paid
-    ///     regardless of the resource payer) and clones a <c>CostRow</c> per resource price, comparing each
-    ///     against the active payer's stockpile and marking shortfalls. Re-binds when the payer toggles.
+    ///     БУДІВНИЦТВО panel (display only). Binds the static AP row (cost vs the Mayor's pool — AP is always
+    ///     Mayor-paid regardless of the resource payer) and clones a <c>CostRow</c> per resource price, comparing
+    ///     each against the payer passed in by the coordinator and marking shortfalls.
     /// </summary>
-    internal sealed class DistrictCostBinder
+    internal sealed class DistrictCostSubView
     {
         private readonly VisualElement _apRow;
         private readonly Label _apNeed;
@@ -17,7 +17,7 @@ namespace Presentation.UI.DistrictBuild.Views.Binders
         private readonly VisualTreeAsset _costRowTemplate;
         private readonly IDistrictBuildData _data;
 
-        public DistrictCostBinder(VisualElement apRow, VisualElement costRows, VisualTreeAsset costRowTemplate,
+        public DistrictCostSubView(VisualElement apRow, VisualElement costRows, VisualTreeAsset costRowTemplate,
             IDistrictBuildData data)
         {
             _apRow = apRow;
@@ -28,7 +28,7 @@ namespace Presentation.UI.DistrictBuild.Views.Binders
             _data = data;
         }
 
-        public void Bind(DistrictBuildingConfig district)
+        public void Bind(DistrictBuildingConfig district, Payer payer)
         {
             var cost = _data.CostFor(district.DistrictType);
             BindRow(_apRow, _apNeed, _apHave, cost.ApPrice, _data.MayorAp);
@@ -45,7 +45,7 @@ namespace Presentation.UI.DistrictBuild.Views.Binders
                 item.Q<Label>("Icon").text = DistrictBuildLabels.ResourceIcon(price.Type);
                 item.Q<Label>("Name").text = DistrictBuildLabels.ResourceLabel(price.Type);
                 BindRow(row, item.Q<Label>("Need"), item.Q<Label>("Have"), price.Amount,
-                    _data.AmountOfActivePayer(price.Type));
+                    _data.AmountOf(payer, price.Type));
                 _costRows.Add(item);
             }
         }

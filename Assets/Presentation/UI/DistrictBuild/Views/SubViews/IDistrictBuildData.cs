@@ -6,12 +6,13 @@ using Domains.Economy.Resource.Data;
 using Domains.Map.Hex.Data;
 using Domains.Map.HexResources.Data;
 
-namespace Presentation.UI.DistrictBuild.Views.Binders
+namespace Presentation.UI.DistrictBuild.Views.SubViews
 {
     /// <summary>
-    ///     Read-only data surface the section binders pull from. Implemented by <c>DistrictBuildUIView</c>, which
-    ///     owns the pushed catalogues + payer pools and the current selection/payer state. Binders render; the
-    ///     view stays the single source of state and of the authoritative gate (<see cref="IsAvailable" />).
+    ///     Read-only data surface the panel sub-views pull from. Implemented by <c>DistrictBuildUIView</c>, which
+    ///     owns the pushed catalogues + payer pools. It carries NO interaction state — the active payer is passed
+    ///     into <see cref="AmountOf" /> explicitly (payer state lives in <c>DistrictPayerSubView</c>), so the
+    ///     read-model stays a pure projection of the pushed data.
     /// </summary>
     internal interface IDistrictBuildData
     {
@@ -21,8 +22,8 @@ namespace Presentation.UI.DistrictBuild.Views.Binders
         /// <summary>The selected hex's HexResources (≤ one per type). Empty = a hex with no resources.</summary>
         ReadOnlySpan<HexResourceType> HexResources { get; }
 
-        /// <summary>Stockpile of the currently active payer (Мер / Місто) for the given resource type.</summary>
-        int AmountOfActivePayer(ResourceType type);
+        /// <summary>Stockpile of the given payer (Мер / Місто) for a resource type.</summary>
+        int AmountOf(Payer payer, ResourceType type);
 
         /// <summary>Authoritative buildability gate (terrain + resource) from the Economy config.</summary>
         bool IsAvailable(DistrictBuildingConfig district);

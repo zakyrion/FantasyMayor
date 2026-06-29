@@ -1,17 +1,17 @@
 using UnityEngine.UIElements;
 
-namespace Presentation.UI.DistrictBuild.Views.Binders
+namespace Presentation.UI.DistrictBuild.Views.SubViews
 {
     /// <summary>
-    ///     ДІЇ / ЕФЕКТ section — structural scaffold only. The district-action model is not built yet, so this
-    ///     binder holds the placeholder note and is the seam where per-action rows will be cloned once the model
+    ///     ДІЇ / ЕФЕКТ panel — structural scaffold only. The district-action model is not built yet, so this
+    ///     sub-view holds the placeholder note and is the seam where per-action rows will be cloned once the model
     ///     lands (capacity / actions / yield split / upkeep). Intentionally a no-op for now.
     /// </summary>
-    internal sealed class DistrictActionsBinder
+    internal sealed class DistrictActionsSubView
     {
         private readonly VisualElement _placeholder;
 
-        public DistrictActionsBinder(VisualElement placeholder)
+        public DistrictActionsSubView(VisualElement placeholder)
         {
             _placeholder = placeholder;
         }

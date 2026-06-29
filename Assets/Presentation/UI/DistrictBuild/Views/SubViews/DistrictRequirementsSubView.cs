@@ -2,21 +2,21 @@ using Domains.Economy.District.Configs;
 using Domains.Map.HexResources.Data;
 using UnityEngine.UIElements;
 
-namespace Presentation.UI.DistrictBuild.Views.Binders
+namespace Presentation.UI.DistrictBuild.Views.SubViews
 {
     /// <summary>
-    ///     ВИМОГИ section. Emits one <c>ReqLine</c> per ACTIVE requirement dimension only, each with its own ✓/✕.
-    ///     The per-line marks mirror the <c>CanBuildOn</c> predicates (terrain blacklist / whitelist + resource /
-    ///     empty-hex), so they can never disagree with the overall <see cref="IDistrictBuildData.IsAvailable" />
-    ///     gate. Dimensions left unset in the config render nothing.
+    ///     ВИМОГИ panel (display only). Emits one <c>ReqLine</c> per ACTIVE requirement dimension, each with its
+    ///     own ✓/✕. The per-line marks mirror the <c>CanBuildOn</c> predicates (terrain blacklist / whitelist +
+    ///     resource / empty-hex), so they can never disagree with the overall
+    ///     <see cref="IDistrictBuildData.IsAvailable" /> gate. Dimensions left unset in the config render nothing.
     /// </summary>
-    internal sealed class DistrictRequirementsBinder
+    internal sealed class DistrictRequirementsSubView
     {
         private readonly VisualElement _container;
         private readonly VisualTreeAsset _lineTemplate;
         private readonly IDistrictBuildData _data;
 
-        public DistrictRequirementsBinder(VisualElement container, VisualTreeAsset lineTemplate,
+        public DistrictRequirementsSubView(VisualElement container, VisualTreeAsset lineTemplate,
             IDistrictBuildData data)
         {
             _container = container;
