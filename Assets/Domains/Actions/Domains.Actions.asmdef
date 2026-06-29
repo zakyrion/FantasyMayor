@@ -6,6 +6,8 @@
         "Domains.Actors",
         "Turn",
         "DefaultECS.Extensions",
+        "Boot.Core",
+        "Addressables.Core",
         "Core",
         "VContainer",
         "UniTask"

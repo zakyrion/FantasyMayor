@@ -3,7 +3,6 @@ category: A
 read: reference
 tags: [economy, ecs, domain]
 related:
-  - "[ECS_REFERENCE](../../../ECS_REFERENCE.md)"
   - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
   - "[ACTORS](../Actors/ACTORS.md)"
 status: partial
@@ -69,10 +68,14 @@ District-catalogue config loader stays here.
 - **District build catalogue** (`District/`) — the buildable-district config flow is live:
   `DistrictsBuildConfigLoaderSystem` (Config Loader, `ConfigLoadStep`) loads the `DistrictsBuildConfig` SO
   (address `"DistrictsBuildConfig"`), validates it, and publishes the world component
-  `DistrictsBuildConfigComponent`, which carries a **reference** to the SO (no copy/flatten — the SO already
-  holds the `DistrictBuildingConfig[]` + their prices/requirements). The loader **retains the addressable Box**
-  for the catalogue's lifetime (the build window reads it throughout play) and releases it in `OnDispose`. This
-  is Economy's first system; registered in `EconomyInstaller`.
+  `DistrictsBuildConfigComponent`, which carries a **reference** to the SO (no copy/flatten — the SO holds the
+  `DistrictBuildingConfig[]` + their **placement/buildability requirements**: terrain + required hex resource,
+  gated by `CanBuildOn` — decomposed into `IsTerrainAllowed` + `IsResourceSatisfied` so a consumer can surface
+  each dimension independently; a `RequiredHexResourceType` of `Unknown` in non-empty mode **throws** (fail-loud
+  authoring guard, never a silent "forbidden on every hex")). Build **cost** (AP + resource prices) is NOT here — it moved to the `Actions` domain
+  (`ActionsDistrictsBuildConfig`); the build UI joins the two catalogues by `DistrictType`. The loader
+  **retains the addressable Box** for the catalogue's lifetime (the build window reads it throughout play) and
+  releases it in `OnDispose`. This is Economy's first system; registered in `EconomyInstaller`.
 
 SCAFFOLD parts still pending:
 - **District identity** (`District/`) — `DistrictIdComponent` (PK, int), `DistrictTag` (discriminator),
@@ -82,4 +85,4 @@ SCAFFOLD parts still pending:
   slice. Future district columns (omitted here): `HexIdComponent` FK, OwnerFK, Type, Price, Actions, and
   Buildings carrying `DistrictId` as a FK.
 
-Planned archetypes: see `ECS_REFERENCE.md` (`Resource` and `District`, both marked SCAFFOLD).
+Planned archetypes: see the ecs-graph (`/ecs-graph`) (`Resource` and `District`, both marked SCAFFOLD).

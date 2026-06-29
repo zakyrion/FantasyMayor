@@ -18,7 +18,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Full rebuild** (done once): scan `Assets/` + root MD files.
 ```
-graphify Assets/  (+ ARCHITECTURE.md, GAMEPLAY_FOUNDATION.md, SYSTEMTEMPLATE.md, CONFIGTEMPLATE.md, ECS_REFERENCE.md)
+graphify Assets/  (+ ARCHITECTURE.md, GAMEPLAY_FOUNDATION.md, SYSTEMTEMPLATE.md, CONFIGTEMPLATE.md)
 ```
 
 **Incremental `--update`**: limit to game code only — `Assets/Modules`, `Assets/Scripts`, and root MD files.
@@ -174,7 +174,7 @@ All three are read-only (no Edit/Write) and return distilled reports; the main a
 - Division of labor: `graphify` is the reference for code STRUCTURE — types, signatures, dependencies, inheritance, priorities. Module MD files cover ONLY what `graphify` cannot extract: intent, non-obvious invariants, design decisions, how-to-use-correctly, and current state.
 - Read source files only when both the MD and `graphify` lack the specific detail needed.
 - If you change a module's invariants, public-usage rules, or current state, update its MD file per `DOC_STANDARD.md`.
-- If you add or change an ECS entity archetype, update the central registry `ECS_REFERENCE.md`.
+- If you add or change an ECS entity archetype, refresh the ecs-graph (`/ecs-graph`) — the sole archetype/event registry.
 - Architecture, stack, module layout, and ECS conventions are described in `ARCHITECTURE.md`. Do not duplicate or override architecture rules in module MD files.
 
 ## Terrain / Isoline Pre-read

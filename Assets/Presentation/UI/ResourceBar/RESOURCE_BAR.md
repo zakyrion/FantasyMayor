@@ -5,7 +5,6 @@ tags: [ui, ecs]
 related:
   - "[MAIN_UI](../MAIN_UI.md)"
   - "[GENERAL_UI_STYLE](../../../../GENERAL_UI_STYLE.md)"
-  - "[ECS_REFERENCE](../../../../ECS_REFERENCE.md)"
 status: partial
 ---
 
@@ -59,7 +58,7 @@ pulse exists yet, so the list reads the City/Mayor `Resource` stacks directly ev
   `"InventoryResourceIconConfig"`; wraps the Box so sprites stay loaded).
 - Singleton entity: `ResourceBarViewComponent` (+ `UITag`) — published by `ResourceBarSpawnSubSystem`.
 - Reads: `CityIdComponent`/`CityTag`/`MayorIdComponent`/`MayorTag` (Actors), `ResourceComponent`/`ResourceTag`
-  (Economy). See `ECS_REFERENCE.md` → Cross-Module Reads.
+  (Economy). See the ecs-graph (`/ecs-graph`, cross-module reads).
 
 ## Current State
 - **Code: implemented** — config + loader + component, view, spawn subsystem, per-frame system, markup

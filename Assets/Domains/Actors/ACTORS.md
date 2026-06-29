@@ -3,7 +3,6 @@ category: A
 read: reference
 tags: [actors, ecs, domain]
 related:
-  - "[ECS_REFERENCE](../../../ECS_REFERENCE.md)"
   - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
   - "[ECONOMY](../Economy/ECONOMY.md)"
   - "[ACTIONS](../Actions/ACTIONS.md)"
@@ -75,5 +74,5 @@ initial `ActionPoint` resource stack (= `StartActionPoints`) — the **live AP p
 not a component value. Both actors call Economy's generic `ResourceLoadoutSpawner` (which now excludes
 `ActionPoint` from the generic loadout). AP is **restored each turn** by the Actions-domain phase
 `MayorActionPointsRestoreSubSystem`; AP **spending** mechanics are NOT built yet. Noble and Population are NOT built; the
-Noble loadout spawn is deferred (reactive, on a `NobleSpawnEvent`). Archetypes: see `ECS_REFERENCE.md`
+Noble loadout spawn is deferred (reactive, on a `NobleSpawnEvent`). Archetypes: see the ecs-graph (`/ecs-graph`)
 (`City`, `Mayor`, `Resource`).

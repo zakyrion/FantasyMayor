@@ -4,7 +4,6 @@ read: reference
 tags: [boot, ecs, state-machine]
 related:
   - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
-  - "[ECS_REFERENCE](../../../ECS_REFERENCE.md)"
 status: partial
 ---
 

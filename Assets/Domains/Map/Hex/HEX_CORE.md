@@ -4,7 +4,6 @@ read: reference
 tags: [hex, ecs, terrain]
 related:
   - "[AXIAL_SYSTEM](../../../Modules/AxialSystem/AXIAL_SYSTEM.md)"
-  - "[ECS_REFERENCE](../../../../ECS_REFERENCE.md)"
 status: implemented
 ---
 

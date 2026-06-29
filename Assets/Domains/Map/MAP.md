@@ -4,7 +4,6 @@ read: reference
 tags: [map, domain, hex, terrain, ecs]
 related:
   - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
-  - "[ECS_REFERENCE](../../../ECS_REFERENCE.md)"
   - "[HEX_CORE](Hex/HEX_CORE.md)"
   - "[TERRAIN_GENERATOR](Generation/TERRAIN_GENERATOR.md)"
   - "[HEXRESOURCES](HexResources/HEXRESOURCES.md)"
@@ -36,8 +35,8 @@ domain to draw it, never the reverse.
 - **`AxialSystem` stays a shared kernel module** (coordinate math) that this domain depends on — it is
   not part of `Domains.Map`.
 - Cross-domain consumers read this domain one-way: `Economy → Map` (districts gate on hex type),
-  `Presentation → Map` (rendering). Declared in `ECS_REFERENCE.md` → Cross-Module Component Reads.
+  `Presentation → Map` (rendering). Visible in the ecs-graph (`/ecs-graph`, cross-module component reads).
 
 ## Current State
 Implemented. Consolidated from the former `HexCore`, `TerrainGenerator`, `HexResources`, and
-`Pathfinding` modules. Archetypes and components: see `ECS_REFERENCE.md`.
+`Pathfinding` modules. Archetypes and components: see the ecs-graph (`/ecs-graph`).

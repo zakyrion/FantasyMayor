@@ -24,7 +24,7 @@ Bridges Unity InputSystem to ECS: camera pan/drag/zoom and hex selection.
 - `HexSelectionSystem` raises a payload-less **`SelectedHexChangedEvent`** (module `TerrainView`, beside
   `HexSelectedComponent`) on **every** selection mutation — create, deselect (dispose), re-select to another
   coord. It is the canonical "selection changed" pulse; reactive consumers reconcile against the current
-  `HexSelectedComponent` instead of polling. Full flow: `ECS_REFERENCE.md`.
+  `HexSelectedComponent` instead of polling. Full flow: the ecs-graph (`/ecs-graph`).
 - Selection is a **toggle**: clicking the already-selected hex removes the selection entity (and pulses).
 - `HexSelectionSystem` blocks selection when the pointer is over UI (checks `EventSystem.RaycastAll`).
   Clicks consumed by UI must not select a hex.

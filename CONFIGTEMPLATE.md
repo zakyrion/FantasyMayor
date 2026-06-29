@@ -50,7 +50,7 @@ RULES:
 - The SO is an **authoring artifact only**. Runtime systems never hold or read the SO — they read
   the flattened component. The loader does not retain the SO after flattening (exception: a config
   whose entries carry engine references consumed lazily, e.g. prefab lists — then the component
-  wraps the SO reference and says so in `ECS_REFERENCE.md`).
+  wraps the SO reference and records it in the ecs-graph (`/ecs-graph`)).
 - Authored uniqueness constraints (e.g. "one entry per ResourceType") are validated at load — see
   block 3.
 
@@ -147,8 +147,8 @@ STORAGE RULE (normative, see `ARCHITECTURE.md` → "State Storage Taxonomy"):
   it — full contract in `ARCHITECTURE.md`). So if a config must drive reactive systems at runtime (live
   re-tuning), `world.Set` the new value AND raise a one-frame pulse event; the reactive consumer
   re-reads the world component (`SYSTEMTEMPLATE.md` Template 1).
-- Config components are registered in `ECS_REFERENCE.md` → "Config world components". Update the
-  registry when adding one.
+- Config components appear in the ecs-graph (`/ecs-graph`) as world components; refresh it when
+  adding one.
 
 WIRING:
 - Register the loader in the module installer as `IUniTaskSystem<ConfigLoadStep>`; `Boot` runs all

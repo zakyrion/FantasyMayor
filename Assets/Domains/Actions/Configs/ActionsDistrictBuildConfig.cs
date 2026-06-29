@@ -15,6 +15,8 @@ namespace Domains.Actions.Configs
         [SerializeField]
         private int _apPrice;
 
-
+        public DistrictType DistrictType => _districtType;
+        public List<ResourceComponent> DistrictPrices => _districtPrices;
+        public int ApPrice => _apPrice;
     }
 }

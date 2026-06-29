@@ -55,7 +55,7 @@ So every Markdown file holds **only** what `graphify` cannot extract from code:
   This is the layer whose absence forces a reader back into the source — capture it.
 - **Current state** — what is implemented vs scaffold
 - **Entity archetypes** — runtime component compositions (DoD entities are not
-  classes, so `graphify` cannot see them — see `ECS_REFERENCE.md`)
+  classes, so `graphify` cannot see them — see the ecs-graph (`/ecs-graph`))
 
 Rule of thumb: **if you could get the answer by asking `graphify`, delete it from the MD.**
 
@@ -73,7 +73,7 @@ Every Markdown file falls into exactly one category. The rules differ per catego
 | Category | What it is | Files | Rule |
 |---|---|---|---|
 | **A — Navigation** | Per-module reference | `Assets/Modules/*/*.md` | Follow the navigation structure below. Strip anything `graphify` covers. |
-| **B — Template / Reference** | How to build new code, or how to use a tricky API | `SYSTEMTEMPLATE.md`, `CONFIGTEMPLATE.md`, `ECS_REFERENCE.md`, `ADDRESSABLE_PATTERNS.md` | Do **not** strip. These encode procedure/convention. Keep accurate, keep complete. |
+| **B — Template / Reference** | How to build new code, or how to use a tricky API | `SYSTEMTEMPLATE.md`, `CONFIGTEMPLATE.md`, `ADDRESSABLE_PATTERNS.md` | Do **not** strip. These encode procedure/convention. Keep accurate, keep complete. |
 | **C — Policy** | Project-wide rules | `CLAUDE.md`, `ARCHITECTURE.md`, this file | Rules and orientation. Keep current. |
 
 When unsure which category a new file is: if it describes one module, it is A.
@@ -94,7 +94,7 @@ read: reference                          # always | trigger | reference — requ
 trigger: "before editing an ECS system"  # required IFF read: trigger — one line, when to read it
 tags: [terrain, ecs]                     # domain tags, lowercase, no '#'; optional but encouraged
 related:                                 # doc↔doc links only; markdown links, relative paths
-  - "[ECS_REFERENCE](../../../ECS_REFERENCE.md)"
+  - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
   - "[TERRAIN_VIEW](../TerrainView/TERRAIN_VIEW.md)"
 status: implemented                      # Category A ONLY — see enum below
 ---
@@ -109,7 +109,7 @@ Field rules:
   - `always` — read on every session start. Reserved for the few orientation docs (this file,
     `ARCHITECTURE.md`, `CLAUDE.md`, `INDEX.md`). Keep this set tiny.
   - `trigger` — read **only** when a specific condition holds. Requires a `trigger` field naming that
-    condition (e.g. templates, `ECS_REFERENCE.md`, `ADDRESSABLE_PATTERNS.md`, `GENERAL_UI_STYLE.md`).
+    condition (e.g. templates, `ADDRESSABLE_PATTERNS.md`, `GENERAL_UI_STYLE.md`).
   - `reference` — consult on demand, no fixed trigger. Default for per-module navigation docs (Category A):
     you read a module's doc when you go into that module.
 - **`trigger`** — **required iff `read: trigger`, forbidden otherwise.** One line, the condition that should
@@ -245,25 +245,25 @@ trigger relationship that graphify **cannot represent** — a reactive event set
 so `graphify path "SomeEvent" "SomeSystem"` returns nothing.
 
 Therefore every event-driven module MUST carry a `## Trigger` section naming the event and the
-system, and pointing to `ECS_REFERENCE.md` for the full producer→consumer flow. This is the
-single most common thing a reader cannot recover from the graph alone.
+system, and pointing to the ecs-graph (`/ecs-graph`) for the full producer→consumer flow. A reactive
+event set is not a graphify code edge — the ecs-graph is what models it.
 
 Example:
 ```markdown
 ## Trigger
 `FooSystem` runs on `WhenAdded<FooEventComponent>`.
-This reactive trigger is not visible in graphify — full event flow is in `ECS_REFERENCE.md`.
+This reactive trigger is not visible in graphify — full event flow is in the ecs-graph (`/ecs-graph`).
 ```
 
 ## Entity Archetypes (DoD)
 
 Runtime entities are component compositions, not classes. They are created by
 scattered `world.CreateEntity().Set(...)` calls, so `graphify` cannot reconstruct
-them. They live in **one** central registry: `ECS_REFERENCE.md`.
+them. They live in the ecs-graph (`/ecs-graph`), built on demand from the code.
 
 - Do **not** duplicate full archetype definitions in module MDs.
-- A module MD may name its key archetypes in one line and point to `ECS_REFERENCE.md`.
-- When you add or change an archetype in code, update `ECS_REFERENCE.md`.
+- A module MD may name its key archetypes in one line and point to the ecs-graph (`/ecs-graph`).
+- When you add or change an archetype in code, refresh the ecs-graph (`/ecs-graph`).
 
 ---
 
@@ -324,6 +324,6 @@ but not their semantics):
 - [ ] Key public/cross-module types carry their **behavioral contract** (side-effects, aliasing,
       ownership, call order) — the semantics behind the signature, not the signature itself.
 - [ ] Scaffold / incomplete work is marked explicitly.
-- [ ] If a system reacts to an event, a `## Trigger` section names the event + points to `ECS_REFERENCE.md`.
+- [ ] If a system reacts to an event, a `## Trigger` section names the event + points to the ecs-graph (`/ecs-graph`).
 - [ ] A junior model could act on this without reading the source.
-- [ ] If it changed an archetype, `ECS_REFERENCE.md` was updated too.
+- [ ] If it changed an archetype, the ecs-graph (`/ecs-graph`) was refreshed too.

@@ -4,7 +4,6 @@ read: reference
 tags: [presentation, view, render, ecs]
 related:
   - "[ARCHITECTURE](../../ARCHITECTURE.md)"
-  - "[ECS_REFERENCE](../../ECS_REFERENCE.md)"
   - "[TERRAIN_VIEW](Terrain/TERRAIN_VIEW.md)"
   - "[HEXRESOURCESVIEW](Resources/HEXRESOURCESVIEW.md)"
   - "[HEXICONS](Icons/HEXICONS.md)"
@@ -35,4 +34,4 @@ is the layered (DDD-strategic) boundary described in `ARCHITECTURE.md`.
 
 ## Current State
 Implemented. Consolidated from the former `TerrainView`, `HexResourcesView`, and `HexIcons` modules.
-View systems and components: see `ECS_REFERENCE.md` (attributed to `Presentation/...`).
+View systems and components: see the ecs-graph (`/ecs-graph`) (attributed to `Presentation/...`).

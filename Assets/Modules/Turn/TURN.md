@@ -8,7 +8,6 @@ tags:
 related:
   - "[MAIN_UI](../MainUI/MAIN_UI.md)"
   - "[END_TURN](../MainUI/EndTurn/END_TURN.md)"
-  - "[ECS_REFERENCE](../../../ECS_REFERENCE.md)"
 status: partial
 ---
 
@@ -44,7 +43,7 @@ runtime order is NOT the presentation order in `GAMEPLAY_FOUNDATION.md`. By asce
 `TurnProcessorSystem` consumes the one-frame `NextTurnEvent`. It is NOT a `WhenAdded`/reactive
 set — it queries `With<NextTurnEvent>` from a per-frame poller (see Design Decisions). The emitter is
 the **End Turn button** (`EndTurnView`, assembly `Presentation.UI`): clicking it in the Mayor Phase creates
-a `NextTurnEvent` + `EventTag` entity. Full producer→consumer flow: `ECS_REFERENCE.md`.
+a `NextTurnEvent` + `EventTag` entity. Full producer→consumer flow: the ecs-graph (`/ecs-graph`).
 
 ## Public Contract & Gotchas
 - **Thread boundary (hard invariant).** The phase run executes on the thread pool

@@ -4,7 +4,6 @@ read: reference
 tags: [hex, ui, icons, ecs]
 related:
   - "[HEXRESOURCES](../../Domains/Map/HexResources/HEXRESOURCES.md)"
-  - "[ECS_REFERENCE](../../../ECS_REFERENCE.md)"
   - "[ADDRESSABLE_PATTERNS](../../Modules/Addressable/ADDRESSABLE_PATTERNS.md)"
 status: partial
 ---
@@ -17,7 +16,7 @@ Manages per-hex UI icon badges using a UI Toolkit Screen-Space overlay.
 `HexIconsVisibilitySystem` runs on a `HexIconsVisibilityChangedEvent` pulse (a **Reactive System**,
 Gameplay — base set = the event; the truth lives in the `HexIconsVisibilityComponent` world
 component). Producer today: `GameplayState.EnterAsync`; later a UI toggle. This reactive trigger is
-not visible in graphify — full event flow: `ECS_REFERENCE.md`.
+not visible in graphify — full event flow: the ecs-graph (`/ecs-graph`).
 
 System roles (`ARCHITECTURE.md` "System Taxonomy"): `HexIconsConfigLoaderSystem` = Config Loader;
 `HexIconsSpawnSystem` = Pipeline Stage (700); `HexIconsVisibilitySystem` = Reactive System;
@@ -191,7 +190,7 @@ UIDocument / element is missing.
   containers inside `hex-icons-root`, not as separate UIDocuments.
 - **Container store is the ECS world, not a dictionary.** Each container is a parallel entity
   (`HexIdComponent` FK + `HexIconContainerComponent`), mirroring the `ResourceView` archetype (Approach B in
-  `ECS_REFERENCE.md`). This lets the per-frame positioner iterate containers as an `EntitySet` and keeps the
+  the ecs-graph (`/ecs-graph`)). This lets the per-frame positioner iterate containers as an `EntitySet` and keeps the
   hex↔container join explicit via the shared `HexCoord`, with no mirror state to keep in sync.
 - **Visibility is event-driven, state-truthed (variant B).** `HexIconsVisibilityComponent` (world, mutable)
   is the single source of truth; a payload-less `HexIconsVisibilityChangedEvent` only *triggers* a re-render.

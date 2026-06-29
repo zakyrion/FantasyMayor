@@ -38,7 +38,7 @@ For water: `WATER_VIEW_SETUP.md`.
   `TerrainViewDebugSystem` (600). `HexSelectionViewSystem` (the selection highlight) is a
   **Per-frame System** (`UpdatedSystem`), wired by Boot into the `Gameplay` state — **not** part of
   the pipeline.
-- Roles: `ARCHITECTURE.md` "System Taxonomy". Full flow: `BOOT.md` / `ECS_REFERENCE.md`.
+- Roles: `ARCHITECTURE.md` "System Taxonomy". Full flow: `BOOT.md` / the ecs-graph (`/ecs-graph`).
 
 ### Async build pipeline order (contract)
 `TerrainViewSystem` runs this sequence; the order is significant:

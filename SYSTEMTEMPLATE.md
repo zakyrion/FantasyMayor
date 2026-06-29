@@ -99,7 +99,7 @@ RULES:
 - One-frame events DO NOT survive the async `MapCreation` pipeline. Startup bulk = Template 3/4,
   never an event.
 - Emitters may be deferred: a dormant reactive scaffold (consumer wired, no emitter yet) is a valid
-  intermediate state — mark it DORMANT in `ECS_REFERENCE.md`.
+  intermediate state — mark it DORMANT in the module MD `## Current State`.
 - Don't destroy entities while iterating the map/set that indexes them — snapshot into a
   `NativeList<Entity>` first, then destroy (`ForestDespawnSystem` model).
 

@@ -4,7 +4,6 @@ read: always
 tags: [architecture, ecs, conventions]
 related:
   - "[DOC_STANDARD](DOC_STANDARD.md)"
-  - "[ECS_REFERENCE](ECS_REFERENCE.md)"
   - "[GAMEPLAY_FOUNDATION](GAMEPLAY_FOUNDATION.md)"
 ---
 
@@ -48,7 +47,6 @@ FantasyMayor/
 ├─ Packages/                  # Unity package manifest and lock file
 ├─ CLAUDE.md                  # Agent process rules
 ├─ ARCHITECTURE.md            # This file — project-wide architecture policy
-├─ ECS_REFERENCE.md           # Central entity / world-component / event registry
 ├─ SYSTEMTEMPLATE.md          # Template catalog for new systems
 ├─ CONFIGTEMPLATE.md          # Template catalog for config flows
 ├─ DOC_STANDARD.md            # How every MD file is written
@@ -210,8 +208,8 @@ patterns (aggregates/repositories), which ECS expresses as tables + systems.
   for the HUD) — feature subfolders inside; namespaces follow: `Domains.Map.Hex.*`, `Presentation.Terrain.*`,
   `Presentation.UI.ResourceBar.*`, …).
 - Cross-domain dependencies are expected (e.g. `Economy → Map` for hex types, `Actors → Economy` for the
-  resource substrate, `Actions → {Economy, Actors}`) and MUST be declared in `ECS_REFERENCE.md`
-  (Cross-Module Component Reads). Direction follows the substrate→agents→verbs DAG — owner-keyed logic
+  resource substrate, `Actions → {Economy, Actors}`) and are visible in the ECS/DoD graph (`/ecs-graph`,
+  cross-module component reads). Direction follows the substrate→agents→verbs DAG — owner-keyed logic
   lives in `Actors`/`Actions`, never in the owner-agnostic `Economy` substrate.
 - The Module Layout Rules above apply to all three layers (each feature/sub-area keeps the
   `Components`/`Systems`/… split).
@@ -270,10 +268,10 @@ is `CONFIGTEMPLATE.md` → STORAGE RULE.
 
 | Storage | Use when | Access | Registry |
 |---|---|---|---|
-| **Entity table** | N rows of the same shape (hexes, resources, views, icon containers) | query = key + discriminator (Table Rule); `EntitySet` / `EntityMap` / `EntityMultiMap` | `ECS_REFERENCE.md` Entity Registry |
-| **World component** | exactly ONE instance, and NO consumer needs it in an entity query | `world.Set` / `world.Get`, guarded by `world.Has` | `ECS_REFERENCE.md` World Component Registry |
-| **One-frame event entity** | a signal that something changed; consumed by a Reactive System this same frame | marker component + `EventTag`; `EventCleanupSystem` disposes at end of tick | `ECS_REFERENCE.md` Event Registry |
-| **Singleton entity** | exactly ONE instance, but it MUST appear in entity queries (a per-frame system anchors on it, or reactive filters watch it) | `With<TheComponent>` set with `Count`-guard | `ECS_REFERENCE.md` Entity Registry |
+| **Entity table** | N rows of the same shape (hexes, resources, views, icon containers) | query = key + discriminator (Table Rule); `EntitySet` / `EntityMap` / `EntityMultiMap` | the ecs-graph (`/ecs-graph`) |
+| **World component** | exactly ONE instance, and NO consumer needs it in an entity query | `world.Set` / `world.Get`, guarded by `world.Has` | the ecs-graph (`/ecs-graph`) |
+| **One-frame event entity** | a signal that something changed; consumed by a Reactive System this same frame | marker component + `EventTag`; `EventCleanupSystem` disposes at end of tick | the ecs-graph (`/ecs-graph`) |
+| **Singleton entity** | exactly ONE instance, but it MUST appear in entity queries (a per-frame system anchors on it, or reactive filters watch it) | `With<TheComponent>` set with `Count`-guard | the ecs-graph (`/ecs-graph`) |
 
 World component contract:
 - A world component is **not an entity**: it never appears in `world.GetEntities()` and cannot be
@@ -466,8 +464,8 @@ An entity "table" is defined by its query, and a query MUST name the table, not 
   table's row to another table's row.
 - Maintained indexes are for hot joins (read every frame or many times per turn). A
   click-frequency query may linearly scan an `EntitySet` instead — do not build a map for it.
-- Legacy bare-key queries exist and are flagged `⚠ BARE-KEY LEGACY` in `ECS_REFERENCE.md`
-  (pending audit). Do NOT copy that pattern into new code.
+- Legacy bare-key queries exist (pending audit — surface them via `/ecs-graph`). Do NOT copy that
+  pattern into new code.
 
 ### Link Convention — Domain ID vs Entity Handle
 - A **domain / persistent relationship** is expressed as a stable domain ID component
@@ -515,7 +513,7 @@ An entity "table" is defined by its query, and a query MUST name the table, not 
 ## On-Demand References
 - For UI/UX visual style, component patterns, placement, and USS token mapping, read `GENERAL_UI_STYLE.md` (root) — read it **fully only when working on the UI / design part**
 - For how to write any `.md` file in this project, read `DOC_STANDARD.md` (root)
-- For ECS entity archetypes, world components, and event flows, read `ECS_REFERENCE.md` (root)
+- For ECS entity archetypes, world components, and event flows, query the ECS/DoD graph (`/ecs-graph`)
 - For `IAddressable`, `Box<T>`, `Result<T>`, or addressable ownership rules, read `Assets/Modules/Addressable/ADDRESSABLE_PATTERNS.md`
 - For terrain transition work, pre-read:
   - `Assets/Presentation/Terrain/Isolines/FieldBasedIsolineBuilder.cs`

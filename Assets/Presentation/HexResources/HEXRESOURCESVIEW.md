@@ -5,7 +5,6 @@ tags: [resources, terrain, view, ecs]
 related:
   - "[HEXRESOURCES](../../Domains/Map/HexResources/HEXRESOURCES.md)"
   - "[TERRAIN_VIEW](../Terrain/TERRAIN_VIEW.md)"
-  - "[ECS_REFERENCE](../../../ECS_REFERENCE.md)"
 status: partial
 ---
 
@@ -17,7 +16,7 @@ Visualizes resource entities from `HexResources` by instantiating prefabs on ter
 `ForestSpawnSystem` runs on a `ForestHexAppearedEvent` pulse; `ForestDespawnSystem` on a
 `ForestHexRemovedEvent` pulse (both **Reactive Systems**, Gameplay, base set = the event).
 **DORMANT** — no emitter raises either pulse yet (future planting/chopping gameplay). These reactive
-triggers are not visible in graphify — full event flow: `ECS_REFERENCE.md`.
+triggers are not visible in graphify — full event flow: the ecs-graph (`/ecs-graph`).
 
 ## Init vs Reactive — who does what
 

@@ -13,7 +13,7 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 36 docs — 3 always · 6 trigger · 27 reference · 2 canvas.
+Totals: 37 docs — 3 always · 5 trigger · 29 reference · 2 canvas.
 
 ## Read at start (always)
 
@@ -31,7 +31,6 @@ Do **not** preload. Read only when the trigger condition holds.
 |---|---|---|
 | [IAddressable Contract](Assets/Modules/Addressable/ADDRESSABLE_PATTERNS.md) | before writing/editing/reviewing Addressables, IAddressable, Box<T> or Result<T> code | Single source of truth for addressable loading. Read this; do not grep. |
 | [FantasyMayor — Config Template Catalog](CONFIGTEMPLATE.md) | before working with a config, config component, or loader flow | How to create config-related classes: the authored `ScriptableObject`, its flattened ECS component, |
-| [ECS_REFERENCE.md](ECS_REFERENCE.md) | before writing an ECS query, entity table/join, or adding an archetype | Central registry of ECS state in FantasyMayor: every unique entity (archetype), every world |
 | [FantasyMayor - Gameplay Foundation](GAMEPLAY_FOUNDATION.md) | before gameplay / mechanics / district / turn / economy / actor design work | `FantasyMayor` is a turn-based game about governing a city through a scarcity of `Action Points`, limited resources, population as a productive and political force, and an unstable balance of power between the mayor and the local elites. |
 | [GENERAL_UI_STYLE.md](GENERAL_UI_STYLE.md) | before creating or changing UI (UI Toolkit, panels, tokens, USS) | The general UI design language for FantasyMayor: the global HUD layout model, design principles, visual |
 | [FantasyMayor — System Template Catalog](SYSTEMTEMPLATE.md) | before creating or editing an ECS system or subsystem | How to create a new system. Pick the role first, then follow that role's template and rules. |
@@ -43,6 +42,8 @@ Per-module navigation docs. `status` mirrors each module's `## Current State`.
 | Doc | Cat | Status | What it is |
 |---|---|---|---|
 | [Actions](Assets/Domains/Actions/ACTIONS.md) | A | partial | The application / orchestration layer: actor verbs and cross-domain turn processing. Depends on both |
+| [District Build Cost](Assets/Domains/Actions/DISTRICT_BUILD_COST.md) | A | partial | The district-build **cost** config flow: the Actions domain owns the per-district AP + resource price |
+| [Turn Phases](Assets/Domains/Actions/TURN_PHASES.md) | A | partial | The Actions domain's turn-phase subsystems: phase **content** that plugs into the `Turn` engine. |
 | [Actors](Assets/Domains/Actors/ACTORS.md) | A | partial | Game-rule domain owning actor identities **and their startup composition**. First domain under |
 | [Economy](Assets/Domains/Economy/ECONOMY.md) | A | partial | Game-rule domain owning economic objects: inventory resources now; districts and buildings later. |
 | [TerrainGenerator](Assets/Domains/Map/Generation/TERRAIN_GENERATOR.md) | A | implemented | Procedural terrain generation: hex grid creation, mountains with foothills, and water (river / lake / sea). |

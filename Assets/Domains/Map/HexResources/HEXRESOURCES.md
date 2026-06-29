@@ -4,7 +4,6 @@ read: reference
 tags: [hex, resources, ecs, generation]
 related:
   - "[HEXRESOURCESVIEW](../../../Presentation/HexResources/HEXRESOURCESVIEW.md)"
-  - "[ECS_REFERENCE](../../../../ECS_REFERENCE.md)"
 status: implemented
 ---
 
@@ -18,7 +17,7 @@ sequentially by the **`MapCreation` game state** — it does not listen to an ev
 out into the generation **Pipeline SubSystems** (Forest/Clay/Fish) in their priority order. The
 pipeline runs once when the `MainMenu` state detects `TerrainGenerationGenerateEventComponent` and
 switches to `MapCreation`. Roles: `ARCHITECTURE.md` "System Taxonomy". Full flow: `BOOT.md` /
-`ECS_REFERENCE.md`.
+the ecs-graph (`/ecs-graph`).
 
 ## Non-Obvious Invariants
 

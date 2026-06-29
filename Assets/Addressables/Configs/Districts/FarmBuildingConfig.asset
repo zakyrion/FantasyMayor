@@ -13,11 +13,7 @@ MonoBehaviour:
   m_Name: FarmBuildingConfig
   m_EditorClassIdentifier: Domains.Economy::Domains.Economy.District.Configs.DistrictBuildingConfig
   _districtType: 2
-  _districtPrices:
-  - Type: 3
-    Amount: 0
   _hexTypesRequirement: 
-  _impossibleToBuildTypes: 03000000
-  _requiredResourceType: 0
+  _impossibleToBuildTypes: 04000000
+  _requiredHexResourceType: 0
   _needEmptyHexResourcesToBuild: 1
-  _actionPointsRequired: 1

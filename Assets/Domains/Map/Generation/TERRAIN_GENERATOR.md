@@ -5,7 +5,6 @@ tags: [terrain, generation, hex, ecs]
 related:
   - "[TERRAIN_VIEW](../../../Presentation/Terrain/TERRAIN_VIEW.md)"
   - "[HEX_CORE](../Hex/HEX_CORE.md)"
-  - "[ECS_REFERENCE](../../../../ECS_REFERENCE.md)"
 status: implemented
 ---
 
@@ -22,7 +21,7 @@ SubSystems** (mountain/river/lake/sea). It is run sequentially by the **`MapCrea
 `MapCreation`, which runs every `IPrioritizedUniTaskSystem<MapGenerationStep>` stage in priority
 order. `MapGenerationSystem` no longer publishes a separate resource-generation event — the
 pipeline drives resource generation directly. Roles: `ARCHITECTURE.md` "System Taxonomy". Full flow:
-`BOOT.md` / `ECS_REFERENCE.md`.
+`BOOT.md` / the ecs-graph (`/ecs-graph`).
 
 ## Hex Level Convention
 This is the cross-module contract every terrain consumer depends on. Level is the source of truth;

@@ -50,14 +50,14 @@ Driven by the `HexSelectedComponent` singleton entity, created / updated / remov
   - the block systems (Header / Resources / District) **fill** their block, each gating on a real hex /
     skipping gracefully when nothing (or a non-grid coord) is selected.
 - The initial empty state is seeded by the spawn subsystem.
-- This reactive trigger is not visible in graphify — full selection flow: `ECS_REFERENCE.md`.
+- This reactive trigger is not visible in graphify — full selection flow: the ecs-graph (`/ecs-graph`).
 
 **Outbound event (emitted, not consumed here).** The District build slot (`DistrictBuildButton` in
 `HexInfoPanelView`) raises a payload-less `DistrictBuildRequestedEvent` (+ `EventTag`) on click — the request
 to open the district-build window. Payload-less by design: the consumer reads the current `HexSelectedComponent`
 for the target hex. The event lives in `Presentation.UI.DistrictBuild.Events` (next to its window, not here) and
 **is consumed by `DistrictBuildUISystem`**, which opens the modal overlay (see `DistrictBuild/DISTRICT_BUILD.md`).
-Event registry: `ECS_REFERENCE.md`.
+Event registry: the ecs-graph (`/ecs-graph`).
 
 ## Panes & blocks
 
