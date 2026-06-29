@@ -1,3 +1,13 @@
+---
+category: A
+read: reference
+tags: [hex, math, grid]
+related:
+  - "[HEX_CORE](../HexCore/HEX_CORE.md)"
+  - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
+status: implemented
+---
+
 # AxialSystem
 
 Hex grid coordinate system: axial math, coordinate types, and generic sparse grid storage.
@@ -10,7 +20,7 @@ The geometric foundation for the whole map. Everything that places things on hex
 - **Hex → world position.** To place anything over a tile, convert its `HexCoord` directly:
   `AxialMath.AxialToWorld(coord.Value, cellSize, AxialOrientation.PointyTop)` returns the tile centre in
   world space. `cellSize` comes from `TerrainViewConfigComponent.CellSize`. This is the single canonical
-  recipe — used by `TerrainViewDebugSystem`, `ClayResourceViewSubSystem`, etc.
+  recipe — used by `TerrainViewDebugSystem`, `ClayHexResourceViewSubSystem`, etc.
 - **Never reconstruct the centre from `VertexGrid`.** That grid is the FlatTop fine-mesh geometry; a
   centroid of its vertices is the wrong tool for a tile centre and duplicates math that already exists here.
 

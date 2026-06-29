@@ -1,17 +1,21 @@
 using DefaultEcs;
 using DefaultECSExtensions;
+using Domains.Actions.Installer;
+using Domains.Actors.Installer;
+using Domains.Economy.Installer;
 using Installers.Addressable;
-using Installers.TerrainView;
+using Presentation.Terrain.Installer;
 using Modules.Boot.Core;
-using Modules.HexIcons.Installer;
-using Modules.HexResources.Installer;
-using Modules.HexResourcesView.Installer;
-using Modules.HexesUI.Installer;
+using Presentation.HexIcons.Installer;
+using Domains.Map.HexResources.Installer;
+using Presentation.HexResources.Installer;
+using Presentation.UI.Installer;
 using Modules.MainCanvas.Core;
 using Modules.MainCanvas.Implementation;
 using Modules.Cameras.Components;
-using Modules.Pathfinding.Installer;
-using Modules.TerrainGenerator.Installer;
+using Domains.Map.Pathfinding.Installer;
+using Domains.Map.Generation.Installer;
+using Modules.Turn.Installer;
 using Modules.UserInput.Components;
 using Modules.UserInput.Systems;
 using UnityEngine;
@@ -43,11 +47,9 @@ namespace Installers.World
             builder.Register<IMainCanvasProvider, MainCanvasProvider>(Lifetime.Scoped).WithParameter(_uiRoot);
 
             // CameraComponent is single-instance world state, stored as a world component, not an entity.
-            // ReferenceFieldOfView snapshots the authored startup FOV here, before any zoom input mutates it.
             world.Set(new CameraComponent
             {
-                Camera = _mainCamera,
-                ReferenceFieldOfView = _mainCamera.fieldOfView
+                Camera = _mainCamera
             });
 
             var playerInputEntity = world.CreateEntity();
@@ -73,6 +75,10 @@ namespace Installers.World
             new HexResourcesInstaller().Install(builder);
             new HexResourcesViewInstaller().Install(builder);
             new HexIconsInstaller().Install(builder);
+            new TurnInstaller().Install(builder);
+            new ActorsInstaller().Install(builder);
+            new EconomyInstaller().Install(builder);
+            new ActionsInstaller().Install(builder);
         }
     }
 }

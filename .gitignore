@@ -6,6 +6,12 @@
 # graphify knowledge graph — local-only, regenerated on demand, never tracked
 /graphify-out/
 
+# ecs-graph DoD/ECS knowledge graph — derived, regenerated on demand, never tracked
+/.ecs-graph/
+
+# di-graph VContainer DI knowledge graph — derived, regenerated on demand, never tracked
+/.di-graph/
+
 # Local editor / OS noise (solo dev, one machine)
 .idea/
 .DS_Store
@@ -79,3 +85,10 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# Obsidian — ignore volatile UI/cache state, keep shared config (app.json) committable
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/cache
+.obsidian/.DS_Store
+.obsidian/*

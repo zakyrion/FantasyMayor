@@ -1,3 +1,12 @@
+---
+category: A
+read: reference
+tags: [terrain, curves]
+related:
+  - "[TERRAIN_VIEW](../TerrainView/TERRAIN_VIEW.md)"
+status: implemented
+---
+
 # CurveBuilders
 
 Interface contract for building and evaluating animation curves used in terrain generation.

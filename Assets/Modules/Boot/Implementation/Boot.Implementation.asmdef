@@ -6,12 +6,11 @@
         "Boot.Core",
         "DefaultECS.Extensions",
         "UniTask",
-        "Terrain.Generator",
-        "Hexes.UI",
+        "Domains.Map",
+        "Presentation.UI",
         "UserInput",
-        "Terrain.View",
-        "HexResourcesView",
-        "HexIcons"
+        "Presentation",
+        "Turn"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

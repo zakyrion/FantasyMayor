@@ -1,3 +1,12 @@
+---
+category: A
+read: reference
+tags: [boot, ecs, state-machine]
+related:
+  - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
+status: partial
+---
+
 # Boot
 
 Entry-point orchestration: a one-time config bootstrap, then a hand-wired game-state machine.
@@ -35,8 +44,8 @@ MapLoading  : stub (no save/load flow yet)
 ```
 
 ### Why a "settle" frame pump in MapCreation
-The generation pipeline (`IPrioritizedUniTaskSystem<TerrainGenerationStep>`) builds both logical data and
-the views synchronously (forest is now built one-shot by `ForestResourceViewSubSystem` inside the pipeline,
+The generation pipeline (`IPrioritizedUniTaskSystem<MapGenerationStep>`) builds both logical data and
+the views synchronously (forest is now built one-shot by `ForestHexResourceViewSubSystem` inside the pipeline,
 not reactively over later frames). `MapCreation` still ticks its settle-frame systems (`EventCleanupSystem`)
 for a small fixed number of frames (`SettleFrames`, 1–3) to drain anything the pipeline raised before
 handing off to `Gameplay`. Safe — those systems are idempotent, so extra ticks are no-ops.
@@ -56,7 +65,7 @@ A system may belong to several states — it is simply referenced from each. Cur
 - `EventCleanupSystem` → `MapCreation` and `Gameplay`.
 
 (Forest no longer overlaps states: the startup build is a one-shot pipeline subsystem
-`ForestResourceViewSubSystem`, and `ForestSpawnSystem`/`ForestDespawnSystem` are `Gameplay`-only.)
+`ForestHexResourceViewSubSystem`, and `ForestSpawnSystem`/`ForestDespawnSystem` are `Gameplay`-only.)
 
 `EventCleanupSystem` lives in `DefaultECS.Extensions` (not the installer assembly) so Boot can wire it
 without an assembly cycle (`Installers.World` already references `Boot.Implementation`).
@@ -76,7 +85,7 @@ HexSelectionView, HexInfoPanel, CameraMovement, HexIconsContainerPosition) and *
 
 ## Non-Obvious Invariants
 - Boot phase markers are empty structs used only as generic type tags. `ConfigLoadStep` is driven by Boot;
-  `TerrainGenerationStep` is driven by the `MapCreation` state (was `WorldInitSystem`, now removed).
+  `MapGenerationStep` is driven by the `MapCreation` state (was `WorldInitSystem`, now removed).
 - `Update` / `LateUpdate` do nothing until the config bootstrap finishes.
 - Within a state, systems are ticked in ascending `Priority` (e.g. `EventCleanupSystem` = `int.MaxValue`
   runs last, clearing one-frame event entities).

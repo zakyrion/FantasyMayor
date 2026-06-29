@@ -1,0 +1,10 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <!-- One build-cost row. Cloned per resource price by DistrictCostBinder, which binds Icon / Name / Need / Have
+         and marks the row when the payer can't afford it. Styling comes from the host panel. -->
+    <ui:VisualElement name="CostRow" class="costrow">
+        <ui:Label name="Icon" class="costrow-ic"/>
+        <ui:Label name="Name" class="costrow-name"/>
+        <ui:Label name="Need" class="costrow-need"/>
+        <ui:Label name="Have" class="costrow-have"/>
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,3 +1,12 @@
+---
+category: C
+read: always
+tags: [docs, conventions]
+related:
+  - "[ARCHITECTURE](ARCHITECTURE.md)"
+  - "[INDEX](INDEX.md)"
+---
+
 # DOC_STANDARD.md
 
 Single source of truth for how to write Markdown docs in this project.
@@ -46,7 +55,7 @@ So every Markdown file holds **only** what `graphify` cannot extract from code:
   This is the layer whose absence forces a reader back into the source — capture it.
 - **Current state** — what is implemented vs scaffold
 - **Entity archetypes** — runtime component compositions (DoD entities are not
-  classes, so `graphify` cannot see them — see `ECS_REFERENCE.md`)
+  classes, so `graphify` cannot see them — see the ecs-graph (`/ecs-graph`))
 
 Rule of thumb: **if you could get the answer by asking `graphify`, delete it from the MD.**
 
@@ -64,11 +73,64 @@ Every Markdown file falls into exactly one category. The rules differ per catego
 | Category | What it is | Files | Rule |
 |---|---|---|---|
 | **A — Navigation** | Per-module reference | `Assets/Modules/*/*.md` | Follow the navigation structure below. Strip anything `graphify` covers. |
-| **B — Template / Reference** | How to build new code, or how to use a tricky API | `SYSTEMTEMPLATE.md`, `CONFIGTEMPLATE.md`, `ECS_REFERENCE.md`, `ADDRESSABLE_PATTERNS.md` | Do **not** strip. These encode procedure/convention. Keep accurate, keep complete. |
+| **B — Template / Reference** | How to build new code, or how to use a tricky API | `SYSTEMTEMPLATE.md`, `CONFIGTEMPLATE.md`, `ADDRESSABLE_PATTERNS.md` | Do **not** strip. These encode procedure/convention. Keep accurate, keep complete. |
 | **C — Policy** | Project-wide rules | `CLAUDE.md`, `ARCHITECTURE.md`, this file | Rules and orientation. Keep current. |
 
 When unsure which category a new file is: if it describes one module, it is A.
 If it describes *how to write code that follows a convention*, it is B.
+
+---
+
+## Frontmatter (YAML properties)
+
+Every `.md` file starts with a YAML frontmatter block. It exists for **navigation only** —
+Obsidian properties/Dataview/backlinks for the human, and stable `grep` queries for the agent.
+It carries **doc-meta and doc↔doc relations only**. It is NOT a place to restate code structure.
+
+```yaml
+---
+category: A                              # A | B | C — required, all files
+read: reference                          # always | trigger | reference — required, all files
+trigger: "before editing an ECS system"  # required IFF read: trigger — one line, when to read it
+tags: [terrain, ecs]                     # domain tags, lowercase, no '#'; optional but encouraged
+related:                                 # doc↔doc links only; markdown links, relative paths
+  - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
+  - "[TERRAIN_VIEW](../TerrainView/TERRAIN_VIEW.md)"
+status: implemented                      # Category A ONLY — see enum below
+---
+```
+
+Field rules:
+
+- **`category`** — `A`, `B`, or `C` from the table above. Required in every file. The only field that is
+  not derivable elsewhere in machine-readable form.
+- **`read`** — **required in every file.** The agent's read-priority signal, and the data `INDEX.md` is
+  generated from. One of:
+  - `always` — read on every session start. Reserved for the few orientation docs (this file,
+    `ARCHITECTURE.md`, `CLAUDE.md`, `INDEX.md`). Keep this set tiny.
+  - `trigger` — read **only** when a specific condition holds. Requires a `trigger` field naming that
+    condition (e.g. templates, `ADDRESSABLE_PATTERNS.md`, `GENERAL_UI_STYLE.md`).
+  - `reference` — consult on demand, no fixed trigger. Default for per-module navigation docs (Category A):
+    you read a module's doc when you go into that module.
+- **`trigger`** — **required iff `read: trigger`, forbidden otherwise.** One line, the condition that should
+  send a reader here (imperative, e.g. `"before creating or editing an ECS system"`). This is what makes an
+  otherwise-orphan reference doc discoverable: `INDEX.md` lists it under "read on demand" with this text.
+- **`tags`** — domain labels for filtering (e.g. `ecs`, `terrain`, `ui`, `hex`, `config`, `boot`,
+  `pathfinding`, `input`, `camera`). Lowercase, no `#` prefix (Obsidian adds it in the properties UI).
+  Describe the **domain**, never the code shape. Do not encode type/assembly names — that is graphify's job.
+- **`related`** — cross-**document** links only, as **markdown** links with **relative paths**
+  (consistent with `useMarkdownLinks: true` in `.obsidian/app.json`; renders in IDE, GitHub, and resolves
+  for graphify). Never link to source files here and never duplicate a graphify code edge — this is the
+  doc graph, which graphify does not build. Omit the field if there are no real doc relations.
+- **`status`** — **Category A only.** One of: `implemented`, `partial`, `scaffold`, `stub`.
+  This is the **one** field that overlaps prose (`## Current State`). It is kept on purpose as a
+  machine-readable enum so the agent can answer "list every scaffold module" with one `grep` instead of
+  reading every body. Rule 0 exception, deliberate and scoped: the prose `## Current State` stays the
+  authoritative detail; `status` is its one-word index. Keep the two in sync. Omit `status` in B/C files.
+
+What frontmatter must NOT contain (same spirit as the forbidden list below): module/type/assembly names
+as data, field counts, priorities, signatures, or anything graphify already gives. If `grep`-ing the
+frontmatter and asking graphify would return the same fact, it does not belong here.
 
 ---
 
@@ -183,25 +245,25 @@ trigger relationship that graphify **cannot represent** — a reactive event set
 so `graphify path "SomeEvent" "SomeSystem"` returns nothing.
 
 Therefore every event-driven module MUST carry a `## Trigger` section naming the event and the
-system, and pointing to `ECS_REFERENCE.md` for the full producer→consumer flow. This is the
-single most common thing a reader cannot recover from the graph alone.
+system, and pointing to the ecs-graph (`/ecs-graph`) for the full producer→consumer flow. A reactive
+event set is not a graphify code edge — the ecs-graph is what models it.
 
 Example:
 ```markdown
 ## Trigger
 `FooSystem` runs on `WhenAdded<FooEventComponent>`.
-This reactive trigger is not visible in graphify — full event flow is in `ECS_REFERENCE.md`.
+This reactive trigger is not visible in graphify — full event flow is in the ecs-graph (`/ecs-graph`).
 ```
 
 ## Entity Archetypes (DoD)
 
 Runtime entities are component compositions, not classes. They are created by
 scattered `world.CreateEntity().Set(...)` calls, so `graphify` cannot reconstruct
-them. They live in **one** central registry: `ECS_REFERENCE.md`.
+them. They live in the ecs-graph (`/ecs-graph`), built on demand from the code.
 
 - Do **not** duplicate full archetype definitions in module MDs.
-- A module MD may name its key archetypes in one line and point to `ECS_REFERENCE.md`.
-- When you add or change an archetype in code, update `ECS_REFERENCE.md`.
+- A module MD may name its key archetypes in one line and point to the ecs-graph (`/ecs-graph`).
+- When you add or change an archetype in code, refresh the ecs-graph (`/ecs-graph`).
 
 ---
 
@@ -252,11 +314,16 @@ but not their semantics):
 
 ## Checklist Before Saving Any MD
 
+- [ ] A YAML frontmatter block is present: `category` + `read` set; `trigger` set iff `read: trigger`;
+      `status` set for Category A; `related` uses relative markdown links to docs only; no graphify-derivable
+      data in frontmatter. (Then regenerate `INDEX.md` — see below.)
+- [ ] If a doc was added/removed/renamed or its `read`/`trigger`/`status` changed, `INDEX.md` was
+      regenerated (`python3 Tools/gen_index.py`).
 - [ ] Every line answers something `graphify` cannot.
 - [ ] No type tables, signatures, dep lists, folder trees, priorities, inheritance.
 - [ ] Key public/cross-module types carry their **behavioral contract** (side-effects, aliasing,
       ownership, call order) — the semantics behind the signature, not the signature itself.
 - [ ] Scaffold / incomplete work is marked explicitly.
-- [ ] If a system reacts to an event, a `## Trigger` section names the event + points to `ECS_REFERENCE.md`.
+- [ ] If a system reacts to an event, a `## Trigger` section names the event + points to the ecs-graph (`/ecs-graph`).
 - [ ] A junior model could act on this without reading the source.
-- [ ] If it changed an archetype, `ECS_REFERENCE.md` was updated too.
+- [ ] If it changed an archetype, the ecs-graph (`/ecs-graph`) was refreshed too.

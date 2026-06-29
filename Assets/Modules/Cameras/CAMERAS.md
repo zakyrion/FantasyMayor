@@ -1,3 +1,13 @@
+---
+category: A
+read: reference
+tags: [camera, ecs]
+related:
+  - "[USER_INPUT](../UserInput/USER_INPUT.md)"
+  - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
+status: implemented
+---
+
 # Cameras
 
 Owns the shared scene-camera reference as world state, decoupled from any consumer module.
@@ -13,14 +23,12 @@ Named in the plural because more camera slots may be added later.
   `WhenAdded` / `WhenChanged` — see ARCHITECTURE.md "State Storage Taxonomy".
 - `Camera` can be null if the serialized reference on `WorldInstaller` is unassigned — consumers
   null-check before use.
-- `ReferenceFieldOfView` is the camera's **authored startup FOV**, snapshotted by `WorldInstaller` at the
-  same `world.Set` — **before** any zoom input mutates `Camera.fieldOfView`. It is the neutral "1× zoom"
-  baseline: a view system reads it instead of latching its own first-frame reference, and expresses a zoom
-  factor as `tan(ReferenceFieldOfView/2) / tan(Camera.fieldOfView/2)`. Valid because zoom is FOV-driven
-  (`CameraMovementSystem` clamps `fieldOfView`), not dolly-driven. It is **not** re-derived later — it is
-  whatever `fieldOfView` was at the `world.Set`.
+- **No zoom baseline is stored here.** Zoom is a **fixed-FOV dolly** (`CameraMovementSystem` moves the
+  camera along its forward axis; `Camera.fieldOfView` never changes), so view systems need no FOV reference:
+  hex-icon sizing is pure per-hex perspective depth, which is dolly-invariant. (The former
+  `ReferenceFieldOfView` field was removed when zoom stopped being FOV-driven.)
 
 ## Current State
-Single world component (`CameraComponent`), no systems. Consumed by `UserInput`
-(`CameraMovementSystem`, `HexSelectionSystem`) and `HexIcons` — `HexIconsContainerPositionSystem` reads both
-`Camera` (projection) and `ReferenceFieldOfView` (per-frame zoom baseline).
+Single world component (`CameraComponent`, just `Camera`), no systems. Consumed by `UserInput`
+(`CameraMovementSystem`, `HexSelectionSystem`) and `HexIcons` (`HexIconsContainerPositionSystem`) — all read
+`Camera` for projection only.

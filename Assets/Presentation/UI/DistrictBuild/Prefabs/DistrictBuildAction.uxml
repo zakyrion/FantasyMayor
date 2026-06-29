@@ -1,0 +1,62 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="DistrictBuildAction.uss"/>
+    <!-- Full-screen modal overlay. Spawned hidden (display:none); DistrictBuildUISystem toggles it. The
+         scrim + the whole root are pickable by default, so this document (authored above the HUD via a higher
+         PanelSettings sort order) blocks input to everything beneath it. -->
+    <ui:VisualElement name="DistrictBuildRoot" class="db-root" style="display: none;">
+        <ui:VisualElement name="Scrim" class="db-scrim"/>
+        <ui:VisualElement name="Picker" class="db-picker">
+            <ui:VisualElement class="db-accent"/>
+            <ui:VisualElement class="db-head">
+                <ui:VisualElement class="db-ticon">
+                    <ui:Label text="⛰️" class="db-ticon-glyph"/>
+                </ui:VisualElement>
+                <ui:Label text="Збудувати район" class="db-title"/>
+                <ui:Button name="CloseButton" text="✕" class="db-x"/>
+            </ui:VisualElement>
+            <ui:VisualElement class="db-body">
+                <!-- Master list: DistrictListBinder clones a DistrictRow template per district into this ScrollView. -->
+                <ui:ScrollView name="DistrictList" mode="Vertical" class="db-list"/>
+                <!-- Detail: a static skeleton for the single selected district. Section headers, the two payer
+                     segments, the AP row, the ДІЇ placeholder and the confirm button are authored here; the
+                     variable rows (ReqLines / CostRows) are cloned at runtime into the named containers. -->
+                <ui:ScrollView name="DistrictDetail" mode="Vertical" class="db-detail">
+                    <ui:Label name="DetailName" class="ddetail-name"/>
+
+                    <ui:Label text="ВИМОГИ" class="sec-h"/>
+                    <ui:VisualElement name="ReqLines"/>
+
+                    <ui:Label text="ПЛАТНИК" class="sec-h"/>
+                    <ui:VisualElement class="payer">
+                        <ui:VisualElement name="PayerMayor" class="payseg payseg--mayor">
+                            <ui:Label text="👑" class="payseg-pe"/>
+                            <ui:Label text="Мер" class="payseg-who"/>
+                            <ui:Label text="· власник" class="payseg-own"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement name="PayerCity" class="payseg payseg--city">
+                            <ui:Label text="🏛️" class="payseg-pe"/>
+                            <ui:Label text="Місто" class="payseg-who"/>
+                            <ui:Label text="· власник" class="payseg-own"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+
+                    <ui:Label text="БУДІВНИЦТВО" class="sec-h"/>
+                    <ui:VisualElement name="ApRow" class="costrow">
+                        <ui:Label text="⚡" class="costrow-ic"/>
+                        <ui:Label text="AP" class="costrow-name"/>
+                        <ui:Label name="ApNeed" class="costrow-need"/>
+                        <ui:Label name="ApHave" class="costrow-have"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement name="CostRows"/>
+
+                    <ui:Label text="ДІЇ / ЕФЕКТ" class="sec-h"/>
+                    <ui:Label name="ActionsPlaceholder" class="placeholder-note" text="Місткість, дії та виробництво (split Місто / Власн. / Опер.) і утримання — з'являться разом з моделлю району."/>
+
+                    <ui:VisualElement class="dfoot">
+                        <ui:Button name="ConfirmButton" text="ЗБУДУВАТИ" class="confirm"/>
+                    </ui:VisualElement>
+                </ui:ScrollView>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

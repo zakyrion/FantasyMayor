@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FantasyMayor — Головний екран (HUD)</title>
+<style>
+  :root{
+    --panel-bg: rgba(30, 25, 20, 0.93);
+    --panel-border: rgba(217, 164, 65, 0.28);
+    --divider: rgba(217, 164, 65, 0.14);
+    --block-border: rgba(217, 164, 65, 0.16);
+    --txt: #f1e7d6;
+    --txt-dim: #a89a86;
+    --txt-faint: #7d7264;
+    --gold: #e0b25a;
+    --gold-soft: #d9a441;
+    --chip-bg: rgba(255,255,255,0.045);
+    --tile-bg: rgba(255,255,255,0.045);
+    --tile-border: rgba(255,255,255,0.08);
+    --bevel: inset 0 1px 0 rgba(255,255,255,0.05);
+    --slot-bg: rgba(255,255,255,0.04);
+    --slot-border: rgba(255,255,255,0.07);
+    /* resources */
+    --forest:#6fa05b; --clay:#c2784f;
+    /* roles / shares */
+    --share-city:#5b8bb0; --share-owner:#e0b25a; --share-oper:#6fa05b;
+    --warn:#e8a96a; --warn-border:rgba(214,138,74,0.30);
+    --serif: Georgia, 'Times New Roman', serif;
+    --sans: -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ font-family:var(--sans); min-height:100vh; color:var(--txt);
+    background:linear-gradient(160deg, #2b3528 0%, #20271d 60%, #1a1f16 100%);
+    background-attachment:fixed; padding:36px 28px; }
+  .page{ max-width:1340px; margin:0 auto; }
+  .page h1{ font-family:var(--serif); font-weight:600; font-size:22px; color:var(--gold); letter-spacing:.5px; margin-bottom:4px; }
+  .page .sub{ color:var(--txt-dim); font-size:13px; margin-bottom:22px; max-width:900px; line-height:1.6; }
+
+  /* ---------- GAME SCREEN ---------- */
+  .screen{ position:relative; height:760px; border-radius:14px; overflow:hidden;
+    border:1px solid rgba(0,0,0,0.5);
+    background:
+      radial-gradient(circle at 26% 28%, #3a4a3a 0%, transparent 46%),
+      radial-gradient(circle at 78% 74%, #4a4030 0%, transparent 50%),
+      linear-gradient(160deg, #2b3528 0%, #20271d 60%, #1a1f16 100%); }
+  .hexgrid{ position:absolute; inset:0; opacity:.06; background-image:
+    linear-gradient(60deg, transparent 49.4%, #fff 49.4%, #fff 50.6%, transparent 50.6%),
+    linear-gradient(-60deg, transparent 49.4%, #fff 49.4%, #fff 50.6%, transparent 50.6%);
+    background-size:68px 118px; }
+  .sel{ position:absolute; left:39%; top:25%; width:118px; height:136px;
+    clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);
+    background:rgba(224,178,90,0.10); box-shadow:inset 0 0 0 2px rgba(224,178,90,0.55); }
+
+  /* ---------- TOP BAR ---------- */
+  .topbar{ position:absolute; top:0; left:0; right:0; display:flex; align-items:flex-start;
+    justify-content:space-between; gap:18px; padding:12px 18px; background:var(--panel-bg);
+    border-bottom:1px solid var(--panel-border); backdrop-filter:blur(6px); z-index:5; }
+  .openers{ display:flex; align-items:center; gap:8px; padding-top:14px; }
+  .opener{ width:42px; height:42px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+    font-size:20px; background:var(--slot-bg); border:1px solid var(--slot-border); cursor:pointer; }
+  .pool{ display:flex; align-items:stretch; gap:16px; background:rgba(255,255,255,0.03);
+    border:1px solid rgba(217,164,65,0.18); border-radius:11px; padding:8px 14px; }
+  .pool .pol{ display:flex; flex-direction:column; justify-content:center; gap:6px; padding-right:16px;
+    border-right:1px solid rgba(217,164,65,0.20); }
+  .pool .pol .crown{ display:flex; align-items:center; gap:8px; }
+  .pool .pol .crown span:first-child{ font-size:16px; color:var(--gold); }
+  .pool .pol .crown span:last-child{ font-size:11px; color:var(--txt-dim); }
+  .pool .pol .vals{ display:flex; gap:11px; }
+  .pool .pol .vals span{ display:flex; align-items:center; gap:5px; font-size:13px; }
+  .matgrid{ display:grid; grid-template-columns:auto repeat(4, minmax(40px,1fr)); gap:3px 18px; align-items:center; }
+  .matgrid .ic{ font-size:15px; text-align:center; }
+  .matgrid .rl{ display:flex; align-items:center; gap:5px; font-size:11px; color:var(--txt-dim); }
+  .matgrid .v{ text-align:center; font-size:13px; font-variant-numeric:tabular-nums; }
+  .matgrid .vm{ color:var(--txt); }
+  .matgrid .vc{ color:#bfb39c; }
+  .expand{ align-self:center; width:32px; height:32px; border-radius:8px; display:flex; align-items:center;
+    justify-content:center; font-size:16px; color:var(--gold); background:var(--slot-bg); border:1px solid var(--slot-border); cursor:pointer; }
+  .system{ display:flex; align-items:center; gap:8px; padding-top:14px; }
+  .sysbtn{ position:relative; width:42px; height:42px; border-radius:10px; display:flex; align-items:center;
+    justify-content:center; font-size:19px; background:var(--slot-bg); border:1px solid var(--slot-border); cursor:pointer; }
+  .badge{ position:absolute; top:-4px; right:-4px; min-width:18px; height:18px; padding:0 4px; border-radius:9px;
+    background:var(--clay); color:#fff; font-size:11px; font-weight:600; display:flex; align-items:center; justify-content:center; }
+
+  /* ---------- BOTTOM PANEL ---------- */
+  .bottompanel{ position:absolute; bottom:0; left:0; right:0; height:306px; background:var(--panel-bg);
+    border-top:1px solid var(--panel-border); backdrop-filter:blur(6px); z-index:5; display:flex; }
+  .bottompanel .accent{ position:absolute; top:0; left:0; right:0; height:3px;
+    background:linear-gradient(90deg, transparent, var(--gold-soft), transparent); }
+
+  /* turn sub-panel */
+  .turn{ flex:none; width:280px; border-right:1px solid var(--divider); display:flex; flex-direction:column; padding:18px; }
+  .turn .n{ font-family:var(--serif); font-size:22px; font-weight:600; }
+  .ap{ display:flex; gap:8px; margin-top:16px; }
+  .ap .tile{ flex:1; border-radius:8px; padding:9px 11px; box-shadow:var(--bevel); }
+  .ap .tile.cur{ background:var(--tile-bg); border:1px solid rgba(217,164,65,0.20); }
+  .ap .tile.nxt{ background:rgba(255,255,255,0.03); border:1px solid var(--slot-border); }
+  .ap .cap{ font-size:9px; letter-spacing:1.2px; text-transform:uppercase; color:var(--txt-faint); }
+  .ap .num{ font-family:var(--serif); font-size:26px; line-height:1; margin-top:4px; font-variant-numeric:tabular-nums; }
+  .ap .cur .num{ color:var(--gold); }
+  .ap .nxt .num{ color:var(--gold-soft); opacity:.85; }
+  .endturn{ margin-top:auto; display:flex; align-items:center; justify-content:center; gap:9px; width:100%;
+    padding:15px; border-radius:11px; font-size:13px; letter-spacing:1.4px; text-transform:uppercase;
+    font-weight:600; cursor:pointer; border:1px solid #b98a35; border-top-color:rgba(255,255,255,0.4);
+    color:#251c0e; background:var(--gold-soft); }
+
+  /* context sub-panel */
+  .context{ flex:1; display:flex; flex-direction:column; min-width:0; }
+  .tabs{ display:flex; align-items:center; gap:28px; padding:0 16px; border-bottom:1px solid var(--divider); flex:none; }
+  .tab{ font-size:14px; font-weight:600; padding:13px 2px; cursor:pointer; border-bottom:2px solid transparent; color:var(--txt-dim); }
+  .tab.active{ color:var(--txt); border-bottom-color:var(--gold); }
+  .tabs .full{ margin-left:auto; font-size:11px; color:var(--txt-faint); cursor:pointer; padding:13px 0; }
+  .pane{ flex:1; min-height:0; }
+  .pane[hidden]{ display:none; }
+
+  /* discrete blocks */
+  .blocks{ display:flex; gap:12px; height:100%; padding:14px 16px; }
+  .block{ display:flex; flex-direction:column; background:rgba(255,255,255,0.015);
+    border:1px solid var(--block-border); border-radius:9px; padding:12px 13px; }
+  .block .bh{ font-size:9.5px; letter-spacing:1.4px; text-transform:uppercase; color:var(--txt-faint); margin-bottom:11px; }
+  .block .bh.row{ display:flex; align-items:baseline; justify-content:space-between; }
+  .block .bh.row .lvl{ font-size:11px; color:var(--txt-faint); letter-spacing:0; text-transform:none; }
+
+  .hexhead{ display:flex; gap:11px; align-items:center; margin-bottom:13px; }
+  .hexhead .ticon{ width:42px; height:42px; border-radius:8px; flex:none; display:flex; align-items:center;
+    justify-content:center; font-size:22px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.10); box-shadow:inset 0 1px 0 rgba(255,255,255,0.06); }
+  .hexhead .tname{ font-size:15px; font-weight:500; }
+  .minilbl{ font-size:9px; letter-spacing:1.2px; text-transform:uppercase; color:var(--txt-faint); margin-bottom:8px; }
+  .chips{ display:flex; gap:8px; flex-wrap:wrap; }
+  .chip{ display:flex; align-items:center; gap:8px; background:var(--chip-bg); border:1px solid var(--tile-border);
+    border-radius:7px; padding:7px 11px 7px 8px; font-size:13px; box-shadow:var(--bevel); }
+  .chip .dot{ width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; }
+  .chip.forest .dot{ background:rgba(111,160,91,0.22); }
+  .chip.clay .dot{ background:rgba(194,120,79,0.22); }
+
+  .dname{ font-family:var(--serif); font-size:16px; font-weight:600; margin-bottom:11px; }
+  .kv{ display:flex; flex-direction:column; font-size:12.5px; }
+  .kv .r{ display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid rgba(217,164,65,0.10); }
+  .kv .r:last-child{ border-bottom:none; }
+  .kv .k{ color:var(--txt-dim); }
+  .kv .v{ color:var(--txt); font-weight:500; font-variant-numeric:tabular-nums; }
+  .kv .role{ display:flex; align-items:center; gap:6px; font-weight:500; }
+  .kv .role .sw{ width:8px; height:8px; border-radius:50%; }
+  .role.owner{ color:var(--share-owner); } .role.owner .sw{ background:var(--share-owner); }
+  .role.oper{ color:var(--share-oper); } .role.oper .sw{ background:var(--share-oper); }
+
+  .laborline{ display:flex; align-items:center; justify-content:space-between; background:var(--tile-bg);
+    border:1px solid var(--warn-border); border-radius:7px; padding:8px 11px; margin-bottom:13px; box-shadow:var(--bevel); }
+  .laborline .k{ font-size:9px; letter-spacing:1.1px; text-transform:uppercase; color:var(--txt-faint); }
+  .laborline .v{ font-size:13px; color:var(--warn); font-variant-numeric:tabular-nums; }
+  .laborline .v small{ color:var(--txt-faint); font-size:11px; }
+
+  .prodtable{ display:grid; grid-template-columns:1fr auto auto auto; gap:0 16px; font-size:12.5px; align-items:center; }
+  .prodtable .h{ font-size:9px; letter-spacing:1.1px; text-transform:uppercase; color:var(--txt-faint); padding-bottom:7px; }
+  .prodtable .hc{ display:flex; align-items:center; gap:5px; justify-content:flex-end; font-size:10px; color:var(--txt-dim); padding-bottom:7px; }
+  .prodtable .hc .sw{ width:7px; height:7px; border-radius:2px; }
+  .prodtable .name{ display:flex; align-items:center; gap:8px; padding:7px 0; border-top:1px solid rgba(217,164,65,0.10); }
+  .prodtable .name .ic{ font-size:15px; }
+  .prodtable .name .total{ margin-left:auto; color:#cfe6ba; font-weight:600; font-variant-numeric:tabular-nums; }
+  .prodtable .c{ text-align:right; padding:7px 0; border-top:1px solid rgba(217,164,65,0.10); font-variant-numeric:tabular-nums; }
+  .prodtable .c.city{ color:#a9c8dd; } .prodtable .c.owner{ color:#f0d79a; } .prodtable .c.oper{ color:#bfe0a8; }
+
+  /* buildings */
+  .blist{ display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+  .bcard{ display:flex; gap:11px; align-items:center; padding:10px 12px; background:rgba(255,255,255,0.04);
+    border:1px solid var(--tile-border); border-radius:8px; box-shadow:var(--bevel); }
+  .bcard .ic{ width:34px; height:34px; border-radius:8px; flex:none; display:flex; align-items:center;
+    justify-content:center; font-size:18px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.09); }
+  .bcard .nm{ font-size:13px; font-weight:500; color:var(--txt); }
+  .bcard .nm small{ color:var(--txt-faint); font-weight:400; font-size:11px; }
+  .bcard .ef{ font-size:12px; color:#bfe0a8; margin-top:2px; font-variant-numeric:tabular-nums; }
+  .bcard.empty{ background:none; border:1px dashed rgba(255,255,255,0.14); color:var(--txt-faint); cursor:pointer; }
+  .bcard.empty .ic{ background:none; border:1px dashed rgba(255,255,255,0.16); }
+  .bcard.empty small{ color:#5f574c; font-size:11px; display:block; margin-top:2px; }
+
+  /* actions */
+  .acts{ display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:14px 16px; }
+  .acard{ display:flex; gap:12px; align-items:flex-start; padding:12px 13px; background:rgba(255,255,255,0.035);
+    border:1px solid rgba(217,164,65,0.18); border-radius:9px; cursor:pointer; box-shadow:var(--bevel); }
+  .acard .ic{ width:36px; height:36px; border-radius:8px; flex:none; display:flex; align-items:center;
+    justify-content:center; font-size:19px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.09); }
+  .acard .top{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .acard .nm{ font-size:14px; font-weight:500; color:var(--txt); }
+  .acard .ap{ font-size:11px; color:var(--gold); background:rgba(224,178,90,0.14); border:1px solid rgba(224,178,90,0.3);
+    padding:2px 8px; border-radius:6px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .acard .ds{ font-size:12px; color:var(--txt-dim); margin-top:4px; line-height:1.4; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>FantasyMayor — Головний екран (HUD)</h1>
+  <div class="sub">Канонічна розкладка: повноширинний топ-бар (відкривачі · пул ресурсів власник×ресурс · система) · чистий центр-карта · повноширинна нижня панель з двома суб-панелями (хід | контекст). Контекст = дискретні щільні блоки в дусі Shadow Empire. Іконки — плейсхолдери (у грі спрайти).</div>
+
+  <div class="screen">
+    <div class="hexgrid"></div>
+    <div class="sel"></div>
+
+    <!-- TOP BAR -->
+    <div class="topbar">
+      <div class="openers">
+        <div class="opener" title="Огляд">📊</div>
+        <div class="opener" title="Населення">👥</div>
+        <div class="opener" title="Економіка">💰</div>
+        <div class="opener" title="Райони">🗺️</div>
+      </div>
+      <div class="pool">
+        <div class="pol">
+          <div class="crown"><span>👑</span><span>Мер</span></div>
+          <div class="vals"><span>⚖️ 4</span><span>🔥 8</span></div>
+        </div>
+        <div class="matgrid">
+          <span></span>
+          <span class="ic">🪙</span><span class="ic">🍖</span><span class="ic">🪵</span><span class="ic">🪚</span>
+          <span class="rl"><span style="color:var(--gold)">👑</span>Мер</span>
+          <span class="v vm">120</span><span class="v vm">56</span><span class="v vm">22</span><span class="v vm">9</span>
+          <span class="rl"><span style="color:var(--share-city)">🏛️</span>Місто</span>
+          <span class="v vc">300</span><span class="v vc">140</span><span class="v vc">88</span><span class="v vc">40</span>
+        </div>
+        <div class="expand" title="Усі ресурси">⋯</div>
+      </div>
+      <div class="system">
+        <div class="sysbtn">🔔<span class="badge">2</span></div>
+        <div class="sysbtn">⚙️</div>
+      </div>
+    </div>
+
+    <!-- BOTTOM PANEL -->
+    <div class="bottompanel">
+      <div class="accent"></div>
+
+      <!-- TURN -->
+      <div class="turn">
+        <div class="n">Хід 4</div>
+        <div class="ap">
+          <div class="tile cur"><div class="cap">⚡ Дії зараз</div><div class="num">3</div></div>
+          <div class="tile nxt"><div class="cap">наст. хід</div><div class="num">5</div></div>
+        </div>
+        <button class="endturn">Завершити хід <span>▸</span></button>
+      </div>
+
+      <!-- CONTEXT -->
+      <div class="context">
+        <div class="tabs">
+          <div class="tab active" data-tab="overview">Огляд</div>
+          <div class="tab" data-tab="buildings">Будівлі</div>
+          <div class="tab" data-tab="actions">Дії</div>
+          <div class="full">↗ повне вікно району</div>
+        </div>
+
+        <!-- OVERVIEW -->
+        <div class="pane" data-pane="overview">
+          <div class="blocks">
+            <!-- ГЕКС -->
+            <div class="block" style="flex:none; width:282px;">
+              <div class="bh">Гекс</div>
+              <div class="hexhead"><div class="ticon">⛰️</div><div class="tname">Лісисті пагорби</div></div>
+              <div class="minilbl">Ресурси</div>
+              <div class="chips">
+                <div class="chip forest"><span class="dot">🌲</span>Ліс</div>
+                <div class="chip clay"><span class="dot">🟤</span>Глина</div>
+              </div>
+            </div>
+            <!-- РАЙОН -->
+            <div class="block" style="flex:none; width:318px;">
+              <div class="bh row"><span>Район</span><span class="lvl">рів. 2</span></div>
+              <div class="dname">Лісозаготівля</div>
+              <div class="kv">
+                <div class="r"><span class="k">Власник</span><span class="role owner"><span class="sw"></span>Мер</span></div>
+                <div class="r"><span class="k">Оператор</span><span class="role oper"><span class="sw"></span>Громада</span></div>
+                <div class="r"><span class="k">Будівлі</span><span class="v">2 / 3</span></div>
+                <div class="r"><span class="k">Спеціалізація</span><span class="v">Деревина</span></div>
+              </div>
+            </div>
+            <!-- ПРАЦЯ ТА ВИРОБНИЦТВО -->
+            <div class="block" style="flex:1; min-width:0;">
+              <div class="bh">Праця та виробництво</div>
+              <div class="laborline"><span class="k">Праця</span><span class="v">3 / 4 групи · 75% <small>· виробництво обмежено</small></span></div>
+              <div class="prodtable">
+                <span class="h">Виробництво</span>
+                <span class="hc"><span class="sw" style="background:var(--share-city)"></span>Місто</span>
+                <span class="hc"><span class="sw" style="background:var(--share-owner)"></span>Власн.</span>
+                <span class="hc"><span class="sw" style="background:var(--share-oper)"></span>Опер.</span>
+                <span class="name"><span class="ic">🪵</span>Колоди<span class="total">+6</span></span>
+                <span class="c city">+3</span><span class="c owner">+2</span><span class="c oper">+1</span>
+                <span class="name"><span class="ic">🪚</span>Дошки<span class="total">+2</span></span>
+                <span class="c city">+1</span><span class="c owner">+1</span><span class="c oper">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- BUILDINGS -->
+        <div class="pane" data-pane="buildings" hidden>
+          <div class="blocks">
+            <div class="block" style="flex:1; min-width:0;">
+              <div class="bh row"><span>Збудовано · Лісозаготівля</span><span class="lvl">2 / 3 слотів</span></div>
+              <div class="blist">
+                <div class="bcard"><div class="ic">🪚</div><div><div class="nm">Лісопилка <small>рів. 1</small></div><div class="ef">+2 🪚 / хід</div></div></div>
+                <div class="bcard"><div class="ic">🏚️</div><div><div class="nm">Склад деревини <small>рів. 1</small></div><div class="ef">+40 місткість</div></div></div>
+                <div class="bcard empty"><div class="ic">＋</div><div>Вільний слот<small>↗ обрати будівлю</small></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ACTIONS -->
+        <div class="pane" data-pane="actions" hidden>
+          <div class="acts">
+            <div class="acard"><div class="ic">🏗️</div><div style="flex:1;min-width:0"><div class="top"><span class="nm">Розвинути район</span><span class="ap">2 AP</span></div><div class="ds">+1 рівень · відкриває нові будівлі та слоти</div></div></div>
+            <div class="acard"><div class="ic">🪚</div><div style="flex:1;min-width:0"><div class="top"><span class="nm">Збудувати будівлю</span><span class="ap">1 AP</span></div><div class="ds">обрати з доступних для цього району</div></div></div>
+            <div class="acard"><div class="ic">⚡</div><div style="flex:1;min-width:0"><div class="top"><span class="nm">Форсувати виробництво</span><span class="ap">1 AP</span></div><div class="ds">+50% виробництва цього ходу · виснажує працю</div></div></div>
+            <div class="acard"><div class="ic">🤝</div><div style="flex:1;min-width:0"><div class="top"><span class="nm">Змінити оператора</span><span class="ap">1 AP</span></div><div class="ds">делегувати громаді або повернути контроль</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.tab').forEach(function(t){
+    t.addEventListener('click', function(){
+      var name = t.getAttribute('data-tab');
+      document.querySelectorAll('.tab').forEach(function(x){ x.classList.toggle('active', x === t); });
+      document.querySelectorAll('.pane').forEach(function(p){ p.hidden = p.getAttribute('data-pane') !== name; });
+    });
+  });
+</script>
+</body>
+</html>

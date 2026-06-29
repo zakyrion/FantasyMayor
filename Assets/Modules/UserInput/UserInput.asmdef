@@ -10,8 +10,8 @@
         "Addressables.Core",
         "UniTask",
         "Boot.Core",
-        "Hexes.Core",
-        "Terrain.View",
+        "Domains.Map",
+        "Presentation",
         "AxialSystem",
         "Unity.Mathematics"
     ],

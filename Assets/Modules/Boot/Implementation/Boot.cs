@@ -5,10 +5,16 @@ using DefaultEcs;
 using DefaultECSExtensions;
 using Modules.Boot.Core;
 using Modules.Boot.Implementation.States;
-using Modules.HexIcons.Systems;
-using Modules.HexResourcesView.Systems;
-using Modules.HexesUI.Systems;
-using Modules.TerrainView.Systems;
+using Presentation.HexIcons.Systems;
+using Presentation.HexResources.Systems;
+using Presentation.UI.ContextTabs.Systems;
+using Presentation.UI.DistrictBuild.Systems;
+using Presentation.UI.EndTurn.Systems;
+using Presentation.UI.GeneratorMenu.Systems;
+using Presentation.UI.HexInfoPanel.Systems;
+using Presentation.UI.ResourceBar.Systems;
+using Presentation.Terrain.Systems;
+using Modules.Turn.Systems;
 using Modules.UserInput.Systems;
 using UnityEngine;
 using VContainer;
@@ -67,7 +73,7 @@ namespace Modules.Boot.Implementation
         [Inject]
         public void Construct(
             IReadOnlyList<IUniTaskSystem<ConfigLoadStep>> configLoadSystems,
-            IReadOnlyList<IPrioritizedUniTaskSystem<TerrainGenerationStep>> generationPipeline,
+            IReadOnlyList<IPrioritizedUniTaskSystem<MapGenerationStep>> generationPipeline,
             ShowHexesUISystem showHexesUI,
             HexSelectionSystem hexSelection,
             HexSelectionViewSystem hexSelectionView,
@@ -78,7 +84,14 @@ namespace Modules.Boot.Implementation
             HexInfoPanelSystem hexInfoPanel,
             HexInfoPanelHeaderSystem hexInfoPanelHeader,
             HexInfoPanelResourcesSystem hexInfoPanelResources,
-            HexInfoPanelDistrictPlaceholderSystem hexInfoPanelDistrict,
+            HexInfoPanelDistrictSystem hexInfoPanelDistrict,
+            DistrictBuildUISystem districtBuildUI,
+            ResourceBarSystem resourceBar,
+            EndTurnViewSystem endTurnViewSystem,
+            ContextTabSelectionSystem contextTabSelection,
+            ContextTabsAvailabilitySystem contextTabsAvailability,
+            TurnProcessorSystem turnProcessor,
+            TurnCountSystem turnCount,
             EventCleanupSystem eventCleanup,
             CameraMovementSystem cameraMovement,
             World world)
@@ -97,7 +110,8 @@ namespace Modules.Boot.Implementation
                 {
                     hexSelection, hexSelectionView, forestSpawn, forestDespawn, hexIconsVisibility,
                     hexInfoPanel, hexInfoPanelHeader, hexInfoPanelResources, hexInfoPanelDistrict,
-                    eventCleanup
+                    districtBuildUI, resourceBar, endTurnViewSystem, contextTabSelection, contextTabsAvailability,
+                    turnProcessor, turnCount, eventCleanup
                 },
                 new ILateUpdatedSystem[] { cameraMovement, hexIconsContainerPosition });
 

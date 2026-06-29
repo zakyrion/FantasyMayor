@@ -46,28 +46,19 @@ MonoBehaviour:
     - Core
     - CurveBuilders
     - DefaultECS.Extensions
+    - Domains.Actions
+    - Domains.Actors
+    - Domains.Economy
+    - Domains.Map
     - Dreamteck.Splines
     - Dreamteck.Utilities
-    - glTFast
-    - glTFast.Documentation.Examples
-    - glTFast.dots
-    - glTFast.Export
-    - glTFast.Newtonsoft
-    - Hexes.Core
-    - Hexes.UI
-    - HexIcons
-    - HexResources
-    - HexResourcesView
     - Installers
     - Installers.World
     - MainCanvas.Core
     - MainCanvas.Implementation
-    - Pathfinding
-    - Pathfinding.Installer
-    - Sirenix.OdinInspector.Modules.Unity.Addressables
-    - Sirenix.OdinInspector.Modules.UnityLocalization
-    - Terrain.Generator
-    - Terrain.View
+    - Presentation
+    - Presentation.UI
+    - Turn
     - UniTask
     - UniTask.Addressables
     - UniTask.DOTween
@@ -78,6 +69,7 @@ MonoBehaviour:
     showAdvancedSettings: 0
   addMgrToSceneAutomatically: 0
   autoUpdateReferences: 1
+  onlyAddReferencesFromObjectsWithES3Referenceable: 0
   addAllPrefabsToManager: 1
   collectDependenciesDepth: 4
   collectDependenciesTimeout: 10

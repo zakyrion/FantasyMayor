@@ -1,0 +1,23 @@
+{
+    "name": "Domains.Actors",
+    "rootNamespace": "",
+    "references": [
+        "Domains.Economy",
+        "DefaultECS.Extensions",
+        "Boot.Core",
+        "Core",
+        "Addressables.Core",
+        "Unity.Collections",
+        "VContainer",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

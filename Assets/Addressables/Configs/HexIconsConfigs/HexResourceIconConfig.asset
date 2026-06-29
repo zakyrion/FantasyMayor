@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: HexResourceIconConfig
   m_EditorClassIdentifier: HexIcons::Modules.HexIcons.Configs.HexResourceIconConfig
   _entries:
-  - _resourceType: 0
+  - _hexResourceType: 1
     _sprite: {fileID: 21300000, guid: e05d921025d01475c9834ba0a8869349, type: 3}
-  - _resourceType: 1
+  - _hexResourceType: 2
     _sprite: {fileID: 21300000, guid: d455145a2c04444e98e6d0bdab99cc66, type: 3}

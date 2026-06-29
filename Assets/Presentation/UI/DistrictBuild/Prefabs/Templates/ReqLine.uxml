@@ -1,0 +1,5 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <!-- One requirement line. Cloned per ACTIVE requirement dimension by DistrictRequirementsBinder, which sets
+         the text (✓/✕ + label) and the ok / no state class. Styling comes from the host panel. -->
+    <ui:Label name="Line" class="req-line"/>
+</ui:UXML>

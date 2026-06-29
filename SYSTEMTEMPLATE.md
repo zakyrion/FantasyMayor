@@ -1,3 +1,13 @@
+---
+category: B
+read: trigger
+trigger: "before creating or editing an ECS system or subsystem"
+tags: [template, ecs, systems]
+related:
+  - "[ARCHITECTURE](ARCHITECTURE.md)"
+  - "[DOC_STANDARD](DOC_STANDARD.md)"
+---
+
 # FantasyMayor — System Template Catalog
 
 How to create a new system. Pick the role first, then follow that role's template and rules.
@@ -89,7 +99,7 @@ RULES:
 - One-frame events DO NOT survive the async `MapCreation` pipeline. Startup bulk = Template 3/4,
   never an event.
 - Emitters may be deferred: a dormant reactive scaffold (consumer wired, no emitter yet) is a valid
-  intermediate state — mark it DORMANT in `ECS_REFERENCE.md`.
+  intermediate state — mark it DORMANT in the module MD `## Current State`.
 - Don't destroy entities while iterating the map/set that indexes them — snapshot into a
   `NativeList<Entity>` first, then destroy (`ForestDespawnSystem` model).
 
@@ -238,14 +248,14 @@ Pattern rules:
 
 CONDITION:
 - One-shot world/view construction during map creation, ordered against other stages.
-- Reference implementations: `TerrainGenerationSystem`, `HexIconsSpawnSystem`,
-  `HexInfoPanelSpawnSystem`.
+- Reference implementations: `MapGenerationSystem`, `HexIconsSpawnSystem`,
+  `MainUISpawnSystem` (an orchestrator stage that fans out into `MainUISpawnSubSystem`s).
 
 SKELETON:
 
 ```csharp
 [UsedImplicitly]
-internal sealed class [Name]System : IPrioritizedUniTaskSystem<TerrainGenerationStep>
+internal sealed class [Name]System : IPrioritizedUniTaskSystem<MapGenerationStep>
 {
     private const int ExecutionPriority = [N]; // current stages: 100..800, spaced by 100
 
@@ -258,7 +268,7 @@ internal sealed class [Name]System : IPrioritizedUniTaskSystem<TerrainGeneration
         _world = world;
     }
 
-    public async UniTask Update(TerrainGenerationStep state, CancellationToken cancellationToken)
+    public async UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
     {
         // Fail-loud guard on prerequisites produced by earlier stages.
         if (!_world.Has<[Prerequisite]Component>())
@@ -304,7 +314,7 @@ ORCHESTRATOR SKELETON:
 
 ```csharp
 [UsedImplicitly]
-internal sealed class [Name]System : IPrioritizedUniTaskSystem<TerrainGenerationStep>
+internal sealed class [Name]System : IPrioritizedUniTaskSystem<MapGenerationStep>
 {
     private const int ExecutionPriority = [N];
 
@@ -319,7 +329,7 @@ internal sealed class [Name]System : IPrioritizedUniTaskSystem<TerrainGeneration
             .ToArray();
     }
 
-    public UniTask Update(TerrainGenerationStep state, CancellationToken cancellationToken)
+    public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
     {
         var gameState = default(GameState); // one-shot: deltaTime is irrelevant
 
@@ -423,7 +433,7 @@ The split recipe (one-shot startup + reactive pair + shared helper) is in `ARCHI
 **Registration & wiring:**
 - Register per-frame and reactive systems with their **concrete** type in the module installer
   (`builder.Register<[Name]System>(Lifetime.Singleton).As<[Name]System>()`); pipeline stages as
-  `IPrioritizedUniTaskSystem<TerrainGenerationStep>`; subsystems as their family base type.
+  `IPrioritizedUniTaskSystem<MapGenerationStep>`; subsystems as their family base type.
 - Per-frame and reactive systems must then be wired into a game state by hand in `Boot.Construct` —
   decide WHICH state (almost always `Gameplay`) and add the system to that state's array. A system
   not wired into a state never runs.

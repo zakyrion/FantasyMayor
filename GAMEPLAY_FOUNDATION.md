@@ -1,32 +1,42 @@
+---
+category: C
+read: trigger
+trigger: "before gameplay / mechanics / district / turn / economy / actor design work"
+tags: [gameplay, design]
+related:
+  - "[ARCHITECTURE](ARCHITECTURE.md)"
+  - "[TURN](Assets/Modules/Turn/TURN.md)"
+---
+
 # FantasyMayor - Gameplay Foundation
 
 ## High Concept
 
-`FantasyMayor` - це покрокова гра про управління містом через дефіцит `Action Points`, обмежені ресурси, населення як виробничу й політичну силу та нестабільний баланс влади між мером і місцевими елітами.
+`FantasyMayor` is a turn-based game about governing a city through a scarcity of `Action Points`, limited resources, population as a productive and political force, and an unstable balance of power between the mayor and the local elites.
 
-Гравець виступає в ролі `Mayor`, але не контролює все місто напряму. Щоб місто жило й розвивалося, мер має вирішувати, що робити особисто, що фінансувати зі свого гаманця, що віддати місту, а що делегувати `Important Citizens`, які необхідні для функціонування системи, але водночас стають окремими центрами сили.
+The player takes the role of the `Mayor`, but does not control the whole city directly. For the city to live and grow, the mayor must decide what to do personally, what to fund from his own purse, what to hand over to the city, and what to delegate to `Important Citizens`, who are necessary for the system to function but at the same time become separate centers of power.
 
 ## Tone
 
-Базовий тон гри зараз - `cozy`.
+The current baseline tone of the game is `cozy`.
 
-Світ має відчуватися локальним, живим і людяним, з акцентом на співіснування, побутове виживання, переговори й поступовий розвиток. Конфлікт є важливою частиною гри, але базове враження має лишатися радше теплим і напруженим, ніж відверто жорстоким.
+The world should feel local, alive, and human, with an emphasis on coexistence, everyday survival, negotiation, and gradual development. Conflict is an important part of the game, but the baseline impression should stay warm and tense rather than openly cruel.
 
-У майбутньому в грі може з'явитися перемикач `cozy / cruel`. На цьому етапі це лише напрям подальшого розвитку, а не вже спроєктована механічна система.
+In the future the game may gain a `cozy / cruel` switch. At this stage this is only a direction for further development, not an already-designed mechanical system.
 
 ## Design Approach
 
-На старті гра не повинна намагатися бути "чесною симуляцією" всіх міських процесів.
+At the start the game should not try to be an "honest simulation" of all city processes.
 
-Початкова реалізація свідомо віддає пріоритет простим, зрозумілим і керованим системам, які створюють сильні рішення для гравця без зайвої симуляційної складності. Якщо певна механіка працює як абстракція, спрощення або контрольована умовність, це допустимо, поки вона підтримує core gameplay.
+The initial implementation deliberately prioritizes simple, understandable, and manageable systems that create strong decisions for the player without unnecessary simulation complexity. If a given mechanic works as an abstraction, a simplification, or a controlled convention, that is acceptable as long as it supports the core gameplay.
 
-Ключові наслідки цього підходу:
+Key consequences of this approach:
 
-- не симулювати те, що не дає гравцю кращих рішень
-- будувати системи так, щоб їх можна було розширити пізніше
-- тримати обмежену кількість `entity`, щоб зберегти контроль над складністю дизайну й реалізації
+- do not simulate what does not give the player better decisions
+- build systems so they can be extended later
+- keep a limited number of `entity` types to retain control over design and implementation complexity
 
-Робочий принцип:
+Working principle:
 
 `Make it run, make it right, make it fast`
 
@@ -38,32 +48,32 @@
 - `Population economy`
 - `Political economy`
 
-Ці опори формують головний контур гри:
+These pillars form the main loop of the game:
 
-- світ побудований через `Hex`
-- кожен `Hex` розвивається через `District`
-- `District` приносить користь лише тоді, коли хтось витрачає `Action Points` і має доступ до потрібної робочої сили
-- ресурси, населення і контроль над районами перетворюються на політичний вплив
+- the world is built out of `Hex`
+- each `Hex` develops through a `District`
+- a `District` is useful only when someone spends `Action Points` and has access to the required workforce
+- resources, population, and control over districts turn into political influence
 
 ## World Structure
 
-Просторовий ланцюг гри:
+The spatial chain of the game:
 
 `Hex -> District -> Buildings/Quarters`
 
-Правила:
+Rules:
 
-- кожен `Hex` може мати лише один `District`
-- кожен `District` має власні умови постановки
-- умови постановки залежать від природи конкретного `Hex`
-- `District` має власне дерево розвитку й еволюції
-- `District` можна перебудувати в іншу спеціалізацію
-- якщо `District` перебудовується в іншу спеціалізацію з нуля, усі наявні `Buildings/Quarters` на цьому `Hex` зносяться
-- `Buildings/Quarters` також мають власний розвиток, але їхній максимальний потенціал обмежений рівнем `District`
+- each `Hex` can have only one `District`
+- each `District` has its own placement conditions
+- placement conditions depend on the nature of the specific `Hex`
+- a `District` has its own development and evolution tree
+- a `District` can be rebuilt into a different specialization
+- if a `District` is rebuilt into a different specialization from scratch, all existing `Buildings/Quarters` on that `Hex` are demolished
+- `Buildings/Quarters` also have their own development, but their maximum potential is capped by the `District` level
 
 ## Actors and Power
 
-У поточній моделі є три ключові типи акторів:
+The current model has three key actor types:
 
 - `City`
 - `Mayor`
@@ -71,345 +81,369 @@
 
 ### City
 
-`City` має власний пул ресурсів. Саме з нього звичайні громадяни передусім покривають базові потреби, зокрема їжу. `City` також може бути `Owner` району.
+`City` has its own resource pool. It is primarily from this pool that ordinary citizens cover their basic needs, food in particular. `City` can also be the `Owner` of a district.
 
 ### Mayor
 
-`Mayor` - це головний актор гравця.
+`Mayor` is the player's main actor.
 
-Мер має:
+The mayor has:
 
-- особистий пул `Action Points`
-- особистий пул ресурсів
-- унікальні дії, пов'язані з лідерством, будівництвом, переговорами, тиском і прямим втручанням
+- a personal pool of `Action Points`
+- a personal resource pool
+- unique actions tied to leadership, construction, negotiation, pressure, and direct intervention
 
-Мер може діяти за власні ресурси або через ресурси міста. Це створює важливу різницю між особистою владою й публічним управлінням.
+The mayor can act using his own resources or through the city's resources. This creates an important distinction between personal power and public administration.
 
 ### Important Citizens
 
-`Important Citizens` - це напівавтономні актори, за значущістю близькі до мера.
+`Important Citizens` are semi-autonomous actors, close in significance to the mayor.
 
-Гравець не контролює їх напряму. Взаємодія з ними відбувається через переговори, вплив і політичний тиск, а не через прямі накази.
+The player does not control them directly. Interaction with them happens through negotiation, influence, and political pressure, not through direct orders.
 
-Кожен `Important Citizen` має:
+Each `Important Citizen` has:
 
-- особистий пул `Action Points`
-- особистий пул ресурсів
-- власні дії
-- власні цілі
-- власні вподобання
+- a personal pool of `Action Points`
+- a personal resource pool
+- their own actions
+- their own goals
+- their own preferences
 
-Вони можуть конфліктувати з мером і між собою через вплив, політичні рішення, ресурси та контроль над людьми. Один `Important Citizen` може володіти кількома `District` і через них будувати власну політичну базу.
+They can conflict with the mayor and with each other over influence, political decisions, resources, and control over people. A single `Important Citizen` can own several `District`s and build their own political base through them.
 
 ### Emergence of Important Citizens
 
-Перші `Important Citizens` повинні з'являтися рано й надійно через прості тригери. Їхня поява не повинна залежати від складної симуляції або випадковості, інакше головна політична механіка гри почне працювати занадто пізно.
+The first `Important Citizens` must appear early and reliably through simple triggers. Their appearance must not depend on complex simulation or randomness, otherwise the game's main political mechanic would start working too late.
 
-Приклади ранніх тригерів:
+Examples of early triggers:
 
-- побудований `District` відкриває появу пов'язаного `Important Citizen`
-- повторне використання певної ключової дії мера, наприклад ремісництва, відкриває появу пов'язаного `Important Citizen`
+- a built `District` unlocks the appearance of a related `Important Citizen`
+- repeated use of a certain key mayor action, for example crafting, unlocks the appearance of a related `Important Citizen`
 
-Після ранньої фази нові `Important Citizens` можуть з'являтися через складніші системні умови:
+After the early phase, new `Important Citizens` can appear through more complex systemic conditions:
 
-- тривалу роботу певного `District`
-- накопичення ресурсів у конкретному секторі
-- зростання або стабілізацію відповідної population group
-- патронаж, конфлікти чи інші політичні наслідки
+- prolonged operation of a certain `District`
+- accumulation of resources in a specific sector
+- growth or stabilization of the corresponding population
+- patronage, conflicts, or other political consequences
 
-Економічна роль і характер `Important Citizen` є різними вимірами:
+The economic role and the character of an `Important Citizen` are different dimensions:
 
-- `Role` визначає, з якою частиною економіки або простору пов'язаний актор
-- `Personality` визначає, як актор поводиться в політиці, переговорах і конфліктах
+- `Role` defines which part of the economy or space the actor is tied to
+- `Personality` defines how the actor behaves in politics, negotiation, and conflict
 
-Тому в місті може існувати кілька `Important Citizens` зі схожою роллю, наприклад кілька фермерів або ремісників, але з різними характерами й політичними наслідками для гри.
+So the city can have several `Important Citizens` with a similar role, for example several farmers or craftsmen, but with different characters and different political consequences for the game.
 
 ## Resources
 
-У поточній моделі є дві головні категорії ресурсів.
+The current model has two main resource categories.
 
 ### `Hex Resources`
 
-`Hex Resources` - це природні властивості `Hex`.
+`Hex Resources` are natural properties of a `Hex`.
 
-- усі `Hex Resources` зараз вважаються persistent
-- вони не працюють як вичерпні поклади
-- вони визначають, які типи `District` або дій можливі на цьому `Hex`
+- all `Hex Resources` are currently considered persistent
+- they do not work as exhaustible deposits
+- they define which types of `District` or actions are possible on that `Hex`
 
-Приклади: ліс, камінь, глина, руда.
+Examples: forest, stone, clay, ore.
 
 ### `Inventory Resources`
 
-`Inventory Resources` - це матеріали й товари, що зберігаються в пулах міста або окремих акторів.
+`Inventory Resources` are materials and goods stored in the pools of the city or individual actors.
 
-- вони використовуються в економіці, будівництві та виживанні
-- до них не застосовується поділ `consumable / persistent`
+- they are used in economy, construction, and survival
+- the `consumable / persistent` distinction does not apply to them
 
-Приклади: колоди, дошки, їжа та інші вироблені товари.
+Examples: logs, planks, food, and other produced goods.
 
-Головна різниця полягає в тому, що `Hex Resource` не є готовим запасом, який треба просто зняти з мапи. Це постійне джерело потенціалу, яке треба перетворювати на цінність через дії, `District` і розвиток.
+The main difference is that a `Hex Resource` is not a ready stock you simply take off the map. It is a permanent source of potential that must be converted into value through actions, `District`, and development.
 
 ## Population
 
-Населення є окремим стратегічним ресурсом. Воно не симулюється на рівні окремих індивідів, а існує як спрощена `population groups model`.
+Population is the people who work. In the current model, `1 unit of population = 1 worker` (an `Anno`-style approach): population is not an abstract aggregated mass but concrete people, each of whom is workforce.
 
-Населення потрібне для:
+Population is needed for:
 
-- роботи в `District`
-- будівництва й розвитку
-- підтримки економіки міста
-- формування політичної бази різних акторів
+- performing `District` actions (each action costs a specific number of people)
+- construction (raising a `District` also spends people)
+- supporting the city's economy
+- forming the political base of different actors
 
-Початкова модель повинна бути простою: групи населення описуються через агреговані показники, а не через індивідуальну симуляцію.
+### Population Model (v1)
 
-### Population Groups
+`v1` deliberately keeps population simple:
 
-Кожна група населення описується через:
+- a single type of people - conditional `peasants`; everyone can perform the available jobs (medieval setting - everyone works)
+- no simulation of social classes; loyalty and patronage at the population level are `out of v1` (`Population and Patronage` remains a future direction)
+- a single basic need - food
 
-- `size`
-- `needs`
-- `work capacity`
-- `loyalty`
-- `patron influence`
+This is enough to close the economic loop (`people -> actions -> resources -> food -> people`) without unnecessary simulation complexity.
 
-Цього достатньо, щоб замкнути економічний і політичний цикл без зайвої симуляційної складності.
+### Population Types (future direction)
+
+Later, population becomes a `tree of types` rather than a linear tier progression:
+
+- profession types: `peasants` -> `craftsmen` -> `masters`; higher types unlock more complex `District` actions
+- races as separate branches of the tree: `elves`, `orcs`, etc.
+- specifically a `tree` (not a line), because races and professions branch out rather than line up in a single row
+
+Action gating by type (for example, pottery is shaped only by `craftsmen`) is enabled together with this tree. In `v1` it does not exist.
 
 ### Population Rules
 
-- групи населення мають базові потреби, насамперед їжу
-- якщо потреби не покриті, це веде до падіння ефективності, смертності, зниження лояльності або комбінації цих наслідків
-- групи населення дають обмежений пул праці, потрібний для будівництва й активації `District`
-- якщо район має `AP`, але не має доступної праці, він не працює повноцінно
-- `Important Citizens` можуть нарощувати вплив на групи населення через патронаж і контроль ресурсів
-
-Population layer повинен підсилювати делегування, дефіцит `Action Points`, патронаж і політичний конфлікт, а не існувати як окрема самодостатня симуляція.
+- people have a basic need - food; if it is not covered, this leads to a drop in efficiency, mortality, or a combination of consequences
+- people are a limited workforce pool for both construction and `District` actions
+- if a district has free `Action Points` but no available people, the corresponding actions cannot be performed
+- `Important Citizens` can grow their influence over population through patronage and resource control - this is a political layer `out of v1`
 
 ## Action Economy
 
-Гра покрокова, і одним із її головних обмежень є кількість `Action Points`.
+The game is turn-based, and one of its main constraints is the number of `Action Points`.
 
-Правила:
+Rules:
 
-- лише `Mayor` і `Important Citizens` мають `Action Points`
-- `Action Points` не переносяться між ходами
-- кількість `Action Points` можна збільшувати з розвитком
-- дія може коштувати лише `Action Points` або `Action Points` плюс ресурси
+- only `Mayor` and `Important Citizens` have `Action Points`
+- `Action Points` do not carry over between turns
+- the number of `Action Points` can be increased through development
+- an action can cost `Action Points`, people (workforce), and resources - in any combination
 
-Це означає, що самих ресурсів недостатньо. Щоб система працювала, потрібен актор із вільними `Action Points`, а для частини економічних дій - ще й доступна робоча сила.
+This means resources alone are not enough. For the system to work, you need an actor with free `Action Points`, and for `District` actions also available people (and sometimes input resources).
 
-Отже, `Action Points` означають не просто зусилля, а практичну здатність контролювати економіку й нав'язувати місту свій порядок дій.
+So `Action Points` mean not just effort but the practical ability to control the economy and impose your order of actions on the city.
 
 ## Interaction Model
 
-Дії `Mayor` мають бути представлені через картки.
+`Mayor` actions are presented through panels and submenus.
 
-Карткова подача відповідає ролі мера як окремого актора з обмеженим пулом `Action Points`, власними ресурсами й політичною волею. Картки повинні представляти не стан міста, а ті конкретні ходи, які мер може спробувати нав'язати системі в поточному ході.
+An action is a button on a panel that opens a submenu, a sub-panel, or a modal window. Presentation through panels matches the mayor's role as a separate actor with a limited pool of `Action Points`, his own resources, and political will. Actions represent not the state of the city but the concrete moves the mayor can try to impose on the system in the current turn. There are no cards in the game.
 
-Через картки особливо добре подаються:
+Panels and submenus are especially well suited for:
 
-- переговори
-- особисті інвестиції мера
-- пряме втручання в `District`
-- політичні ініціативи
-- тиск, поступки та виняткові рішення
+- negotiations
+- the mayor's personal investments
+- direct intervention in a `District`
+- political initiatives
+- pressure, concessions, and exceptional decisions
 
-Стан міста, структура районів, ownership, resource flow, population groups та інші системні дані повинні читатися через мапу й інформаційні панелі, а не через картки.
+The state of the city, district structure, ownership, resource flow, population, and other systemic data are read through the map and information panels. The same panel can simultaneously show state and carry action buttons alongside it.
 
-Робочий принцип взаємодії:
+Working principle of interaction:
 
-`Map and panels for state, cards for agency`
+`Map and panels for state and agency; actions open as submenus`
 
 ## Turn Structure
 
-Кожен хід повинен бути структурований у зрозумілі фази. Це потрібно для того, щоб гравець міг читати стан системи, приймати рішення в правильний момент і розуміти, коли саме застосовуються наслідки його дій.
+Each turn must be structured into clear phases. This is needed so the player can read the state of the system, make decisions at the right moment, and understand exactly when the consequences of their actions apply.
 
 ### 1. Start of Turn Preview
 
-На початку ходу гравець бачить актуальний стан поселення:
+At the start of the turn the player sees the current state of the settlement:
 
-- поточні ресурси в пулах
-- активні `District`
-- поточні будівництва
-- стан population groups
-- базові потреби на наступний розрахунок
-- доступні картки `Mayor`
-- активні запити, проблеми або політичні сигнали
+- current resources in the pools
+- active `District`s
+- ongoing constructions
+- population state
+- basic needs for the next calculation
+- available `Mayor` actions
+- active requests, problems, or political signals
 
-Мета цієї фази - дати гравцю достатньо інформації для свідомого рішення, а не змушувати його діяти навмання.
+The goal of this phase is to give the player enough information for a conscious decision rather than forcing them to act blindly.
 
 ### 2. Mayor Phase
 
-У цій фазі гравець розігрує картки `Mayor` і визначає свої дії на хід.
+In this phase the player chooses `Mayor` actions through panels and submenus and defines their actions for the turn.
 
-Типові рішення в цій фазі:
+Typical decisions in this phase:
 
-- активувати ручні економічні дії
-- запускати будівництво або розвиток `District`
-- вкладати ресурси з особистого або міського пулу
-- проводити переговори
-- втручатися в роботу районів або в політичну ситуацію
+- activate manual economic actions
+- start construction or `District` development
+- invest resources from the personal or city pool
+- conduct negotiations
+- intervene in the work of districts or in the political situation
 
-Якщо певна дія потребує довготривалого зобов'язання, вона може резервувати частину `Action Points` на кілька ходів або іншим чином обмежувати доступний пул дій у наступних ходах.
+If a given action requires a long-term commitment, it may reserve part of the `Action Points` for several turns or otherwise limit the available action pool in following turns.
 
 ### 3. Citizen Phase
 
-Після мера свої дії виконують `Important Citizens`.
+After the mayor, the `Important Citizens` perform their actions.
 
-У цій фазі вони:
+In this phase they:
 
-- витрачають власні `Action Points`
-- активують контрольовані ними `District`
-- просувають свої інтереси відповідно до ролі, ресурсів, цілей і характеру
+- spend their own `Action Points`
+- activate the `District`s they control
+- advance their interests according to their role, resources, goals, and character
 
-На цьому рівні важливо, що вони діють не як продовження руки гравця, а як окремі актори зі своєю волею.
+At this level it is important that they act not as an extension of the player's hand but as separate actors with their own will.
 
 ### 4. Resolution Phase
 
-Після призначення дій відбувається їх резолв.
+After actions are assigned, they are resolved.
 
-У цій фазі:
+In this phase:
 
-- застосовуються ефекти карток
-- активовані `District` виробляють `Yield`
-- `Yield` ділиться через `City Share`, `Owner Share`, `Operator Share`
-- просувається будівництво й розвиток
-- оновлюється стан короткострокових економічних дій
+- the effects of the played actions are applied
+- activated `District`s produce `Yield`
+- `Yield` is split across `City Share`, `Owner Share`, `Operator Share`
+- construction and development advance
+- the state of short-term economic actions is updated
 
-Це основна фаза, де рішення цього ходу перетворюються на результат.
+This is the main phase where the turn's decisions turn into a result.
 
 ### 5. Upkeep Phase
 
-Після резолву системи проходять через upkeep.
+After resolution, the systems go through upkeep.
 
-У цій фазі:
+In this phase:
 
-- ресурси додаються в пули відповідно до результатів ходу
-- з пулів списуються витрати й базове споживання
-- оновлюється чисельність населення
-- оновлюється лояльність population groups
-- перевіряються дефіцити, голод, наслідки нестачі та інші базові системні ефекти
+- resources are added to the pools according to the turn's results
+- costs and basic consumption are deducted from the pools
+- population count is updated
+- population loyalty and patronage are `out of v1` (a future layer)
+- deficits, famine, shortage consequences, and other basic systemic effects are checked
 
-Саме тут стає видно ціну рішень, ухвалених у попередній фазі.
+This is where the cost of the decisions made in the previous phase becomes visible.
 
 ### 6. End of Turn Consequences
 
-Наприкінці ходу система може породжувати нові наслідки:
+At the end of the turn the system may generate new consequences:
 
-- запити від населення
-- нові політичні проблеми
-- події патронажу
-- умови для появи нових `Important Citizens`
-- інші сигнали, що змінюють пріоритети наступного ходу
+- requests from the population
+- new political problems
+- patronage events
+- conditions for the appearance of new `Important Citizens`
+- other signals that change the priorities of the next turn
 
-Після цього гра переходить до нового `Start of Turn Preview`.
+After that the game moves to a new `Start of Turn Preview`.
 
 ## District Economy
 
-`District` у поточній моделі - це не просто зонування. Він одночасно є:
+A `District` in the current model is not just zoning. It is at the same time:
 
-- спеціалізацією `Hex`
-- одиницею виробництва
-- об'єктом власності
-- споживачем праці
-- джерелом політичної сили
+- a specialization of a `Hex`
+- a unit of production
+- an object of ownership
+- a consumer of labor
+- a source of political power
 
-`Hex Resources` і `District` - це взаємозалежні системи. Природна властивість `Hex` може відкривати або обмежувати доступні типи `District`, а обраний `District` визначає, які будівлі, дії та шляхи довгострокового розвитку стають доступними.
+`Hex Resources` and `District` are interdependent systems. A natural property of a `Hex` can unlock or limit the available `District` types, and the chosen `District` defines which buildings, actions, and long-term development paths become available.
 
-Щоб `District` приносив користь, йому зазвичай потрібно:
+For a `District` to be useful, it usually needs:
 
-- право на існування на конкретному `Hex`
-- `Operator`
-- витрата `Action Points`
-- доступ до потрібної праці
+- the right to exist on a specific `Hex`
+- an `Operator`
+- a spend of `Action Points`
+- access to the required labor
+
+### District Construction
+
+A `District` is built in advance and not instantly:
+
+- to start construction, the actor immediately invests the full cost: `Action Points` (always from the `Mayor` pool), resources, and people (workers)
+- construction takes several turns; the finished `District` appears after completion
+- the resources for construction are paid by either the `Mayor` or the `City` - and this choice sets the initial `Owner`: whoever pays, owns (`Payer = Owner`)
+- a built `District` has a periodic `upkeep` each turn
+
+### District Actions
+
+An activated `District` works through `fixed-step` actions rather than as a passive generator:
+
+- one order (`step`) costs a fixed number of people + `Action Points` (`Operator`), sometimes also input resources, and gives a fixed output
+- the district's `max worker capacity` limits how many such orders can be issued per tile per turn (e.g. step 100 people, capacity 200 -> up to 2 orders)
+- some actions consume one resource and produce another (e.g. `clay -> pottery`)
+- each action's output is split across `City / Owner / Operator` (see `Yield Split`)
+- output can be fractional (`float`); the UI displays it rounded to one decimal place
 
 ## Ownership and Operation
 
-Кожен `District` має дві окремі ролі:
+Each `District` has two separate roles:
 
 - `Owner`
 - `Operator`
 
 ### `Owner`
 
-`Owner` - це сутність, яка володіє `District` як активом.
+`Owner` is the entity that owns the `District` as an asset.
 
-`Owner` може бути:
+`Owner` can be:
 
 - `City`
 - `Mayor`
 - `Important Citizen`
 
+The initial `Owner` is determined at the construction stage by whoever pays for it with resources (`Mayor` or `City`): `Payer = Owner` (see `District Construction`).
+
 ### `Operator`
 
-`Operator` - це сутність, яка активує `District` під час ходу, витрачаючи `Action Points`.
+`Operator` is the entity that activates the `District` during a turn by spending `Action Points`.
 
-`Owner` і `Operator` - це різні ролі, але одна й та сама сутність може поєднувати їх обидві.
+`Owner` and `Operator` are different roles, but the same entity can combine both.
 
-Цей поділ важливий, тому що володіння, активація й отримання вигоди не обов'язково збігаються.
+This separation matters because ownership, activation, and receiving the benefit do not necessarily coincide.
 
 ## Yield Split
 
-`District` генерує ресурси лише тоді, коли його активовано.
+A `District` generates resources only when it is activated - that is, when the `Operator` issues a `District` action (a fixed step: people + `Action Points` [+ input resources]; see `District Actions`).
 
-Високорівнева модель:
+High-level model:
 
-`Activated District -> Yield Split`
+`District Action -> Yield Split`
 
-Після активації результат `District` ділиться на три канали:
+The output of each action is split into three channels:
 
 - `City Share`
 - `Owner Share`
 - `Operator Share`
 
-Це означає:
+This means:
 
-- `City` отримує частину результату для спільного виживання й публічного життя
-- `Owner` отримує частину результату за контроль над активом
-- `Operator` отримує частину результату за витрачені `Action Points` і виконану дію
+- `City` receives a part of the result for shared survival and public life
+- `Owner` receives a part of the result for control over the asset
+- `Operator` receives a part of the result for the spent `Action Points` and the performed action
 
-Точні формули на цьому етапі навмисно не визначені.
+The exact formulas are deliberately not defined at this stage.
 
 ## Delegation and Political Conflict
 
-Мер не може особисто обслуговувати кожен важливий `District`, бо має обмежений пул `Action Points`.
+The mayor cannot personally service every important `District`, because he has a limited pool of `Action Points`.
 
-Звідси виникає центральна напруга гри:
+From this comes the central tension of the game:
 
-- прямий контроль зберігає владу, але витрачає обмежені дії мера
-- делегування підтримує роботу економіки, але посилює інших акторів
+- direct control preserves power but spends the mayor's limited actions
+- delegation keeps the economy running but strengthens other actors
 
-`Important Citizens` потрібні не як бонусні помічники, а як спосіб обійти дефіцит `Action Points` мера. Особливо це важливо тоді, коли критичні `District` повинні залишатися активними, а населення залежить від стабільного виробництва.
+`Important Citizens` are needed not as bonus helpers but as a way to bypass the mayor's `Action Points` deficit. This is especially important when critical `District`s must stay active and the population depends on stable production.
 
-Водночас кожен делегований `District`, кожен приватний ресурсний потік і кожен контрольований контур населення зміцнюють локальну політичну базу. Актори, які контролюють землю, виробництво, їжу й людей, можуть тиснути на мера, саботувати політику або просувати власний порядок денний.
+At the same time, every delegated `District`, every private resource flow, and every controlled population loop strengthens a local political base. Actors who control land, production, food, and people can pressure the mayor, sabotage policy, or push their own agenda.
 
-Головний конфлікт гри можна звести до формули:
+The game's main conflict can be reduced to the formula:
 
 `Control vs Delegation vs Survival`
 
 ## Population and Patronage
 
-Звичайні громадяни спочатку споживають ресурси `City`.
+Ordinary citizens initially consume `City` resources.
 
-Якщо місто не може покрити базові потреби, люди звертаються до своїх патронів. На практиці це означає, що `Important Citizens` можуть ставати альтернативними джерелами виживання, особливо якщо вони контролюють продуктивні `District` і мають власні запаси ресурсів.
+If the city cannot cover basic needs, people turn to their patrons. In practice this means `Important Citizens` can become alternative sources of survival, especially if they control productive `District`s and have their own resource stocks.
 
-Це робить приватне багатство й контроль над ресурсами політично значущими:
+This makes private wealth and control over resources politically significant:
 
-- ресурси є не лише економічною силою
-- ресурси є важелем впливу на людей
-- підтримка в часи кризи може створювати залежність, лояльність і локальний політичний вплив
+- resources are not only economic power
+- resources are a lever of influence over people
+- support in times of crisis can create dependency, loyalty, and local political influence
 
-Отже, патронаж - це соціальний і політичний шар, побудований поверх економічного.
+So patronage is a social and political layer built on top of the economic one.
 
 ## Open Questions
 
-- Хто ухвалює довгострокові стратегічні рішення для `City-owned` `District`?
-- Якими саме мають бути формули або правила `Yield Split`?
-- Чи мають `Important Citizens` формальні зобов'язання перед містом, коли підтримують "своїх" людей ресурсами?
-- Які саме population groups потрібні для `v1`, окрім базового населення?
-- Які базові потреби, окрім їжі, мають увійти у `v1`?
-- Наскільки деталізованою й агресивною має бути AI-поведінка `Important Citizens`?
-- Що саме повинен змінювати майбутній перемикач `cozy / cruel`: лише числа й настрій, чи також доступні поведінки та наслідки?
+- Who makes long-term strategic decisions for a `City-owned` `District`?
+- What exactly should the formulas or rules of `Yield Split` be?
+- Should `Important Citizens` have formal obligations to the city when they support "their" people with resources?
+- When and how to introduce the `population type tree` (craftsmen, masters, races) after `v1`?
+- Which basic needs besides food should enter `v1`?
+- How detailed and aggressive should the AI behavior of `Important Citizens` be?
+- What exactly should the future `cozy / cruel` switch change: only numbers and mood, or also the available behaviors and consequences?
 
 ## Core Identity
 
-`FantasyMayor` - це покроковий hex-based city-political builder, у якому гравець керує містом через мера з обмеженими діями, розвиває територію через `District`, ресурси й населення, а також змушений покладатися на автономних `Important Citizens`, які одночасно необхідні для виживання міста і становлять довгострокову загрозу централізованому контролю.
+`FantasyMayor` is a turn-based hex-based city-political builder in which the player governs a city through a mayor with limited actions, develops territory through `District`, resources, and population, and is also forced to rely on autonomous `Important Citizens`, who are at the same time necessary for the city's survival and constitute a long-term threat to centralized control.

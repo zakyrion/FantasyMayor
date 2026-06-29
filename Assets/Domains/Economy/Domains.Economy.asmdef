@@ -1,0 +1,22 @@
+{
+    "name": "Domains.Economy",
+    "rootNamespace": "",
+    "references": [
+        "Domains.Map",
+        "VContainer",
+        "DefaultECS.Extensions",
+        "Boot.Core",
+        "Core",
+        "Addressables.Core",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

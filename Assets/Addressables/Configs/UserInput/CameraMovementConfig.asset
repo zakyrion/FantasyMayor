@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: CameraMovementConfig
   m_EditorClassIdentifier: UserInput::Modules.UserInput.Configs.CameraMovementConfig
   _panSpeed: 12
+  _dragPanSpeed: 0.3
   _zoomStep: 4
-  _minFieldOfView: 25
-  _maxFieldOfView: 65
+  _minHeight: 8
+  _maxHeight: 20
+  _zoomSpeed: 8

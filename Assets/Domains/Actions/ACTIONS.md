@@ -1,0 +1,54 @@
+---
+category: A
+read: reference
+tags:
+  - actions
+  - ecs
+  - domain
+related:
+  - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
+  - "[GAMEPLAY_FOUNDATION](../../../GAMEPLAY_FOUNDATION.md)"
+  - "[ECONOMY](../Economy/ECONOMY.md)"
+  - "[ACTORS](../Actors/ACTORS.md)"
+  - "[DISTRICT_BUILD_COST](DISTRICT_BUILD_COST.md)"
+  - "[TURN_PHASES](TURN_PHASES.md)"
+status: partial
+---
+
+# Actions
+
+The application / orchestration layer: actor verbs and cross-domain turn processing. Depends on both
+`Economy` and `Actors`; nothing depends on it. This is the **domain index** — feature-areas have their
+own docs (see Current State).
+
+## Purpose
+This is the top of the domain DAG **substrate → agents → verbs**: `Economy` (owner-agnostic resource /
+district vocabulary) → `Actors` (identities + startup state) → `Actions`. It is the one place allowed
+to know every other domain, so cross-domain scenarios live here and the lower domains stay closed to
+modification (Open-Closed): a new resource type touches only Economy, a new actor only Actors, a new
+verb / scenario only Actions.
+
+Planned content (rest pending):
+- Mayor / Noble verbs — build district, operate district, negotiate, invest, intervene.
+- Turn-phase scenarios that span domains — e.g. the **upkeep** scenario *orchestrates* per-owner
+  resource upkeep, while the resource math itself stays an owner-agnostic helper in `Economy`
+  (scenario in Actions, rule in the domain).
+
+## Design Decisions
+- **Orchestration here, mechanics in the domains.** A scenario in Actions composes domain operations;
+  it must not re-implement them. Keeping the rule (e.g. upkeep arithmetic) in `Economy` and only the
+  sequencing in `Actions` is what preserves Open-Closed inside this layer.
+- **Boot stays the init engine.** World-init still runs through Boot's `MapGenerationStep` pipeline and
+  per-actor spawn stages live in `Actors`. Actions does NOT own an init orchestrator or a `GameStates`
+  sub-domain — that was considered and deliberately deferred until a concrete need exists.
+- **Turn engine reuse.** When turn verbs land, they plug into the existing `Turn` module engine as
+  phase subsystems; Actions provides the phase content, `Turn` runs it.
+
+## Current State
+PARTIAL. Two feature-areas have landed — each documented in its own file:
+- **District-build cost config** → [DISTRICT_BUILD_COST.md](DISTRICT_BUILD_COST.md) — the build verb's
+  per-district cost catalogue (loaded at `ConfigLoadStep`, read by the UI; no verb spends it yet).
+- **Turn phases** → [TURN_PHASES.md](TURN_PHASES.md) — the Mayor AP-restore phase.
+
+Still scaffold: Mayor/Noble verbs, cross-domain turn scenarios (upkeep arithmetic, resolution, yield
+split), and the other turn phases.
