@@ -125,7 +125,7 @@ Task budget:
 
 ## Discovery Scouts (Haiku delegation)
 Heavy discovery and audit run on dedicated read-only Haiku subagents in `.claude/agents/`, so the main loop stays lean and fast and the Opus budget is spent on reasoning, not raw output. Delegate (auto via their `description`, or explicitly with `@agent-<name>`) instead of doing the legwork inline:
-- **graphify-scout** — the **single discovery front door**. General code: symbol lookup, call/dependency chains, blast-radius (graphify). DoD/ECS: archetypes, who writes/reads a component, reactive event consumers, event producer→consumer, Table-Rule PK/FK, system roles (`ecs-graph`). Reads its charter `.claude/SEARCH_POLICY.md` first; returns distilled findings, not raw dumps.
+- **graphify-scout** — the **single discovery front door**. General code: symbol lookup, call/dependency chains, blast-radius (graphify). DoD/ECS: archetypes, who writes/reads a component, reactive event consumers, event producer→consumer, Table-Rule PK/FK, system roles (`ecs-graph`). DI/VContainer: what a type is registered as + Lifetime + installer, who injects it, what fills a collection injection, which `GameMode` a system runs in (`di-graph` — use instead of reading Boot/installers). Reads its charter `.claude/SEARCH_POLICY.md` first; returns distilled findings, not raw dumps.
 - **arch-scout** — `arch-check` audit (stateful systems + System.Collections.Generic bans); detector only.
 - **asset-scout** — `unity-asset-graph` queries (build contents, asset usage, dead/unused, serialized enum values).
 

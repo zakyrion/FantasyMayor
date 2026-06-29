@@ -16,7 +16,7 @@ dumps. The main agent spends its budget on reasoning and edits, not on raw outpu
 
 ## 1. The model — one front door
 ```
-main agent ──(question about the code)──▶ @agent-graphify-scout ──▶ ecs-graph | graphify | module-MD ─┐
+main agent ──(question about the code)──▶ @agent-graphify-scout ──▶ ecs-graph | di-graph | graphify | module-MD ─┐
      ▲                                                                                                │
      └──────────────────────────── distilled answer ◀──────────────────────────────────────────────┘
 ```
@@ -74,6 +74,7 @@ Verdict ∈ `ALLOW` · `DENY→scout` (delegate to `graphify-scout`) · `SCOUT` 
 | Question | Go to |
 |---|---|
 | entity archetype / who writes-or-reads a component / reactive event consumers / event producer→consumer / Table-Rule PK-FK / system role+priority | **`ecs-graph`** (via scout) |
+| what a type is registered AS / its Lifetime / which installer / who injects it / what fills a collection injection (`IReadOnlyList<T>`) / which `GameMode` a system runs in (Boot composition) | **`di-graph`** (via scout) |
 | general call / import / dependency / orchestration chain / blast-radius | **`graphify`** (via scout) |
 | intent, invariants, side-effects, ownership, call order, current state | **module-MD** (via scout) |
 | visual map of entities / economy / relations | **`.canvas`** via `Tools/read_canvas.sh` (via scout) |
@@ -92,8 +93,8 @@ Verdict ∈ `ALLOW` · `DENY→scout` (delegate to `graphify-scout`) · `SCOUT` 
 
 ## 5. Scout charter (graphify-scout)
 - Read this file FIRST. You are the single discovery front door; the main agent depends on you.
-- Pick the source by §4. Prefer `ecs-graph`/`graphify`/module-MD; read source only after the graph
-  narrows to a specific file, minimum fragment, `source_location` first.
+- Pick the source by §4. Prefer `ecs-graph`/`di-graph`/`graphify`/module-MD; read source only after the
+  graph narrows to a specific file, minimum fragment, `source_location` first.
 - **Docs are Obsidian-first, and `INDEX.md` is the init access point:** for any doc/canvas question, load
   `INDEX.md` FIRST (the doc map), then open only what it points to. Read `.md` via
   `mcp__obsidian__vault_read` / `search_query` when the `obsidian` server is connected, else plain `Read`.

@@ -9,6 +9,9 @@
 # ecs-graph DoD/ECS knowledge graph — derived, regenerated on demand, never tracked
 /.ecs-graph/
 
+# di-graph VContainer DI knowledge graph — derived, regenerated on demand, never tracked
+/.di-graph/
+
 # Local editor / OS noise (solo dev, one machine)
 .idea/
 .DS_Store

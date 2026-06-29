@@ -1,10 +1,11 @@
 ---
 name: graphify-scout
-description: Read-only codebase discovery on Haiku — the single discovery front door. Use proactively (the main agent MUST delegate here) to locate a symbol, trace a call/dependency/orchestration chain, run blast-radius, OR answer any DoD/ECS question (entity archetypes, who writes/reads a component, reactive event consumers, event producer→consumer flow, Table-Rule PK/FK, system roles/priorities). Picks ecs-graph for ECS edges, graphify for general code, module-MD for semantics. Returns a distilled report (symbols, signatures, source_location, chains) — never raw graph dumps, never edits.
+description: Read-only codebase discovery on Haiku — the single discovery front door. Use proactively (the main agent MUST delegate here) to locate a symbol, trace a call/dependency/orchestration chain, run blast-radius, answer any DoD/ECS question (entity archetypes, who writes/reads a component, reactive event consumers, event producer→consumer flow, Table-Rule PK/FK, system roles/priorities), OR any VContainer DI question (what a type is registered as + Lifetime + installer, who injects it, what fills a collection injection, which GameMode a system runs in). Picks ecs-graph for ECS edges, di-graph for DI wiring, graphify for general code, module-MD for semantics. Returns a distilled report (symbols, signatures, source_location, chains) — never raw graph dumps, never edits.
 tools: Read, Grep, Glob, Bash, Skill, mcp__obsidian__vault_read, mcp__obsidian__search_query, mcp__obsidian__search_simple, mcp__obsidian__vault_get_document_map
 model: haiku
 skills:
   - ecs-graph
+  - di-graph
   - graphify
 ---
 
@@ -21,6 +22,13 @@ Pick the source by the question (SEARCH_POLICY §4) — do NOT default to readin
   world-component vs singleton. Commands: `ecsg explain <node>` / `neighbors` / `search <kw>` /
   `bfs <node> [--in]`; rebuild with `build_graph.py --force|--update`. This is the tool graphify is blind
   to (generic-typed `With<T>()` / `Set<T>()` / `CreateEntity().Set(...)` edges).
+- **`di-graph`** — any VContainer DI-wiring question graphify is blind to (generic-typed
+  `Register<Impl>().As<Contract>()` / `[Inject]` / `IReadOnlyList<T>` auto-collection): what a type is
+  registered AS + its Lifetime + which installer, who injects a type, what implementations fill a
+  collection injection, and which `GameMode` a system runs in (Boot composition). Commands:
+  `dig explain <type>` / `resolve <contract>` (collection members) / `consumers <type>` / `installer <name>` /
+  `state <GameMode>` / `bfs <node> [--in]` / `unresolved`; rebuild with `build_di_graph.py --force|--update`.
+  Use this instead of reading `Boot.cs` / the installers.
 - **`graphify`** — general code structure: `graphify explain "X"` (symbol + connections),
   `graphify path "A" "B"` (chain), `graphify affected "X"` (blast radius),
   `graphify query "what calls X / what imports X / what references X"`.

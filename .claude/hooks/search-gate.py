@@ -25,7 +25,9 @@ SCOUT = ("→ delegate this to @agent-graphify-scout (the single discovery front
          "See .claude/SEARCH_POLICY.md.")
 
 SOURCE_RE = re.compile(r"Assets/.*\.cs$")
-GRAPH_CLI_EXES = {"graphify", "ecsg", "ecsg.py", "build_graph", "build_graph.py", "ecs-graph"}
+# di CLI: gate `dig.py` (not bare `dig`, which collides with the Unix DNS tool) + its builder.
+GRAPH_CLI_EXES = {"graphify", "ecsg", "ecsg.py", "build_graph", "build_graph.py", "ecs-graph",
+                  "dig.py", "build_di_graph", "build_di_graph.py", "di-graph"}
 CODE_SEARCH_EXES = {"rg", "ag", "ack"}            # dedicated source-search tools
 GREP_FIND_EXES = {"grep", "egrep", "fgrep", "find"}  # general; gated only over Assets
 # wrappers to skip when finding a pipeline segment's real executable
