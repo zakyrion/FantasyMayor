@@ -49,7 +49,7 @@ Bridges Unity InputSystem to ECS: camera pan/drag/zoom and hex selection.
 - Config address is `nameof(CameraMovementConfig)` — the addressable key must match the type name.
 
 ## Input Actions Used
-From `FantasyMayor.inputactions` (these names are not visible to graphify — they live in a Unity asset):
+From `FantasyMayor.inputactions` (these names are not visible to roslyn-mcp — they live in a Unity asset):
 - `UI/Click`, `UI/Point` — selection click + pointer position
 - `UI/ScrollWheel` — zoom
 - `UI/RightClick` — drag pan

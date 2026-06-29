@@ -9,11 +9,11 @@ related:
 
 # INDEX
 
-> ⚠️ **Key file — the single entry point for all doc navigation. Keep it short and informative.** Built in 2 passes (like graphify): (1) `python3 Tools/gen_index.py` rebuilds the skeleton between the markers from each doc's frontmatter + first line; (2) the agent curates descriptions, statuses, and context. To change a description or status, edit the doc's first line / `status` frontmatter and re-run pass 1 — do not edit between the markers. The agent zone below the END marker is preserved across runs.
+> ⚠️ **Key file — the single entry point for all doc navigation. Keep it short and informative.** Built in 2 passes: (1) `python3 Tools/gen_index.py` rebuilds the skeleton between the markers from each doc's frontmatter + first line; (2) the agent curates descriptions, statuses, and context. To change a description or status, edit the doc's first line / `status` frontmatter and re-run pass 1 — do not edit between the markers. The agent zone below the END marker is preserved across runs.
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 37 docs — 3 always · 5 trigger · 29 reference · 2 canvas.
+Totals: 38 docs — 3 always · 5 trigger · 30 reference · 2 canvas.
 
 ## Read at start (always)
 
@@ -31,7 +31,7 @@ Do **not** preload. Read only when the trigger condition holds.
 |---|---|---|
 | [IAddressable Contract](Assets/Modules/Addressable/ADDRESSABLE_PATTERNS.md) | before writing/editing/reviewing Addressables, IAddressable, Box<T> or Result<T> code | Single source of truth for addressable loading. Read this; do not grep. |
 | [FantasyMayor — Config Template Catalog](CONFIGTEMPLATE.md) | before working with a config, config component, or loader flow | How to create config-related classes: the authored `ScriptableObject`, its flattened ECS component, |
-| [FantasyMayor - Gameplay Foundation](GAMEPLAY_FOUNDATION.md) | before gameplay / mechanics / district / turn / economy / actor design work | `FantasyMayor` is a turn-based game about governing a city through a scarcity of `Action Points`, limited resources, population as a productive and political force, and an unstable balance of power between the mayor and the local elites. |
+| [FantasyMayor - Gameplay Foundation](GAMEPLAY_FOUNDATION.md) | ONLY when the user explicitly asks to open this file — never on session-start, never by topic/keyword | `FantasyMayor` is a turn-based game about governing a city through a scarcity of `Action Points`, limited resources, population as a productive and political force, and an unstable balance of power between the mayor and the local elites. |
 | [GENERAL_UI_STYLE.md](GENERAL_UI_STYLE.md) | before creating or changing UI (UI Toolkit, panels, tokens, USS) | The general UI design language for FantasyMayor: the global HUD layout model, design principles, visual |
 | [FantasyMayor — System Template Catalog](SYSTEMTEMPLATE.md) | before creating or editing an ECS system or subsystem | How to create a new system. Pick the role first, then follow that role's template and rules. |
 
@@ -41,6 +41,7 @@ Per-module navigation docs. `status` mirrors each module's `## Current State`.
 
 | Doc | Cat | Status | What it is |
 |---|---|---|---|
+| [AI Context Migration — Plan (FantasyMayor)](AI_CONTEXT_MIGRATION.md) | C | partial | Repo-adapted execution plan for the AI-context migration spec (the verbatim source spec has been |
 | [Actions](Assets/Domains/Actions/ACTIONS.md) | A | partial | The application / orchestration layer: actor verbs and cross-domain turn processing. Depends on both |
 | [District Build Cost](Assets/Domains/Actions/DISTRICT_BUILD_COST.md) | A | partial | The district-build **cost** config flow: the Actions domain owns the per-district AP + resource price |
 | [Turn Phases](Assets/Domains/Actions/TURN_PHASES.md) | A | partial | The Actions domain's turn-phase subsystems: phase **content** that plugs into the `Turn` engine. |
@@ -86,4 +87,4 @@ Visual maps (Obsidian Canvas). Read/edit via Obsidian MCP; not preloaded.
 
 Curate what the script can't derive: current focus, stale docs, cross-doc orientation. Keep it short. Preserved across `gen_index.py` runs.
 
-_None yet._
+- **Current program:** AI-context migration — see [AI_CONTEXT_MIGRATION.md](AI_CONTEXT_MIGRATION.md) (plan, gap analysis, rollout; the verbatim source spec was removed once consumed). Stance: adapt to existing infra. **Epic A (roslyn-mcp) + Epic B (ecs-graph + di-graph typed MCP facades) DONE 2026-06-30** — live after a Claude Code reload; Epic C (dispatcher remainder) + D (docs why-only) remain.

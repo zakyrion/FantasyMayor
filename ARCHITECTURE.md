@@ -4,7 +4,6 @@ read: always
 tags: [architecture, ecs, conventions]
 related:
   - "[DOC_STANDARD](DOC_STANDARD.md)"
-  - "[GAMEPLAY_FOUNDATION](GAMEPLAY_FOUNDATION.md)"
 ---
 
 # FantasyMayor — Architecture Reference
@@ -21,39 +20,6 @@ related:
 - Rendering: Universal Render Pipeline
 - UI: Unity `UI Toolkit` (UXML/USS); `Unity App UI` (`com.unity.dt.app-ui`) is the component foundation — see `GENERAL_UI_STYLE.md` §15
 
-## Repository Map
-
-```text
-FantasyMayor/
-├─ Assets/
-│  ├─ Domains/                # Game-rule bounded contexts (Map, Economy, Actors) — one asmdef each
-│  ├─ Presentation/           # Render/view tier: world views (Presentation) + HUD (Presentation.UI under UI/)
-│  ├─ Modules/                # Engine-facing / infra feature modules
-│  ├─ Scripts/                # Shared runtime primitives and app-root installers
-│  ├─ Addressables/           # Authored addressable content and config assets
-│  ├─ AddressableAssetsData/  # Addressables editor configuration
-│  ├─ Scenes/                 # Unity scenes and sub-scenes
-│  ├─ Prefabs/                # Global prefabs
-│  ├─ Resources/              # Legacy/global resources
-│  ├─ Materials/
-│  ├─ Shader/
-│  ├─ Plugins/                # Odin, Easy Save, Dreamteck, Animancer
-│  ├─ Packages/               # Vendored package payloads under Assets
-│  ├─ Settings/
-│  ├─ Editor/
-│  ├─ TextMesh Pro/
-│  ├─ Schemes/
-│  └─ TutorialInfo/
-├─ Packages/                  # Unity package manifest and lock file
-├─ CLAUDE.md                  # Agent process rules
-├─ ARCHITECTURE.md            # This file — project-wide architecture policy
-├─ SYSTEMTEMPLATE.md          # Template catalog for new systems
-├─ CONFIGTEMPLATE.md          # Template catalog for config flows
-├─ DOC_STANDARD.md            # How every MD file is written
-├─ GAMEPLAY_FOUNDATION.md     # GD doc — target gameplay cycles
-└─ GENERAL_UI_STYLE.md        # UI design language (read fully only for UI work)
-```
-
 ## Source Of Truth
 | What | Where |
 |---|---|
@@ -64,16 +30,6 @@ FantasyMayor/
 | Authored config assets | `Assets/Addressables/Configs/*` |
 | Scenes | `Assets/Scenes/*` |
 | Package dependencies | `Packages/manifest.json` |
-
-## Current Scene And Content Layout
-- Main scenes: `Assets/Scenes/SampleScene.unity`, `Assets/Scenes/TerrainMask.unity`
-- Sub-scene: `Assets/Scenes/SampleScene/GameplaySubScene.unity`
-- Addressable config roots:
-  - `Assets/Addressables/Configs/TerrainGenerationConfig`
-  - `Assets/Addressables/Configs/TerrainViewConfigs`
-  - `Assets/Addressables/Configs/UserInput`
-- Additional addressable content: `Assets/Addressables/Textures`
-- Addressables editor data is stored in `Assets/AddressableAssetsData/*`
 
 ## Shared Runtime Assemblies
 

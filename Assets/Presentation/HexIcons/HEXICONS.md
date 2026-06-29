@@ -16,7 +16,7 @@ Manages per-hex UI icon badges using a UI Toolkit Screen-Space overlay.
 `HexIconsVisibilitySystem` runs on a `HexIconsVisibilityChangedEvent` pulse (a **Reactive System**,
 Gameplay — base set = the event; the truth lives in the `HexIconsVisibilityComponent` world
 component). Producer today: `GameplayState.EnterAsync`; later a UI toggle. This reactive trigger is
-not visible in graphify — full event flow: the ecs-graph (`/ecs-graph`).
+not visible in roslyn-mcp — full event flow: the ecs-graph (`/ecs-graph`).
 
 System roles (`ARCHITECTURE.md` "System Taxonomy"): `HexIconsConfigLoaderSystem` = Config Loader;
 `HexIconsSpawnSystem` = Pipeline Stage (700); `HexIconsVisibilitySystem` = Reactive System;

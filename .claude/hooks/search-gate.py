@@ -3,7 +3,7 @@
 
 Applies ONLY to the main agent (subagents are exempt — they are the discovery path). In the main
 session it denies source DISCOVERY over Assets/**/*.cs (Grep/Glob sweeps + Bash rg/grep/find + direct
-graph-CLI) and routes everything to @agent-graphify-scout, and it budgets per-session unique .cs reads
+graph-QUERY CLI ecsg/dig) and routes everything to @agent-discovery-scout, and it budgets unique .cs reads
 (for editing). On budget exhaustion it denies with a STOP message telling the agent to ask the user.
 
 Reads the hook JSON from stdin; prints a deny decision (or nothing = allow) and exits 0. Fail-open:
@@ -21,13 +21,16 @@ from pathlib import Path
 
 DEFAULT_LIMIT = 8
 STATE_DIR = Path.home() / ".claude" / ".search-budget"
-SCOUT = ("→ delegate this to @agent-graphify-scout (the single discovery front door). "
+SCOUT = ("→ for code structure/refs/symbols use the roslyn-mcp tools (mcp__roslyn__*); "
+         "for ECS/DI/orchestration/docs delegate to @agent-discovery-scout. "
          "See .claude/SEARCH_POLICY.md.")
 
 SOURCE_RE = re.compile(r"Assets/.*\.cs$")
-# di CLI: gate `dig.py` (not bare `dig`, which collides with the Unix DNS tool) + its builder.
-GRAPH_CLI_EXES = {"graphify", "ecsg", "ecsg.py", "build_graph", "build_graph.py", "ecs-graph",
-                  "dig.py", "build_di_graph", "build_di_graph.py", "di-graph"}
+# Graph QUERY CLIs only — they dump raw graph TEXT into context (use the bounded MCP / the scout instead).
+# BUILD scripts (build_graph/build_di_graph) are intentionally NOT gated: they only write artifacts + a
+# stat line, so a re-build is maintenance, not discovery — gating them would break the skills themselves.
+# `dig.py` (not bare `dig`, which collides with the Unix DNS tool).
+GRAPH_CLI_EXES = {"ecsg", "ecsg.py", "ecs-graph", "dig.py", "di-graph"}
 CODE_SEARCH_EXES = {"rg", "ag", "ack"}            # dedicated source-search tools
 GREP_FIND_EXES = {"grep", "egrep", "fgrep", "find"}  # general; gated only over Assets
 # wrappers to skip when finding a pipeline segment's real executable
@@ -143,8 +146,8 @@ def _segment_exe(segment: str) -> str:
 
 
 def bash_is_gated(cmd: str):
-    """Gate by each pipeline segment's EXECUTABLE — so a mere mention of 'graphify' or 'grep' as an
-    argument (e.g. `grep graphify CLAUDE.md`) is NOT gated; only an actual invocation is."""
+    """Gate by each pipeline segment's EXECUTABLE — so a mere mention of 'ecsg' or 'grep' as an
+    argument (e.g. `grep ecsg CLAUDE.md`) is NOT gated; only an actual invocation is."""
     for seg in re.split(r"\|\||&&|;|\||\n", cmd):
         exe = _segment_exe(seg)
         if exe in GRAPH_CLI_EXES:

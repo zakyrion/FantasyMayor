@@ -16,7 +16,7 @@ Visualizes resource entities from `HexResources` by instantiating prefabs on ter
 `ForestSpawnSystem` runs on a `ForestHexAppearedEvent` pulse; `ForestDespawnSystem` on a
 `ForestHexRemovedEvent` pulse (both **Reactive Systems**, Gameplay, base set = the event).
 **DORMANT** — no emitter raises either pulse yet (future planting/chopping gameplay). These reactive
-triggers are not visible in graphify — full event flow: the ecs-graph (`/ecs-graph`).
+triggers are not visible in roslyn-mcp — full event flow: the ecs-graph (`/ecs-graph`).
 
 ## Init vs Reactive — who does what
 

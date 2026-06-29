@@ -83,7 +83,7 @@ that resolves it.
   is a **Reactive System** (anchored on the `SelectedHexChangedEvent` pulse): it reconciles per-tab
   enabled/disabled state from the current selection (currently a stub — all enabled). See
   `ContextTabs/CONTEXT_TABS.md`.
-- These reactive triggers are not visible in graphify — full event flow: the ecs-graph (`/ecs-graph`).
+- These reactive triggers are not visible in roslyn-mcp — full event flow: the ecs-graph (`/ecs-graph`).
   Roles: `ARCHITECTURE.md` "System Taxonomy".
 
 ## Non-Obvious Invariants

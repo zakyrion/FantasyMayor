@@ -14,47 +14,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # FantasyMayor: Project Context & Architectural Decisions
 
-## Graphify Scope
-
-**Full rebuild** (done once): scan `Assets/` + root MD files.
-```
-graphify Assets/  (+ ARCHITECTURE.md, GAMEPLAY_FOUNDATION.md, SYSTEMTEMPLATE.md, CONFIGTEMPLATE.md)
-```
-
-**Incremental `--update`**: limit to game code only — `Assets/Modules`, `Assets/Scripts`, and root MD files.
-Third-party folders (Plugins, Packages, TextMesh Pro, Easy Save 3, Dreamteck, Sirenix, etc.) are immutable — never re-scan them on updates.
-
-For `--update`, use **Gemini** as primary. Fallbacks if Gemini quota is exhausted:
-```bash
-# Primary — Gemini (free tier, 20 req/day)
-/graphify Assets/Modules --update --backend gemini
-
-# Fallback 1 — Codex via OpenRouter (free tier, OpenAI-compatible)
-export OLLAMA_BASE_URL=https://openrouter.ai/api/v1
-export OLLAMA_API_KEY=<openrouter_key>
-export GRAPHIFY_OLLAMA_MODEL=openai/codex-mini:free
-/graphify Assets/Modules --update --backend ollama
-
-# Fallback 2 — claude-cli (uses this Claude Code session, no extra cost)
-/graphify Assets/Modules --update --backend claude-cli
-```
-
-When Gemini fails (503, quota, or any error) and a subagent fallback is needed, always use `model: "haiku"` — it is the cheapest available Claude model. Never spawn a fallback subagent without explicitly setting the model to haiku. Same rule applies when using OpenAI-compatible backends (OpenRouter, Ollama): always pick the cheapest/free model tier available.
-
 ## Start Working
 - **Read `INDEX.md` first — and by default ONLY `INDEX.md`** (via Obsidian MCP `vault_read`; fallback plain `Read`). It is the generated doc map and the single key to every doc and canvas: it carries each file's read-priority (`always` / `trigger` / `reference`) plus a one-line description. Let INDEX drive all navigation — do **not** preload anything it does not send you to.
 - Follow INDEX's read-priority: read the docs it marks `read: always` next; open `trigger` docs only when their condition holds, and `reference` (per-module) docs on demand.
 - `INDEX.md` is built in **2 passes**: (1) `python3 Tools/gen_index.py` rebuilds the structural skeleton between its `BEGIN/END GENERATED` markers from each doc's frontmatter + first line; (2) the agent curates descriptions / statuses / context. Re-run pass 1 after any frontmatter change; never edit between the markers, and keep the agent zone below the END marker short and informative.
 
 ## Documentation Access (Obsidian-first)
-- **This repo is an Obsidian vault.** All project docs (`.md`) and canvases (`.canvas`) are accessed through the **Obsidian MCP** (`mcp__obsidian__*`) as the primary channel:
-  - read: `vault_read` (supports heading/block/frontmatter targeting) · structure: `vault_get_document_map` · search: `search_query` / `search_simple` · write/edit: `vault_write` / `vault_patch` / `vault_append` · move/delete: `vault_move` / `vault_delete`.
-- **Fallback:** if the `obsidian` server is not connected (Obsidian closed / HTTP server off), use the plain `Read` / `Write` / `Edit` tools. The MCP path needs Obsidian running.
-- **Scope:** Obsidian-first applies to docs (`.md`) and canvases (`.canvas`) only. **Code** files always use `Read` / `Edit` / `Write`.
-- **Reading canvases:** by default read a `.canvas` via **`Tools/read_canvas.sh <file.canvas>`** (a `jq` projection — node `text`/`label` + edges, no positions) — Obsidian MCP cannot project inside a JSON canvas, it only returns the raw file. Use full `vault_read` / `vault_write` only when you need to edit layout/positions.
-- **Excluded-files caveat:** `vault_list` / `vault_read` ignore Obsidian's "Excluded files" (they still see `Library/`, `.csproj`, plugins). For clean discovery use `search_query` / `search_simple` or navigate by `INDEX.md` paths — never wander into `Library/`, `Packages/`, or plugin folders.
-- **`INDEX.md` is 2-pass, not free-form:** pass 1 — `gen_index.py` owns and rewrites the skeleton between the `BEGIN/END GENERATED` markers (never hand-edit there); pass 2 — the agent authors the zone below the END marker (preserved across runs). The Obsidian-write rule governs only that agent zone, not the generated skeleton.
-- **Canvases** are JSONCanvas `.canvas` files (read/edit via Obsidian MCP) and are catalogued automatically in INDEX's `Canvas map` (title = filename, desc = the canvas's group labels — add a group label to give a canvas a meaningful description). Convention: repo-root, `UPPER_SNAKE_CASE.canvas`.
+- **This repo is an Obsidian vault.** The main agent reads/edits docs (`.md`) and
+  canvases (`.canvas`) through the **Obsidian MCP** (`mcp__obsidian__*`): read
+  `vault_read` (heading/block/frontmatter targeting) · write/edit `vault_write` /
+  `vault_patch` / `vault_append` · move/delete `vault_move` / `vault_delete`.
+  (Doc/code *discovery & search* is delegated to the scout — see Discovery Scouts.)
+- **Fallback:** if the `obsidian` server is not connected (Obsidian closed / HTTP
+  server off), use plain `Read` / `Write` / `Edit`. The MCP path needs Obsidian running.
+- **Scope:** Obsidian-first applies to docs (`.md`) and canvases (`.canvas`) only.
+  **Code** files always use `Read` / `Edit` / `Write`.
+- **Reading canvases:** by default read a `.canvas` via **`Tools/read_canvas.sh <file.canvas>`**
+  (a `jq` projection — node `text`/`label` + edges, no positions); use full
+  `vault_read` / `vault_write` only when you need to edit layout/positions.
+- **`INDEX.md` is 2-pass, not free-form:** pass 1 — `gen_index.py` owns and rewrites
+  the skeleton between the `BEGIN/END GENERATED` markers (never hand-edit there);
+  pass 2 — the agent authors the zone below the END marker (preserved across runs).
+  The Obsidian-write rule governs only that agent zone, not the generated skeleton.
+- **Canvases** are JSONCanvas `.canvas` files catalogued automatically in INDEX's
+  `Canvas map` (title = filename, desc = the canvas's group labels — add a group
+  label to give a canvas a meaningful description). Convention: repo-root,
+  `UPPER_SNAKE_CASE.canvas`.
 
 ## User Process Contract
 - User-defined process and repository rules are mandatory and override agent-default workflows.
@@ -68,68 +53,32 @@ When Gemini fails (503, quota, or any error) and a subagent fallback is needed, 
 - Questions have higher priority than solving the task quickly.
 - Use Context7 when I need library/API documentation or code generation, setup or configuration steps and you have some doubts about it.
 
-### Codebase Search Budget
-## Graphify Search Policy
+## Discovery Scouts (the search front door)
+**Discovery is delegated to dedicated read-only Haiku subagents in `.claude/agents/`** —
+the main agent does NOT do raw source discovery; it spends its budget on reasoning,
+decisions, and edits. **Exception:** the bounded `mcp__roslyn__*` tools (definition,
+references, symbols, outline, call/type hierarchy) return structured, not raw, output —
+the main agent MAY call them directly for surgical code-structure lookups. Delegate
+heavier traces (auto via their `description`, or explicitly `@agent-<name>`):
+- **discovery-scout** — the **single front door** for ECS/DI/orchestration/docs discovery
+  and multi-step traces: general code structure (definition, refs, symbols, call/type
+  hierarchy — **`roslyn-mcp`**, `mcp__roslyn__*`), DoD/ECS (archetypes, component
+  writers/readers, reactive consumers, producer→consumer, Table-Rule PK/FK, system roles
+  — `ecs-graph`), DI/VContainer (registered-as + Lifetime + installer, injectors,
+  collection resolution, system→`GameMode` — `di-graph`), AND **docs** (Obsidian MCP
+  search, clean discovery that avoids `Library/`/`Packages/`/plugins). Returns distilled
+  findings, not raw dumps.
+- **arch-scout** — `arch-check` audit (stateful systems + System.Collections.Generic
+  bans); detector only.
+- **asset-scout** — `unity-asset-graph` queries (build contents, asset usage,
+  dead/unused, serialized enum values).
 
-> **HOOK-ENFORCED — see `.claude/SEARCH_POLICY.md` (the law).** In the main session a PreToolUse hook
-> (`.claude/hooks/search-gate.py`) gates source discovery: source-search sweeps (`grep`/`glob`/`rg`/`find`
-> over `Assets/**/*.cs`) and direct graph CLI (`ecsg`/`graphify`) are **denied** and routed to
-> `@agent-graphify-scout`; per-session `.cs` reads are budgeted (8 unique files, for editing) — on
-> exhaustion, STOP and ask the user (help or `search-gate.py bump <N>`). Subagents are exempt. So: the
-> main agent **delegates discovery to the scout**; the rules below are what the scout itself follows.
-
-Goal:
-- minimize direct source-code reading
-- minimize token usage
-
-Execution formula:
-- unknown name -> `rg` -> `graphify`
-- known name -> `graphify`
-- source read -> verification only
-
-Rules:
-1. Do not read `GRAPH_REPORT.md` for point lookups.
-   Use it only for broad architecture orientation or graph-quality review.
-2. If the module is already known from the task scope, read its module MD first.
-   Symbols found there count as free discovery and do not require `rg`.
-3. If the exact symbol name is already known, start with `graphify`.
-   Do not run `rg` first.
-4. If the exact symbol name is unknown, run exactly one narrow `rg` to discover the canonical symbol name.
-   After that, switch to `graphify`.
-5. Use Graphify commands by role:
-   - `graphify explain "X"` -> symbol lookup and immediate connections
-   - `graphify path "A" "B"` -> flow / dependency / orchestration chain
-   - `graphify affected "X"` -> impact analysis / blast radius
-   - `graphify query "..."` -> relation-shaped questions only
-6. In `graphify query`, use exact labels, not broad natural language.
-   Preferred forms:
-   - `what calls X`
-   - `what imports X`
-   - `what references X`
-   - `what returns X`
-7. Prefer `graphify path "A" "B"` over `graphify query --dfs` for:
-   "How is A connected to B?"
-8. Read source code only after `graphify` has narrowed the target to a specific source file.
-   Read only the minimum necessary file and fragment.
-   Use `source_location` when available.
-   If `graphify` resolves only to docs or concept nodes, source reads are still allowed only when the graph evidence clearly identifies the target source file.
-9. If `graphify` returns an ambiguous or empty result, narrow the symbol name and retry.
-   Do not silently fall back to broad source-code reading.
-   If the graph does not contain the answer, say so explicitly.
-
-Task budget:
-- `rg`: max 1
-- `graphify`: unlimited
-- module MD files: unlimited
-- source file reads: max 1, only after graph narrowing
-
-## Discovery Scouts (Haiku delegation)
-Heavy discovery and audit run on dedicated read-only Haiku subagents in `.claude/agents/`, so the main loop stays lean and fast and the Opus budget is spent on reasoning, not raw output. Delegate (auto via their `description`, or explicitly with `@agent-<name>`) instead of doing the legwork inline:
-- **graphify-scout** — the **single discovery front door**. General code: symbol lookup, call/dependency chains, blast-radius (graphify). DoD/ECS: archetypes, who writes/reads a component, reactive event consumers, event producer→consumer, Table-Rule PK/FK, system roles (`ecs-graph`). DI/VContainer: what a type is registered as + Lifetime + installer, who injects it, what fills a collection injection, which `GameMode` a system runs in (`di-graph` — use instead of reading Boot/installers). Reads its charter `.claude/SEARCH_POLICY.md` first; returns distilled findings, not raw dumps.
-- **arch-scout** — `arch-check` audit (stateful systems + System.Collections.Generic bans); detector only.
-- **asset-scout** — `unity-asset-graph` queries (build contents, asset usage, dead/unused, serialized enum values).
-
-All three are read-only (no Edit/Write) and return distilled reports; the main agent keeps the reasoning, decisions, and edits.
+All three are read-only (no Edit/Write) and return distilled reports; the main agent
+keeps the reasoning, decisions, and edits. **The law is `.claude/SEARCH_POLICY.md`,
+hook-enforced** (`.claude/hooks/search-gate.py`): in the main session, raw source
+discovery over `Assets/**/*.cs` + direct graph CLIs (`ecsg`/`dig`) are denied and routed
+to the bounded `mcp__roslyn__*` tools / the scout, and per-session `.cs` reads are
+budgeted (on exhaustion, STOP and ask the user). Subagents are exempt.
 
 ## Engineering Task Template
 - **HARD GATE — no actions before a confirmed task statement. For any engineering task you MUST first restate the task using the template below AND, if you have any doubt that you understood the task correctly, ask me your own clarifying questions in the same message. Then STOP and wait for my explicit confirmation. Only AFTER I confirm the statement may you create a plan or do any work. Forming a plan, entering plan mode, reading-for-implementation, or editing anything before that confirmation is a process violation. The duty to ask is yours: when in doubt, ask me — do not assume, and do not wait for me to question you. This overrides any default "just start planning" behavior.**
@@ -171,17 +120,11 @@ All three are read-only (no Edit/Write) and return distilled reports; the main a
 - Every module has an MD reference file in its root folder.
 - **`DOC_STANDARD.md` (repo root) is the single source of truth for how every MD file is written.** Read it before creating or editing any `.md`.
 - **Before reading any source file in a module, read its MD file first.**
-- Division of labor: `graphify` is the reference for code STRUCTURE — types, signatures, dependencies, inheritance, priorities. Module MD files cover ONLY what `graphify` cannot extract: intent, non-obvious invariants, design decisions, how-to-use-correctly, and current state.
-- Read source files only when both the MD and `graphify` lack the specific detail needed.
+- Division of labor: **`roslyn-mcp`** (LSP) is the reference for code STRUCTURE — types, signatures, references, call/type hierarchy; **`ecs-graph`/`di-graph`** for ECS/DI relationships. Module MD files cover ONLY what those tools cannot extract: intent, non-obvious invariants, design decisions, how-to-use-correctly, and current state.
+- Read source files only when both the MD and the tools (`roslyn-mcp` / `ecs-graph` / `di-graph`) lack the specific detail needed.
 - If you change a module's invariants, public-usage rules, or current state, update its MD file per `DOC_STANDARD.md`.
 - If you add or change an ECS entity archetype, refresh the ecs-graph (`/ecs-graph`) — the sole archetype/event registry.
 - Architecture, stack, module layout, and ECS conventions are described in `ARCHITECTURE.md`. Do not duplicate or override architecture rules in module MD files.
-
-## Terrain / Isoline Pre-read
-Before modifying terrain transitions, read these files first:
-- `Assets/Presentation/Terrain/Isolines/FieldBasedIsolineBuilder.cs`
-- `Assets/Presentation/Terrain/Isolines/IsolineSlopeTransition.cs`
-- `Assets/Presentation/Terrain/Smooth/HeightSmoothing.cs`
 
 ## Unity Build Policy
 - This is a Unity project.
@@ -195,10 +138,6 @@ Before modifying terrain transitions, read these files first:
 - Write code that is ready to pass strict review.
 - Review incoming code as if done by a senior engineer with 20 years of experience in a very critical mood.
 - Prefer instance-based design; introduce `static` only when there is a clear architectural reason.
-
-## Patterns Reference
-- **Addressables / `IAddressable` / `Box<T>` / `Result<T>` / addressable asset loading:** before writing, editing, or reviewing any such code, read `Assets/Modules/Addressable/ADDRESSABLE_PATTERNS.md` first. It is the single source of truth — do not re-derive patterns from source, do not deviate without user approval. The file is intentionally not loaded into context by default; load it on demand when the trigger applies.
-- **ECS queries / entity tables / joins / `EntityMap` / `EntityMultiMap`:** before writing or reviewing any ECS query, follow the Table Rule in `ARCHITECTURE.md` ("Relational Modeling — Table Rule"). Core rule: a query names a table = key component + discriminator; a bare `With<KeyComponent>` query is forbidden. PK table → `EntityMap`, FK 1:N → `EntityMultiMap`, sweep → `EntitySet`. Full rules live in `ARCHITECTURE.md` only — do not duplicate them elsewhere.
 
 ## Code Documentation Policy
 - Add comments only where the logic stops being simple and unambiguous.

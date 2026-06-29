@@ -24,7 +24,7 @@ owns **which pane is shown**, `HexInfoPanel` owns whether `ContextFilled` is sho
 `HexInfoPanel/HEX_INFO_PANEL.md` ("Ownership split").
 
 Tokens, component patterns, USS construction: `GENERAL_UI_STYLE.md`. This doc adds ONLY what is specific to
-this control — do not restate tokens or principles. Code STRUCTURE (signatures, deps) is in graphify.
+this control — do not restate tokens or principles. Code STRUCTURE (signatures, deps) is in roslyn-mcp (`mcp__roslyn__*`).
 
 ## Current state — implemented; one Unity-side wiring step left
 The components, event, enum, view, spawn subsystem and two systems exist and are wired in C#, **and the markup is
