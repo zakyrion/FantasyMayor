@@ -51,7 +51,7 @@ When Gemini fails (503, quota, or any error) and a subagent fallback is needed, 
   - read: `vault_read` (supports heading/block/frontmatter targeting) · structure: `vault_get_document_map` · search: `search_query` / `search_simple` · write/edit: `vault_write` / `vault_patch` / `vault_append` · move/delete: `vault_move` / `vault_delete`.
 - **Fallback:** if the `obsidian` server is not connected (Obsidian closed / HTTP server off), use the plain `Read` / `Write` / `Edit` tools. The MCP path needs Obsidian running.
 - **Scope:** Obsidian-first applies to docs (`.md`) and canvases (`.canvas`) only. **Code** files always use `Read` / `Edit` / `Write`.
-- **Reading canvases:** by default read a `.canvas` via a `jq` projection (node `text`/`label` + edges, no positions) — Obsidian MCP cannot project inside a JSON canvas, it only returns the raw file. Use full `vault_read` / `vault_write` only when you need to edit layout/positions.
+- **Reading canvases:** by default read a `.canvas` via **`Tools/read_canvas.sh <file.canvas>`** (a `jq` projection — node `text`/`label` + edges, no positions) — Obsidian MCP cannot project inside a JSON canvas, it only returns the raw file. Use full `vault_read` / `vault_write` only when you need to edit layout/positions.
 - **Excluded-files caveat:** `vault_list` / `vault_read` ignore Obsidian's "Excluded files" (they still see `Library/`, `.csproj`, plugins). For clean discovery use `search_query` / `search_simple` or navigate by `INDEX.md` paths — never wander into `Library/`, `Packages/`, or plugin folders.
 - **`INDEX.md` is 2-pass, not free-form:** pass 1 — `gen_index.py` owns and rewrites the skeleton between the `BEGIN/END GENERATED` markers (never hand-edit there); pass 2 — the agent authors the zone below the END marker (preserved across runs). The Obsidian-write rule governs only that agent zone, not the generated skeleton.
 - **Canvases** are JSONCanvas `.canvas` files (read/edit via Obsidian MCP) and are catalogued automatically in INDEX's `Canvas map` (title = filename, desc = the canvas's group labels — add a group label to give a canvas a meaningful description). Convention: repo-root, `UPPER_SNAKE_CASE.canvas`.
@@ -70,6 +70,13 @@ When Gemini fails (503, quota, or any error) and a subagent fallback is needed, 
 
 ### Codebase Search Budget
 ## Graphify Search Policy
+
+> **HOOK-ENFORCED — see `.claude/SEARCH_POLICY.md` (the law).** In the main session a PreToolUse hook
+> (`.claude/hooks/search-gate.py`) gates source discovery: source-search sweeps (`grep`/`glob`/`rg`/`find`
+> over `Assets/**/*.cs`) and direct graph CLI (`ecsg`/`graphify`) are **denied** and routed to
+> `@agent-graphify-scout`; per-session `.cs` reads are budgeted (8 unique files, for editing) — on
+> exhaustion, STOP and ask the user (help or `search-gate.py bump <N>`). Subagents are exempt. So: the
+> main agent **delegates discovery to the scout**; the rules below are what the scout itself follows.
 
 Goal:
 - minimize direct source-code reading
@@ -118,7 +125,7 @@ Task budget:
 
 ## Discovery Scouts (Haiku delegation)
 Heavy discovery and audit run on dedicated read-only Haiku subagents in `.claude/agents/`, so the main loop stays lean and fast and the Opus budget is spent on reasoning, not raw output. Delegate (auto via their `description`, or explicitly with `@agent-<name>`) instead of doing the legwork inline:
-- **graphify-scout** — symbol lookup, call / dependency chains, blast-radius (follows the Graphify Search Policy above; returns distilled findings, not raw graph dumps).
+- **graphify-scout** — the **single discovery front door**. General code: symbol lookup, call/dependency chains, blast-radius (graphify). DoD/ECS: archetypes, who writes/reads a component, reactive event consumers, event producer→consumer, Table-Rule PK/FK, system roles (`ecs-graph`). Reads its charter `.claude/SEARCH_POLICY.md` first; returns distilled findings, not raw dumps.
 - **arch-scout** — `arch-check` audit (stateful systems + System.Collections.Generic bans); detector only.
 - **asset-scout** — `unity-asset-graph` queries (build contents, asset usage, dead/unused, serialized enum values).
 
