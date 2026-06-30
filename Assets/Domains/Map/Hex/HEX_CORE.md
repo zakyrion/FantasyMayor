@@ -5,6 +5,11 @@ tags: [hex, ecs, terrain]
 related:
   - "[AXIAL_SYSTEM](../../../Modules/AxialSystem/AXIAL_SYSTEM.md)"
 status: implemented
+code_refs:
+  components: [HexTypeComponent, HexIdComponent]
+  types:      [VertexGrid, HexVertex, HexData, HexCoord]
+  enums:      [HexType]
+  tags:       [HexTag]
 ---
 
 # HexCore

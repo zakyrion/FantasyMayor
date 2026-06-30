@@ -7,6 +7,10 @@ related:
   - "[ECONOMY](../Economy/ECONOMY.md)"
   - "[CONFIGTEMPLATE](../../../CONFIGTEMPLATE.md)"
 status: partial
+code_refs:
+  world_components: [ActionsDistrictsBuildConfigComponent, DistrictsBuildConfigComponent]
+  systems:          [ActionsDistrictsBuildConfigLoaderSystem]
+  configs:          [ActionsDistrictsBuildConfig, DistrictsBuildConfig]
 ---
 
 # District Build Cost
@@ -30,9 +34,9 @@ home — adding a price never touches Economy, and gating never touches Actions.
   wraps the catalogue SO; the loader (`ActionsDistrictsBuildConfigLoaderSystem`) **retains** the addressable
   `Box` for the catalogue's lifetime and releases it in `OnDispose` (the build window reads it throughout
   play). Same shape as Economy's `DistrictsBuildConfigLoaderSystem`. Config flow rules: `CONFIGTEMPLATE.md`.
-- **Loaded once at `ConfigLoadStep`.** The loader is registered in `ActionsInstaller` as a
-  `IUniTaskSystem<ConfigLoadStep>`; Boot runs it at startup. It fails loud if the catalogue is missing or
-  has null entries — until the asset is authored, the game stops at boot rather than running cost-blind.
+- **Loaded once at `ConfigLoadStep`** (registration: `mcp__di-graph__installer_registrations ActionsInstaller`).
+  It fails loud if the catalogue is missing or has null entries — until the asset is authored, the game stops
+  at boot rather than running cost-blind.
 
 ## Current State
 PARTIAL. The cost catalogue is loaded and **read by the district-build UI** (`Presentation.UI`) for the

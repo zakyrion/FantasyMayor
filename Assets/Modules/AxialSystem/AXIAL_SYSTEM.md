@@ -6,6 +6,9 @@ related:
   - "[HEX_CORE](../HexCore/HEX_CORE.md)"
   - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
 status: implemented
+code_refs:
+  types: [HexCoord, VertexCoord, AxialMath, AxialGrid, HexGrid, VertexGrid]
+  enums: [AxialOrientation]
 ---
 
 # AxialSystem

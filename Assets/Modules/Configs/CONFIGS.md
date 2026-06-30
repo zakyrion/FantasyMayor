@@ -5,6 +5,9 @@ tags: [config, addressables]
 related:
   - "[ADDRESSABLE_PATTERNS](../Addressable/ADDRESSABLE_PATTERNS.md)"
 status: implemented
+code_refs:
+  interfaces: [IConfigProvider]
+  types:      [ConfigProvider]
 ---
 
 # Configs

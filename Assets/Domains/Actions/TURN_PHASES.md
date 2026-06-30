@@ -6,6 +6,8 @@ related:
   - "[ACTIONS](ACTIONS.md)"
   - "[TURN](../../Modules/Turn/TURN.md)"
 status: partial
+code_refs:
+  systems: [MayorActionPointsRestoreSubSystem, TurnProcessorSystem]
 ---
 
 # Turn Phases
@@ -15,9 +17,8 @@ Currently one phase — the Mayor Action-Points restore.
 
 ## Purpose
 Per the domain's "turn engine reuse" decision (`ACTIONS.md`), Actions does not run turns; it supplies
-`TurnPhaseSubSystem`s that the `Turn` module's `TurnProcessorSystem` executes on each turn pulse. Each
-phase is registered in `ActionsInstaller` as a `TurnPhaseSubSystem`, and VContainer collects them into
-the list the processor runs.
+`TurnPhaseSubSystem`s that the `Turn` engine executes on each turn pulse. (Which phases are registered
+and how they are collected: `mcp__di-graph__installer_registrations ActionsInstaller`.)
 
 ## Public Contract & Gotchas
 - **AP restore is a SET, not an accumulate.** `MayorActionPointsRestoreSubSystem` resets every Mayor's
