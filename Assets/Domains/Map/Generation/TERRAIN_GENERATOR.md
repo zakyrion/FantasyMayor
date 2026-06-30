@@ -6,6 +6,10 @@ related:
   - "[TERRAIN_VIEW](../../../Presentation/Terrain/TERRAIN_VIEW.md)"
   - "[HEX_CORE](../Hex/HEX_CORE.md)"
 status: implemented
+code_refs:
+  systems:    [MapGenerationSystem, MountainGenerationSubSystem, RiverGenerationSubSystem, LakeGenerationSubSystem, SeaGenerationSubSystem]
+  components: [HexTypeComponent, HexLevelComponent, HexIdComponent, TerrainGenerationConfigComponent]
+  tags:       [HexTag]
 ---
 
 # TerrainGenerator
@@ -13,9 +17,9 @@ status: implemented
 Procedural terrain generation: hex grid creation, mountains with foothills, and water (river / lake / sea).
 
 ## Trigger
-`MapGenerationSystem` is the first **Pipeline Stage** (priority 100) — strictly, a **Pipeline
-Orchestrator**: it creates the hex grid itself, then fans out into the generation **Pipeline
-SubSystems** (mountain/river/lake/sea). It is run sequentially by the **`MapCreation` game state**
+`MapGenerationSystem` is the generation pipeline's **orchestrator** (role/priority:
+`mcp__ecs-graph__system_contract MapGenerationSystem`): it creates the hex grid itself, then fans out
+into the generation **Pipeline SubSystems** (mountain/river/lake/sea). It is run sequentially by the **`MapCreation` game state**
 (`Boot.Implementation`). The pipeline runs once when the `MainMenu` state detects
 `TerrainGenerationGenerateEventComponent` (raised by the HexesUI Generate button) and switches to
 `MapCreation`, which runs every `IPrioritizedUniTaskSystem<MapGenerationStep>` stage in priority

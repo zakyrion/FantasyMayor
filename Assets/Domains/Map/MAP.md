@@ -9,6 +9,10 @@ related:
   - "[HEXRESOURCES](HexResources/HEXRESOURCES.md)"
   - "[PATHFINDING](Pathfinding/PATHFINDING.md)"
 status: implemented
+code_refs:
+  systems:    [MapGenerationSystem]
+  components: [HexIdComponent, HexTypeComponent]
+  types:      [HexType, VertexGrid]
 ---
 
 # Map
