@@ -8,6 +8,9 @@ related:
   - "[CONTEXT_TABS](./ContextTabs/CONTEXT_TABS.md)"
   - "[GENERAL_UI_STYLE](../../../GENERAL_UI_STYLE.md)"
 status: partial
+code_refs:
+  systems: [MainUISpawnSystem, ShowHexesUISystem, HexInfoPanelSpawnSubSystem, EndTurnSpawnSubSystem, ContextTabsSpawnSubSystem]
+  events:  [SelectedHexChangedEvent]
 ---
 
 # MainUI
@@ -61,30 +64,15 @@ Adding a window = add its markup to the `UI/MainUI` document + its view MonoBeha
 that resolves it.
 
 ## Trigger
-- `HexInfoPanelSystem` is a **Reactive System** (Gameplay, anchored on the `SelectedHexChangedEvent` pulse
-  raised by `UserInput.HexSelectionSystem`): it reconciles the context sub-panel **show/hide** (filled ↔ empty
-  placeholder) against the current `HexSelectedComponent`. The initial empty state is seeded by the spawn
-  subsystem; it does NOT show/hide the shell and does NOT fill blocks.
-- `HexInfoPanelHeaderSystem` / `HexInfoPanelResourcesSystem` / `HexInfoPanelDistrictPlaceholderSystem`
-  are **Reactive Systems** anchored on the **same `SelectedHexChangedEvent` pulse** — each fills its panel
-  block from the current `HexSelectedComponent` (no intermediary refresh event; each gates on a real hex /
-  skips gracefully when nothing is selected).
-- `ResourceBarSystem` is a **Per-frame System** (Gameplay, anchored on the `ResourceBarViewComponent`
-  singleton): it reveals the left resource panel + the thin top-bar strip (both spawn hidden) and fills the
-  City + Mayor inventory amounts each frame. Per-frame is a deliberate override of Reactive-by-default — no
-  `ResourcesChanged` pulse exists yet (justification in `ResourceBar/RESOURCE_BAR.md`). Not an event trigger.
-- `EndTurnViewSystem` is a **Per-frame System** (Gameplay, anchored on the `EndTurnViewComponent` singleton):
-  it reveals the whole bottom panel (it owns the shell reveal), mirrors `TurnProcessorComponent` presence into
-  the Processing look, and pushes the current turn number (`TurnCountComponent`, module `Turn`) into «Хід N».
-  The button emits `NextTurnEvent` from `EndTurnView` on click. See `EndTurn/END_TURN.md`.
-- `ContextTabSelectionSystem` is a **Reactive System** (Gameplay, anchored on the payload-less
-  `ContextTabChangedEvent`): it reconciles the view against the `ActiveContextTabComponent` world singleton (the
-  view writes it on click). `ContextTabsAvailabilitySystem`
-  is a **Reactive System** (anchored on the `SelectedHexChangedEvent` pulse): it reconciles per-tab
-  enabled/disabled state from the current selection (currently a stub — all enabled). See
-  `ContextTabs/CONTEXT_TABS.md`.
-- These reactive triggers are not visible in roslyn-mcp — full event flow: the ecs-graph (`/ecs-graph`).
-  Roles: `ARCHITECTURE.md` "System Taxonomy".
+The HUD systems split two ways (per-system role / priority / anchor: `mcp__ecs-graph__system_contract
+<System>`, roles per `ARCHITECTURE.md` "System Taxonomy"; each window's doc carries the detail):
+- **`EndTurnViewSystem` owns the shell reveal** — it reveals the whole `BottomPanel` each Gameplay tick (the
+  turn corner is its always-present part); the context content never touches the shell.
+- **The context sub-panel reconciles on the `SelectedHexChangedEvent` pulse** (raised by
+  `UserInput.HexSelectionSystem`): one system owns show/hide, the block systems each fill their block off the
+  current `HexSelectedComponent` — **no intermediary refresh event**, each skips gracefully on no selection.
+- **`ResourceBarSystem` is the deliberate per-frame exception** — no `ResourcesChanged` pulse exists yet
+  (justification in `ResourceBar/RESOURCE_BAR.md`).
 
 ## Non-Obvious Invariants
 - **The shared `PanelRenderer` builds its visual tree asynchronously** (unlike `UIDocument`, whose root is
@@ -123,7 +111,7 @@ that resolves it.
 - Context sub-panel (HexInfoPanel): **implemented**. Fixed-height shell, permanent tab row over a filled/empty
   swap, with three tab panes inside the filled state (`OverviewPane` / `BuildingsPane` / `ActionsPane`). The
   Overview pane's «Гекс» block (icon + name + Resources) binds to real components; the «Район» + «Праця та
-  виробництво» blocks are SCAFFOLD (both hidden by `HexInfoPanelDistrictPlaceholderSystem`) until gameplay
+  виробництво» blocks are SCAFFOLD (both hidden by `HexInfoPanelDistrictSystem`) until gameplay
   components land; `BuildingsPane` / `ActionsPane` are empty named containers; the empty state is intentionally
   blank.
 - Turn sub-panel (EndTurn): **implemented** (View/Component/Spawn/System + markup in the shared document). The

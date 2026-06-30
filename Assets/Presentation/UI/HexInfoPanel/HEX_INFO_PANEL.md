@@ -7,6 +7,12 @@ related:
   - "[END_TURN](../EndTurn/END_TURN.md)"
   - "[CONTEXT_TABS](../ContextTabs/CONTEXT_TABS.md)"
   - "[GENERAL_UI_STYLE](../../../../GENERAL_UI_STYLE.md)"
+code_refs:
+  systems:    [HexInfoPanelSystem, HexInfoPanelHeaderSystem, HexInfoPanelResourcesSystem, HexInfoPanelDistrictSystem, HexInfoPanelSpawnSubSystem]
+  components: [HexSelectedComponent, HexTypeComponent, HexIdComponent, HexInfoPanelViewComponent]
+  tags:       [DistrictTag]
+  events:     [SelectedHexChangedEvent, DistrictBuildRequestedEvent]
+  views:      [HexInfoPanelView]
 ---
 
 # Hex Info Panel — Context Sub-Panel

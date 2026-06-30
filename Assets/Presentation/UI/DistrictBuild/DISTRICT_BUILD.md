@@ -7,6 +7,14 @@ related:
   - "[HEX_INFO_PANEL](../HexInfoPanel/HEX_INFO_PANEL.md)"
   - "[ECONOMY](../../../Domains/Economy/ECONOMY.md)"
 status: partial
+code_refs:
+  systems:          [DistrictBuildUISpawnSystem, DistrictBuildUISystem, DistrictsBuildConfigLoaderSystem]
+  components:       [DistrictBuildUIViewComponent]
+  world_components: [DistrictBuildUIRootComponent, DistrictsBuildConfigComponent]
+  events:           [DistrictBuildRequestedEvent, DistrictBuildClosedEvent]
+  views:            [DistrictBuildUIView]
+  configs:          [DistrictsBuildConfig, DistrictBuildingConfig]
+  tags:             [UITag]
 ---
 
 # DistrictBuild
@@ -24,14 +32,14 @@ the per-element `EnablePicking` sweep the shared HUD uses. Toggling this documen
 (it is not shared, so it never blanks the HUD).
 
 ## Spawn + lifecycle
-- `DistrictBuildUISpawnSystem` — **world-init Pipeline Stage 810** (`IPrioritizedUniTaskSystem<MapGenerationStep>`,
-  auto-collected by the generation pipeline, **no Boot wiring**). Mirrors the loading half of `MainUISpawnSystem`:
+- `DistrictBuildUISpawnSystem` — a world-init pipeline stage (`IPrioritizedUniTaskSystem<MapGenerationStep>`,
+  auto-collected by the generation pipeline, **no Boot wiring**; role/priority: `mcp__ecs-graph__system_contract DistrictBuildUISpawnSystem`). Mirrors the loading half of `MainUISpawnSystem`:
   instantiates the addressable prefab `UI/DistrictBuildAction` under `IMainCanvasProvider.RootGO`, owns the
   addressable handle in the **world component** `DistrictBuildUIRootComponent` (Box<GameObject>), resolves
   `DistrictBuildUIView` off the instance, publishes the `DistrictBuildUIViewComponent` singleton entity
   (+`UITag`), and leaves the overlay **hidden**.
-- `DistrictBuildUISystem` — **Gameplay per-frame system** anchored on the `DistrictBuildUIViewComponent`
-  singleton (Priority 565; wired into Gameplay by `Boot`). It coalesces the two one-frame pulses for this one
+- `DistrictBuildUISystem` — a Gameplay per-frame system anchored on the `DistrictBuildUIViewComponent`
+  singleton (wired into Gameplay by `Boot`; role/priority: `mcp__ecs-graph__system_contract DistrictBuildUISystem`). It coalesces the two one-frame pulses for this one
   window: `DistrictBuildRequestedEvent` (open) and `DistrictBuildClosedEvent` (close). Per-frame (not reactive)
   is deliberate — one `AEntitySetSystem` cannot anchor on two event sets, and a singleton-anchored per-frame
   read is the established override (see `ResourceBar` / `EndTurn`).
