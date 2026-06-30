@@ -117,9 +117,9 @@ budgeted (on exhaustion, STOP and ask the user). Subagents are exempt.
 - [що поза scope]
 - [що не треба аналізувати]
 
-Роби за аналогією з:
-- [еталонний файл/клас/модуль]
-- [опціонально другий еталон]
+Роби за шаблоном:
+- [Patterns/PATTERN_*.md — picker з описами: ARCHITECTURE.md → Pattern Recipes]
+- [опціонально другий шаблон]
 
 Архітектурні рішення:
 - [що вже вирішено]
