@@ -13,8 +13,6 @@ namespace Domains.Economy.District.Configs
         [SerializeField]
         private DistrictType _districtType;
         [SerializeField]
-        private List<HexType> _hexTypesRequirement;
-        [SerializeField]
         private List<HexType> _impossibleToBuildTypes;
         [SerializeField]
         private HexResourceType _requiredHexResourceType;
@@ -22,7 +20,6 @@ namespace Domains.Economy.District.Configs
         private bool _needEmptyHexResourcesToBuild;
 
         public DistrictType DistrictType => _districtType;
-        public List<HexType> HexTypesRequirement => _hexTypesRequirement;
         public List<HexType> ImpossibleToBuildTypes => _impossibleToBuildTypes;
         public HexResourceType RequiredHexResourceType => _requiredHexResourceType;
         public bool NeedEmptyHexResourcesToBuild => _needEmptyHexResourcesToBuild;
@@ -34,18 +31,12 @@ namespace Domains.Economy.District.Configs
             IsTerrainAllowed(hexType) && IsResourceSatisfied(hexResources);
 
         // Terrain gate: an explicit blacklist hit forbids; a non-empty whitelist that omits the type forbids.
-        public bool IsTerrainAllowed(HexType hexType)
-        {
-            if (_impossibleToBuildTypes.Contains(hexType))
-                return false;
-
-            return _hexTypesRequirement.Count == 0 || _hexTypesRequirement.Contains(hexType);
-        }
+        private bool IsTerrainAllowed(HexType hexType) => !_impossibleToBuildTypes.Contains(hexType);
 
         // Resource gate, two mutually exclusive modes: NeedEmptyHexResourcesToBuild demands a hex with NO
         // resources; otherwise the hex must carry the one RequiredHexResourceType. An unset (Unknown) required
         // resource in non-empty mode is an authoring error — fail loud, not a silent "forbidden on every hex".
-        public bool IsResourceSatisfied(ReadOnlySpan<HexResourceType> hexResources)
+        private bool IsResourceSatisfied(ReadOnlySpan<HexResourceType> hexResources)
         {
             if (_needEmptyHexResourcesToBuild)
                 return hexResources.Length == 0;

@@ -13,7 +13,6 @@ MonoBehaviour:
   m_Name: ForesterBuildingConfig
   m_EditorClassIdentifier: Domains.Economy::Domains.Economy.District.Configs.DistrictBuildingConfig
   _districtType: 3
-  _hexTypesRequirement: 01000000
   _impossibleToBuildTypes: 04000000
   _requiredHexResourceType: 1
   _needEmptyHexResourcesToBuild: 0

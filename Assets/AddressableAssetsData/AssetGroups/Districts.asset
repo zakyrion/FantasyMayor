@@ -20,6 +20,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 507d84c712b2a43ac8bae5170143f771
+    m_Address: DistrictOpenConditionsConfig
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 975faa58226394757a1c693336a6a073
     m_Address: UI/DistrictBuildAction
     m_ReadOnly: 0

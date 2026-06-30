@@ -33,10 +33,6 @@ namespace Presentation.UI.DistrictBuild.Views.SubViews
                 AddLine(!district.ImpossibleToBuildTypes.Contains(hexType),
                     $"Заборонений терен: {DistrictBuildLabels.HexTypeLabels(district.ImpossibleToBuildTypes)}");
 
-            if (district.HexTypesRequirement.Count > 0)
-                AddLine(district.HexTypesRequirement.Contains(hexType),
-                    $"Дозволений терен: {DistrictBuildLabels.HexTypeLabels(district.HexTypesRequirement)}");
-
             if (district.NeedEmptyHexResourcesToBuild)
                 AddLine(_data.HexResources.Length == 0, "Гекс без ресурсів");
             else if (district.RequiredHexResourceType != HexResourceType.Unknown)

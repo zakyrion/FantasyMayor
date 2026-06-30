@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 174848a98e4f149d7a82fd2782a9986f, type: 3}
+  m_Name: DistrictOpenConditionsConfig
+  m_EditorClassIdentifier: Domains.Economy::Domains.Economy.DistrictOpenCondition.Configs.DistrictOpenConditionsConfig
+  _conditions:
+  - {fileID: 11400000, guid: b9fea5d22510f43918a5060b295ea3e3, type: 2}
+  - {fileID: 11400000, guid: a45833e2a52b440fc973d0f0b480a479, type: 2}
+  - {fileID: 11400000, guid: 90170b7e3796c4f44963935184a9c2d9, type: 2}

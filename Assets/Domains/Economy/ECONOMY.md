@@ -62,36 +62,3 @@ District-catalogue config loader stays here.
   `MayorConfigComponent` / `MayorConfigLoaderSystem` moved to `Actors/Mayor` — the Mayor's starting state
   (resources + AP) is actor-intrinsic and belongs with the actor. `StartActionPoints` is seeded onto
   `MayorAPComponent` at spawn; AP **pool/spending mechanics** remain a later slice.
-
-## Current State
-- **Resource** — data types (`ResourceComponent`, `ResourceTag`, `ResourceType` enum) plus the stateless
-  generic `ResourceLoadoutSpawner` helper. `SpawnLoadout` creates one stack per `ResourceType` for a given
-  owner FK (excluding `Unknown` and `ActionPoint`); `SpawnResource` creates a single stack for the
-  owner-specific cases excluded from the loadout (e.g. the Mayor's `ActionPoint` pool). That helper is the
-  only logic Economy ships — it has **no systems**. The config flow and per-actor loadout spawn now live in
-  `Actors` (`MayorConfig*` + `City/MayorSpawnSystem`, which call `ResourceLoadoutSpawner`). The Mayor's amounts come from `MayorConfigComponent` and the City's from
-  `CityConfigComponent` (`ResourceType`s the author omits start at 0). Noble loadouts are
-  still DEFERRED (Nobles emerge during play — a reactive spawn in `Actors`, on a payload-less
-  `NobleSpawnEvent`, lands with the Noble actor). Design recorded in `ECONOMY_ACTORS.canvas`.
-
-- **District build catalogue** (`District/`) — the buildable-district config flow is live:
-  `DistrictsBuildConfigLoaderSystem` (Config Loader, `ConfigLoadStep`) loads the `DistrictsBuildConfig` SO
-  (address `"DistrictsBuildConfig"`), validates it, and publishes the world component
-  `DistrictsBuildConfigComponent`, which carries a **reference** to the SO (no copy/flatten — the SO holds the
-  `DistrictBuildingConfig[]` + their **placement/buildability requirements**: terrain + required hex resource,
-  gated by `CanBuildOn` — decomposed into `IsTerrainAllowed` + `IsResourceSatisfied` so a consumer can surface
-  each dimension independently; a `RequiredHexResourceType` of `Unknown` in non-empty mode **throws** (fail-loud
-  authoring guard, never a silent "forbidden on every hex")). Build **cost** (AP + resource prices) is NOT here — it moved to the `Actions` domain
-  (`ActionsDistrictsBuildConfig`); the build UI joins the two catalogues by `DistrictType`. The loader
-  **retains the addressable Box** for the catalogue's lifetime (the build window reads it throughout play) and
-  releases it in `OnDispose`. This is Economy's first system; registered in `EconomyInstaller`.
-
-SCAFFOLD parts still pending:
-- **District identity** (`District/`) — `DistrictIdComponent` (PK, int), `DistrictTag` (discriminator),
-  and `DistrictIdAllocatorComponent` (world-component id source). Data only: nothing sets the allocator
-  on the world and no entity is created. District creation is **player-action-driven** (reactive), so it
-  does NOT follow the world-init spawn model of the per-actor `City/MayorSpawnSystem` — the build-flow arrives in a later
-  slice. Future district columns (omitted here): `HexIdComponent` FK, OwnerFK, Type, Price, Actions, and
-  Buildings carrying `DistrictId` as a FK.
-
-Planned archetypes: see the ecs-graph (`/ecs-graph`) (`Resource` and `District`, both marked SCAFFOLD).
