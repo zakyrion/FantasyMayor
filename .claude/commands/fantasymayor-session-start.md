@@ -2,82 +2,64 @@
 
 ## Overview
 
-Read the repository startup documents in the correct order, reconstruct the current project state from root-level notes, then hand control back to the user with a concise status summary and a direct question about the next task.
+Orient via the generated doc map, reconstruct the current project state from it, then hand
+control back to the user with a concise status summary and a direct question about the next task.
+This is the **Research / orientation entry** of the Research → Plan → Execute contract
+(`CLAUDE.md`) — it does not plan or execute.
 
-Follow the repository process exactly. Do not skip startup documents, do not invent a different onboarding flow, and do not start implementing code changes before asking the user what to do next unless they explicitly asked for implementation in the same request.
+`INDEX.md` drives all navigation: do not preload anything it does not send you to, do not invent
+a different onboarding flow, and do not start implementing before the user picks the next task —
+unless they asked for implementation in the same request.
 
 ## Workflow
 
-Read all startup documents first. Ask the user what to do only at the very end, after the context is fully reconstructed (see step 4).
+### 1. Load INDEX.md first — the doc map
 
-### 1. Load startup instructions first
+Read `INDEX.md` before anything else (Obsidian MCP `vault_read`; fallback plain `Read`). It is the
+single key to every doc + canvas: each one's read-priority (`always` / `trigger` / `reference`) plus
+a one-line description.
 
-Read `CLAUDE.md` before anything else.
+Then follow INDEX's read-priority:
+- Read every `read: always` doc next (currently `ARCHITECTURE.md`, `CLAUDE.md`, `DOC_STANDARD.md`).
+  Execute the instructions inside `CLAUDE.md` — do not just summarize them.
+- Open `trigger` docs only when their condition holds, and `reference` (per-module) docs on demand —
+  never preload them.
 
-Execute the instructions inside `CLAUDE.md`, not just summarize them. At minimum this means reading:
-- `ARCHITECTURE.md`
+Respect the repository constraints you find (startup order, Unity build restrictions, module-folder
+rules, read-on-demand references such as Addressables patterns).
 
-If `CLAUDE.md` points to additional mandatory startup material, read that too.
+### 2. Reconstruct the current state
 
-Respect the repository constraints you find there, especially:
-- startup-order requirements
-- Unity build restrictions
-- module-folder rules
-- "read on demand" references such as Addressables patterns or terrain/isoline pre-read files
-
-Do not preload optional deep-dive files unless the current startup flow or the user's request requires them.
-
-### 2. Read the remaining root Markdown files
-
-After completing the startup documents, read the other Markdown files in the repository root.
-
-Ignore nested package/plugin READMEs during this startup pass unless a root file explicitly sends you there or the user asks for work in that area.
-
-Treat root Markdown as potentially inconsistent. Compare documents rather than assuming the first one is canonical.
-
-### 3. Reconstruct the current state
-
-Extract only the facts that help resume work:
+From the `always` docs and any root status notes INDEX points to, extract only the facts that help
+resume work:
 - what baseline or milestone is described as complete
-- what files or systems are called out as current source of truth
+- what files or systems are called out as the current source of truth
 - what the next roadmap item appears to be
-- whether multiple documents disagree about "what is next"
+- whether documents disagree about "what is next"
 
-When documents conflict, do not silently merge them. State the conflict explicitly with file names and the differing claims.
+When documents conflict, do not silently merge them — state the conflict explicitly with file names
+and the differing claims. Treat process/safety rules in `CLAUDE.md` as mandatory; treat dated status
+notes as recency evidence; when two roadmap docs disagree, surface both and ask which is current.
 
-Use simple priority rules:
-- treat process and safety rules in `CLAUDE.md` and `SESSION_START.md` as mandatory
-- treat dated status notes as useful evidence for recency
-- when two roadmap documents disagree, surface both and ask the user which one is current
+### 3. Hand control back to the user
 
-### 4. Hand control back to the user
-
-End the startup pass by asking the user what they want to do now.
-
-Do this even if the next step seems obvious from the docs. The point of this skill is to re-establish context first, then let the user choose the task.
+End the pass by asking the user what to do now — even if the next step seems obvious. The point is to
+re-establish context first, then let the user choose the task.
 
 ## Output shape
 
-Respond in the user's language. Keep the summary short and operational.
+Respond in the user's language. Keep it short and operational:
 
-Use this structure:
-
-1. `Read`
-List the startup and root files you loaded.
-
-2. `Current state`
-State where the project appears to have stopped and what is already considered done.
-
-3. `Possible next work`
-State the next roadmap item or the competing candidates if the docs disagree.
-
-4. `Question`
-Ask the user directly what to do next.
+1. `Read` — the docs you loaded (INDEX + the `always` set).
+2. `Current state` — where work stopped and what is already done.
+3. `Possible next work` — the next roadmap item, or competing candidates if docs disagree.
+4. `Question` — ask directly what to do next.
 
 ## Guardrails
 
-Do not start coding, editing, or running implementation commands during this startup flow unless the user explicitly asks for that in the same request.
-
-Do not claim certainty about project status when the documents conflict.
-
-Do not expand into module-level Markdown files during startup unless a root file explicitly requires it for the present task.
+- `INDEX.md` is the only entry point — do not wander the vault or read root `.md` files it does not
+  send you to.
+- Do not start coding / editing / running implementation during startup unless the user explicitly
+  asks in the same request.
+- Do not claim certainty about status when documents conflict.
+- Do not expand into module-level docs unless INDEX / CLAUDE require it for the present task.

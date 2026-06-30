@@ -12,6 +12,22 @@ related:
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Working Contract: Research → Plan → Execute
+Every engineering task runs in three phases. Each is already backed by an existing
+gate — this names the discipline, it adds no new rule:
+1. **Research** — gather facts, do not accumulate source. Discovery is delegated to
+   the read-only scouts (see Discovery Scouts) or answered by the bounded
+   `mcp__roslyn__*` / `mcp__ecs-graph__*` / `mcp__di-graph__*` tools; the main agent
+   does **not** do raw source discovery (`.claude/hooks/search-gate.py` enforces it).
+   In = distilled findings, not raw dumps.
+2. **Plan** — restate the task via the Engineering Task Template, ask clarifying
+   questions, and **wait for explicit confirmation** before any edit (the HARD GATE
+   below). Persist the plan as an on-disk artifact **only for multi-session programs**
+   (e.g. `AI_CONTEXT_MIGRATION.md`); single-session tasks stay in plan-mode / the chat.
+3. **Execute** — edit under the standing invariants (ECS writes via `Set()`,
+   instance-by-default, zero-allocation systems). Reads-for-editing are budgeted by the
+   same hook; on exhaustion, STOP and ask.
+
 # FantasyMayor: Project Context & Architectural Decisions
 
 ## Start Working

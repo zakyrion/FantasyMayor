@@ -2,7 +2,7 @@
 """Generate INDEX.md from doc frontmatter.
 
 INDEX.md is the agent's doc map and the single source of the start-reading list.
-It is built in 2 passes (like graphify): pass 1 = this script rebuilds the structural
+It is built in 2 passes: pass 1 = this script rebuilds the structural
 skeleton BETWEEN the generated markers; pass 2 = the agent curates descriptions,
 statuses, and context. Everything below the END marker is the agent zone and is
 PRESERVED across runs. To change a skeleton description/status, edit the source doc's
@@ -25,7 +25,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Directories that are third-party, generated, or tooling — never indexed.
 PRUNE = {
-    "Library", "Packages", "obj", "Logs", "graphify-out", "GeneratedAssets",
+    "Library", "Packages", "obj", "Logs", "GeneratedAssets",
     ".git", ".claude", ".cmaestro", ".ai", ".idea", ".vscode", ".plastic",
     "skills", "Tools",
     os.path.join("Assets", "Plugins"), os.path.join("Assets", "ThirdParty"),
@@ -44,7 +44,7 @@ GEN_END = ("<!-- END GENERATED — content below is the agent zone (pass 2), pre
 
 GUARDRAIL = (
     "> ⚠️ **Key file — the single entry point for all doc navigation. Keep it short and "
-    "informative.** Built in 2 passes (like graphify): (1) `python3 Tools/gen_index.py` "
+    "informative.** Built in 2 passes: (1) `python3 Tools/gen_index.py` "
     "rebuilds the skeleton between the markers from each doc's frontmatter + first line; "
     "(2) the agent curates descriptions, statuses, and context. To change a description or "
     "status, edit the doc's first line / `status` frontmatter and re-run pass 1 — do not edit "

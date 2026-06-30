@@ -18,8 +18,7 @@ Stance (ratified): **adapt to existing — do NOT rebuild greenfield.** The spec
 much of Epics C and D already exist here in another form. We extend what's here and add only
 the genuinely missing layer (LSP/Roslyn).
 
-> **State (2026-06-30):** Epic A first step DONE (roslyn-mcp installed + wired). **graphify RETIRED**
-> from the project — `roslyn-mcp` is now the code-structure/refs/symbols layer; `ecs-graph` + `di-graph`
+> **State (2026-06-30):** Epic A first step DONE (roslyn-mcp installed + wired): `roslyn-mcp` is now the code-structure/refs/symbols layer; `ecs-graph` + `di-graph`
 > stay. This doc is itself the §C3 "research → plan artifact on disk" convention in action.
 
 ## Existing infrastructure (the baseline the spec lands on)
@@ -27,14 +26,13 @@ the genuinely missing layer (LSP/Roslyn).
 These already implement large parts of the spec's target architecture:
 
 - **Code-structure tool:** `roslyn-mcp` (`mcp__roslyn__*`) — compiler-accurate LSP: definition,
-  references, symbols, outline, call/type hierarchy. **Replaced `graphify`** (general code graph),
-  which is RETIRED from the project (2026-06-30).
+  references, symbols, outline, call/type hierarchy. The project's single code-structure layer.
 - **Graph tools (2, CLI):** `ecs-graph` (DefaultECS component↔system graph — `ecsg` navigate/search/
   bfs/update/rebuild; reads/writes, reactive consumers, Table-Rule PK/FK, system roles), `di-graph`
   (VContainer wiring — `dig` explain/resolve/consumers/installer/state/bfs/unresolved).
   Artifacts in `.ecs-graph/`, `.di-graph/`. **`ecs-graph` IS the spec's "custom in-house ECS graph tool".**
 - **Worker subagents (= spec's workers):** read-only Haiku scouts in `.claude/agents/`
-  (`discovery-scout` [formerly graphify-scout], `arch-scout`, `asset-scout`). They burn context and
+  (`discovery-scout`, `arch-scout`, `asset-scout`). They burn context and
   return distilled findings; the main agent keeps reasoning + edits.
 - **Dispatcher enforcement (= spec's C1):** `.claude/hooks/search-gate.py` — a PreToolUse hook
   that **denies** main-session source discovery (`grep`/`glob`/`rg`/`find` over `Assets/**/*.cs`)
@@ -50,9 +48,9 @@ These already implement large parts of the spec's target architecture:
 
 | Epic | Spec wants | Already in repo | Gap | Adapted action | Status |
 |---|---|---|---|---|---|
-| **A — LSP/Roslyn** | symbol-precise nav (defs/refs/outline/callHierarchy), no full-file reads | **`roslyn-mcp`** (installed + wired 2026-06-30) | — (graphify retired; roslyn supersedes it) | §10 proof passed on `HexIdComponent`; available to main + scout | ✅ DONE |
-| **B — graph→typed MCP** | typed, size-bounded JSON tools (`component_consumers`, `system_contract`, `execution_order`, `impact_of_change`); symbol-precise anchors; capped output | 2 graph **CLIs** (`ecs-graph`/`di-graph`; graphify retired) with rich semantics, parsed as **text** by scouts | output is unbounded text, fragile to parse; not typed/capped JSON; no `definition`-jump anchors | **wrap `ecs-graph`** as a thin FastMCP facade; **+AsSet extractor extension**; anchors join to Epic-A LSP jumps; cap+paginate; keep CLI as build/fallback | 🟢 done 2026-06-30 (ecs-graph + di-graph facades live, sets=65; needs CC reload) |
-| **C — dispatcher** | main session never reads/greps; workers return ≤2–3k distilled; research→plan→execute split | hook denies main-session Assets/`.cs` discovery + budgets reads; scouts = workers; CLAUDE.md "Discovery Scouts = search front door" (done this session); session-start skill exists | **C1 done.** C2: no explicit ≤2–3k cap codified in scout charter. C3: research/plan/execute session split not formalized. C4: session-start still has main agent reading docs broadly. Open: main-session `.md` reads are still allowed (hook gates only `Assets/.cs`) | codify C2 cap in scout `.md` + SEARCH_POLICY; formalize C3 (this doc seeds the convention); slim session-start to "map + dispatch"; **decide** whether "no direct reads" extends to `.md` docs | 🟢 majority done |
+| **A — LSP/Roslyn** | symbol-precise nav (defs/refs/outline/callHierarchy), no full-file reads | **`roslyn-mcp`** (installed + wired 2026-06-30) | — (roslyn is the code-structure layer) | §10 proof passed on `HexIdComponent`; available to main + scout | ✅ DONE |
+| **B — graph→typed MCP** | typed, size-bounded JSON tools (`component_consumers`, `system_contract`, `execution_order`, `impact_of_change`); symbol-precise anchors; capped output | 2 graph **CLIs** (`ecs-graph`/`di-graph`) with rich semantics, parsed as **text** by scouts | output is unbounded text, fragile to parse; not typed/capped JSON; no `definition`-jump anchors | **wrap `ecs-graph`** as a thin FastMCP facade; **+AsSet extractor extension**; anchors join to Epic-A LSP jumps; cap+paginate; keep CLI as build/fallback | 🟢 done 2026-06-30 (ecs-graph + di-graph facades live, sets=65; needs CC reload) |
+| **C — dispatcher** | main session never reads/greps; workers return ≤2–3k distilled; research→plan→execute split | hook denies main-session Assets/`.cs` discovery + budgets reads; scouts = workers; CLAUDE.md "Discovery Scouts = search front door"; session-start command exists | **C1 done** (search-gate + SEARCH_POLICY). **C2 done** — decided: NO numeric cap, distillation stays qualitative. **C3 done** — Research→Plan→Execute contract codified at the top of `CLAUDE.md`. **C4 done** — `/fantasymayor-session-start` rewritten to INDEX-first «map + dispatch» (the broad root-`.md` sweep + dead `SESSION_START.md` ref removed). **`.md`-read scope resolved**: `.md` readable by both agents (main + scout) — only `Assets/.cs` source is gated | ~~codify C2 cap~~ dropped (no cap); **C3 done** (CLAUDE.md «Working Contract» names the 3 phases + maps each to its existing gate — descriptive, no new enforcement); **C4 done** (command rewritten INDEX-first); **`.md`-read scope resolved** (2026-06-30): docs stay readable by both agents | ✅ DONE — C1–C4 + `.md` scope ratified |
 | **D — docs why-only** | strip recoverable, keep why; machine-parsable frontmatter (`code_refs`, `components`); CLAUDE.md as map | DOC_STANDARD enforces why-only; CLAUDE.md + ARCHITECTURE trimmed this session; module MDs already contract-only | D1 vault audit not systematic; D4 frontmatter lacks `code_refs`/`components` anchors; D2/D3 strip+rewrite ongoing ad hoc | run D1 audit via scout; extend frontmatter schema with `code_refs`/`components`; finish strip/rewrite per DOC_STANDARD — **only after A/B** make recoverable docs provably redundant | 🟡 in progress |
 
 ## Adapted rollout order
@@ -104,10 +102,11 @@ Caveat: references span only `Domains.Map` because `solutionPath` was a single `
   sites in `find-references`) is cheaply confirmable later from `Packages/manifest.json` / a
   `.csproj`. Note: `DefaultEcs.Analyzer` (a Roslyn source generator) is distinct from the
   in-house `ecs-graph` CLI.
-- **Extend "no direct reads" to `.md` docs? → UNDECIDED.** Keep current scope (hook gates only
-  `Assets/**/*.cs`; the main agent may still read docs) until decided.
-- **Worker ≤2–3k output cap as a hard rule? → NOT NOW.** Observe how the scouts behave first;
-  do not codify the cap in the charter yet.
+- **Extend "no direct reads" to `.md` docs? → RESOLVED: NO (2026-06-30).** `.md` docs are readable
+  by BOTH agents (main + scout); only `Assets/**/*.cs` source discovery is gated. Ratified in
+  `SEARCH_POLICY.md`.
+- **Worker ≤2–3k output cap as a hard rule? → RESOLVED: NO cap (2026-06-30).** Distillation stays
+  qualitative (SEARCH_POLICY §5 / scout charter «distilled, never a raw dump»); C2 closed.
 
 ## Epic B — Plan (ratified 2026-06-30)
 
@@ -192,13 +191,13 @@ an explicit in-call override.
 
 ## Current State
 
-Epic A first step DONE (roslyn-mcp installed + wired, §10 proof passed). **graphify RETIRED** from the
-project (docs/hooks/scout-charter; scout renamed `graphify-scout`→`discovery-scout`). Out of scope for
-the retirement (still mechanically present, follow-up needed): the graphify global skill, the
-`post-commit`/`post-checkout` git hooks, `graphify-out/` artifacts, and 6 module-MD mentions.
+Epic A first step DONE (roslyn-mcp installed + wired, §10 proof passed); `roslyn-mcp` is the project's
+code-structure/refs/symbols layer and the discovery scout is `discovery-scout`.
 **Epic B IMPLEMENTED 2026-06-30** (see §Epic B — Plan): FastMCP facade `ecs_mcp.py` over `ecs-graph`
 (10 typed tools) + `AsSet`/`[With]` extractor extension (schema 2); graph re-built, `sets[]`=65 merged
 into the curated `graph.json`; wired in `.mcp.json` + scout charter + SEARCH_POLICY §1a. The **di-graph
 facade** (`dig_mcp.py`, 11 tools) landed the same day by the same pattern (gap-sniff clean; no extractor
-change). Goes live after a Claude Code reload + approving the `ecs-graph` **and `di-graph`** servers. Epic C
-is otherwise the most advanced. Update this doc's gap table + status as each epic lands.
+change). Goes live after a Claude Code reload + approving the `ecs-graph` **and `di-graph`** servers. **Epic C:
+C1–C4 done** (2026-06-30) — search-gate (C1); C2 closed = no cap; C3 = the Research→Plan→Execute
+contract at the top of `CLAUDE.md`; C4 = `/fantasymayor-session-start` rewritten INDEX-first («map +
+dispatch», dead `SESSION_START.md` ref dropped). The `.md`-read scope is now resolved: docs readable by both agents (ratified) — only source is gated. **Epic C is fully done.** Update this doc's gap table + status as each epic lands.

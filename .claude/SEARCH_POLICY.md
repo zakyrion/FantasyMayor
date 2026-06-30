@@ -69,7 +69,8 @@ Verdict ∈ `ALLOW` · `DENY→scout` (delegate to `discovery-scout`) · `SCOUT`
 (read Assets/**/*.cs :new-file    :session main :budget-reached)      → DENY→STOP    ;; see §3
 
 ;; ── never gated ─────────────────────────────────────────────────────────────
-(read *.md | config | graph-artifact | plan | any non-Assets-.cs)     → ALLOW
+(read *.md | plan-doc             :session both)                      → ALLOW    ;; docs = the one direct knowledge layer
+(read .ecs-graph/ | .di-graph/ artifact)                              → use mcp__ecs-graph__*/mcp__di-graph__*  ;; never raw-read the JSON
 (edit | write | task/agent | git | build-tools)                       → ALLOW
 
 ;; ── intent rule (not mechanizable; on you, main agent) ──────────────────────
@@ -86,7 +87,11 @@ Verdict ∈ `ALLOW` · `DENY→scout` (delegate to `discovery-scout`) · `SCOUT`
   into your context; use the bounded `mcp__ecs-graph__*` tools or let the scout hand you distilled facts.
   **Build scripts (`build_graph`/`build_di_graph`) are NOT gated** — they only write artifacts, so a
   `--force` re-build is maintenance you may run directly.
-- **`*.md`, configs, `.ecs-graph/`/`.di-graph/` artifacts, the plan file** are always readable.
+- **Docs (`.md`, incl. the plan file) are the ONE knowledge layer both agents read directly** — the
+  curated why-only layer, meant to be read straight. Everything else stays behind a tool: the
+  `.ecs-graph/`/`.di-graph/` artifacts are served by the typed `mcp__ecs-graph__*` / `mcp__di-graph__*`
+  tools and must **never** be raw-read; `Assets/**/*.cs` source is gated. **Discovery is the scout's job —
+  the main agent reaches for a discovery tool only as a fallback (§1a), never as the first move.**
 
 ## 3. The `.cs` read budget (main agent)
 - **Limit: 8 unique `.cs` files per session.** Counts unique files; re-reading a counted file is free.
