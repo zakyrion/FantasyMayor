@@ -87,4 +87,4 @@ Visual maps (Obsidian Canvas). Read/edit via Obsidian MCP; not preloaded.
 
 Curate what the script can't derive: current focus, stale docs, cross-doc orientation. Keep it short. Preserved across `gen_index.py` runs.
 
-- **Current program:** AI-context migration — see [AI_CONTEXT_MIGRATION.md](AI_CONTEXT_MIGRATION.md) (plan, gap analysis, rollout; the verbatim source spec was removed once consumed). Stance: adapt to existing infra. **Epic A (roslyn-mcp) + Epic B (ecs-graph + di-graph typed MCP facades) DONE 2026-06-30** — live after a Claude Code reload; Epic C (dispatcher remainder) + D (docs why-only) remain.
+- **AI-context migration — CLOSED 2026-06-30** (record: [AI_CONTEXT_MIGRATION.md](AI_CONTEXT_MIGRATION.md), plan + gap analysis + rollout; verbatim source spec removed once consumed). Stance: adapt to existing infra. **All four epics done:** A (roslyn-mcp), B (ecs-graph + di-graph typed-MCP facades), C (dispatcher: search-gate + «Working Contract» + INDEX-first session-start), D (28 module MDs anchored with `code_refs` + trimmed; schema codified in `DOC_STANDARD.md`).

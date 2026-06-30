@@ -82,9 +82,11 @@ If it describes *how to write code that follows a convention*, it is B.
 
 ## Frontmatter (YAML properties)
 
-Every `.md` file starts with a YAML frontmatter block. It exists for **navigation only** —
-Obsidian properties/Dataview/backlinks for the human, and stable `grep` queries for the agent.
-It carries **doc-meta and doc↔doc relations only**. It is NOT a place to restate code structure.
+Every `.md` file starts with a YAML frontmatter block. It exists mainly for **navigation** —
+Obsidian properties/Dataview/backlinks for the human, and stable `grep` queries for the agent —
+carrying doc-meta and doc↔doc relations. It is **not** a place to restate code *structure* (fields,
+signatures, priorities). The single scoped exception is `code_refs` (Category A), which indexes bare
+symbol *names* as drift anchors — defined below.
 
 ```yaml
 ---
@@ -96,6 +98,9 @@ related:                                 # doc↔doc links only; markdown links,
   - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
   - "[TERRAIN_VIEW](../TerrainView/TERRAIN_VIEW.md)"
 status: implemented                      # Category A ONLY — see enum below
+code_refs:                               # Category A ONLY — drift anchors; see code_refs below
+  systems:    [TerrainViewSystem]        # nested by kind; bare symbol names, never their shape
+  components: [TerrainViewComponent]
 ---
 ```
 
@@ -126,10 +131,33 @@ Field rules:
   machine-readable enum so the agent can answer "list every scaffold module" with one `grep` instead of
   reading every body. Rule 0 exception, deliberate and scoped: the prose `## Current State` stays the
   authoritative detail; `status` is its one-word index. Keep the two in sync. Omit `status` in B/C files.
+- **`code_refs`** — **Category A only.** A machine-readable index of the code symbols this doc is *about*,
+  nested by symbol kind. It exists for one purpose: **drift-detection anchors**. Every name must resolve
+  to a real symbol in `ecs-graph` / `roslyn-mcp`; a name that no longer resolves is the signal the doc
+  drifted from the code (a rename or removal), so re-anchoring doubles as a staleness audit. This is the
+  one field that deliberately carries code *names* — a scoped exception to "no code structure in
+  frontmatter" (rule below), justified exactly like `status`: it buys a machine-checkable contract the
+  prose alone cannot. Rules:
+  - **Bare symbol names only** — no signatures, fields, parameter lists, priorities, or counts.
+    `code_refs` indexes *which* symbols, never *what they contain*; restating shape here is the very
+    duplication this standard forbids elsewhere.
+  - **Nested by kind.** Canonical keys: `systems`, `components`, `tags`, `events`, `world_components`,
+    `interfaces`, `types`, `enums`, `configs`, `views`. The set is **open with a canonical core** — these
+    ten are the canon, but add a new kind key when a genuinely new symbol category appears. Group each
+    name under the kind that matches the code.
+  - **Anchors, not a roster.** List the symbols the doc's prose actually reasons about — not every symbol
+    in the module. The bar is "if any of these is renamed or removed, this doc must be revisited," not an
+    exhaustive mirror of the assembly.
+  - Omit `code_refs` entirely when a doc has no anchorable symbols (pure design or setup notes, e.g.
+    `PRESENTATION.md`, `WATER_VIEW_SETUP.md`). An empty index is noise.
 
-What frontmatter must NOT contain (same spirit as the forbidden list below): module/type/assembly names
-as data, field counts, priorities, signatures, or anything the tools already give. If `grep`-ing the
-frontmatter and asking `roslyn-mcp`/`ecs-graph` would return the same fact, it does not belong here.
+What frontmatter must NOT contain (same spirit as the forbidden list below): assembly/package names,
+field counts, priorities, signatures, folder trees, or anything the tools already give in detail. **The
+one carve-out is `code_refs`** — it deliberately carries bare symbol *names* (the drift anchors above),
+but never their *shape* (no fields, signatures, priorities, or counts). The test still holds for
+everything else: if `grep`-ing the frontmatter and asking `roslyn-mcp`/`ecs-graph` would return the same
+fact at the same fidelity, it does not belong here. `code_refs` is exempt because its value is the
+**broken link when a name stops resolving** — a staleness signal no tool query produces.
 
 ---
 
@@ -318,6 +346,8 @@ but not their semantics):
       data in frontmatter. (Then regenerate `INDEX.md` — see below.)
 - [ ] If a doc was added/removed/renamed or its `read`/`trigger`/`status` changed, `INDEX.md` was
       regenerated (`python3 Tools/gen_index.py`).
+- [ ] (Category A) `code_refs` lists the symbols the doc reasons about, nested by kind, bare names only —
+      and every name resolves in `ecs-graph`/`roslyn-mcp` (a non-resolving name is drift to fix, not to ship).
 - [ ] Every line answers something the tools (`roslyn-mcp`/`ecs-graph`/`di-graph`) cannot.
 - [ ] No type tables, signatures, dep lists, folder trees, priorities, inheritance.
 - [ ] Key public/cross-module types carry their **behavioral contract** (side-effects, aliasing,

@@ -6,7 +6,7 @@ related:
   - "[ARCHITECTURE](ARCHITECTURE.md)"
   - "[CLAUDE](CLAUDE.md)"
   - "[DOC_STANDARD](DOC_STANDARD.md)"
-status: partial
+status: implemented
 ---
 
 # AI Context Migration — Plan (FantasyMayor)
@@ -18,8 +18,10 @@ Stance (ratified): **adapt to existing — do NOT rebuild greenfield.** The spec
 much of Epics C and D already exist here in another form. We extend what's here and add only
 the genuinely missing layer (LSP/Roslyn).
 
-> **State (2026-06-30):** Epic A first step DONE (roslyn-mcp installed + wired): `roslyn-mcp` is now the code-structure/refs/symbols layer; `ecs-graph` + `di-graph`
-> stay. This doc is itself the §C3 "research → plan artifact on disk" convention in action.
+> **State (2026-06-30): all four epics done.** A (roslyn-mcp wired — code-structure/refs/symbols layer)
+> · B (ecs-graph + di-graph typed-MCP facades, `sets[]`) · C (dispatcher: search-gate + «Working Contract»
+> + INDEX-first session-start) · D (28 module MDs anchored with `code_refs` + trimmed; schema codified in
+> `DOC_STANDARD.md`). This doc is itself the §C3 "research → plan artifact on disk" convention in action.
 
 ## Existing infrastructure (the baseline the spec lands on)
 
@@ -51,7 +53,7 @@ These already implement large parts of the spec's target architecture:
 | **A — LSP/Roslyn** | symbol-precise nav (defs/refs/outline/callHierarchy), no full-file reads | **`roslyn-mcp`** (installed + wired 2026-06-30) | — (roslyn is the code-structure layer) | §10 proof passed on `HexIdComponent`; available to main + scout | ✅ DONE |
 | **B — graph→typed MCP** | typed, size-bounded JSON tools (`component_consumers`, `system_contract`, `execution_order`, `impact_of_change`); symbol-precise anchors; capped output | 2 graph **CLIs** (`ecs-graph`/`di-graph`) with rich semantics, parsed as **text** by scouts | output is unbounded text, fragile to parse; not typed/capped JSON; no `definition`-jump anchors | **wrap `ecs-graph`** as a thin FastMCP facade; **+AsSet extractor extension**; anchors join to Epic-A LSP jumps; cap+paginate; keep CLI as build/fallback | 🟢 done 2026-06-30 (ecs-graph + di-graph facades live, sets=65; needs CC reload) |
 | **C — dispatcher** | main session never reads/greps; workers return ≤2–3k distilled; research→plan→execute split | hook denies main-session Assets/`.cs` discovery + budgets reads; scouts = workers; CLAUDE.md "Discovery Scouts = search front door"; session-start command exists | **C1 done** (search-gate + SEARCH_POLICY). **C2 done** — decided: NO numeric cap, distillation stays qualitative. **C3 done** — Research→Plan→Execute contract codified at the top of `CLAUDE.md`. **C4 done** — `/fantasymayor-session-start` rewritten to INDEX-first «map + dispatch» (the broad root-`.md` sweep + dead `SESSION_START.md` ref removed). **`.md`-read scope resolved**: `.md` readable by both agents (main + scout) — only `Assets/.cs` source is gated | ~~codify C2 cap~~ dropped (no cap); **C3 done** (CLAUDE.md «Working Contract» names the 3 phases + maps each to its existing gate — descriptive, no new enforcement); **C4 done** (command rewritten INDEX-first); **`.md`-read scope resolved** (2026-06-30): docs stay readable by both agents | ✅ DONE — C1–C4 + `.md` scope ratified |
-| **D — docs why-only** | strip recoverable, keep why; machine-parsable frontmatter (`code_refs`, `components`); CLAUDE.md as map | DOC_STANDARD enforces why-only; CLAUDE.md + ARCHITECTURE trimmed this session; module MDs already contract-only | D1 vault audit not systematic; D4 frontmatter lacks `code_refs`/`components` anchors; D2/D3 strip+rewrite ongoing ad hoc | run D1 audit via scout; extend frontmatter schema with `code_refs`/`components`; finish strip/rewrite per DOC_STANDARD — **only after A/B** make recoverable docs provably redundant | 🟡 in progress |
+| **D — docs why-only** | strip recoverable, keep why; machine-parsable frontmatter (`code_refs`, `components`); CLAUDE.md as map | DOC_STANDARD enforces why-only; CLAUDE.md + ARCHITECTURE trimmed this session; module MDs already contract-only | ~~D1 audit ad hoc; D4 frontmatter lacks anchors; D2/D3 ongoing~~ — closed | D1 audit (3 scouts) → ranked strip plan; D2/D3 = all 28 module MDs anchored with `code_refs` (nested-by-kind) + trimmed, 4 drifts caught+fixed; D4 = `code_refs` schema codified in `DOC_STANDARD.md` (scoped frontmatter exception) | ✅ DONE — D1–D4 (2026-06-30) |
 
 ## Adapted rollout order
 
@@ -200,4 +202,4 @@ facade** (`dig_mcp.py`, 11 tools) landed the same day by the same pattern (gap-s
 change). Goes live after a Claude Code reload + approving the `ecs-graph` **and `di-graph`** servers. **Epic C:
 C1–C4 done** (2026-06-30) — search-gate (C1); C2 closed = no cap; C3 = the Research→Plan→Execute
 contract at the top of `CLAUDE.md`; C4 = `/fantasymayor-session-start` rewritten INDEX-first («map +
-dispatch», dead `SESSION_START.md` ref dropped). The `.md`-read scope is now resolved: docs readable by both agents (ratified) — only source is gated. **Epic C is fully done.** Update this doc's gap table + status as each epic lands.
+dispatch», dead `SESSION_START.md` ref dropped). The `.md`-read scope is now resolved: docs readable by both agents (ratified) — only source is gated. **Epic C is fully done.** **Epic D done 2026-06-30:** D1 audit (3 scouts) → ranked strip plan; D2/D3 = all 28 module MDs anchored with `code_refs` (nested-by-kind; every name resolves in `ecs-graph`/`roslyn-mcp`) + recoverable prose trimmed to typed-MCP pointers, 4 symbol drifts caught and fixed; D4 = the `code_refs` schema codified in `DOC_STANDARD.md` as a scoped frontmatter exception. **All four epics (A·B·C·D) are complete — the migration program is closed.**
