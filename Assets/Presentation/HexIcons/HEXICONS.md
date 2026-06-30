@@ -6,6 +6,14 @@ related:
   - "[HEXRESOURCES](../../Domains/Map/HexResources/HEXRESOURCES.md)"
   - "[ADDRESSABLE_PATTERNS](../../Modules/Addressable/ADDRESSABLE_PATTERNS.md)"
 status: partial
+code_refs:
+  systems:          [HexIconsConfigLoaderSystem, HexIconsSpawnSystem, HexIconsVisibilitySystem, HexIconsContainerPositionSystem]
+  components:       [HexIdComponent, HexIconContainerComponent]
+  world_components: [HexIconsViewComponent, HexIconsConfigComponent, HexResourceIconConfigComponent, HexIconsVisibilityComponent]
+  events:           [HexIconsVisibilityChangedEvent]
+  tags:             [HexTag]
+  types:            [HexIconsView, ResourceIconEntry]
+  configs:          [HexIconsConfig, HexResourceIconConfig]
 ---
 
 # HexIcons
@@ -18,9 +26,8 @@ Gameplay — base set = the event; the truth lives in the `HexIconsVisibilityCom
 component). Producer today: `GameplayState.EnterAsync`; later a UI toggle. This reactive trigger is
 not visible in roslyn-mcp — full event flow: the ecs-graph (`/ecs-graph`).
 
-System roles (`ARCHITECTURE.md` "System Taxonomy"): `HexIconsConfigLoaderSystem` = Config Loader;
-`HexIconsSpawnSystem` = Pipeline Stage (700); `HexIconsVisibilitySystem` = Reactive System;
-`HexIconsContainerPositionSystem` = Per-frame System (LateUpdate).
+System roles + priorities: `mcp__ecs-graph__system_contract <System>` (roles per `ARCHITECTURE.md`
+"System Taxonomy").
 
 ## Non-Obvious Invariants
 - `HexIconsConfigComponent` owns the `Box<HexIconsConfig>` — the loader transfers ownership on Set and

@@ -6,6 +6,13 @@ related:
   - "[HEXRESOURCES](../../Domains/Map/HexResources/HEXRESOURCES.md)"
   - "[TERRAIN_VIEW](../Terrain/TERRAIN_VIEW.md)"
 status: partial
+code_refs:
+  systems:          [HexResourcesViewSystem, ForestHexResourceViewSubSystem, ClayHexResourceViewSubSystem, FishHexResourceViewSubSystem, ForestSpawnSystem, ForestDespawnSystem, ClayViewConfigLoaderSystem]
+  components:       [HexIdComponent, ForestViewComponent]
+  world_components: [TerrainViewConfigComponent, HexResourcesViewConfigComponent, TerrainTextureComponent, VertexGridComponent, ClayViewConfigComponent]
+  events:           [ForestHexAppearedEvent, ForestHexRemovedEvent]
+  types:            [ForestPlanter, ForestGroundPainter, ClayFootprint, ClayDepressionShaper, ClayGroundPainter]
+  configs:          [HexResourcesViewConfig, ClayViewConfig]
 ---
 
 # HexResourcesView

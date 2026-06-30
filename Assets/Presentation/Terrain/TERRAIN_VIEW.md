@@ -7,6 +7,11 @@ related:
   - "[HEX_CORE](../../Domains/Map/Hex/HEX_CORE.md)"
   - "[WATER_VIEW_SETUP](./WATER_VIEW_SETUP.md)"
 status: implemented
+code_refs:
+  systems:          [TerrainViewSystem, TerrainViewTextureSubSystem, TerrainViewConfigLoaderSystem, HexSelectionViewLoadingSystem, TerrainViewDebugSystem, HexSelectionViewSystem]
+  components:       [TerrainViewComponent, HexSelectionViewComponent]
+  world_components: [VertexGridComponent, TerrainTextureComponent, TerrainViewConfigComponent]
+  types:            [HexSelectionView]
 ---
 
 # TerrainView
@@ -24,21 +29,17 @@ For water: `WATER_VIEW_SETUP.md`.
 ## Non-Obvious Invariants
 
 ### How TerrainView is triggered
-- `TerrainViewSystem` is a **Pipeline Orchestrator** (world-init stage, priority 300) — an
-  `IPrioritizedUniTaskSystem<MapGenerationStep>` run sequentially by the **`MapCreation` game state**,
-  after terrain and resource generation. It fans out into async **Pipeline SubSystems**
-  (`ViewSubSystem` children: height field, texture, water) and contains no domain logic of its own.
-  It no longer listens to an event itself.
-- The pipeline runs once when the `MainMenu` state detects `TerrainGenerationGenerateEventComponent`
-  (Generate button) and switches to `MapCreation`. Stage order: terrain gen (100) → resources (200) →
-  terrain view (300) → resource view (400) → selection-view load (500) → debug (600) →
-  icon containers (700) → info panel (800).
-- The `MapGenerationStep` marker drives this pipeline.
-- This module also owns two later pipeline stages: `HexSelectionViewLoadingSystem` (500) and
-  `TerrainViewDebugSystem` (600). `HexSelectionViewSystem` (the selection highlight) is a
-  **Per-frame System** (`UpdatedSystem`), wired by Boot into the `Gameplay` state — **not** part of
-  the pipeline.
-- Roles: `ARCHITECTURE.md` "System Taxonomy". Full flow: `BOOT.md` / the ecs-graph (`/ecs-graph`).
+- `TerrainViewSystem` is the terrain-view pipeline orchestrator (`IPrioritizedUniTaskSystem<MapGenerationStep>`,
+  run sequentially by the **`MapCreation` state** after terrain + resource generation). It fans out into async
+  **Pipeline SubSystems** (height field, texture, water), contains no domain logic, and **no longer listens to
+  an event itself**.
+- The pipeline runs once when `MainMenu` switches to `MapCreation` on `TerrainGenerationGenerateEventComponent`
+  (Generate button); the `MapGenerationStep` marker drives it. Role, priority and the full cross-module stage
+  order: `mcp__ecs-graph__execution_order` / `mcp__ecs-graph__system_contract <System>` (roles per
+  `ARCHITECTURE.md` "System Taxonomy").
+- This module also owns the `HexSelectionViewLoadingSystem` + `TerrainViewDebugSystem` pipeline stages;
+  `HexSelectionViewSystem` (the selection highlight) is a **per-frame** system wired by Boot into `Gameplay`
+  — **not** part of the pipeline.
 
 ### Async build pipeline order (contract)
 `TerrainViewSystem` runs this sequence; the order is significant:
