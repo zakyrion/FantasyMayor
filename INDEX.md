@@ -13,7 +13,7 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 38 docs — 3 always · 5 trigger · 30 reference · 2 canvas.
+Totals: 37 docs — 3 always · 5 trigger · 29 reference · 2 canvas.
 
 ## Read at start (always)
 
@@ -41,7 +41,6 @@ Per-module navigation docs. `status` mirrors each module's `## Current State`.
 
 | Doc | Cat | Status | What it is |
 |---|---|---|---|
-| [AI Context Migration — Plan (FantasyMayor)](AI_CONTEXT_MIGRATION.md) | C | partial | Repo-adapted execution plan for the AI-context migration spec (the verbatim source spec has been |
 | [Actions](Assets/Domains/Actions/ACTIONS.md) | A | partial | The application / orchestration layer: actor verbs and cross-domain turn processing. Depends on both |
 | [District Build Cost](Assets/Domains/Actions/DISTRICT_BUILD_COST.md) | A | partial | The district-build **cost** config flow: the Actions domain owns the per-district AP + resource price |
 | [Turn Phases](Assets/Domains/Actions/TURN_PHASES.md) | A | partial | The Actions domain's turn-phase subsystems: phase **content** that plugs into the `Turn` engine. |
@@ -86,5 +85,3 @@ Visual maps (Obsidian Canvas). Read/edit via Obsidian MCP; not preloaded.
 ## Context & Notes (agent-maintained — pass 2)
 
 Curate what the script can't derive: current focus, stale docs, cross-doc orientation. Keep it short. Preserved across `gen_index.py` runs.
-
-- **AI-context migration — CLOSED 2026-06-30** (record: [AI_CONTEXT_MIGRATION.md](AI_CONTEXT_MIGRATION.md), plan + gap analysis + rollout; verbatim source spec removed once consumed). Stance: adapt to existing infra. **All four epics done:** A (roslyn-mcp), B (ecs-graph + di-graph typed-MCP facades), C (dispatcher: search-gate + «Working Contract» + INDEX-first session-start), D (28 module MDs anchored with `code_refs` + trimmed; schema codified in `DOC_STANDARD.md`).

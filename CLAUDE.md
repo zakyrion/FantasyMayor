@@ -23,7 +23,7 @@ gate — this names the discipline, it adds no new rule:
 2. **Plan** — restate the task via the Engineering Task Template, ask clarifying
    questions, and **wait for explicit confirmation** before any edit (the HARD GATE
    below). Persist the plan as an on-disk artifact **only for multi-session programs**
-   (e.g. `AI_CONTEXT_MIGRATION.md`); single-session tasks stay in plan-mode / the chat.
+   (a dedicated top-level plan doc); single-session tasks stay in plan-mode / the chat.
 3. **Execute** — edit under the standing invariants (ECS writes via `Set()`,
    instance-by-default, zero-allocation systems). Reads-for-editing are budgeted by the
    same hook; on exhaustion, STOP and ask.
