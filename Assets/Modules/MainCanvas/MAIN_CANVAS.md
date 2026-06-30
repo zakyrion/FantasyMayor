@@ -5,6 +5,8 @@ tags: [ui]
 related:
   - "[MAIN_UI](../MainUI/MAIN_UI.md)"
 status: implemented
+code_refs:
+  types: [IMainCanvasProvider]
 ---
 
 # MainCanvas

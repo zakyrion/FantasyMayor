@@ -6,6 +6,8 @@ related:
   - "[USER_INPUT](../UserInput/USER_INPUT.md)"
   - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
 status: implemented
+code_refs:
+  components: [CameraComponent]
 ---
 
 # Cameras

@@ -5,6 +5,11 @@ tags: [hex, resources, ecs, generation]
 related:
   - "[HEXRESOURCESVIEW](../../../Presentation/HexResources/HEXRESOURCESVIEW.md)"
 status: implemented
+code_refs:
+  systems:    [HexResourcesSystem]
+  components: [HexIdComponent, HexResourceComponent]
+  tags:       [HexResourceTag]
+  configs:    [HexResourcesConfig]
 ---
 
 # HexResources
@@ -12,19 +17,19 @@ status: implemented
 Generates logical resource data for the map. Does not render anything.
 
 ## Trigger
-`HexResourcesSystem` is a **Pipeline Orchestrator** (world-init stage, priority 200), run
-sequentially by the **`MapCreation` game state** — it does not listen to an event itself. It fans
-out into the generation **Pipeline SubSystems** (Forest/Clay/Fish) in their priority order. The
-pipeline runs once when the `MainMenu` state detects `TerrainGenerationGenerateEventComponent` and
-switches to `MapCreation`. Roles: `ARCHITECTURE.md` "System Taxonomy". Full flow: `BOOT.md` /
-the ecs-graph (`/ecs-graph`).
+
+A pipeline stage run by the **`MapCreation`** state — it does **not** listen to an event itself; the
+state runs it (and its generation sub-systems) sequentially. The pipeline fires once, when `MainMenu`
+switches to `MapCreation` on `TerrainGenerationGenerateEventComponent`. Role, priority and the
+sub-system order: `mcp__ecs-graph__system_contract HexResourcesSystem` (or `/ecs-graph`).
 
 ## Non-Obvious Invariants
 
-- Resources live on **dedicated entities** (`HexIdComponent + HexResourcesComponent`), not as tag components on hex entities.
+- Resources live on **dedicated entities** (`HexIdComponent + HexResourceComponent + HexResourceTag`),
+  not as tag components on hex entities.
 - `HexResourcesConfig` expects unique `ResourceType` values — duplicate entries fail validation.
 
 ## Current State
 
-All three subsystems (Forest, Clay, Fish) are fully implemented.
-Visualization belongs to `HexResourcesView`.
+All three generation sub-systems (Forest, Clay, Fish) are implemented. Visualization belongs to
+`HexResourcesView`.

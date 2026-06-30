@@ -7,6 +7,10 @@ related:
   - "[TERRAIN_VIEW](../TerrainView/TERRAIN_VIEW.md)"
   - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
 status: implemented
+code_refs:
+  systems:    [HexSelectionSystem, CameraMovementSystem]
+  components: [PlayerInputComponent, HexSelectedComponent, CameraMovementConfigComponent, TerrainViewConfigComponent]
+  events:     [SelectedHexChangedEvent]
 ---
 
 # UserInput

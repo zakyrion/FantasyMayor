@@ -6,6 +6,10 @@ related:
   - "[MAIN_UI](../MAIN_UI.md)"
   - "[GENERAL_UI_STYLE](../../../../GENERAL_UI_STYLE.md)"
 status: partial
+code_refs:
+  systems:    [ResourceBarSystem, ResourceBarSpawnSubSystem]
+  components: [InventoryResourceIconConfigComponent, ResourceBarViewComponent, CityIdComponent, MayorIdComponent, ResourceComponent]
+  tags:       [CityTag, MayorTag, ResourceTag, UITag]
 ---
 
 # ResourceBar
@@ -29,7 +33,8 @@ top bar no longer holds resources — it is now a thin empty placeholder strip.
   the turn sub-panel). City has no AP.
 
 ## Trigger
-None — this window is **not** reactive. `ResourceBarSystem` is a **Per-frame System** (Gameplay).
+None — this window is **not** reactive; `ResourceBarSystem` runs **per-frame** in Gameplay
+(role/priority: `mcp__ecs-graph__system_contract ResourceBarSystem`).
 **Per-frame justification** (override of Reactive-by-default, `ARCHITECTURE.md`): no `ResourcesChanged`
 pulse exists yet, so the list reads the City/Mayor `Resource` stacks directly every frame. Cost is trivial
 (2 owners × N rows). Replace with a reactive consumer once a resource-changed pulse lands.

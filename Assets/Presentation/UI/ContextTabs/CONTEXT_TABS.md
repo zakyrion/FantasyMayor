@@ -7,6 +7,11 @@ related:
   - "[HEX_INFO_PANEL](../HexInfoPanel/HEX_INFO_PANEL.md)"
   - "[END_TURN](../EndTurn/END_TURN.md)"
   - "[GENERAL_UI_STYLE](../../../../GENERAL_UI_STYLE.md)"
+code_refs:
+  systems:    [ContextTabSelectionSystem, ContextTabsAvailabilitySystem, ContextTabsSpawnSubSystem]
+  components: [ContextTabsViewComponent, ActiveContextTabComponent]
+  events:     [ContextTabChangedEvent]
+  enums:      [ContextTab]
 ---
 
 # Context Tabs — Tab Row of the Context Sub-Panel

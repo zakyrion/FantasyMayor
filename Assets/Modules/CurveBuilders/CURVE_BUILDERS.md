@@ -5,6 +5,8 @@ tags: [terrain, curves]
 related:
   - "[TERRAIN_VIEW](../TerrainView/TERRAIN_VIEW.md)"
 status: implemented
+code_refs:
+  types: [ICurveBuilder]
 ---
 
 # CurveBuilders

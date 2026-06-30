@@ -7,6 +7,10 @@ related:
   - "[HEX_INFO_PANEL](../HexInfoPanel/HEX_INFO_PANEL.md)"
   - "[TURN](../../Turn/TURN.md)"
   - "[GENERAL_UI_STYLE](../../../../GENERAL_UI_STYLE.md)"
+code_refs:
+  systems:    [EndTurnViewSystem, EndTurnSpawnSubSystem]
+  components: [EndTurnViewComponent, TurnProcessorComponent, TurnCountComponent, MayorAPComponent, MayorAPRestoreComponent]
+  events:     [NextTurnEvent]
 ---
 
 # Turn Corner (End Turn) — Turn Sub-Panel
