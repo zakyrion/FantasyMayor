@@ -11,6 +11,10 @@ GameObject:
   - component: {fileID: 1696974856945251741}
   - component: {fileID: 120019418656823439}
   - component: {fileID: 1054065721285858852}
+  - component: {fileID: -6993804940659798687}
+  - component: {fileID: 8946193614263423429}
+  - component: {fileID: -5127511241653855992}
+  - component: {fileID: 3124133078087288158}
   m_Layer: 0
   m_Name: DistrictBuildAction
   m_TagString: Untagged
@@ -105,9 +109,68 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Presentation.UI::Presentation.UI.DistrictBuild.Views.DistrictBuildActionView
   _renderer: {fileID: 120019418656823439}
-  _districtRowTemplate: {fileID: 9197481963319205126, guid: ba74915c489ef450fa7a15ab300c1198,
+--- !u!114 &-6993804940659798687
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2901360705916363253}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce4e57fcb60ba43c199baf2cd3e60055, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Presentation.UI::Presentation.UI.DistrictBuild.Views.DistrictBuildListUIView
+  _renderer: {fileID: 120019418656823439}
+  _rowTemplate: {fileID: 9197481963319205126, guid: ba74915c489ef450fa7a15ab300c1198,
     type: 3}
-  _reqLineTemplate: {fileID: 9197481963319205126, guid: 7421da3600cb74ab6bf7cfa056405a6e,
-    type: 3}
+  _listContainerName: district-list
+--- !u!114 &8946193614263423429
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2901360705916363253}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: abcce1ed967534f9c9d9117f5dddb556, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Presentation.UI::Presentation.UI.DistrictBuild.Views.DistrictBuildPriceUIView
+  _renderer: {fileID: 120019418656823439}
   _costRowTemplate: {fileID: 9197481963319205126, guid: 83a2c49b1de614743816b28543a6d113,
     type: 3}
+  _apRowName: ApRow
+  _costRowsName: CostRows
+  _payerMayorName: PayerMayor
+  _payerCityName: PayerCity
+--- !u!114 &-5127511241653855992
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2901360705916363253}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 05dce115db57b4be892ec5b954028b08, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Presentation.UI::Presentation.UI.DistrictBuild.Views.DistrictBuildActionsUIView
+  _renderer: {fileID: 120019418656823439}
+--- !u!114 &3124133078087288158
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2901360705916363253}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 20209aa7564f7496fa0ae8ffd37d38f8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Presentation.UI::Presentation.UI.DistrictBuild.Views.DistrictBuildHexResourcesUIView
+  _renderer: {fileID: 120019418656823439}
+  _reqLineTemplate: {fileID: 9197481963319205126, guid: 7421da3600cb74ab6bf7cfa056405a6e,
+    type: 3}
+  _detailNameName: DetailName
+  _reqLinesName: ReqLines

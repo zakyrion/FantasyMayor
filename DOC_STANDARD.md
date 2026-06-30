@@ -72,7 +72,7 @@ Every Markdown file falls into exactly one category. The rules differ per catego
 | Category | What it is | Files | Rule |
 |---|---|---|---|
 | **A — Navigation** | Per-module reference | `Assets/Modules/*/*.md` | Follow the navigation structure below. Strip anything the tools (`roslyn-mcp`/`ecs-graph`/`di-graph`) cover. |
-| **B — Template / Reference** | How to build new code, or how to use a tricky API | `SYSTEMTEMPLATE.md`, `CONFIGTEMPLATE.md`, `ADDRESSABLE_PATTERNS.md` | Do **not** strip. These encode procedure/convention. Keep accurate, keep complete. |
+| **B — Template / Reference** | How to build new code, or how to use a tricky API | `Patterns/PATTERN_*.md`, `ADDRESSABLE_PATTERNS.md` | Do **not** strip. These encode procedure/convention. Keep accurate, keep complete. |
 | **C — Policy** | Project-wide rules | `CLAUDE.md`, `ARCHITECTURE.md`, this file | Rules and orientation. Keep current. |
 
 When unsure which category a new file is: if it describes one module, it is A.

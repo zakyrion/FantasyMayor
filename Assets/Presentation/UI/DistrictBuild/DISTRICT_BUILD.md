@@ -1,144 +1,150 @@
 ---
 category: A
 read: reference
-tags: [ui, ecs]
+tags: [ui, ecs, district]
 related:
   - "[MAIN_UI](../MAIN_UI.md)"
   - "[HEX_INFO_PANEL](../HexInfoPanel/HEX_INFO_PANEL.md)"
   - "[ECONOMY](../../../Domains/Economy/ECONOMY.md)"
+  - "[DISTRICT_OPEN_CONDITION](../../../Domains/Economy/DistrictOpenCondition/DISTRICT_OPEN_CONDITION.md)"
+  - "[PATTERN_ORCHESTRATOR_SUBSYSTEM](../../../../Patterns/PATTERN_ORCHESTRATOR_SUBSYSTEM.md)"
 status: partial
 code_refs:
-  systems:          [DistrictBuildUISpawnSystem, DistrictBuildUISystem, DistrictsBuildConfigLoaderSystem]
+  systems:          [DistrictBuildUISystem, DistrictBuildUISpawnSystem, DistrictBuildUISubSystem, DistrictBuildListUISubSystem, DistrictBuildHexResourcesUISubSystem, DistrictBuildPriceUISubSystem, DistrictBuildActionsUISubSystem]
   components:       [DistrictBuildUIViewComponent]
-  world_components: [DistrictBuildUIRootComponent, DistrictsBuildConfigComponent]
-  events:           [DistrictBuildRequestedEvent, DistrictBuildClosedEvent]
-  views:            [DistrictBuildUIView]
-  configs:          [DistrictsBuildConfig, DistrictBuildingConfig]
-  tags:             [UITag]
+  world_components: [DistrictBuildUIRootComponent, DistrictBuildSelectionComponent, DistrictBuildListUIViewComponent, DistrictBuildHexResourcesUIViewComponent, DistrictBuildPriceUIViewComponent, DistrictBuildActionsUIViewComponent, DistrictsBuildConfigComponent, ActionsDistrictsBuildConfigComponent]
+  events:           [DistrictBuildRequestedEvent, DistrictBuildClosedEvent, DistrictBuildSelectionRequestedEvent]
+  views:            [DistrictBuildUIView, DistrictBuildListUIView, DistrictBuildHexResourcesUIView, DistrictBuildPriceUIView, DistrictBuildActionsUIView]
+  configs:          [DistrictsBuildConfig, DistrictBuildingConfig, ActionsDistrictBuildConfig]
+  enums:            [Payer]
+  tags:             [UITag, DistrictCanBeBuildTag]
 ---
 
 # DistrictBuild
 
 The district-build **modal overlay** (`Assets/Presentation/UI/DistrictBuild/`, namespaces
 `Presentation.UI.DistrictBuild.*`): a master-detail picker the player opens from the HexInfoPanel «Район»
-build slot to choose a district to build on the selected hex. Design source: `design-mockups/FantasyMayor-DistrictBuild.html`
-(the `.pickwrap` / `.picker` state).
+build slot to choose a district to build on the selected hex. Design source:
+`design-mockups/FantasyMayor-DistrictBuild.html` (the `.pickwrap` / `.picker` state).
 
 ## Why a separate UIDocument (not part of the shared Main UI)
 Unlike the HUD windows (`MAIN_UI.md` — one shared `PanelRenderer`), this overlay is its **own UIDocument**,
 authored with a **higher `PanelSettings` sort order** so it renders above the whole HUD. Its full-screen root +
-scrim are pickable by default, so the document blocks input to everything beneath it — a real modal — without
-the per-element `EnablePicking` sweep the shared HUD uses. Toggling this document's own root `display` is safe
-(it is not shared, so it never blanks the HUD).
+scrim are pickable by default, so the document blocks input to everything beneath it — a real modal. Toggling
+this document's own root `display` is safe (it is not shared, so it never blanks the HUD).
 
-## Spawn + lifecycle
-- `DistrictBuildUISpawnSystem` — a world-init pipeline stage (`IPrioritizedUniTaskSystem<MapGenerationStep>`,
-  auto-collected by the generation pipeline, **no Boot wiring**; role/priority: `mcp__ecs-graph__system_contract DistrictBuildUISpawnSystem`). Mirrors the loading half of `MainUISpawnSystem`:
-  instantiates the addressable prefab `UI/DistrictBuildAction` under `IMainCanvasProvider.RootGO`, owns the
-  addressable handle in the **world component** `DistrictBuildUIRootComponent` (Box<GameObject>), resolves
-  `DistrictBuildUIView` off the instance, publishes the `DistrictBuildUIViewComponent` singleton entity
-  (+`UITag`), and leaves the overlay **hidden**.
-- `DistrictBuildUISystem` — a Gameplay per-frame system anchored on the `DistrictBuildUIViewComponent`
-  singleton (wired into Gameplay by `Boot`; role/priority: `mcp__ecs-graph__system_contract DistrictBuildUISystem`). It coalesces the two one-frame pulses for this one
-  window: `DistrictBuildRequestedEvent` (open) and `DistrictBuildClosedEvent` (close). Per-frame (not reactive)
-  is deliberate — one `AEntitySetSystem` cannot anchor on two event sets, and a singleton-anchored per-frame
-  read is the established override (see `ResourceBar` / `EndTurn`).
+## Architecture: orchestrator + per-section subsystems
+The overlay is split by concern, following [PATTERN_ORCHESTRATOR_SUBSYSTEM](../../../../Patterns/PATTERN_ORCHESTRATOR_SUBSYSTEM.md):
 
-## Open / close flow
-- **Open:** `HexInfoPanelView`'s build slot raises payload-less `DistrictBuildRequestedEvent`. On the next tick
-  `DistrictBuildUISystem` reads the current `HexSelectedComponent`, resolves the hex's `HexTypeComponent`
-  (same scan as `HexInfoPanelHeaderSystem`), reads the `DistrictsBuildConfigComponent` catalogue + both payers'
-  resource stockpiles + the Mayor's AP, pushes them via `view.SetContext(...)`, and shows the overlay. The
-  window is modal, so the selection cannot change while it is open — it fills once on open.
-- **Close:** the «X», the scrim, and the «ЗБУДУВАТИ» button each raise `DistrictBuildClosedEvent` from the view;
-  the system hides the overlay. Build itself is a **dormant later slice** — «ЗБУДУВАТИ» only closes for now.
+- **`DistrictBuildUISystem`** — the Gameplay per-frame **orchestrator**, anchored on the
+  `DistrictBuildUIViewComponent` singleton (wired into Gameplay by `Boot`). It owns **no section data**: it
+  coalesces this window's pulses (open / close / selection), maintains the ECS selection, and on each change
+  re-runs every section subsystem's `Populate(root)` to **reconcile** (idempotent). It is per-frame, not
+  reactive, because one `AEntitySetSystem` cannot anchor on several event sets — the established
+  singleton-anchored override (see `ResourceBar` / `EndTurn`).
+- **`DistrictBuildUISubSystem`** — the abstract section base (a plain `IDisposable`, NOT a system). Concrete
+  sections, DI-collected into the orchestrator's `IReadOnlyList`: `DistrictBuildListUISubSystem`,
+  `DistrictBuildHexResourcesUISubSystem` (ВИМОГИ), `DistrictBuildPriceUISubSystem` (БУДІВНИЦТВО, cost + payer),
+  `DistrictBuildActionsUISubSystem` (ДІЇ — dormant scaffold).
+- **Each section reads ECS directly and pushes to its own section view** — there is no shared read-model
+  (the former `IDistrictBuildData` is retired). Roles/priorities/reads: `mcp__ecs-graph__system_contract <name>`.
+
+## Trigger
+`DistrictBuildUISystem` is event-driven: it consumes `DistrictBuildRequestedEvent` (open),
+`DistrictBuildClosedEvent` (close), and `DistrictBuildSelectionRequestedEvent` (re-select). These pulses are not
+visible to `roslyn-mcp` — full producer→consumer flow is in the ecs-graph (`/ecs-graph`).
+
+## Spawn
+`DistrictBuildUISpawnSystem` — a world-init pipeline stage (auto-collected, **no Boot wiring**). It instantiates
+the addressable prefab `UI/DistrictBuildAction` under `IMainCanvasProvider.RootGO`, owns the addressable handle
+in the **world component** `DistrictBuildUIRootComponent` (`Box<GameObject>`), then resolves **each** section
+MonoBehaviour off the instance (`GetComponentInChildren`) and publishes them: the root `DistrictBuildUIView` on
+the `DistrictBuildUIViewComponent` singleton entity (+`UITag`), and each section view as its own **world
+component** (`DistrictBuildListUIViewComponent`, `DistrictBuildHexResourcesUIViewComponent`,
+`DistrictBuildPriceUIViewComponent`, `DistrictBuildActionsUIViewComponent`). It **fails loud** if any of the
+four section views is missing from the prefab, and leaves the overlay hidden.
+
+## Selection (ECS) and the open / select / close flow
+Selection of the active district lives in ECS, not in a view:
+- `DistrictBuildSelectionComponent` (world component) — the currently selected `DistrictType`.
+- `DistrictBuildSelectionRequestedEvent` (one-frame pulse) — carries the clicked `DistrictType` (a tolerated
+  *identifying* payload, see [PATTERN_EVENT](../../../../Patterns/PATTERN_EVENT.md)).
+
+Flow:
+- **Open** — `HexInfoPanelView`'s build slot raises `DistrictBuildRequestedEvent`. The orchestrator (guarded by a
+  live `HexSelectedComponent`) sets `DistrictBuildSelectionComponent` to the **default** (first buildable
+  district), reconciles all sections, and shows the overlay.
+- **Select** — the list view raises a local C# `SelectionChanged`; `DistrictBuildListUISubSystem` translates it
+  into `DistrictBuildSelectionRequestedEvent` (so the **view stays World-free**). Next tick the orchestrator
+  updates `DistrictBuildSelectionComponent` and reconciles the sections to the new district.
+- **Close** — the «X», the scrim, and the «ЗБУДУВАТИ» button each raise `DistrictBuildClosedEvent` from the root
+  view; the orchestrator hides the overlay. Build itself is a **dormant later slice** — «ЗБУДУВАТИ» only closes.
+
+## Section views + the PanelRenderer reload contract
+Each section is its own MonoBehaviour on the overlay prefab, bound to the **shared** `PanelRenderer` tree:
+- **`DistrictBuildUIView`** — chrome only: `Show`/`Hide`, close/scrim/confirm. Holds no section data; confirm is
+  close-only while build is dormant (the «НЕДОСТУПНО» availability styling was dropped until the build slice).
+- **`DistrictBuildListUIView`** — clones a `DistrictRow` per buildable district, marks the selected row, raises
+  `SelectionChanged` on click.
+- **`DistrictBuildHexResourcesUIView`** — the district-name header + one ✓/✕ `ReqLine` per active gate dimension.
+- **`DistrictBuildPriceUIView`** — the AP row + a `CostRow` per resource price (need vs the current payer's
+  stockpile, short-marked) + the Мер/Місто payer toggle; raises a local `PayerChanged`.
+- **`DistrictBuildActionsUIView`** — dormant placeholder (validates its `PanelRenderer` only).
+
+**PanelRenderer builds asynchronously**, so every section view (re)caches its elements + re-registers its
+callbacks in the reload callback; push methods that arrive **before the first reload are no-ops** (the
+async-panel reality, not a silent skip of a real prerequisite). Each view **fails loud in `OnEnable`** if its
+`PanelRenderer` / templates are unassigned — never in the reload callback (a throw there runs inside the global
+panel-update loop and would blank every UIDocument).
+
+## Public Contract & Gotchas
+- **`DistrictBuildSelectionComponent` is the single source of selection.** Every section subsystem reconciles to
+  it idempotently in `Populate(root)` (called on open and on every selection change). A second reconcile is a
+  no-op; there is no per-section selection state.
+- **Payer is LOCAL to the Price subsystem, not ECS.** The Price view raises `PayerChanged`; the subsystem holds
+  the current `Payer` and re-renders only the cost column. District selection goes through ECS; payer does not.
+- **Sections self-read ECS (no shared read-model).** Each subsystem builds its own query caches: HexResources
+  reads the selected hex's type + `HexResourceComponent` set; Price reads the actor stockpiles + the Mayor's AP
+  (`ActionPoint` resource stack) + `ActionsDistrictsBuildConfigComponent`; both look up the selected
+  `DistrictBuildingConfig` in `DistrictsBuildConfigComponent`.
+- **The list is condition-driven, not roster-driven.** `DistrictBuildListUISubSystem` reads the
+  `DistrictOpenCondition` entities tagged `DistrictCanBeBuildTag` (key `DistrictTypeComponent`), NOT the full
+  `DistrictsBuildConfig` roster. The tag is the buildability key — see `DISTRICT_OPEN_CONDITION.md`.
+- **The catalogue components carry live SO references** (`DistrictsBuildConfigComponent`,
+  `ActionsDistrictsBuildConfigComponent`) — not flattened copies; the loaders keep their addressable Boxes
+  alive. The systems allocate nothing — push to views one value at a time (the `ResourceBarSystem` path).
 
 ## What is real vs placeholder (Hybrid)
-The domain models only part of the screen; the rest is **marked static placeholder** until it lands.
-- **Real (bound):** district list from `DistrictsBuildConfig` (currently only `CityCenter` / `Farm` are authored
-  in `DistrictType`; `Unknown` is skipped); per-district **AP cost** (`ActionPointsRequired`); **resource cost
-  rows** (`DistrictPrices`) with the active payer's **stockpile** as the "have" column + shortfall marking;
-  **buildability** — terrain **and** the hex-resource gate (`DistrictBuildingConfig.CanBuildOn` = `IsTerrainAllowed`
-  + `IsResourceSatisfied`): a district either requires the selected hex to carry its one `RequiredHexResourceType`
-  **or** to be empty (`NeedEmptyHexResourcesToBuild`) — mutually exclusive; the ВИМОГИ block lists each *set*
-  dimension on its own ✓/✕ line, so the failing gate (e.g. a terrain blacklist that also covers the resource's
-  home terrain) is always visible; **payer toggle**
-  Мер/Місто (Mayor/City) switching the affordability column; the Mayor's current **AP**.
-- **Placeholder (no model yet):** the whole **ДІЇ / ЕФЕКТ** block — capacity, the fixed-step action, the
-  City/Owner/Operator yield-split table, upkeep — plus the «Селяни» (no peasant resource) and «Золото» (no gold
-  resource) rows, district descriptions, and the 3 screenshot districts that have no `DistrictType`. Rendered as
-  a single marked note in the detail pane.
-
-## View composition: authored UXML + per-panel sub-views
-The design is **authored in UXML/USS**, not built in C#. `Prefabs/DistrictBuildAction.uxml` carries the
-modal chrome **and the detail skeleton** (the section headers, the two payer segments, the AP row, the
-ДІЇ placeholder and the confirm button) with named anchors; the three **repeating** rows are separate
-**item templates** under `Prefabs/Templates/` — `DistrictRow.uxml`, `ReqLine.uxml`, `CostRow.uxml` —
-cloned at runtime (variable-count content can't be authored statically). The templates carry **no
-`<Style>`** of their own (a relative `..` src breaks the importer, and XML comments must avoid `--`); they
-inherit the host panel's stylesheet, which cascades to the cloned descendants.
-
-`DistrictBuildUIView` is a thin **coordinator / mediator**. It is the MonoBehaviour DI resolves and the
-system pushes into, so it owns the pushed data and exposes the read-only `IDistrictBuildData` surface
-(selected hex type, Mayor AP, hex resources, `AmountOf(payer, type)`, the `IsAvailable` gate, the `CostFor`
-join) — but it holds **no selection or payer state**. Each content panel is a self-contained **sub-view**
-in `Views/SubViews/` that owns its elements + its interaction state + its events + its rendering:
-- `DistrictListSubView` — **owns the selected index**; clones a `DistrictRow` per roster district (icon /
-  name / availability / AP pill). A row click updates the selection and raises `SelectionChanged`.
-- `DistrictRequirementsSubView` — display only; clones a `ReqLine` per **active** requirement dimension
-  (✓/✕ from the `CanBuildOn` predicates; unset dimensions render nothing).
-- `DistrictCostSubView` — display only; binds the static AP row + clones a `CostRow` per resource price vs
-  `AmountOf(payer, type)` for the payer the coordinator passes in (shortfall marking).
-- `DistrictPayerSubView` — **owns the payer** (the `Payer` enum); a click toggles the Мер/Місто highlight
-  and raises `PayerChanged`. `Current` is the canonical payer.
-- `DistrictActionsSubView` — **scaffold only** (the ДІЇ/ЕФЕКТ model is unbuilt; the seam where per-action
-  rows clone later — `Bind()` is a deliberate no-op for now).
-
-The coordinator subscribes to `SelectionChanged` (→ re-bind list highlight + detail) and `PayerChanged`
-(→ re-bind only the cost panel for the current district); chrome (close / scrim) and the footer confirm
-button stay wired in the coordinator. Sub-views are (re)constructed in the PanelRenderer reload callback
-(the tree rebuilds asynchronously) and are the short-lived publishers, so those subscriptions die with the
-old instances — no manual unsubscribe. The Ukrainian label + emoji maps live in the stateless
-`DistrictBuildLabels` helper, shared by the sub-views. The per-row ✓/✕ and the overall availability both
-flow from the same `IsAvailable` gate, so they can never diverge.
-
-## Data path: the district catalogue (zero-allocation)
-`DistrictBuildUISystem` reads the **world component** `DistrictsBuildConfigComponent`, published at
-config-load by `DistrictsBuildConfigLoaderSystem` (Economy/District; see `ECONOMY.md`). The component carries a
-**reference** to the `DistrictsBuildConfig` SO — no copy/flatten (the SO already holds the data; the loader
-keeps its addressable Box alive and releases it on teardown). The system itself **allocates nothing**: it passes
-the catalogue reference to the view and pushes each payer's AP + per-type stockpile amounts one method call at a
-time (`SetMayorResource` / `SetCityResource`, the same zero-alloc read path as `ResourceBarSystem`). It likewise
-pushes the **selected hex's HexResources** one at a time (`AddHexResource`), read from the `HexIdComponent`-keyed
-`EntityMultiMap` over the dedicated `HexResourcesComponent` entities — the view needs them to evaluate the
-resource / empty-hex gate. The view — a MonoBehaviour, exempt from the system no-managed-collection rule — records
-amounts + hex resources in its own pre-allocated pools and passes them to `CanBuildOn` as a `ReadOnlySpan<>`; the
-panel sub-views then read the SO's `List<>` fields and these pools through the view's `IDistrictBuildData` surface
-when rendering (see *View composition*).
-
-## Block → producer map
-| Detail block | Source |
-|---|---|
-| District list (name / availability / AP) | `DistrictsBuildConfig.Districts` (`DistrictBuildingConfig[]`) + `CanBuildOn(hexType, hexResources)` |
-| ВИМОГИ — one line per ACTIVE requirement | each *set* dimension renders its own ✓/✕ from the `CanBuildOn` predicates: `ImpossibleToBuildTypes` (blacklist) / `HexTypesRequirement` (whitelist) vs the selected `HexTypeComponent`; resource line = `RequiredHexResourceType` / `NeedEmptyHexResourcesToBuild` vs the hex's `HexResourceComponent` set. Unset dimensions render nothing |
-| ПЛАТНИК (Мер / Місто) | view-local toggle; affordability from the chosen payer's pushed stockpile |
-| БУДІВНИЦТВО — AP | `DistrictBuildingConfig.ActionPointsRequired` + Mayor `MayorAPComponent` |
-| БУДІВНИЦТВО — resource rows | `DistrictBuildingConfig.DistrictPrices` (required) vs payer `ResourceComponent` (have) |
-| ДІЇ / ЕФЕКТ | **placeholder** (capacity / actions / yield split / upkeep — unmodelled) |
+- **Real (bound):** the buildable district list (icon / name); per-district **AP cost** + **resource cost rows**
+  vs the active payer's stockpile (shortfall-marked); **buildability requirements** — terrain + the hex-resource
+  gate (`DistrictBuildingConfig.CanBuildOn`: a district requires the hex to carry its one
+  `RequiredHexResourceType` **or** to be empty (`NeedEmptyHexResourcesToBuild`) — the ВИМОГИ block lists each set
+  dimension on its own ✓/✕ line); the **payer toggle** Мер/Місто; the Mayor's current AP.
+- **Placeholder (no model yet):** the whole **ДІЇ / ЕФЕКТ** block (capacity, the fixed-step action, the yield-split
+  table, upkeep) — the Actions section is a dormant scaffold.
 
 ## Prefab prerequisites (Unity-side, authored by the user)
-- Addressable prefab at key **`UI/DistrictBuildAction`** carrying the overlay UXML/USS on a `PanelRenderer`,
-  with a **`DistrictBuildUIView`** MonoBehaviour whose `PanelRenderer` field is assigned (else the spawn
-  system throws), and a `PanelSettings` whose **sort order is higher than the Main UI's**.
-- On that same `DistrictBuildUIView`, assign the **three item-template `VisualTreeAsset` fields** —
-  `DistrictRow.uxml`, `ReqLine.uxml`, `CostRow.uxml` (direct asset references, no addressable keys). If any is
-  unassigned the view throws on first reload (fail-loud). Let Unity import the new `.uxml` files first so it
-  generates their `.meta`.
-- Addressable **`DistrictsBuildConfig`** SO (the district catalogue) — else `DistrictsBuildConfigLoaderSystem`
-  throws at config-load.
+- Addressable prefab at key **`UI/DistrictBuildAction`** carrying the overlay UXML/USS on a `PanelRenderer`, with
+  a `PanelSettings` whose **sort order is higher than the Main UI's**.
+- **All five section MonoBehaviours on the prefab**, each with its `PanelRenderer` field assigned (spawn fails
+  loud if any of the four section views is missing): `DistrictBuildUIView` (chrome), `DistrictBuildListUIView`
+  (+`DistrictRow.uxml` template), `DistrictBuildHexResourcesUIView` (+`ReqLine.uxml`), `DistrictBuildPriceUIView`
+  (+`CostRow.uxml`), `DistrictBuildActionsUIView`. Each view's element-name fields default to the existing UXML
+  anchors (`DistrictList`, `DetailName`/`ReqLines`, `ApRow`/`CostRows`/`PayerMayor`/`PayerCity`,
+  `ActionsPlaceholder`) — wire only if the UXML renames them. Templates carry **no `<Style>`** (a relative `..`
+  src breaks the importer; XML comments must avoid `--`); they inherit the host panel's stylesheet.
+- Addressable **`DistrictsBuildConfig`** + **`ActionsDistrictsBuildConfig`** SOs — else the loaders throw at
+  config-load. Let Unity import any new `.uxml` first so it generates the `.meta`.
 
 ## Current State
-Code-complete (authored overlay UXML/USS + the three item templates, the coordinator view + per-section binders,
-spawn + reactive systems, the District config loader/component, DI + Boot wiring). Needs the Unity-side prefab +
-config authoring above — including the new step of assigning the three template `VisualTreeAsset` fields. The
-build action is dormant («ЗБУДУВАТИ» closes only); the ДІЇ/ЕФЕКТ block is a binder scaffold (no model yet).
+PARTIAL. The orchestrator + section-subsystem split is implemented: List / HexResources (ВИМОГИ) / Price
+(БУДІВНИЦТВО) / Actions (dormant), each with its own section view + per-section view component, plus the ECS
+selection (`DistrictBuildSelectionComponent` + `DistrictBuildSelectionRequestedEvent`). The former
+coordinator+sub-view design (`IDistrictBuildData` + `Views/SubViews/`) is **retired**.
+
+Open gaps:
+- **The list is empty until a condition evaluator attaches `DistrictCanBeBuildTag`** — the tag is defined and the
+  list reads it, but nothing sets it yet (`DISTRICT_OPEN_CONDITION.md`).
+- **Build is dormant** — «ЗБУДУВАТИ» closes only; the ДІЇ/ЕФЕКТ model is unbuilt.
+- **Prefab authoring required** (the five section MonoBehaviours + templates above); the overlay spawn fails loud
+  until the four section views are present.

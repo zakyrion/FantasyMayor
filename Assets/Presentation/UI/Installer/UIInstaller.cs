@@ -61,6 +61,15 @@ namespace Presentation.UI.Installer
                 .As<HexInfoPanelDistrictSystem>();
             builder.Register<DistrictBuildUISystem>(Lifetime.Singleton)
                 .As<DistrictBuildUISystem>();
+            // Section populators collected by DistrictBuildUISystem (IReadOnlyList<DistrictBuildUISubSystem>).
+            builder.Register<DistrictBuildListUISubSystem>(Lifetime.Singleton)
+                .As<DistrictBuildListUISubSystem, DistrictBuildUISubSystem>();
+            builder.Register<DistrictBuildHexResourcesUISubSystem>(Lifetime.Singleton)
+                .As<DistrictBuildHexResourcesUISubSystem, DistrictBuildUISubSystem>();
+            builder.Register<DistrictBuildPriceUISubSystem>(Lifetime.Singleton)
+                .As<DistrictBuildPriceUISubSystem, DistrictBuildUISubSystem>();
+            builder.Register<DistrictBuildActionsUISubSystem>(Lifetime.Singleton)
+                .As<DistrictBuildActionsUISubSystem, DistrictBuildUISubSystem>();
             builder.Register<EndTurnViewSystem>(Lifetime.Singleton)
                 .As<EndTurnViewSystem>();
             builder.Register<ContextTabSelectionSystem>(Lifetime.Singleton)

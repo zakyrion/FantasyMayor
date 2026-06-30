@@ -32,6 +32,9 @@ Pick the source by the question (SEARCH_POLICY §4) — do NOT default to readin
   roslyn `go_to_definition`/`find_references` to jump. roslyn sees the `With<T>()`/`Set<T>()` call site but
   cannot classify read-vs-write or the reactive/archetype/Table-Rule/binding semantics — this can. The
   `ecsg` CLI (via the `ecs-graph` skill) + `build_graph.py --force|--update` remain for build/fallback.
+  **⚠ MCP-verb ≠ CLI-verb:** the MCP facade has **no** `search` (and no `bfs`/`explain`/`neighbors`) tool —
+  those are `ecsg` CLI verbs only. Never call `mcp__ecs-graph__search`; for keyword/symbol lookup use
+  `mcp__ecs-graph__find_node`, for "what is this + edges" use `explain_node`. Call only the names listed above.
 - **`di-graph` typed MCP (`mcp__di-graph__*`) — PREFER this over the CLI** — any VContainer DI-wiring
   question roslyn cannot resolve (generic-typed `Register<Impl>().As<Contract>()` / `[Inject]` /
   `IReadOnlyList<T>` auto-collection), as typed JSON: `registration` (what a type is registered AS +
@@ -42,6 +45,10 @@ Pick the source by the question (SEARCH_POLICY §4) — do NOT default to readin
   `impact_of_change` / `find_node` / `explain_type` / `graph_info`. Every item carries `source_location`.
   Use this instead of reading `Boot.cs` / the installers. The `dig` CLI (via the `di-graph` skill) +
   `build_di_graph.py --force|--update` remain for build/fallback.
+  **⚠ MCP-verb ≠ CLI-verb:** the MCP facade has **no** `search` (and no `bfs`/`resolve`/`explain`/`state`)
+  tool. Those are `dig` CLI verbs only — **never call `mcp__di-graph__search`**. For keyword/symbol lookup
+  use `mcp__di-graph__find_node`; for "what is this" use `explain_type`; resolve a collection with
+  `resolve_contract`. The full MCP tool set is exactly the names listed above — call only those.
 - **docs / module-MD (Obsidian-first)** — this repo is an Obsidian vault. **The init access point is
   `INDEX.md`** — the generated doc map and the single key to every doc + canvas (each one's read-priority +
   a one-line description). For ANY doc/canvas question, **load `INDEX.md` FIRST** (via

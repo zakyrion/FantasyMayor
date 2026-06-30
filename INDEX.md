@@ -13,7 +13,7 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 38 docs — 3 always · 5 trigger · 30 reference · 2 canvas.
+Totals: 46 docs — 3 always · 13 trigger · 30 reference · 3 canvas.
 
 ## Read at start (always)
 
@@ -30,10 +30,18 @@ Do **not** preload. Read only when the trigger condition holds.
 | Doc | Read it… | What it is |
 |---|---|---|
 | [IAddressable Contract](Assets/Modules/Addressable/ADDRESSABLE_PATTERNS.md) | before writing/editing/reviewing Addressables, IAddressable, Box<T> or Result<T> code | Single source of truth for addressable loading. Read this; do not grep. |
-| [FantasyMayor — Config Template Catalog](CONFIGTEMPLATE.md) | before working with a config, config component, or loader flow | How to create config-related classes: the authored `ScriptableObject`, its flattened ECS component, |
 | [FantasyMayor - Gameplay Foundation](GAMEPLAY_FOUNDATION.md) | ONLY when the user explicitly asks to open this file — never on session-start, never by topic/keyword | `FantasyMayor` is a turn-based game about governing a city through a scarcity of `Action Points`, limited resources, population as a productive and political force, and an unstable balance of power between the mayor and the local elites. |
 | [GENERAL_UI_STYLE.md](GENERAL_UI_STYLE.md) | before creating or changing UI (UI Toolkit, panels, tokens, USS) | The general UI design language for FantasyMayor: the global HUD layout model, design principles, visual |
-| [FantasyMayor — System Template Catalog](SYSTEMTEMPLATE.md) | before creating or editing an ECS system or subsystem | How to create a new system. Pick the role first, then follow that role's template and rules. |
+| [Pattern — One-Frame Event Cleanup](Patterns/PATTERN_CLEANUP_SYSTEM.md) | before writing any one-frame-event cleanup (and to learn why you usually should not) | **You almost never write a cleanup system.** There is ONE global `EventCleanupSystem` (DefaultECSExtensions): a |
+| [Pattern — ECS Data Component](Patterns/PATTERN_COMPONENT.md) | before creating an ECS data component (a struct holding runtime values) | A component is a plain `struct` of runtime values. No behavior, no methods (except equality when it is a |
+| [Pattern — Config (ScriptableObject + Component)](Patterns/PATTERN_CONFIG.md) | before creating a ScriptableObject config and its runtime component | Authored data lives in a `ScriptableObject`, loaded via Addressables, and published as a **world component** |
+| [Pattern — Config Loader System](Patterns/PATTERN_CONFIG_LOADER.md) | before creating a config loader system | A one-shot system that runs at `ConfigLoadStep`: loads config SO(s) from Addressables, validates them, and |
+| [Pattern — One-Frame Event (Pulse)](Patterns/PATTERN_EVENT.md) | before creating a one-frame ECS event (pulse) | An event is a **payload-less `struct`** raised on its own entity for exactly one frame. It says "something |
+| [Pattern — Orchestrator + SubSystems](Patterns/PATTERN_ORCHESTRATOR_SUBSYSTEM.md) | before creating an orchestrator + subsystem family (DoD polymorphism / independently ordered parts) | A family of implementations behind one abstract base, DI-collected into an orchestrator that sequences them by |
+| [Pattern — Per-Frame System](Patterns/PATTERN_PERFRAME_SYSTEM.md) | before creating a per-frame system (genuinely continuous logic) | Logic that is genuinely continuous: camera movement, per-frame projection, input polling, selection watching. |
+| [Pattern — Pipeline Stage (one-shot, world-init)](Patterns/PATTERN_PIPELINE_STAGE.md) | before creating a world-init pipeline stage (build/spawn content once during map creation) | One-shot async construction during map creation: spawn entities/views, build runtime world components, load |
+| [Pattern — Reactive System (pulse + reconcile)](Patterns/PATTERN_REACTIVE_SYSTEM.md) | before creating a reactive (event-driven) system | **The default for runtime logic.** Responds to a one-frame [event](PATTERN_EVENT.md): the event is the base |
+| [Pattern — ECS Tag](Patterns/PATTERN_TAG.md) | before creating an ECS tag (field-less marker / table discriminator) | A tag is an **empty `struct`** that marks an entity. It carries no data; its presence IS the information. |
 
 ## Reference map (on demand)
 
@@ -80,9 +88,16 @@ Visual maps (Obsidian Canvas). Read/edit via Obsidian MCP; not preloaded.
 |---|---|
 | [ECONOMY_ACTORS](ECONOMY_ACTORS.canvas) | Ownables — each carries one OwnerFK + a Tag · My domain view · Owners — actors with an Id used as OwnerFK · Resource… |
 | [ENTITIES](ENTITIES.canvas) | Tables (N rows) · Singletons (one row) · District configs |
+| [WORK](WORK.canvas) | DistrictBuildUISystem |
 
 <!-- END GENERATED — content below is the agent zone (pass 2), preserved across runs -->
 
 ## Context & Notes (agent-maintained — pass 2)
 
 Curate what the script can't derive: current focus, stale docs, cross-doc orientation. Keep it short. Preserved across `gen_index.py` runs.
+
+- **Pattern recipes (`Patterns/PATTERN_*.md`)** are the granular, one-approach-per-file skeletons for the ECS
+  building blocks (component / tag / event / config / config-loader / pipeline-stage / orchestrator+subsystem /
+  per-frame / reactive / cleanup). **Read the matching recipe instead of opening a live system as a reference.**
+  They replace the retired `SYSTEMTEMPLATE.md` / `CONFIGTEMPLATE.md` monoliths; the picker index is
+  `ARCHITECTURE.md` → **Pattern Recipes**.

@@ -5,7 +5,8 @@ tags: [actions, config, district, ecs]
 related:
   - "[ACTIONS](ACTIONS.md)"
   - "[ECONOMY](../Economy/ECONOMY.md)"
-  - "[CONFIGTEMPLATE](../../../CONFIGTEMPLATE.md)"
+  - "[PATTERN_CONFIG](../../../Patterns/PATTERN_CONFIG.md)"
+  - "[PATTERN_CONFIG_LOADER](../../../Patterns/PATTERN_CONFIG_LOADER.md)"
 status: partial
 code_refs:
   world_components: [ActionsDistrictsBuildConfigComponent, DistrictsBuildConfigComponent]
@@ -33,7 +34,8 @@ home — adding a price never touches Economy, and gating never touches Actions.
 - **The component carries a live SO reference, not a flattened copy.** `ActionsDistrictsBuildConfigComponent`
   wraps the catalogue SO; the loader (`ActionsDistrictsBuildConfigLoaderSystem`) **retains** the addressable
   `Box` for the catalogue's lifetime and releases it in `OnDispose` (the build window reads it throughout
-  play). Same shape as Economy's `DistrictsBuildConfigLoaderSystem`. Config flow rules: `CONFIGTEMPLATE.md`.
+  play). Same shape as Economy's `DistrictsBuildConfigLoaderSystem`. Config flow rules:
+`Patterns/PATTERN_CONFIG.md` + `Patterns/PATTERN_CONFIG_LOADER.md`.
 - **Loaded once at `ConfigLoadStep`** (registration: `mcp__di-graph__installer_registrations ActionsInstaller`).
   It fails loud if the catalogue is missing or has null entries — until the asset is authored, the game stops
   at boot rather than running cost-blind.

@@ -179,7 +179,8 @@ patterns (aggregates/repositories), which ECS expresses as tables + systems.
 ## System Taxonomy
 
 Canonical vocabulary. Every system in the project plays exactly ONE of these roles. Use these names
-in docs, reviews, and design discussions. `SYSTEMTEMPLATE.md` carries the concrete template for each.
+in docs, reviews, and design discussions. The concrete skeleton for each role lives in `Patterns/` — see
+**Pattern Recipes** below.
 
 | Role | Base type | Driven by | Lifecycle |
 |---|---|---|---|
@@ -192,9 +193,9 @@ in docs, reviews, and design discussions. `SYSTEMTEMPLATE.md` carries the concre
 | **Cleanup** | `EventCleanupSystem`, `Priority = int.MaxValue` | every active state, runs last | disposes all `EventTag` entities each tick |
 
 **Apply via:** choosing a role for a new system, and the per-role skeleton + mechanics (orchestrator
-sorting, subsystem query ownership, pulse + reconcile shape) → `SYSTEMTEMPLATE.md` → Step 0 and
-Templates 1–4; Config Loader → `CONFIGTEMPLATE.md`. This file owns the *taxonomy and invariants*; the
-templates own the *procedure*.
+sorting, subsystem query ownership, pulse + reconcile shape) → the matching `Patterns/PATTERN_*.md`
+recipe (index in **Pattern Recipes** below). This file owns the *taxonomy and invariants*; the recipes
+own the *procedure*.
 
 Role invariants (policy — hold regardless of the template you follow):
 - One-frame events DO NOT survive the async `MapCreation` pipeline (`EventCleanupSystem` disposes them
@@ -214,13 +215,33 @@ pipeline. The phase base is `TurnPhaseSubSystem`; the launcher is the per-frame 
 (it polls the in-flight run each frame, so it is justified as a Per-frame System, not reactive). Every
 world write stays on the main thread; the pool only computes. SCAFFOLD — zero phases today.
 
+## Pattern Recipes
+
+Minimal, **one-approach-per-file** skeletons for the building blocks below — read the matching recipe
+instead of copying a live implementation. Each is a Category B doc in `Patterns/` (also in `INDEX.md`).
+These replace the retired `SYSTEMTEMPLATE.md` / `CONFIGTEMPLATE.md` monoliths; this file still owns the
+*taxonomy and invariants*, the recipes own the *procedure*.
+
+| Read when you are creating… | Recipe |
+|---|---|
+| an ECS data component (struct of runtime values; a key component needs `IEquatable`) | `Patterns/PATTERN_COMPONENT.md` |
+| a field-less marker / table discriminator (empty struct) | `Patterns/PATTERN_TAG.md` |
+| a one-frame event (payload-less pulse + `EventTag`) | `Patterns/PATTERN_EVENT.md` |
+| a `ScriptableObject` config + its runtime component (flatten vs wrap-SO) | `Patterns/PATTERN_CONFIG.md` |
+| a config loader (`ConfigLoadStep`, `Box`, validate, `world.Set`) | `Patterns/PATTERN_CONFIG_LOADER.md` |
+| a world-init pipeline stage (spawn / build once during map creation) | `Patterns/PATTERN_PIPELINE_STAGE.md` |
+| an orchestrator + DI-collected subsystem family (DoD polymorphism) | `Patterns/PATTERN_ORCHESTRATOR_SUBSYSTEM.md` |
+| a per-frame system (continuous logic; `PreUpdate` + `FrameBox`) | `Patterns/PATTERN_PERFRAME_SYSTEM.md` |
+| a reactive system (event-driven — the DEFAULT for runtime logic) | `Patterns/PATTERN_REACTIVE_SYSTEM.md` |
+| one-frame event cleanup (and why you almost never write one) | `Patterns/PATTERN_CLEANUP_SYSTEM.md` |
+
 ## State Storage Taxonomy
 
 Four storages. Pick by answering: how many instances, and does anything need to FIND it via an
 entity query?
 
 **Apply via:** a loaded config is always a world component — the config-loader procedure that does it
-is `CONFIGTEMPLATE.md` → STORAGE RULE.
+is `Patterns/PATTERN_CONFIG_LOADER.md`.
 
 | Storage | Use when | Access | Registry |
 |---|---|---|---|
@@ -233,7 +254,7 @@ World component contract:
 - A world component is **not an entity**: it never appears in `world.GetEntities()` and cannot be
   matched by `With<T>` / `WhenAdded<T>` / `WhenChanged<T>`. If its change must drive reactive
   consumers, raise an explicit one-frame event entity alongside the `world.Set`.
-- All loaded configs are world components (`CONFIGTEMPLATE.md`). Runtime singletons follow the same
+- All loaded configs are world components (`Patterns/PATTERN_CONFIG.md`). Runtime singletons follow the same
   storage: `CameraComponent`, `VertexGridComponent`, `TerrainTextureComponent`,
   `HexIconsViewComponent`, `HexIconsVisibilityComponent`.
 - A world component carrying a **reference type** (`VertexGrid`, `Texture2D`) is set ONCE at
@@ -251,7 +272,7 @@ The project moved from per-frame "god-systems" to decomposed role-pure systems. 
 when designing or reviewing any system.
 
 **Apply via:** the reactive-split skeleton and the point-of-use "split when" checklist are in
-`SYSTEMTEMPLATE.md` → Template 1 and its Responsibility warnings.
+`Patterns/PATTERN_REACTIVE_SYSTEM.md`.
 
 **God-system smell — split it when a system:**
 - both **creates and destroys** the same kind of content;
@@ -298,7 +319,7 @@ when designing or reviewing any system.
 
 These two bans are machine-checked by `/arch-check`. They apply to every system.
 
-**Apply via:** the applied per-template form is in `SYSTEMTEMPLATE.md` → Global rules.
+**Apply via:** the applied per-recipe form is in each `Patterns/PATTERN_*.md` (the recipe's Rules).
 
 **Ban 1 — no stateful systems.** A system holds no mutable per-instance state. Instance fields must
 be `readonly` handles: DI dependencies, `World`, query caches. What does NOT count as state:
@@ -464,11 +485,13 @@ An entity "table" is defined by its query, and a query MUST name the table, not 
 - System base choice: config init → `ConfigLoaderSystem`; per-frame → `UpdatedSystem`;
   late-frame → `LateUpdatedSystem`; ordered async pipelines → `IPrioritizedUniTaskSystem<T>`
   (or `IUniTaskSystem<T>` + `UniTaskSequentialSystem<T>` when DI order suffices).
-  See System Taxonomy above and `SYSTEMTEMPLATE.md`.
+  See System Taxonomy above and the `Patterns/` recipes (see **Pattern Recipes**).
 
 ## On-Demand References
 - For UI/UX visual style, component patterns, placement, and USS token mapping, read `GENERAL_UI_STYLE.md` (root) — read it **fully only when working on the UI / design part**
 - For how to write any `.md` file in this project, read `DOC_STANDARD.md` (root)
+- For the concrete skeleton of any system / config / component / tag / event, read the matching
+  `Patterns/PATTERN_*.md` (index in **Pattern Recipes**)
 - For ECS entity archetypes, world components, and event flows, query the ECS/DoD graph (`/ecs-graph`)
 - For `IAddressable`, `Box<T>`, `Result<T>`, or addressable ownership rules, read `Assets/Modules/Addressable/ADDRESSABLE_PATTERNS.md`
 - For terrain transition work, pre-read:
