@@ -6,6 +6,15 @@ related:
   - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
   - "[ACTORS](../Actors/ACTORS.md)"
 status: partial
+code_refs:
+  components:       [ResourceComponent, DistrictIdComponent]
+  tags:             [ResourceTag, DistrictTag]
+  world_components: [DistrictsBuildConfigComponent, DistrictIdAllocatorComponent]
+  systems:          [DistrictsBuildConfigLoaderSystem]
+  configs:          [DistrictsBuildConfig, DistrictBuildingConfig]
+  enums:            [ResourceType]
+  installers:       [EconomyInstaller]
+  helpers:          [ResourceLoadoutSpawner]
 ---
 
 # Economy

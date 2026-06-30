@@ -7,6 +7,12 @@ related:
   - "[ECONOMY](../Economy/ECONOMY.md)"
   - "[ACTIONS](../Actions/ACTIONS.md)"
 status: partial
+code_refs:
+  systems:          [CitySpawnSystem, MayorSpawnSystem, CityConfigLoaderSystem, MayorConfigLoaderSystem]
+  components:       [CityIdComponent, MayorIdComponent, CityConfigComponent, MayorConfigComponent, MayorAPRestoreComponent]
+  world_components: [CityIdAllocatorComponent, MayorIdAllocatorComponent]
+  installers:       [ActorsInstaller]
+  helpers:          [ResourceLoadoutSpawner]
 ---
 
 # Actors
@@ -35,7 +41,8 @@ loadouts it depends on `Economy` (`Actors → Economy`); see Design Decisions.
 - Mayor is a **singleton actor**: `MayorIdComponent` is always `1`. `MayorIdAllocatorComponent` is kept
   only for symmetry with City and the save/load contract; it yields a constant.
 - Querying an actor table or resolving an OwnerFK obeys the Table Rule — `With<CityIdComponent>` +
-  `With<CityTag>` (never a bare key). See `ARCHITECTURE.md` → "Relational Modeling — Table Rule".
+  a per-actor **discriminator tag** (never a bare key). See `ARCHITECTURE.md` → "Relational Modeling — Table Rule".
+  *(The actor discriminator tags `CityTag` / `MayorTag` are **planned — not yet in code**; verified absent via ecs-graph + roslyn.)*
 - `Actors → Economy`, never the reverse. Actors depends on Economy's owner-agnostic substrate
   (`ResourceComponent`, `ResourceType`, the generic `ResourceLoadoutSpawner`) to attach loadouts.
   Owner-keyed logic (which actor owns which stacks) lives HERE, not in Economy — the invariant that
@@ -64,7 +71,7 @@ loadouts it depends on `Economy` (`Actors → Economy`); see Design Decisions.
   wiring is deferred to a later slice.
 
 ## Current State
-City + Mayor are functional: PK id components, discriminator tags, the two id allocator world
+City + Mayor are functional: PK id components, the two id allocator world
 components, both actor config flows (`MayorConfig` + `MayorConfigLoaderSystem` → `MayorConfigComponent`;
 `CityConfig` + `CityConfigLoaderSystem` → `CityConfigComponent`), and the two per-actor spawn stages.
 `CitySpawnSystem` creates the City and seeds its resource loadout from `CityConfigComponent` (resources

@@ -13,6 +13,8 @@ related:
   - "[DISTRICT_BUILD_COST](DISTRICT_BUILD_COST.md)"
   - "[TURN_PHASES](TURN_PHASES.md)"
 status: partial
+code_refs:
+  installers: [ActionsInstaller]
 ---
 
 # Actions
