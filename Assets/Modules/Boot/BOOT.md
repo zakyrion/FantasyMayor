@@ -5,6 +5,11 @@ tags: [boot, ecs, state-machine]
 related:
   - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
 status: partial
+code_refs:
+  types:      [Boot, GameModeMachine, ConfigLoadStep, MapGenerationStep, GameplayState, MapCreationState, MainMenuState, MapLoadingState]
+  interfaces: [IAppState]
+  systems:    [EventCleanupSystem]
+  enums:      [GameMode]
 ---
 
 # Boot
@@ -75,7 +80,7 @@ without an assembly cycle (`Installers.World` already references `Boot.Implement
 |---|---|---|
 | MainMenu | — (waits for the Generate event) | — |
 | MapCreation | generation pipeline (async entry) + EventCleanup (settle frames) | — |
-| Gameplay | HexSelection, HexSelectionView, ForestSpawn, ForestDespawn, HexIconsVisibility, HexInfoPanel, HexInfoPanelHeader, HexInfoPanelResources, HexInfoPanelDistrictPlaceholder, EventCleanup | CameraMovement, HexIconsContainerPosition |
+| Gameplay | HexSelection, HexSelectionView, ForestSpawn, ForestDespawn, HexIconsVisibility, HexInfoPanel, HexInfoPanelHeader, HexInfoPanelResources, HexInfoPanelDistrict, EventCleanup | CameraMovement, HexIconsContainerPosition |
 | MapLoading | — (stub) | — |
 
 Role mix (per `ARCHITECTURE.md` "System Taxonomy"): `MapCreation` drives one-shot **Pipeline

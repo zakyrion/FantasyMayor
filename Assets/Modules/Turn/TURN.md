@@ -9,6 +9,13 @@ related:
   - "[MAIN_UI](../MainUI/MAIN_UI.md)"
   - "[END_TURN](../MainUI/EndTurn/END_TURN.md)"
 status: partial
+code_refs:
+  systems:    [TurnProcessorSystem, TurnCountSystem, EventCleanupSystem, MayorActionPointsRestoreSubSystem]
+  components: [TurnProcessorComponent, TurnCountComponent]
+  events:     [NextTurnEvent, TurnCompletedEvent]
+  interfaces: [TurnPhaseSubSystem]
+  types:      [TurnPhaseRunner]
+  views:      [EndTurnView]
 ---
 
 # Turn
