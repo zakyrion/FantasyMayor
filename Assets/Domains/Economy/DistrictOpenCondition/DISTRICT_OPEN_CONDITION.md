@@ -9,13 +9,14 @@ related:
   - "[PATTERN_CONFIG](../../../../Patterns/PATTERN_CONFIG.md)"
   - "[PATTERN_CONFIG_LOADER](../../../../Patterns/PATTERN_CONFIG_LOADER.md)"
   - "[PATTERN_ORCHESTRATOR_SUBSYSTEM](../../../../Patterns/PATTERN_ORCHESTRATOR_SUBSYSTEM.md)"
+  - "[TURN](../../../Modules/Turn/TURN.md)"
 status: partial
 code_refs:
   configs:          [DistrictOpenConditionsConfig, DistrictOpenConditionConfig, DistrictExistConditionConfig, DistrictSingleOpenConditionConfig]
   world_components: [DistrictOpenConditionsConfigComponent]
   components:       [DistrictTypeComponent, DistrictExistConditionComponent]
   tags:             [DistrictOpenConditionTag, DistrictSingleOpenConditionTag, DistrictCanBeBuildTag]
-  systems:          [DistrictOpenConditionsConfigLoaderSystem, DistrictOpenConditionSpawnSystem, DistrictOpenConditionSpawnSubSystem, DistrictExistConditionSpawnSubSystem, DistrictSingleOpenConditionSpawnSubSystem]
+  systems:          [DistrictOpenConditionsConfigLoaderSystem, DistrictOpenConditionSpawnSystem, DistrictOpenConditionSpawnSubSystem, DistrictExistConditionSpawnSubSystem, DistrictSingleOpenConditionSpawnSubSystem, DistrictOpenConditionEvaluatorSubSystem, DistrictSingleOpenConditionEvaluatorSubSystem, DistrictOpenConditionEvaluatorBootstrapSystem, DistrictOpenConditionEvaluatorSystem]
 ---
 
 # District Open Conditions
@@ -78,6 +79,30 @@ entry into its own entity so a future build-gate can query conditions like any o
   its own entity-construction, and the family is DI-collected — a new kind plugs in without touching the
   orchestrator.
 
+## Condition Evaluation (DistrictCanBeBuildTag)
+A separate subsystem family (NOT the spawn family above) evaluates condition entities every turn and
+idempotently Sets/Removes `DistrictCanBeBuildTag`. Same domain folder, same orchestrator+subsystem shape
+(`Patterns/PATTERN_ORCHESTRATOR_SUBSYSTEM.md`), but the **non-routing** loop variant: every enabled
+subsystem runs unconditionally and self-queries its own kind-slice of the table — there is no
+TrySpawn-style "first match wins" dispatch, so an unimplemented kind (currently `DistrictExistCondition`)
+is simply untouched, not a fail-loud violation.
+
+- **`DistrictOpenConditionEvaluatorSubSystem`** (abstract, plain `IDisposable`) — one concrete subsystem per
+  condition kind. Only `DistrictSingleOpenConditionEvaluatorSubSystem` exists today: it reads the
+  `DistrictTypeComponent`+`DistrictSingleOpenConditionTag` condition rows, looks up the gated type in the
+  **District** table (`DistrictTag`+`DistrictTypeComponent`, FK 1:N, indexed via
+  `EntityMultiMap<DistrictTypeComponent>` per the Table Rule) and Sets the tag when zero built instances are
+  found, Removes it otherwise. The District table is pure scaffold today (no spawn mechanic yet), so the
+  lookup currently always misses and every Single-gated district reads as buildable — expected, not a bug.
+- **Two host wrappers run the SAME subsystem family** (no duplicated evaluation logic), because the `Turn`
+  pipeline never runs before the player's first turn (`TURN.md`: no bootstrap Preview):
+  - `DistrictOpenConditionEvaluatorBootstrapSystem` (`IPrioritizedUniTaskSystem<MapGenerationStep>`,
+    priority `925`, right after `DistrictOpenConditionSpawnSystem`'s `920`) — covers turn 1.
+  - `DistrictOpenConditionEvaluatorSystem` (`: TurnPhaseSubSystem`, priority `1000`, tail of the turn
+    pipeline) — covers every subsequent turn.
+  Both are DI-collected the same `IReadOnlyList<DistrictOpenConditionEvaluatorSubSystem>`, registered in
+  `EconomyInstaller`.
+
 ## Current State
 PARTIAL. Container config + abstract base + two concrete kinds + loader + spawn orchestrator + per-kind
 subsystems are implemented and wired in `EconomyInstaller`:
@@ -85,7 +110,8 @@ subsystems are implemented and wired in `EconomyInstaller`:
 - `DistrictSingleOpenCondition` — the gated district is buildable only while zero instances of it exist
   (e.g. CityCenter; parameter-less marker tag).
 
-The DistrictBuild list reads entities tagged `DistrictCanBeBuildTag` to populate the picker, but **nothing
-attaches that tag yet** and **the condition-evaluation gate (Exist / Single) is not implemented** — so the tag
-is defined and consumed, never produced. Authored `.asset` (the container + per-condition assets) and the
-addressable key `DistrictOpenConditionsConfig` are owned outside code.
+**`DistrictCanBeBuildTag` now has a producer for the Single kind** — see Condition Evaluation above. The
+`DistrictExistCondition` kind still has no evaluator, so an Exist-gated district's `DistrictCanBeBuildTag`
+is never produced yet (the condition entity is simply untouched, not a fail-loud gap — see Condition
+Evaluation). Authored `.asset` (the container + per-condition assets) and the addressable key
+`DistrictOpenConditionsConfig` are owned outside code.

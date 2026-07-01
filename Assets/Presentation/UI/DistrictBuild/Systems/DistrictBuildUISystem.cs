@@ -3,9 +3,6 @@ using System.Linq;
 using Core;
 using DefaultEcs;
 using DefaultECSExtensions;
-using Domains.Economy.District.Components;
-using Domains.Economy.District.Data;
-using Domains.Economy.DistrictOpenCondition.Tags;
 using Domains.Map.Hex.Components;
 using JetBrains.Annotations;
 using Presentation.Terrain.Components;
@@ -19,10 +16,10 @@ namespace Presentation.UI.DistrictBuild.Systems
     ///     Drives the district-build overlay: visibility + section dispatch. Anchored on the
     ///     DistrictBuildUIViewComponent singleton (ticks once per frame). Coalesces the window pulses —
     ///     <see cref="DistrictBuildRequestedEvent" /> (open), <see cref="DistrictBuildClosedEvent" /> (hide),
-    ///     <see cref="DistrictBuildSelectionRequestedEvent" /> (re-select). It owns NO section data: on open it sets
-    ///     the default selection, on each selection request it updates <see cref="DistrictBuildSelectionComponent" />,
-    ///     then re-runs the section populators — each reconciles its own view from ECS (orchestrator + subsystem
-    ///     family, like DistrictOpenConditionSpawnSystem).
+    ///     <see cref="DistrictBuildSelectionRequestedEvent" /> (re-populate after a selection change). It owns NO
+    ///     domain logic and never touches — it only sequences
+    ///     pulses into the section populators, each of which reconciles its own view from ECS (orchestrator +
+    ///     subsystem family, like DistrictOpenConditionSpawnSystem).
     /// </summary>
     [UsedImplicitly]
     public sealed class DistrictBuildUISystem : UpdatedSystem
@@ -40,7 +37,6 @@ namespace Presentation.UI.DistrictBuild.Systems
         private readonly EntitySet _closedSet;
         private readonly EntitySet _selectionRequestedSet;
         private readonly EntitySet _selectedHexSet;
-        private readonly EntitySet _buildableSet;
 
         public override int Priority => ExecutionPriority;
 
@@ -55,8 +51,6 @@ namespace Presentation.UI.DistrictBuild.Systems
             _closedSet = world.GetEntities().With<DistrictBuildClosedEvent>().AsSet();
             _selectionRequestedSet = world.GetEntities().With<DistrictBuildSelectionRequestedEvent>().AsSet();
             _selectedHexSet = world.GetEntities().With<HexSelectedComponent>().AsSet();
-            _buildableSet = world.GetEntities()
-                .With<DistrictTypeComponent>().With<DistrictCanBeBuildTag>().AsSet();
         }
 
         protected override void Update(GameState state, in Entity entity)
@@ -70,9 +64,8 @@ namespace Presentation.UI.DistrictBuild.Systems
 
             if (_requestedSet.Count > 0)
                 Open(view);
-
-            if (_selectionRequestedSet.Count > 0)
-                ChangeSelection();
+            else if (_selectionRequestedSet.Count > 0)
+                PopulateSections();
         }
 
         private void Open(DistrictBuildUIView view)
@@ -81,24 +74,9 @@ namespace Presentation.UI.DistrictBuild.Systems
             if (_selectedHexSet.Count == 0)
                 return;
 
-            _world.Set(new DistrictBuildSelectionComponent { Selected = DefaultSelection() });
             PopulateSections();
             view.Show();
         }
-
-        private void ChangeSelection()
-        {
-            var district = _selectionRequestedSet.GetEntities()[0]
-                .Get<DistrictBuildSelectionRequestedEvent>().District;
-            _world.Set(new DistrictBuildSelectionComponent { Selected = district });
-            PopulateSections();
-        }
-
-        // First buildable district (carrying DistrictCanBeBuildTag); Unknown when none, which clears the sections.
-        private DistrictType DefaultSelection() =>
-            _buildableSet.Count > 0
-                ? _buildableSet.GetEntities()[0].Get<DistrictTypeComponent>().Value
-                : DistrictType.Unknown;
 
         // Each section subsystem reconciles its own view from the current ECS selection; the orchestrator only
         // sequences them by Priority and hands over the overlay root.
@@ -117,7 +95,6 @@ namespace Presentation.UI.DistrictBuild.Systems
             _closedSet.Dispose();
             _selectionRequestedSet.Dispose();
             _selectedHexSet.Dispose();
-            _buildableSet.Dispose();
             base.Dispose();
         }
     }

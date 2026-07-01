@@ -143,8 +143,10 @@ selection (`DistrictBuildSelectionComponent` + `DistrictBuildSelectionRequestedE
 coordinator+sub-view design (`IDistrictBuildData` + `Views/SubViews/`) is **retired**.
 
 Open gaps:
-- **The list is empty until a condition evaluator attaches `DistrictCanBeBuildTag`** — the tag is defined and the
-  list reads it, but nothing sets it yet (`DISTRICT_OPEN_CONDITION.md`).
+- **The list is populated for `DistrictSingleOpenConditionTag`-gated districts only** — a per-turn evaluator
+  now attaches/removes `DistrictCanBeBuildTag` for that kind (`DISTRICT_OPEN_CONDITION.md` → Condition
+  Evaluation); `DistrictExistConditionComponent`-gated districts still have no evaluator, so their tag is
+  never produced yet.
 - **Build is dormant** — «ЗБУДУВАТИ» closes only; the ДІЇ/ЕФЕКТ model is unbuilt.
-- **Prefab authoring required** (the five section MonoBehaviours + templates above); the overlay spawn fails loud
-  until the four section views are present.
+- **Prefab authoring required** (the five section MonoBehaviours + templates above); the overlay spawn fails
+  loud until the four section views are present.

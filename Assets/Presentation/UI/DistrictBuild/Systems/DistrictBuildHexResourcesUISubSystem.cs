@@ -1,3 +1,4 @@
+using System;
 using DefaultEcs;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Configs;
@@ -77,7 +78,13 @@ namespace Presentation.UI.DistrictBuild.Systems
         private bool TryGetDistrict(DistrictType type, out DistrictBuildingConfig district)
         {
             district = null;
-            if (type == DistrictType.Unknown || !World.Has<DistrictsBuildConfigComponent>())
+            if (type == DistrictType.Unknown)
+                throw new InvalidOperationException(
+                    $"{nameof(DistrictBuildSelectionComponent)}.{nameof(DistrictBuildSelectionComponent.Selected)} " +
+                    $"is {DistrictType.Unknown} — the selection must be a real district or {nameof(DistrictType.None)}, " +
+                    "never the error marker.");
+
+            if (type == DistrictType.None || !World.Has<DistrictsBuildConfigComponent>())
                 return false;
 
             var districts = World.Get<DistrictsBuildConfigComponent>().Value?.Districts;

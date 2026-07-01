@@ -124,7 +124,7 @@ MonoBehaviour:
   _renderer: {fileID: 120019418656823439}
   _rowTemplate: {fileID: 9197481963319205126, guid: ba74915c489ef450fa7a15ab300c1198,
     type: 3}
-  _listContainerName: district-list
+  _listContainerName: DistrictList
 --- !u!114 &8946193614263423429
 MonoBehaviour:
   m_ObjectHideFlags: 0

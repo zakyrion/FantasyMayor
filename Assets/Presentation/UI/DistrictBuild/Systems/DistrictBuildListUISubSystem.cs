@@ -11,15 +11,18 @@ using UnityEngine;
 namespace Presentation.UI.DistrictBuild.Systems
 {
     // Projects the open-condition table into the build list: every entity carrying DistrictCanBeBuildTag is a
-    // district the player may build. Read-only on the table — a future evaluator owns the tag. Marks the current
-    // DistrictBuildSelectionComponent as active, and translates the view's row-click (local C# event) into the
-    // DistrictBuildSelectionRequestedEvent pulse (the view stays World-free).
+    // district the player may build. Read-only on the table — a future evaluator owns the tag. Sole owner of
+    // DistrictBuildSelectionComponent: default-selects the first buildable district on the window-open pulse,
+    // writes the selection directly on row-click, and marks the current selection as active. Translates the
+    // view's row-click (local C# event) into the (payload-less) DistrictBuildSelectionRequestedEvent pulse so the
+    // orchestrator re-runs the other section subsystems (the view stays World-free).
     [UsedImplicitly]
     public sealed class DistrictBuildListUISubSystem : DistrictBuildUISubSystem
     {
         private const int ExecutionPriority = 100;
 
         private readonly EntitySet _buildable;
+        private readonly EntitySet _requestedSet;
         private bool _hooked;
 
         public override int Priority => ExecutionPriority;
@@ -30,6 +33,7 @@ namespace Presentation.UI.DistrictBuild.Systems
                 .With<DistrictTypeComponent>()
                 .With<DistrictCanBeBuildTag>()
                 .AsSet();
+            _requestedSet = world.GetEntities().With<DistrictBuildRequestedEvent>().AsSet();
         }
 
         public override void Populate(GameObject root)
@@ -43,9 +47,20 @@ namespace Presentation.UI.DistrictBuild.Systems
                 _hooked = true;
             }
 
-            var selected = World.Has<DistrictBuildSelectionComponent>()
-                ? World.Get<DistrictBuildSelectionComponent>().Selected
-                : DistrictType.Unknown;
+            // The window just opened this tick: default-select the first buildable district (None if the list
+            // is empty), before this Populate call (and the other sections') reads it.
+            if (_requestedSet.Count > 0)
+            {
+                var defaultSelection = _buildable.Count > 0
+                    ? _buildable.GetEntities()[0].Get<DistrictTypeComponent>().Value
+                    : DistrictType.None;
+
+                World.Set(new DistrictBuildSelectionComponent { Selected = defaultSelection });
+            }
+
+            // Always set by this point (default-selected above on open, or already present from a prior
+            // open/click) — a missing component here is a bug, so let World.Get throw rather than fall back.
+            var selected = World.Get<DistrictBuildSelectionComponent>().Selected;
 
             view.Clear();
             foreach (var entity in _buildable.GetEntities())
@@ -57,8 +72,10 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         private void OnSelected(DistrictType district)
         {
+            World.Set(new DistrictBuildSelectionComponent { Selected = district });
+
             var entity = World.CreateEntity();
-            entity.Set(new DistrictBuildSelectionRequestedEvent { District = district });
+            entity.Set(new DistrictBuildSelectionRequestedEvent());
             entity.Set(new EventTag());
         }
 
@@ -72,6 +89,7 @@ namespace Presentation.UI.DistrictBuild.Systems
             }
 
             _buildable.Dispose();
+            _requestedSet.Dispose();
             base.Dispose();
         }
     }

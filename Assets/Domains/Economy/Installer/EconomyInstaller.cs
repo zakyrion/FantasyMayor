@@ -2,6 +2,7 @@ using DefaultECSExtensions;
 using Domains.Economy.District.Systems;
 using Domains.Economy.DistrictOpenCondition.Systems;
 using Modules.Boot.Core;
+using Modules.Turn.Systems;
 using VContainer;
 using VContainer.Unity;
 
@@ -28,6 +29,15 @@ namespace Domains.Economy.Installer
 
             builder.Register<DistrictSingleOpenConditionSpawnSubSystem>(Lifetime.Singleton)
                 .As<DistrictSingleOpenConditionSpawnSubSystem, DistrictOpenConditionSpawnSubSystem>();
+
+            builder.Register<DistrictOpenConditionEvaluatorBootstrapSystem>(Lifetime.Singleton)
+                .As<DistrictOpenConditionEvaluatorBootstrapSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
+
+            builder.Register<DistrictOpenConditionEvaluatorSystem>(Lifetime.Singleton)
+                .As<DistrictOpenConditionEvaluatorSystem, TurnPhaseSubSystem>();
+
+            builder.Register<DistrictSingleOpenConditionEvaluatorSubSystem>(Lifetime.Singleton)
+                .As<DistrictSingleOpenConditionEvaluatorSubSystem, DistrictOpenConditionEvaluatorSubSystem>();
         }
     }
 }

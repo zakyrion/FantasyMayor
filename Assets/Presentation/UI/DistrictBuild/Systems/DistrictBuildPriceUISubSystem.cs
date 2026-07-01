@@ -97,7 +97,13 @@ namespace Presentation.UI.DistrictBuild.Systems
         private bool TryGetCost(DistrictType type, out ActionsDistrictBuildConfig cost)
         {
             cost = null;
-            if (type == DistrictType.Unknown || !World.Has<ActionsDistrictsBuildConfigComponent>())
+            if (type == DistrictType.Unknown)
+                throw new InvalidOperationException(
+                    $"{nameof(DistrictBuildSelectionComponent)}.{nameof(DistrictBuildSelectionComponent.Selected)} " +
+                    $"is {DistrictType.Unknown} — the selection must be a real district or {nameof(DistrictType.None)}, " +
+                    "never the error marker.");
+
+            if (type == DistrictType.None || !World.Has<ActionsDistrictsBuildConfigComponent>())
                 return false;
 
             var entries = World.Get<ActionsDistrictsBuildConfigComponent>().Value?.Districts;

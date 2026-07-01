@@ -8,7 +8,8 @@
         "Boot.Core",
         "Core",
         "Addressables.Core",
-        "UniTask"
+        "UniTask",
+        "Turn"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
