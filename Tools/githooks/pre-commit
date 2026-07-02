@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Doc-lint gate: Tools/gen_index.py regenerates INDEX.md and lints the vault
+# (broken links, unresolved code_refs, category-scoped fields). Lint issues block
+# the commit; a regenerated INDEX.md is auto-staged so it can never desync.
+# Enabled via: git config core.hooksPath Tools/githooks
+set -u
+cd "$(git rev-parse --show-toplevel)" || exit 1
+
+before=$(shasum INDEX.md 2>/dev/null)
+if ! python3 Tools/gen_index.py; then
+    echo "pre-commit: doc-lint failed — fix the issues above, then commit again." >&2
+    echo "pre-commit: (INDEX.md itself was regenerated; only the lint blocks you.)" >&2
+    exit 1
+fi
+after=$(shasum INDEX.md 2>/dev/null)
+if [ "$before" != "$after" ]; then
+    git add INDEX.md
+    echo "pre-commit: INDEX.md regenerated and staged."
+fi

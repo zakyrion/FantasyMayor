@@ -70,31 +70,20 @@ gate — this names the discipline, it adds no new rule:
 - Use Context7 when I need library/API documentation or code generation, setup or configuration steps and you have some doubts about it.
 
 ## Discovery Scouts (the search front door)
-**Discovery is delegated to dedicated read-only Haiku subagents in `.claude/agents/`** —
-the main agent does NOT do raw source discovery; it spends its budget on reasoning,
-decisions, and edits. **Exception:** the bounded `mcp__roslyn__*` tools (definition,
-references, symbols, outline, call/type hierarchy) return structured, not raw, output —
-the main agent MAY call them directly for surgical code-structure lookups. Delegate
-heavier traces (auto via their `description`, or explicitly `@agent-<name>`):
-- **discovery-scout** — the **single front door** for ECS/DI/orchestration/docs discovery
-  and multi-step traces: general code structure (definition, refs, symbols, call/type
-  hierarchy — **`roslyn-mcp`**, `mcp__roslyn__*`), DoD/ECS (archetypes, component
-  writers/readers, reactive consumers, producer→consumer, Table-Rule PK/FK, system roles
-  — `ecs-graph`), DI/VContainer (registered-as + Lifetime + installer, injectors,
-  collection resolution, system→`GameMode` — `di-graph`), AND **docs** (Obsidian MCP
-  search, clean discovery that avoids `Library/`/`Packages/`/plugins). Returns distilled
-  findings, not raw dumps.
-- **arch-scout** — `arch-check` audit (stateful systems + System.Collections.Generic
-  bans); detector only.
-- **asset-scout** — `unity-asset-graph` queries (build contents, asset usage,
-  dead/unused, serialized enum values).
-
-All three are read-only (no Edit/Write) and return distilled reports; the main agent
-keeps the reasoning, decisions, and edits. **The law is `.claude/SEARCH_POLICY.md`,
-hook-enforced** (`.claude/hooks/search-gate.py`): in the main session, raw source
-discovery over `Assets/**/*.cs` + direct graph CLIs (`ecsg`/`dig`) are denied and routed
-to the bounded `mcp__roslyn__*` tools / the scout, and per-session `.cs` reads are
-budgeted (on exhaustion, STOP and ask the user). Subagents are exempt.
+- **The law is `.claude/SEARCH_POLICY.md`; the teeth are the hook `.claude/hooks/search-gate.py`.**
+  The full decision table, budgets, and rationale live THERE — this section is only the behavioral
+  rule; do not restate the details here.
+- The main agent does NO raw source discovery over `Assets/**/*.cs` (hook-denied) and spends its
+  budget on reasoning, decisions, and edits. `.cs` reads-for-editing are budgeted; on exhaustion,
+  STOP and ask the user. Subagents are exempt.
+- **Exception:** the bounded `mcp__roslyn__*` tools return structured, not raw, output — the main
+  agent MAY call them directly for surgical code-structure lookups.
+- Delegate discovery to the read-only Haiku scouts in `.claude/agents/` (auto via their
+  `description`, or explicitly `@agent-<name>`); they return distilled reports, never raw dumps:
+  - **discovery-scout** — the single front door: code structure (`roslyn-mcp`), ECS (`ecs-graph`),
+    DI (`di-graph`), docs (Obsidian MCP).
+  - **arch-scout** — `/arch-check` audit (stateful systems + collections bans); detector only.
+  - **asset-scout** — `unity-asset-graph` queries (build contents, usage, dead assets, enum values).
 
 ## Engineering Task Template
 - **HARD GATE — no actions before a confirmed task statement. For any engineering task you MUST first restate the task using the template below AND, if you have any doubt that you understood the task correctly, ask me your own clarifying questions in the same message. Then STOP and wait for my explicit confirmation. Only AFTER I confirm the statement may you create a plan or do any work. Forming a plan, entering plan mode, reading-for-implementation, or editing anything before that confirmation is a process violation. The duty to ask is yours: when in doubt, ask me — do not assume, and do not wait for me to question you. This overrides any default "just start planning" behavior.**
@@ -140,7 +129,7 @@ budgeted (on exhaustion, STOP and ask the user). Subagents are exempt.
 - Read source files only when both the MD and the tools (`roslyn-mcp` / `ecs-graph` / `di-graph`) lack the specific detail needed.
 - If you change a module's invariants, public-usage rules, or current state, update its MD file per `DOC_STANDARD.md`.
 - If you add or change an ECS entity archetype, refresh the ecs-graph (`/ecs-graph`) — the sole archetype/event registry.
-- Architecture, stack, module layout, and ECS conventions are described in `ARCHITECTURE.md`. Do not duplicate or override architecture rules in module MD files.
+- Architecture, stack, and module layout are described in `ARCHITECTURE.md`; point-of-code ECS/runtime conventions live in `ECS_CONVENTIONS.md`. Do not duplicate or override either in module MD files.
 
 ## Unity Build Policy
 - This is a Unity project.

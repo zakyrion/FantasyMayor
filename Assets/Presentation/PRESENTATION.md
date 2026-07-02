@@ -5,8 +5,8 @@ tags: [presentation, view, render, ecs]
 related:
   - "[ARCHITECTURE](../../ARCHITECTURE.md)"
   - "[TERRAIN_VIEW](Terrain/TERRAIN_VIEW.md)"
-  - "[HEXRESOURCESVIEW](Resources/HEXRESOURCESVIEW.md)"
-  - "[HEXICONS](Icons/HEXICONS.md)"
+  - "[HEXRESOURCESVIEW](HexResources/HEXRESOURCESVIEW.md)"
+  - "[HEXICONS](HexIcons/HEXICONS.md)"
 status: implemented
 ---
 

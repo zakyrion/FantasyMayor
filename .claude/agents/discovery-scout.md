@@ -70,5 +70,8 @@ Search budget (you, the scout — the main agent has its own, stricter, hook-enf
 Return a DISTILLED report, never a raw dump:
 - The symbol(s): name, kind, signature, `source_location` (file:line).
 - The connections / chain / archetype that actually answer the question.
+- **Every factual claim must carry its anchor** — a `source_location` (file:line) or the doc path it
+  came from. A claim you cannot anchor does NOT go in the report; instead say explicitly what you
+  could not verify. The main agent treats your report as fact — unanchored guesses poison it.
 - If empty or ambiguous: say so and state what you narrowed to — do NOT silently fall back to broad
   source reading.

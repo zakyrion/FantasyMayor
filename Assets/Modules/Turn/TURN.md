@@ -6,8 +6,8 @@ tags:
   - ecs
   - gameplay
 related:
-  - "[MAIN_UI](../MainUI/MAIN_UI.md)"
-  - "[END_TURN](../MainUI/EndTurn/END_TURN.md)"
+  - "[MAIN_UI](../../Presentation/UI/MAIN_UI.md)"
+  - "[END_TURN](../../Presentation/UI/EndTurn/END_TURN.md)"
 status: partial
 code_refs:
   systems:    [TurnProcessorSystem, TurnCountSystem, EventCleanupSystem, MayorActionPointsRestoreSubSystem]

@@ -13,7 +13,7 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 46 docs — 3 always · 13 trigger · 30 reference · 3 canvas.
+Totals: 47 docs — 3 always · 14 trigger · 30 reference · 4 canvas.
 
 ## Read at start (always)
 
@@ -30,6 +30,7 @@ Do **not** preload. Read only when the trigger condition holds.
 | Doc | Read it… | What it is |
 |---|---|---|
 | [IAddressable Contract](Assets/Modules/Addressable/ADDRESSABLE_PATTERNS.md) | before writing/editing/reviewing Addressables, IAddressable, Box<T> or Result<T> code | Single source of truth for addressable loading. Read this; do not grep. |
+| [FantasyMayor — ECS & Runtime Conventions](ECS_CONVENTIONS.md) | before writing or editing any ECS system, component, event, config, or query | The ECS/runtime rulebook: where state lives, how systems are decomposed, and the write / collection / |
 | [FantasyMayor - Gameplay Foundation](GAMEPLAY_FOUNDATION.md) | ONLY when the user explicitly asks to open this file — never on session-start, never by topic/keyword | `FantasyMayor` is a turn-based game about governing a city through a scarcity of `Action Points`, limited resources, population as a productive and political force, and an unstable balance of power between the mayor and the local elites. |
 | [GENERAL_UI_STYLE.md](GENERAL_UI_STYLE.md) | before creating or changing UI (UI Toolkit, panels, tokens, USS) | The general UI design language for FantasyMayor: the global HUD layout model, design principles, visual |
 | [Pattern — One-Frame Event Cleanup](Patterns/PATTERN_CLEANUP_SYSTEM.md) | before writing any one-frame-event cleanup (and to learn why you usually should not) | **You almost never write a cleanup system.** There is ONE global `EventCleanupSystem` (DefaultECSExtensions): a |
@@ -73,10 +74,10 @@ Per-module navigation docs. `status` mirrors each module's `## Current State`.
 | [Presentation](Assets/Presentation/PRESENTATION.md) | A | implemented | The consolidated render/view layer: terrain mesh + water, resource visuals, and the screen-space hex-icon overlay. |
 | [TerrainView](Assets/Presentation/Terrain/TERRAIN_VIEW.md) | A | implemented | Renders procedural terrain: subdivided hex mesh, isoline height fields, erosion, procedural |
 | [WATER_VIEW_SETUP.md](Assets/Presentation/Terrain/WATER_VIEW_SETUP.md) | A | stub | Замінити на Uber-Stylized-Water. |
-| [Context Tabs — Tab Row of the Context Sub-Panel](Assets/Presentation/UI/ContextTabs/CONTEXT_TABS.md) | B | — | The **tab row** (Огляд / Будівлі / Дії) of the bottom panel's context sub-panel |
+| [Context Tabs — Tab Row of the Context Sub-Panel](Assets/Presentation/UI/ContextTabs/CONTEXT_TABS.md) | A | partial | The **tab row** (Огляд / Будівлі / Дії) of the bottom panel's context sub-panel |
 | [DistrictBuild](Assets/Presentation/UI/DistrictBuild/DISTRICT_BUILD.md) | A | partial | The district-build **modal overlay** (`Assets/Presentation/UI/DistrictBuild/`, namespaces |
-| [Turn Corner (End Turn) — Turn Sub-Panel](Assets/Presentation/UI/EndTurn/END_TURN.md) | B | — | The **TURN sub-panel** (left) of the shared bottom panel (`GENERAL_UI_STYLE.md` §4): the turn number «Хід N», two |
-| [Hex Info Panel — Context Sub-Panel](Assets/Presentation/UI/HexInfoPanel/HEX_INFO_PANEL.md) | B | — | The read-only **CONTEXT sub-panel** (right) of the shared bottom panel: everything known about the currently |
+| [Turn Corner (End Turn) — Turn Sub-Panel](Assets/Presentation/UI/EndTurn/END_TURN.md) | A | partial | The **TURN sub-panel** (left) of the shared bottom panel (`GENERAL_UI_STYLE.md` §4): the turn number «Хід N», two |
+| [Hex Info Panel — Context Sub-Panel](Assets/Presentation/UI/HexInfoPanel/HEX_INFO_PANEL.md) | A | partial | The read-only **CONTEXT sub-panel** (right) of the shared bottom panel: everything known about the currently |
 | [MainUI](Assets/Presentation/UI/MAIN_UI.md) | A | partial | The **`Presentation.UI` assembly** (`Assets/Presentation/UI/`, namespaces `Presentation.UI.*`) — the |
 | [ResourceBar](Assets/Presentation/UI/ResourceBar/RESOURCE_BAR.md) | A | partial | The **left-edge resource panel**: the two inventory pools (City / Mayor) as a vertical scroll list. The |
 
@@ -86,9 +87,10 @@ Visual maps (Obsidian Canvas). Read/edit via Obsidian MCP; not preloaded.
 
 | Canvas | What it maps |
 |---|---|
+| [DISTRICT_BUILDING_UI](DISTRICT_BUILDING_UI.canvas) | DistrictBuildUISystem |
 | [ECONOMY_ACTORS](ECONOMY_ACTORS.canvas) | Ownables — each carries one OwnerFK + a Tag · My domain view · Owners — actors with an Id used as OwnerFK · Resource… |
 | [ENTITIES](ENTITIES.canvas) | Tables (N rows) · Singletons (one row) · District configs |
-| [WORK](WORK.canvas) | DistrictBuildUISystem |
+| [WORK](WORK.canvas) | ActionsBuidDistrict |
 
 <!-- END GENERATED — content below is the agent zone (pass 2), preserved across runs -->
 
@@ -101,3 +103,6 @@ Curate what the script can't derive: current focus, stale docs, cross-doc orient
   per-frame / reactive / cleanup). **Read the matching recipe instead of opening a live system as a reference.**
   They replace the retired `SYSTEMTEMPLATE.md` / `CONFIGTEMPLATE.md` monoliths; the picker index is
   `ARCHITECTURE.md` → **Pattern Recipes**.
+- **`WORK.canvas` is the user's living task-intake scratchpad** — he states tasks there as a graphic
+  scheme instead of text. It always changes and contains nothing finished: never treat it as stale,
+  orphaned, or a deletion candidate.

@@ -22,7 +22,7 @@ Named in the plural because more camera slots may be added later.
 - `CameraComponent` is a **world component**, not an entity component. `WorldInstaller` sets it once via
   `world.Set(...)`; consumers read it via `world.Get<CameraComponent>()` guarded by `world.Has<...>()`.
   It never appears in `world.GetEntities()` and cannot be matched by `With<CameraComponent>()` /
-  `WhenAdded` / `WhenChanged` — see ARCHITECTURE.md "State Storage Taxonomy".
+  `WhenAdded` / `WhenChanged` — see ECS_CONVENTIONS.md "State Storage Taxonomy".
 - `Camera` can be null if the serialized reference on `WorldInstaller` is unassigned — consumers
   null-check before use.
 - **No zoom baseline is stored here.** Zoom is a **fixed-FOV dolly** (`CameraMovementSystem` moves the

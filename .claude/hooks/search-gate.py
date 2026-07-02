@@ -2,9 +2,9 @@
 """PreToolUse gate — enforces the project search policy (.claude/SEARCH_POLICY.md).
 
 Applies ONLY to the main agent (subagents are exempt — they are the discovery path). In the main
-session it denies source DISCOVERY over Assets/**/*.cs (Grep/Glob sweeps + Bash rg/grep/find + direct
-graph-QUERY CLI ecsg/dig) and routes everything to @agent-discovery-scout, and it budgets unique .cs reads
-(for editing). On budget exhaustion it denies with a STOP message telling the agent to ask the user.
+session it denies source DISCOVERY over Assets/**/*.cs (Grep/Glob sweeps + Bash rg/grep/find + Bash
+viewers cat/head/tail/sed/awk over .cs + direct graph-QUERY CLI ecsg/dig) and routes everything to
+@agent-discovery-scout, and it budgets unique .cs reads (for editing). On budget exhaustion it denies with a STOP message telling the agent to ask the user.
 
 Reads the hook JSON from stdin; prints a deny decision (or nothing = allow) and exits 0. Fail-open:
 any internal error → allow, so the gate can never wedge the main loop.
@@ -33,6 +33,9 @@ SOURCE_RE = re.compile(r"Assets/.*\.cs$")
 GRAPH_CLI_EXES = {"ecsg", "ecsg.py", "ecs-graph", "dig.py", "di-graph"}
 CODE_SEARCH_EXES = {"rg", "ag", "ack"}            # dedicated source-search tools
 GREP_FIND_EXES = {"grep", "egrep", "fgrep", "find"}  # general; gated only over Assets
+# viewers/streamers that would bypass the Read budget; gated only when a .cs under Assets is named
+VIEW_EXES = {"cat", "head", "tail", "sed", "awk", "less", "more", "strings"}
+CS_IN_SEG_RE = re.compile(r"Assets/\S*\.cs\b")
 # wrappers to skip when finding a pipeline segment's real executable
 WRAPPERS = {"python", "python3", "uv", "run", "time", "nice", "env", "sudo", "command", "exec", "xargs"}
 
@@ -156,6 +159,9 @@ def bash_is_gated(cmd: str):
             return ("Source search (rg/ag/ack) in the main session is gated. " + SCOUT)
         if exe in GREP_FIND_EXES and "Assets" in seg:
             return ("Source search over Assets in the main session is gated. " + SCOUT)
+        if exe in VIEW_EXES and CS_IN_SEG_RE.search(seg):
+            return ("Viewing .cs source through Bash bypasses the Read budget. "
+                    "Use the Read tool on the file you are editing (budgeted). " + SCOUT)
     return None
 
 

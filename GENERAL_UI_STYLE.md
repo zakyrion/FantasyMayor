@@ -520,7 +520,7 @@ How to assemble any panel. This is the default; deviate only with a stated reaso
   resolve their view off it — see `Assets/Presentation/UI/MAIN_UI.md`.)
 - **One shared panel instance, not per-entity.** Selection is singular, so the context panel is reused.
 - **Absence is not an error; a missing prerequisite is.** An optional block with no data → hide it (normal). A
-  required prerequisite that must always exist → throw, per `ARCHITECTURE.md` fail-loud.
+  required prerequisite that must always exist → throw, per `ECS_CONVENTIONS.md` fail-loud.
 - **Placeholder / SCAFFOLD blocks.** A block whose backing ECS components do not exist yet is driven by a
   **placeholder system** that supplies stub data or keeps the block hidden, until the real components land.
   Mark such blocks `SCAFFOLD` in the window's own doc (current SCAFFOLD: the District block and the

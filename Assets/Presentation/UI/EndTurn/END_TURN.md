@@ -1,16 +1,18 @@
 ---
-category: B
+category: A
 read: reference
 tags: [ui, turn]
 related:
   - "[MAIN_UI](../MAIN_UI.md)"
   - "[HEX_INFO_PANEL](../HexInfoPanel/HEX_INFO_PANEL.md)"
-  - "[TURN](../../Turn/TURN.md)"
+  - "[TURN](../../../Modules/Turn/TURN.md)"
   - "[GENERAL_UI_STYLE](../../../../GENERAL_UI_STYLE.md)"
+status: partial
 code_refs:
   systems:    [EndTurnViewSystem, EndTurnSpawnSubSystem]
-  components: [EndTurnViewComponent, TurnProcessorComponent, TurnCountComponent, MayorAPComponent, MayorAPRestoreComponent]
+  components: [EndTurnViewComponent, TurnProcessorComponent, TurnCountComponent, MayorAPRestoreComponent]
   events:     [NextTurnEvent]
+  enums:      [ResourceType]
 ---
 
 # Turn Corner (End Turn) — Turn Sub-Panel

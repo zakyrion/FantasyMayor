@@ -10,161 +10,112 @@ related:
 # DOC_STANDARD.md
 
 Single source of truth for how to write Markdown docs in this project.
-Read this before creating or editing any `.md` file in a module or repo root.
+Read this before creating or editing any `.md` file.
 
 ---
 
 ## Rule 0 — Documentation is written for the AI agent, not for a human
 
-Every `.md` file in this project — module docs, templates, policy files, and **this file itself** — is
-written **primarily for an AI agent that will act on it**, not for a human reader. No human is the
-primary audience; optimize for the model that executes against the doc.
-
-Concretely: write for the **least-capable agent likely to read it** — explicit, literal, no implied
-reasoning chains, nothing left "obvious from context". A doc succeeds when an agent can act on it
-correctly **without opening the source**. This target is sharper than a vague "write for AI", and it is
-what every rule below serves.
+Every `.md` file in this project is written for an AI agent that will act on it. Write for the
+**least-capable agent likely to read it**: explicit, literal, no implied reasoning chains. A doc
+succeeds when an agent can act on it correctly **without opening the source**.
 
 ---
 
-## Why This Standard Exists
+## Division of Labor — what belongs in a doc
 
-This project recovers everything structural from the code via tools — read them instead of writing it
-down:
+The tools recover everything structural from code. A Markdown file must NOT repeat what a tool
+answers — duplicated structure goes stale, and stale docs are worse than no docs.
 
-- **`roslyn-mcp`** (LSP, `mcp__roslyn__*`) — types, fields, method signatures, references, who
-  calls/implements whom, call/type hierarchy, file outline.
-- **`ecs-graph`** — DoD/ECS relationships (component writers/readers, reactive consumers, archetypes,
-  Table-Rule PK/FK, system roles/priorities).
-- **`di-graph`** — VContainer wiring (registered-as + Lifetime + installer, collection resolution, GameMode).
+| Structural fact | Owner (never the doc) |
+|---|---|
+| types, signatures, references, call/type hierarchy, outline | `roslyn-mcp` (`mcp__roslyn__*`) |
+| component writers/readers, reactive consumers, archetypes, Table-Rule PK/FK, priorities | `ecs-graph` |
+| registered-as + Lifetime + installer, injectors, collection resolution, GameMode | `di-graph` |
 
-If a tool can already answer it, a Markdown file must **not** repeat it.
-Duplicated structure goes stale the moment code changes, and stale docs are worse
-than no docs.
+A doc holds ONLY what no tool can extract:
 
-So every Markdown file holds **only** what those tools cannot extract from code:
-
-- **Intent** — why this module/type exists, what problem it solves
+- **Intent** — why this module/type exists
 - **Non-obvious invariants** — constraints that look different than they are
-- **Design decisions** — why it is built this way (rationale)
+- **Design decisions** — why it is built this way
 - **How to use it correctly** — usage rules for a non-trivial public API
-- **Behavioral contract** — the semantics *behind* a signature, which the tools cannot see:
-  side-effects, ownership/disposal, aliasing (e.g. a getter returns a **live** internal
-  collection, not a copy), required call order, idempotency, re-entrancy, "safe to call again".
-  This is the layer whose absence forces a reader back into the source — capture it.
-- **Current state** — what is implemented vs scaffold
-- **Entity archetypes** — runtime component compositions (DoD entities are not
-  classes, so `roslyn-mcp` sees no class — see the ecs-graph (`/ecs-graph`))
+- **Behavioral contract** — the semantics behind a signature: side-effects, ownership/disposal,
+  aliasing (live vs copy), required call order, idempotency, re-entrancy
+- **Current state** — implemented vs scaffold
+- **Entity archetypes** — one-line naming only; the registry is the ecs-graph (`/ecs-graph`)
 
-Rule of thumb: **if you could get the answer from `roslyn-mcp` / `ecs-graph` / `di-graph`, delete it from the MD.**
-
-Corollary (do not over-strip): the tools give the **skeleton** — names, signatures, edges. They do
-**not** give the **semantics**. A method's *signature* is forbidden here (roslyn has it); that same
-method's *contract* (what it mutates, what it returns by reference, when it is legal to call) is
-**required** here, because no tool can express it. When in doubt, keep the semantics, drop the shape.
+Rule of thumb: if a tool can answer it, delete it from the MD.
+Corollary (do not over-strip): tools give the **skeleton** (names, signatures, edges), never the
+**semantics**. A method's signature is forbidden here; that method's *contract* is required here.
+When in doubt: keep the semantics, drop the shape.
 
 ---
 
 ## Document Categories
 
-Every Markdown file falls into exactly one category. The rules differ per category.
+Every `.md` file falls into exactly one category.
 
 | Category | What it is | Files | Rule |
 |---|---|---|---|
-| **A — Navigation** | Per-module reference | `Assets/Modules/*/*.md` | Follow the navigation structure below. Strip anything the tools (`roslyn-mcp`/`ecs-graph`/`di-graph`) cover. |
-| **B — Template / Reference** | How to build new code, or how to use a tricky API | `Patterns/PATTERN_*.md`, `ADDRESSABLE_PATTERNS.md` | Do **not** strip. These encode procedure/convention. Keep accurate, keep complete. |
-| **C — Policy** | Project-wide rules | `CLAUDE.md`, `ARCHITECTURE.md`, this file | Rules and orientation. Keep current. |
+| **A — Navigation** | Per-module reference | module MDs in `Assets/Modules/**`, `Assets/Domains/**`, `Assets/Presentation/**` | Follow the structure below. Strip anything the tools cover. |
+| **B — Template / Reference** | How to build new code, or how to use a tricky API | `Patterns/PATTERN_*.md`, `ADDRESSABLE_PATTERNS.md` | Do **not** strip. Keep accurate, keep complete. |
+| **C — Policy** | Project-wide rules | `CLAUDE.md`, `ARCHITECTURE.md`, `ECS_CONVENTIONS.md`, this file | Rules and orientation. Keep current. |
 
-When unsure which category a new file is: if it describes one module, it is A.
-If it describes *how to write code that follows a convention*, it is B.
+Unsure? One module → A. "How to write code that follows a convention" → B.
 
 ---
 
 ## Frontmatter (YAML properties)
 
-Every `.md` file starts with a YAML frontmatter block. It exists mainly for **navigation** —
-Obsidian properties/Dataview/backlinks for the human, and stable `grep` queries for the agent —
-carrying doc-meta and doc↔doc relations. It is **not** a place to restate code *structure* (fields,
-signatures, priorities). The single scoped exception is `code_refs` (Category A), which indexes bare
-symbol *names* as drift anchors — defined below.
+Every `.md` starts with YAML frontmatter. It exists for **navigation** (Obsidian properties +
+stable `grep` for the agent): doc-meta and doc↔doc relations only — never code structure.
 
 ```yaml
 ---
-category: A                              # A | B | C — required, all files
-read: reference                          # always | trigger | reference — required, all files
-trigger: "before editing an ECS system"  # required IFF read: trigger — one line, when to read it
-tags: [terrain, ecs]                     # domain tags, lowercase, no '#'; optional but encouraged
-related:                                 # doc↔doc links only; markdown links, relative paths
+category: A                              # A | B | C
+read: reference                          # always | trigger | reference
+trigger: "before editing an ECS system"  # iff read: trigger
+tags: [terrain, ecs]
+related:
   - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
-  - "[TERRAIN_VIEW](../TerrainView/TERRAIN_VIEW.md)"
-status: implemented                      # Category A ONLY — see enum below
-code_refs:                               # Category A ONLY — drift anchors; see code_refs below
-  systems:    [TerrainViewSystem]        # nested by kind; bare symbol names, never their shape
+status: implemented                      # Category A only
+code_refs:                               # Category A only — drift anchors
+  systems:    [TerrainViewSystem]
   components: [TerrainViewComponent]
 ---
 ```
 
-Field rules:
+| Field | Required | Rule |
+|---|---|---|
+| `category` | all files | `A` \| `B` \| `C` per the table above |
+| `read` | all files | `always` — session-start orientation docs only, keep this set tiny · `trigger` — read only when the named condition holds · `reference` — on demand; the default for Category A |
+| `trigger` | iff `read: trigger`, forbidden otherwise | one imperative line naming the condition (e.g. `"before creating a config loader"`). `INDEX.md` lists the doc under "read on demand" with this text — it is what makes a reference doc discoverable |
+| `tags` | encouraged | lowercase domain labels, no `#`. Describe the **domain**, never the code shape — no type/assembly names |
+| `related` | omit if none | doc↔doc **markdown links with relative paths** ONLY. Never source files, never a code edge a tool already gives. This is the doc graph — no tool builds it |
+| `status` | Category A only | `implemented` \| `partial` \| `scaffold` \| `stub`. The one-word machine index of `## Current State` (lets the agent grep "every scaffold module" without reading bodies). Keep the two in sync |
+| `code_refs` | Category A only | drift anchors — rules below |
 
-- **`category`** — `A`, `B`, or `C` from the table above. Required in every file. The only field that is
-  not derivable elsewhere in machine-readable form.
-- **`read`** — **required in every file.** The agent's read-priority signal, and the data `INDEX.md` is
-  generated from. One of:
-  - `always` — read on every session start. Reserved for the few orientation docs (this file,
-    `ARCHITECTURE.md`, `CLAUDE.md`, `INDEX.md`). Keep this set tiny.
-  - `trigger` — read **only** when a specific condition holds. Requires a `trigger` field naming that
-    condition (e.g. templates, `ADDRESSABLE_PATTERNS.md`, `GENERAL_UI_STYLE.md`).
-  - `reference` — consult on demand, no fixed trigger. Default for per-module navigation docs (Category A):
-    you read a module's doc when you go into that module.
-- **`trigger`** — **required iff `read: trigger`, forbidden otherwise.** One line, the condition that should
-  send a reader here (imperative, e.g. `"before creating or editing an ECS system"`). This is what makes an
-  otherwise-orphan reference doc discoverable: `INDEX.md` lists it under "read on demand" with this text.
-- **`tags`** — domain labels for filtering (e.g. `ecs`, `terrain`, `ui`, `hex`, `config`, `boot`,
-  `pathfinding`, `input`, `camera`). Lowercase, no `#` prefix (Obsidian adds it in the properties UI).
-  Describe the **domain**, never the code shape. Do not encode type/assembly names — that is the tools' job.
-- **`related`** — cross-**document** links only, as **markdown** links with **relative paths**
-  (consistent with `useMarkdownLinks: true` in `.obsidian/app.json`; renders in IDE and GitHub). Never
-  link to source files here and never duplicate a code edge the tools already give — this is the doc
-  graph, which no code tool builds. Omit the field if there are no real doc relations.
-- **`status`** — **Category A only.** One of: `implemented`, `partial`, `scaffold`, `stub`.
-  This is the **one** field that overlaps prose (`## Current State`). It is kept on purpose as a
-  machine-readable enum so the agent can answer "list every scaffold module" with one `grep` instead of
-  reading every body. Rule 0 exception, deliberate and scoped: the prose `## Current State` stays the
-  authoritative detail; `status` is its one-word index. Keep the two in sync. Omit `status` in B/C files.
-- **`code_refs`** — **Category A only.** A machine-readable index of the code symbols this doc is *about*,
-  nested by symbol kind. It exists for one purpose: **drift-detection anchors**. Every name must resolve
-  to a real symbol in `ecs-graph` / `roslyn-mcp`; a name that no longer resolves is the signal the doc
-  drifted from the code (a rename or removal), so re-anchoring doubles as a staleness audit. This is the
-  one field that deliberately carries code *names* — a scoped exception to "no code structure in
-  frontmatter" (rule below), justified exactly like `status`: it buys a machine-checkable contract the
-  prose alone cannot. Rules:
-  - **Bare symbol names only** — no signatures, fields, parameter lists, priorities, or counts.
-    `code_refs` indexes *which* symbols, never *what they contain*; restating shape here is the very
-    duplication this standard forbids elsewhere.
-  - **Nested by kind.** Canonical keys: `systems`, `components`, `tags`, `events`, `world_components`,
-    `interfaces`, `types`, `enums`, `configs`, `views`. The set is **open with a canonical core** — these
-    ten are the canon, but add a new kind key when a genuinely new symbol category appears. Group each
-    name under the kind that matches the code.
-  - **Anchors, not a roster.** List the symbols the doc's prose actually reasons about — not every symbol
-    in the module. The bar is "if any of these is renamed or removed, this doc must be revisited," not an
-    exhaustive mirror of the assembly.
-  - Omit `code_refs` entirely when a doc has no anchorable symbols (pure design or setup notes, e.g.
-    `PRESENTATION.md`, `WATER_VIEW_SETUP.md`). An empty index is noise.
+**`code_refs`** — a machine-readable index of the code symbols the doc is *about*. Its one purpose:
+**drift detection** — every name must resolve in `ecs-graph` / `roslyn-mcp`; a name that stops
+resolving is the signal the doc drifted (rename/removal → revisit the doc).
+- **Bare symbol names only.** Never signatures, fields, priorities, or counts — *which* symbols, not
+  *what they contain*.
+- **Nested by kind.** Canonical keys: `systems`, `components`, `tags`, `events`, `world_components`,
+  `interfaces`, `types`, `enums`, `configs`, `views`. Open set — add a key when a genuinely new kind appears.
+- **Anchors, not a roster.** List only the symbols the prose reasons about. The bar: "if this is
+  renamed or removed, the doc must be revisited" — not an exhaustive mirror of the assembly.
+- **Omit entirely** when the doc has no anchorable symbols (pure design/setup notes). An empty index is noise.
 
-What frontmatter must NOT contain (same spirit as the forbidden list below): assembly/package names,
-field counts, priorities, signatures, folder trees, or anything the tools already give in detail. **The
-one carve-out is `code_refs`** — it deliberately carries bare symbol *names* (the drift anchors above),
-but never their *shape* (no fields, signatures, priorities, or counts). The test still holds for
-everything else: if `grep`-ing the frontmatter and asking `roslyn-mcp`/`ecs-graph` would return the same
-fact at the same fidelity, it does not belong here. `code_refs` is exempt because its value is the
-**broken link when a name stops resolving** — a staleness signal no tool query produces.
+Frontmatter must NOT contain anything the tools already give: assembly/package names, field counts,
+priorities, signatures, folder trees. The two deliberate exceptions are `status` and `code_refs`
+(names, never shape) — each buys a machine-checkable fact no tool query produces.
 
 ---
 
 ## Category A — Navigation MD Structure
 
-Use these sections, in this order. **Omit any section that has nothing real to say.**
-Do not pad. A 12-line file that says only what matters is correct.
+Use these sections, in this order. **Omit any section with nothing real to say.** Do not pad —
+a 12-line file that says only what matters is correct.
 
 ```markdown
 # ModuleName
@@ -172,78 +123,55 @@ Do not pad. A 12-line file that says only what matters is correct.
 One sentence: what this module does.
 
 ## Purpose
-Why it exists and its role in the game. Skip if the one-liner already covers it.
+Why it exists and its role in the game. Skip if the one-liner covers it.
 
 ## Trigger
-REQUIRED if an ECS system in this module runs reactively (e.g. `WhenAdded<SomeEvent>`).
-Name the event and the system. The tools cannot see this — see "Triggers (reactive ECS)" below.
-Skip for modules with no reactive/event-driven entry point.
+REQUIRED if an ECS system in this module runs reactively. Name the event and the
+system (the tools cannot see this — see "Triggers" below). Skip otherwise.
 
 ## How To Use Correctly
-If the module exposes a non-trivial public API that is easy to misuse.
-Use the ADDRESSABLE_PATTERNS.md style: Invariants → Patterns → Anti-patterns.
-Skip entirely for modules with no public API or an obvious one.
+Only for a non-trivial public API that is easy to misuse — see the criteria below.
+Style: Invariants → Patterns → Anti-patterns (model: ADDRESSABLE_PATTERNS.md).
 
 ## Public Contract & Gotchas
-The behavioral contract of this module's key public/cross-module types — the semantics the tools
-cannot see. One bullet per fact: side-effect, ownership, aliasing (live vs copy), call order,
-idempotency, "safe to re-call". Include it whenever correct use depends on something not visible in
-the signature — even for module-internal types that *other* systems mutate. This is the section whose
-absence sent the last reader into the source. May merge with "Non-Obvious Invariants" when small.
+The behavioral contract of key public/cross-module types — semantics the tools cannot
+see. One bullet per fact: side-effect, ownership, aliasing (live vs copy), call order,
+idempotency, "safe to re-call". This is the section whose absence sends a reader into
+the source. May merge with "Non-Obvious Invariants" when small.
 
 ## Non-Obvious Invariants
-Constraints a reader cannot guess from the code shape alone.
-Things that look one way but are another. One bullet each.
+Constraints a reader cannot guess from the code shape. One bullet each.
 
 ## Design Decisions
-Why it is built this way. Trade-offs that were chosen deliberately.
-Only decisions that are non-obvious or were debated. Skip the trivial ones.
+Why it is built this way — only decisions that are non-obvious or were debated.
 
 ## Current State
 What is implemented, what is scaffold, what is stubbed. Be blunt.
 ```
 
----
+### Forbidden in Category A (the tools already have it)
 
-## Forbidden in Category A (the tools already have it)
-
-Never put these in a navigation MD:
-
-- Type / component / field tables that just list what the struct contains
+- Type / component / field tables
 - Method signatures
 - Dependency lists (assemblies, packages)
 - Folder / file trees
-- Inheritance chains ("X extends Y extends Z")
+- Inheritance chains
 - System priority numbers
-- Code blocks that restate a `struct` or `enum` definition
+- Code blocks restating a `struct` / `enum` definition
 
-**One exception:** a code block is allowed when the code block *itself is the
-instruction* — e.g. a correct-usage snippet in a "How To Use Correctly" block.
-`ADDRESSABLE_PATTERNS.md` is the reference for this exception.
+**One exception:** a code block whose content *is* the instruction (a correct-usage snippet in
+"How To Use Correctly"). Reference: `ADDRESSABLE_PATTERNS.md`.
 
-**Signature vs contract — do not confuse them.** Forbidden = the *shape* (`Set(VertexCoord, HexVertex)`).
-Required = the *contract* the tools cannot see (`Set` mutates the owner cache as a side-effect;
-`GetOwnedVertexCoords` returns the **live** cache set, so snapshot before calling `Set`). Naming a method
-to attach its contract is fine; restating its parameter list as a table is not.
+**Signature vs contract.** Forbidden = the *shape* (`Set(VertexCoord, HexVertex)`). Required = the
+*contract* (`Set` mutates the owner cache as a side-effect; snapshot before iterating). Naming a
+method to attach its contract is fine; restating its parameter list is not.
 
----
+### When "How To Use Correctly" is warranted
 
-## When You Need "How To Use Correctly"
-
-Add this block only if **both** are true:
-
-1. The module exposes a public API other modules call.
-2. That API is easy to use wrong (ownership rules, lifecycle, async, disposal,
-   ordering, hidden preconditions).
-
-Examples that need it: `Addressable` (Box/Result ownership), anything with manual
-disposal, anything with a strict call order.
-
-Examples that do not: a pure-math utility, a tag-component-only module, a module
-whose only entry point is a single obvious method.
-
-Model the block on `ADDRESSABLE_PATTERNS.md`:
-- **Invariants** — numbered, hard rules ("Success → exactly one Dispose")
+Add it only if BOTH hold: (1) other modules call this public API; (2) it is easy to use wrong
+(ownership, lifecycle, async, disposal, ordering, hidden preconditions). A pure-math utility or a
+single-obvious-method module does not need it. Structure it as:
+- **Invariants** — numbered hard rules ("Success → exactly one Dispose")
 - **Patterns** — minimal correct-usage snippets
 - **Anti-patterns** — a `Wrong | Why | Right` table
 
@@ -251,52 +179,42 @@ Model the block on `ADDRESSABLE_PATTERNS.md`:
 
 ## AI-First Writing Rules
 
-The reader is an AI agent — assume the least-capable model likely to read it (Rule 0). Optimize for
-zero ambiguity, not for brevity.
-
-- **Explicit over implicit.** State the rule directly. Do not make the reader infer it.
+- **Explicit over implicit.** State the rule; do not make the reader infer it.
 - **Short declarative sentences.** One claim per sentence.
-- **Concrete over abstract.** Show the specific case, not a general description.
-- **Mark incomplete work loudly.** Write "SCAFFOLD — `Update()` is empty", not silence.
-- **Name the gotcha.** If something is a common mistake, say "Common mistake:" and name it.
-- **No narrative.** Skip "first we... then we... finally we." List facts.
-- **Clarity is not verbosity.** "Lean" means no duplicated code structure. It does
-  not mean dropping the explanation a junior model needs.
+- **Concrete over abstract.** The specific case, not a general description.
+- **Mark incomplete work loudly.** "SCAFFOLD — `Update()` is empty", not silence.
+- **Name the gotcha.** Write "Common mistake:" and name it.
+- **No narrative.** No "first we… then we… finally". List facts.
+- **Clarity is not verbosity.** "Lean" = no duplicated code structure — NOT dropping the
+  explanation a junior model needs.
 
 ---
 
 ## Triggers (reactive ECS)
 
-Systems that react to an event (`world.GetEntities().WhenAdded<SomeEvent>()...`) have a
-trigger relationship that `roslyn-mcp` **cannot represent** — a reactive event set is a call site, not a
-definition/reference edge, so a `find_references` on the system never reveals which event drives it.
+A reactive event set is a call site, not a definition/reference edge — `roslyn-mcp` cannot show
+which event drives a system. So every event-driven module MUST carry a `## Trigger` section naming
+the event + the system, and pointing to the ecs-graph (`/ecs-graph`) for the full flow:
 
-Therefore every event-driven module MUST carry a `## Trigger` section naming the event and the
-system, and pointing to the ecs-graph (`/ecs-graph`) for the full producer→consumer flow. The ecs-graph
-DOES model it (`reacts_to` edges) — the `## Trigger` section makes it explicit in the doc too.
-
-Example:
 ```markdown
 ## Trigger
 `FooSystem` runs on `WhenAdded<FooEventComponent>`.
-This reactive trigger is not visible to `roslyn-mcp` — full event flow is in the ecs-graph (`/ecs-graph`).
+Not visible to `roslyn-mcp` — full event flow: the ecs-graph (`/ecs-graph`).
 ```
 
 ## Entity Archetypes (DoD)
 
-Runtime entities are component compositions, not classes. They are created by
-scattered `world.CreateEntity().Set(...)` calls, so `roslyn-mcp` cannot reconstruct
-them (there is no class). They live in the ecs-graph (`/ecs-graph`), built on demand from the code.
-
-- Do **not** duplicate full archetype definitions in module MDs.
-- A module MD may name its key archetypes in one line and point to the ecs-graph (`/ecs-graph`).
-- When you add or change an archetype in code, refresh the ecs-graph (`/ecs-graph`).
+Runtime entities are component compositions created by scattered `world.CreateEntity().Set(...)`
+calls — no class exists for `roslyn-mcp` to see. The registry is the ecs-graph (`/ecs-graph`).
+- Do **not** duplicate archetype definitions in module MDs; naming key archetypes in one line + a
+  pointer is fine.
+- When an archetype changes in code, refresh the ecs-graph.
 
 ---
 
 ## Worked Example
 
-Bad (duplicates what the tools have — type table, deps, signatures):
+Bad (duplicates the tools — type table, deps, signatures):
 
 ```markdown
 ## ECS Components
@@ -325,34 +243,32 @@ Generates logical resource data for Forest, Clay, Fish. Renders nothing.
 All three generation subsystems are fully implemented. Visuals live in HexResourcesView.
 ```
 
-Behavioral-contract example (the layer that was missing — the tools list `Set`/`GetOwnedVertexCoords`
-but not their semantics):
+Behavioral-contract example (the tools list `Set`/`GetOwnedVertexCoords` but not their semantics):
 
 ```markdown
 ## Public Contract & Gotchas
 - `VertexGrid.GetOwnedVertexCoords(hex)` returns the **live** owner-cache set, not a copy.
-- `VertexGrid.Set(coord, vertex)` mutates that owner cache as a side-effect — so iterating
+- `VertexGrid.Set(coord, vertex)` mutates that owner cache as a side-effect — iterating
   `GetOwnedVertexCoords` while calling `Set` throws "Collection was modified". Snapshot first.
-- `TerrainView.ApplyHeightsFromVertexGrid(grid)` is safe to call again after the initial bake; it
-  re-reads the whole grid, so post-bake grid edits (e.g. clay depressions) are picked up.
+- `TerrainView.ApplyHeightsFromVertexGrid(grid)` is safe to call again after the initial bake;
+  it re-reads the whole grid, so post-bake grid edits are picked up.
 ```
 
 ---
 
 ## Checklist Before Saving Any MD
 
-- [ ] A YAML frontmatter block is present: `category` + `read` set; `trigger` set iff `read: trigger`;
-      `status` set for Category A; `related` uses relative markdown links to docs only; no tool-derivable
-      data in frontmatter. (Then regenerate `INDEX.md` — see below.)
-- [ ] If a doc was added/removed/renamed or its `read`/`trigger`/`status` changed, `INDEX.md` was
-      regenerated (`python3 Tools/gen_index.py`).
-- [ ] (Category A) `code_refs` lists the symbols the doc reasons about, nested by kind, bare names only —
-      and every name resolves in `ecs-graph`/`roslyn-mcp` (a non-resolving name is drift to fix, not to ship).
-- [ ] Every line answers something the tools (`roslyn-mcp`/`ecs-graph`/`di-graph`) cannot.
+- [ ] Frontmatter present: `category` + `read`; `trigger` iff `read: trigger`; `status` for
+      Category A; `related` = relative markdown links to docs only; no tool-derivable data.
+- [ ] If a doc was added/removed/renamed or its `read`/`trigger`/`status` changed:
+      `python3 Tools/gen_index.py` was re-run. (The git pre-commit hook — `Tools/githooks/pre-commit`,
+      enabled via `core.hooksPath` — runs it on every commit and blocks on lint issues.)
+- [ ] (Category A) `code_refs` lists the symbols the prose reasons about, nested by kind, bare
+      names only — and every name resolves (a non-resolving name is drift to fix, not to ship).
+- [ ] Every line answers something the tools cannot.
 - [ ] No type tables, signatures, dep lists, folder trees, priorities, inheritance.
-- [ ] Key public/cross-module types carry their **behavioral contract** (side-effects, aliasing,
-      ownership, call order) — the semantics behind the signature, not the signature itself.
+- [ ] Key public/cross-module types carry their **behavioral contract**.
 - [ ] Scaffold / incomplete work is marked explicitly.
-- [ ] If a system reacts to an event, a `## Trigger` section names the event + points to the ecs-graph (`/ecs-graph`).
+- [ ] Event-driven system → a `## Trigger` section names the event + points to the ecs-graph.
 - [ ] A junior model could act on this without reading the source.
-- [ ] If it changed an archetype, the ecs-graph (`/ecs-graph`) was refreshed too.
+- [ ] Archetype changed → the ecs-graph (`/ecs-graph`) was refreshed too.

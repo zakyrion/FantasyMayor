@@ -4,7 +4,7 @@ read: reference
 tags: [input, camera, hex, ecs]
 related:
   - "[CAMERAS](../Cameras/CAMERAS.md)"
-  - "[TERRAIN_VIEW](../TerrainView/TERRAIN_VIEW.md)"
+  - "[TERRAIN_VIEW](../../Presentation/Terrain/TERRAIN_VIEW.md)"
   - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
 status: implemented
 code_refs:

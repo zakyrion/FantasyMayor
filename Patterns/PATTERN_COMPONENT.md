@@ -49,8 +49,8 @@ public struct [Name]Component : IEquatable<[Name]Component>
   one-frame event is `...Event` (see [PATTERN_EVENT](PATTERN_EVENT.md)).
 - **Entity vs world component:** the same struct can live on an entity (`entity.Set`) or as a world singleton
   (`world.Set`). A world component is **not** query-matchable (`With<T>` / `WhenAdded<T>` do not see it) — read
-  it with `world.Get<T>()` guarded by `world.Has<T>()`. Full storage taxonomy in `../ARCHITECTURE.md`.
+  it with `world.Get<T>()` guarded by `world.Has<T>()`. Full storage taxonomy in `../ECS_CONVENTIONS.md`.
 - **Key components need `IEquatable<T>` + `GetHashCode`** so they can key a table; define the shared key once
-  and reuse it everywhere (Table Rule, `../ARCHITECTURE.md`).
+  and reuse it everywhere (Table Rule, `../ECS_CONVENTIONS.md`).
 - Component shape (fields, types) is recovered by `roslyn-mcp` / `ecs-graph` — do not restate it in module docs.
 ```

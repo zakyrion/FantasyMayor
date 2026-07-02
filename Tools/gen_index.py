@@ -18,6 +18,12 @@ Obsidian Canvas files (`.canvas`) are also catalogued in a "Canvas map" section.
 Canvases have no frontmatter, so their entry is derived automatically: title =
 filename, description = the canvas's group labels (add a group to give a canvas a
 meaningful description).
+
+A doc-lint pass runs after generation (DOC_STANDARD's checklist, mechanized):
+broken relative .md/.canvas links (frontmatter + body, code fences skipped),
+code_refs names that no longer resolve in Assets/**/*.cs (drift anchors),
+and category-scoped field misuse (status / code_refs outside Category A).
+Lint issues do NOT block the INDEX write; they are reported and exit code is 1.
 """
 import json, os, re, sys
 
@@ -85,12 +91,13 @@ def find_canvases():
 def parse(relpath):
     txt = open(os.path.join(ROOT, relpath), encoding="utf-8").read()
     meta = {"category": None, "read": None, "trigger": None, "tags": [],
-            "status": None, "title": None, "desc": None}
+            "status": None, "title": None, "desc": None, "_block": "", "_body": ""}
     body = txt
     if txt.startswith("---\n"):
         end = txt.find("\n---", 4)
         block = txt[4:end]
         body = txt[end + 4:]
+        meta["_block"] = block
         for key in ("category", "read", "status"):
             m = re.search(rf'^{key}:\s*(.+?)\s*$', block, re.M)
             if m:
@@ -120,7 +127,65 @@ def parse(relpath):
         meta["title"] = os.path.basename(relpath)
     if meta["desc"] is None:
         meta["desc"] = ""
+    meta["_body"] = body
     return meta
+
+
+# ----------------------------------------------------------------------- doc lint
+LINK_RE = re.compile(r"\[[^\]]*\]\(([^)\s]+?\.(?:md|canvas))(?:#[^)]*)?\)")
+FENCE_RE = re.compile(r"```.*?```", re.S)
+
+
+def _code_ref_names(block):
+    """Bare symbol names from a frontmatter code_refs block (nested-by-kind lists)."""
+    names, in_refs = [], False
+    for ln in block.splitlines():
+        if re.match(r"^code_refs:\s*$", ln):
+            in_refs = True
+            continue
+        if in_refs:
+            m = re.match(r"^\s+\w+:\s*\[(.*)\]\s*$", ln)
+            if m:
+                names += [n.strip() for n in m.group(1).split(",") if n.strip()]
+            elif ln.strip() and not ln.startswith((" ", "\t")):
+                in_refs = False
+    return names
+
+
+def lint(docs):
+    """DOC_STANDARD's checklist, mechanized. Returns a list of issue strings."""
+    issues = []
+    # one-time corpus of game source for code_refs drift anchors
+    blob = "\n".join(
+        open(os.path.join(ROOT, p), encoding="utf-8", errors="ignore").read()
+        for p in _walk_files() if p.startswith("Assets") and p.endswith(".cs"))
+    for p, m in docs:
+        d = os.path.dirname(p)
+        # broken relative links — frontmatter `related` + body (code fences skipped:
+        # examples inside fences are illustrations, not live links)
+        targets = LINK_RE.findall(m["_block"]) + LINK_RE.findall(FENCE_RE.sub("", m["_body"]))
+        for t in targets:
+            if t.startswith(("http://", "https://")):
+                continue
+            here = os.path.normpath(os.path.join(d, t))       # doc-relative (standard)
+            root = os.path.normpath(t)                         # vault-root-relative (tolerated)
+            if not os.path.exists(os.path.join(ROOT, here)) and \
+               not os.path.exists(os.path.join(ROOT, root)):
+                issues.append(f"{p}: broken link → {t}")
+        # category-scoped fields
+        if m["category"] == "A":
+            if not m["status"]:
+                issues.append(f"{p}: Category A doc missing status")
+        else:
+            if m["status"]:
+                issues.append(f"{p}: status is Category A only (category {m['category']})")
+            if re.search(r"^code_refs:", m["_block"], re.M):
+                issues.append(f"{p}: code_refs is Category A only (category {m['category']})")
+        # code_refs drift anchors — every name must still exist in game source
+        for name in _code_ref_names(m["_block"]):
+            if not re.search(rf"\b{re.escape(name)}\b", blob):
+                issues.append(f"{p}: code_refs name no longer resolves → {name}")
+    return issues
 
 
 def parse_canvas(relpath):
@@ -258,6 +323,14 @@ def main():
     print(f"INDEX.md written: {len(docs)} docs "
           f"({len(always)} always, {len(trigger)} trigger, {len(ref)} reference), "
           f"{len(canvases)} canvas")
+
+    # doc lint — INDEX is already written; issues are doc drift to fix in the docs
+    issues = lint(docs)
+    if issues:
+        sys.stderr.write(f"LINT: {len(issues)} issue(s) — INDEX itself is written; "
+                         "fix the docs:\n  " + "\n  ".join(issues) + "\n")
+        sys.exit(1)
+    print("LINT: clean")
 
 
 if __name__ == "__main__":

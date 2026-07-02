@@ -60,6 +60,7 @@ Verdict ∈ `ALLOW` · `DENY→scout` (delegate to `discovery-scout`) · `SCOUT`
 (grep|glob                        :over Assets/**/*.cs :session main) → DENY→scout
 (bash rg|ag|ack                   :session main)                      → DENY→scout
 (bash grep|egrep|find             :over Assets        :session main)  → DENY→scout
+(bash cat|head|tail|sed|awk       :over Assets/**/*.cs :session main) → DENY→Read    ;; bypasses the Read budget — use Read
 (bash ecsg|dig.py  [query CLI]    :session main)                      → DENY→scout   ;; raw text dump → MCP/scout
 (bash build_graph|build_di_graph  :session main)                      → ALLOW        ;; build = maintenance, not a query
 

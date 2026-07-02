@@ -41,8 +41,9 @@ loadouts it depends on `Economy` (`Actors → Economy`); see Design Decisions.
 - Mayor is a **singleton actor**: `MayorIdComponent` is always `1`. `MayorIdAllocatorComponent` is kept
   only for symmetry with City and the save/load contract; it yields a constant.
 - Querying an actor table or resolving an OwnerFK obeys the Table Rule — `With<CityIdComponent>` +
-  a per-actor **discriminator tag** (never a bare key). See `ARCHITECTURE.md` → "Relational Modeling — Table Rule".
-  *(The actor discriminator tags `CityTag` / `MayorTag` are **planned — not yet in code**; verified absent via ecs-graph + roslyn.)*
+  a per-actor **discriminator** (never a bare key). See `ECS_CONVENTIONS.md` → "Relational Modeling — Table Rule".
+  *(The discriminator is `ActorTypeComponent` carrying the `ActorType` enum — it superseded the earlier
+  planned `CityTag` / `MayorTag` tags.)*
 - `Actors → Economy`, never the reverse. Actors depends on Economy's owner-agnostic substrate
   (`ResourceComponent`, `ResourceType`, the generic `ResourceLoadoutSpawner`) to attach loadouts.
   Owner-keyed logic (which actor owns which stacks) lives HERE, not in Economy — the invariant that

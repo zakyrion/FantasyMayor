@@ -3,7 +3,7 @@ category: A
 read: reference
 tags: [hex, math, grid]
 related:
-  - "[HEX_CORE](../HexCore/HEX_CORE.md)"
+  - "[HEX_CORE](../../Domains/Map/Hex/HEX_CORE.md)"
   - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
 status: implemented
 code_refs:

@@ -8,8 +8,9 @@ related:
 status: partial
 code_refs:
   systems:    [ResourceBarSystem, ResourceBarSpawnSubSystem]
-  components: [InventoryResourceIconConfigComponent, ResourceBarViewComponent, CityIdComponent, MayorIdComponent, ResourceComponent]
-  tags:       [CityTag, MayorTag, ResourceTag, UITag]
+  components: [InventoryResourceIconConfigComponent, ResourceBarViewComponent, CityIdComponent, MayorIdComponent, ResourceComponent, ActorTypeComponent]
+  tags:       [ResourceTag, UITag]
+  enums:      [ActorType]
 ---
 
 # ResourceBar
@@ -47,7 +48,8 @@ pulse exists yet, so the list reads the City/Mayor `Resource` stacks directly ev
   of the row icon.
 - **Owner amounts are read via the Table Rule**, never a bare key: `With<CityIdComponent> + With<ResourceTag>
   → AsMultiMap<CityIdComponent>` (and the Mayor equivalent). The owner id is a PK on the actor row and the FK
-  on each resource stack. The actor id itself comes from the actor table (`With<CityIdComponent> + CityTag`).
+  on each resource stack. The actor id itself comes from the actor table (`With<CityIdComponent>` +
+  `ActorTypeComponent` as the discriminator — the former `CityTag`/`MayorTag` tags were superseded).
 - **Lives on the shared `UI/MainUI` document.** `ResourceBarView` queries only its own `ResourcePanel`
   (left panel) + `TopBar` (thin strip) subtrees and toggles only those — never the document root (that blanks
   the whole Main UI). Neither is `raycast-transparent`, so the left panel blocks map clicks over itself and the
@@ -62,7 +64,7 @@ pulse exists yet, so the list reads the City/Mayor `Resource` stacks directly ev
 - World component: `InventoryResourceIconConfigComponent` (loaded at `ConfigLoadStep`, addressable key
   `"InventoryResourceIconConfig"`; wraps the Box so sprites stay loaded).
 - Singleton entity: `ResourceBarViewComponent` (+ `UITag`) — published by `ResourceBarSpawnSubSystem`.
-- Reads: `CityIdComponent`/`CityTag`/`MayorIdComponent`/`MayorTag` (Actors), `ResourceComponent`/`ResourceTag`
+- Reads: `CityIdComponent`/`MayorIdComponent`/`ActorTypeComponent` (Actors), `ResourceComponent`/`ResourceTag`
   (Economy). See the ecs-graph (`/ecs-graph`, cross-module reads).
 
 ## Current State

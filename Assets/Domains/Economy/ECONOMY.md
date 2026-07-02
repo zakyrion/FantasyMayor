@@ -45,7 +45,7 @@ District-catalogue config loader stays here.
 - Identity is the **composite key `(owner FK + ResourceType)`** — there is deliberately **no surrogate
   `ResourceId`**. One stack per (owner, type).
 - A given owner's stacks are read with `With<OwnerFK>` + `With<ResourceTag>` → `AsMultiMap<OwnerFK>`,
-  never a bare key (the owner id is a PK on the actor AND a FK here). See `ARCHITECTURE.md` → Table Rule.
+  never a bare key (the owner id is a PK on the actor AND a FK here). See `ECS_CONVENTIONS.md` → Table Rule.
 
 ## Design Decisions
 - **Feature-first layout.** Economy is split by sub-system (`Resource/`, later `District/`, `Building/`),
@@ -60,5 +60,6 @@ District-catalogue config loader stays here.
   (`Economy → Map`, for District hex-type gating, is a separate, unrelated edge.)
 - **Mayor config (incl. Action Points) lives in `Actors`, not Economy.** `MayorConfig` /
   `MayorConfigComponent` / `MayorConfigLoaderSystem` moved to `Actors/Mayor` — the Mayor's starting state
-  (resources + AP) is actor-intrinsic and belongs with the actor. `StartActionPoints` is seeded onto
-  `MayorAPComponent` at spawn; AP **pool/spending mechanics** remain a later slice.
+  (resources + AP) is actor-intrinsic and belongs with the actor. `StartActionPoints` is seeded as the
+  Mayor's `ActionPoint` **resource stack** (`ResourceType`) at spawn — the former dedicated
+  `MayorAPComponent` was superseded; AP **spending mechanics** remain a later slice.

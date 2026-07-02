@@ -5,7 +5,7 @@ tags: [economy, district, config, ecs]
 related:
   - "[ECONOMY](../ECONOMY.md)"
   - "[DISTRICT_BUILD_COST](../../Actions/DISTRICT_BUILD_COST.md)"
-  - "[DISTRICT_BUILD](../../../../Presentation/UI/DistrictBuild/DISTRICT_BUILD.md)"
+  - "[DISTRICT_BUILD](../../../Presentation/UI/DistrictBuild/DISTRICT_BUILD.md)"
   - "[PATTERN_CONFIG](../../../../Patterns/PATTERN_CONFIG.md)"
   - "[PATTERN_CONFIG_LOADER](../../../../Patterns/PATTERN_CONFIG_LOADER.md)"
   - "[PATTERN_ORCHESTRATOR_SUBSYSTEM](../../../../Patterns/PATTERN_ORCHESTRATOR_SUBSYSTEM.md)"

@@ -1,7 +1,8 @@
 ---
-category: B
+category: A
 read: reference
 tags: [ui, hex]
+status: partial
 related:
   - "[MAIN_UI](../MAIN_UI.md)"
   - "[END_TURN](../EndTurn/END_TURN.md)"
@@ -20,8 +21,8 @@ code_refs:
 The read-only **CONTEXT sub-panel** (right) of the shared bottom panel: everything known about the currently
 selected hex. Grows by progressive disclosure.
 
-> **Category:** B (design spec) per `DOC_STANDARD.md`. Style, tokens, component catalog, placement, and the
-> construction pattern come from `GENERAL_UI_STYLE.md` (repo root) — this doc does **not** restate them.
+> Style, tokens, component catalog, placement, and the construction pattern come from
+> `GENERAL_UI_STYLE.md` (repo root) — this doc does **not** restate them.
 > **Visual reference:** `design-mockups/FantasyMayor-HUD.html` (tab row + the Overview/Buildings/Actions panes).
 > **Read policy:** read when building or changing this panel.
 
