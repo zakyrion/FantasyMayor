@@ -3,6 +3,7 @@ using DefaultECSExtensions;
 using JetBrains.Annotations;
 using Modules.Cameras.Components;
 using Domains.Map.Hex.Components;
+using Domains.Map.Hex.Tags;
 using Presentation.Terrain.Components;
 using Modules.UserInput.Components;
 using UnityEngine;
@@ -55,6 +56,7 @@ namespace Modules.UserInput.Systems
                 .AsSet();
             _hexIdSet = world.GetEntities()
                 .With<HexIdComponent>()
+                .With<HexTag>()
                 .AsSet();
 
             TryBindInputActions();

@@ -4,7 +4,6 @@ using Domains.Actions.Components;
 using Domains.Actions.Configs;
 using Domains.Actors.City.Components;
 using Domains.Actors.Components;
-using Domains.Actors.Data;
 using Domains.Actors.Mayor.Components;
 using Domains.Economy.District.Data;
 using Domains.Economy.Resource.Components;
@@ -27,7 +26,9 @@ namespace Presentation.UI.DistrictBuild.Systems
     {
         private const int ExecutionPriority = 300;
 
-        private readonly EntityMultiMap<ActorTypeComponent> _actors;
+        // Actor rows (Table Rule): id PK + ActorTypeComponent discriminator — never a bare key.
+        private readonly EntitySet _mayorActor;
+        private readonly EntitySet _cityActor;
         private readonly EntityMultiMap<MayorIdComponent> _mayorResources;
         private readonly EntityMultiMap<CityIdComponent> _cityResources;
 
@@ -38,7 +39,8 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public DistrictBuildPriceUISubSystem(World world) : base(world)
         {
-            _actors = world.GetEntities().With<ActorTypeComponent>().AsMultiMap<ActorTypeComponent>();
+            _mayorActor = world.GetEntities().With<MayorIdComponent>().With<ActorTypeComponent>().AsSet();
+            _cityActor = world.GetEntities().With<CityIdComponent>().With<ActorTypeComponent>().AsSet();
             _mayorResources = world.GetEntities()
                 .With<MayorIdComponent>().With<ResourceTag>().AsMultiMap<MayorIdComponent>();
             _cityResources = world.GetEntities()
@@ -124,17 +126,15 @@ namespace Presentation.UI.DistrictBuild.Systems
         {
             if (payer == Payer.Mayor)
             {
-                if (_actors.TryGetEntities(new ActorTypeComponent { Type = ActorType.Mayor }, out var mayors)
-                    && mayors.Length > 0
-                    && _mayorResources.TryGetEntities(mayors[0].Get<MayorIdComponent>(), out var stacks))
+                if (_mayorActor.Count > 0
+                    && _mayorResources.TryGetEntities(_mayorActor.GetEntities()[0].Get<MayorIdComponent>(), out var stacks))
                     return AmountIn(stacks, type);
 
                 return 0;
             }
 
-            if (_actors.TryGetEntities(new ActorTypeComponent { Type = ActorType.City }, out var cities)
-                && cities.Length > 0
-                && _cityResources.TryGetEntities(cities[0].Get<CityIdComponent>(), out var cityStacks))
+            if (_cityActor.Count > 0
+                && _cityResources.TryGetEntities(_cityActor.GetEntities()[0].Get<CityIdComponent>(), out var cityStacks))
                 return AmountIn(cityStacks, type);
 
             return 0;
@@ -161,7 +161,8 @@ namespace Presentation.UI.DistrictBuild.Systems
                     view.PayerChanged -= OnPayerChanged;
             }
 
-            _actors.Dispose();
+            _mayorActor.Dispose();
+            _cityActor.Dispose();
             _mayorResources.Dispose();
             _cityResources.Dispose();
             base.Dispose();

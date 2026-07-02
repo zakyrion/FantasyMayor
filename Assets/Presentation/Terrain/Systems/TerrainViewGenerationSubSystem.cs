@@ -45,7 +45,7 @@ namespace Presentation.Terrain.Systems
         public TerrainViewGenerationSubSystem(World world)
         {
             _world = world;
-            _hexSet = world.GetEntities().With<HexIdComponent>().AsSet();
+            _hexSet = world.GetEntities().With<HexIdComponent>().With<HexTag>().AsSet();
             _hexesByType = world.GetEntities().With<HexTag>().AsMultiMap<HexTypeComponent>();
         }
 

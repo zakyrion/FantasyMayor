@@ -7,6 +7,7 @@ using JetBrains.Annotations;
 using Modules.AxialSystem;
 using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Data;
+using Domains.Map.Hex.Tags;
 using Domains.Map.Hex.Utils;
 using Presentation.Terrain.Components;
 using Unity.Collections;
@@ -39,7 +40,7 @@ namespace Presentation.Terrain.Systems
         public TerrainViewTextureSubSystem(World world)
         {
             _world = world;
-            _hexSet = world.GetEntities().With<HexIdComponent>().AsSet();
+            _hexSet = world.GetEntities().With<HexIdComponent>().With<HexTag>().AsSet();
         }
 
         /// <inheritdoc />

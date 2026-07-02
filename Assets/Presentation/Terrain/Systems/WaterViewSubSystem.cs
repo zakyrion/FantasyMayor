@@ -46,7 +46,7 @@ namespace Presentation.Terrain.Systems
             _world = world;
             _addressable = addressable;
             _waterViewBox = Box<WaterView>.Empty();
-            _hexSet = world.GetEntities().With<HexIdComponent>().AsSet();
+            _hexSet = world.GetEntities().With<HexIdComponent>().With<HexTag>().AsSet();
             _hexesByType = world.GetEntities().With<HexTag>().AsMultiMap<HexTypeComponent>();
         }
 

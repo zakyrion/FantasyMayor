@@ -3,6 +3,7 @@ using DefaultECSExtensions;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
 using Domains.Map.Hex.Components;
+using Domains.Map.Hex.Tags;
 using Domains.Map.HexResources.Data;
 using Presentation.HexResources.Components;
 using Presentation.HexResources.Helpers;
@@ -40,7 +41,7 @@ namespace Presentation.HexResources.Systems
         {
             _world = world;
             _terrainViewSet = world.GetEntities().With<TerrainViewComponent>().AsSet();
-            _hexSet = world.GetEntities().With<HexIdComponent>().AsSet();
+            _hexSet = world.GetEntities().With<HexIdComponent>().With<HexTag>().AsSet();
         }
 
         public override void Update(GameState state)

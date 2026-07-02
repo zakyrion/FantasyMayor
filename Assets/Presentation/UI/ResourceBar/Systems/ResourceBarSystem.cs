@@ -2,7 +2,6 @@ using DefaultEcs;
 using DefaultECSExtensions;
 using Domains.Actors.City.Components;
 using Domains.Actors.Components;
-using Domains.Actors.Data;
 using Domains.Actors.Mayor.Components;
 using Domains.Economy.Resource.Components;
 using Domains.Economy.Resource.Tags;
@@ -25,8 +24,10 @@ namespace Presentation.UI.ResourceBar.Systems
     {
         private const int ExecutionPriority = 562;
 
+        // Actor rows (Table Rule): id PK + ActorTypeComponent discriminator — never a bare key.
+        private readonly EntitySet _mayorActor;
+        private readonly EntitySet _cityActor;
         // FK 1:N indexes (Table Rule): owner id is a PK on the actor AND a FK on the resource stack.
-        private readonly EntityMultiMap<ActorTypeComponent> _actors;
         private readonly EntityMultiMap<CityIdComponent> _cityResources;
         private readonly EntityMultiMap<MayorIdComponent> _mayorResources;
 
@@ -35,7 +36,8 @@ namespace Presentation.UI.ResourceBar.Systems
         public ResourceBarSystem(World world)
             : base(world.GetEntities().With<ResourceBarViewComponent>().AsSet())
         {
-            _actors = world.GetEntities().With<ActorTypeComponent>().AsMultiMap<ActorTypeComponent>();
+            _mayorActor = world.GetEntities().With<MayorIdComponent>().With<ActorTypeComponent>().AsSet();
+            _cityActor = world.GetEntities().With<CityIdComponent>().With<ActorTypeComponent>().AsSet();
             _cityResources = world.GetEntities()
                 .With<CityIdComponent>().With<ResourceTag>().AsMultiMap<CityIdComponent>();
             _mayorResources = world.GetEntities()
@@ -48,14 +50,14 @@ namespace Presentation.UI.ResourceBar.Systems
             if (view == null)
                 return;
 
-            if (_actors.TryGetEntities(new ActorTypeComponent { Type = ActorType.Mayor }, out var mayor))
+            if (_mayorActor.Count > 0)
             {
-                FillMayor(view, mayor[0].Get<MayorIdComponent>());
+                FillMayor(view, _mayorActor.GetEntities()[0].Get<MayorIdComponent>());
             }
 
-            if (_actors.TryGetEntities(new ActorTypeComponent { Type = ActorType.City }, out var city))
+            if (_cityActor.Count > 0)
             {
-                FillCity(view, city[0].Get<CityIdComponent>());
+                FillCity(view, _cityActor.GetEntities()[0].Get<CityIdComponent>());
             }
 
             view.Show();
@@ -63,7 +65,8 @@ namespace Presentation.UI.ResourceBar.Systems
 
         public override void Dispose()
         {
-            _actors.Dispose();
+            _mayorActor.Dispose();
+            _cityActor.Dispose();
             _cityResources.Dispose();
             _mayorResources.Dispose();
             base.Dispose();

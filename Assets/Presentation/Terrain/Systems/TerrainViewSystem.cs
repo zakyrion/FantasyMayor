@@ -12,6 +12,7 @@ using Presentation.Terrain.Components;
 using System.Collections.Generic;
 using System.Linq;
 using Domains.Map.Hex.Components;
+using Domains.Map.Hex.Tags;
 using Unity.Collections;
 using UnityEngine;
 
@@ -49,7 +50,7 @@ namespace Presentation.Terrain.Systems
             _world = world;
             _addressable = addressable;
             _terrainViewBox = Box<Views.TerrainView>.Empty();
-            _hexSet = world.GetEntities().With<HexIdComponent>().AsSet();
+            _hexSet = world.GetEntities().With<HexIdComponent>().With<HexTag>().AsSet();
             _viewSubSystems = viewSubSystems
                 .OrderBy(s => s.Priority)
                 .ToArray();
