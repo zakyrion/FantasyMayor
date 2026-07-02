@@ -10,8 +10,14 @@ Reads the hook JSON from stdin; prints a deny decision (or nothing = allow) and 
 any internal error → allow, so the gate can never wedge the main loop.
 
 Admin (run by the user / on user authorization — not gated, writes only under ~/.claude):
-    python3 search-gate.py reset            # clear all session budgets (gives a fresh allowance now)
+    python3 search-gate.py reset            # clear all session budgets AND grants (fresh allowance now)
     python3 search-gate.py bump <N>         # raise the limit to N on every active session budget file
+    python3 search-gate.py grant <path...>  # register the confirmed task statement's «Працюй тільки в»
+                                            # .cs files as task scope: reads of them don't consume the
+                                            # budget. Authorization = the user's confirmation of the
+                                            # statement. Grants persist until `reset`. Discovery rules
+                                            # (grep/rg/sweeps) stay fully gated regardless of grants.
+    python3 search-gate.py grant            # list active grants
 """
 import json
 import os
@@ -21,6 +27,7 @@ from pathlib import Path
 
 DEFAULT_LIMIT = 8
 STATE_DIR = Path.home() / ".claude" / ".search-budget"
+GRANTS_PATH = STATE_DIR / "_grants.json"  # user-granted task scope; cleared by `reset`
 SCOUT = ("→ for code structure/refs/symbols use the roslyn-mcp tools (mcp__roslyn__*); "
          "for ECS/DI/orchestration/docs delegate to @agent-discovery-scout. "
          "See .claude/SEARCH_POLICY.md.")
@@ -79,9 +86,30 @@ def _load(path: Path):
     return {"files": [], "limit": DEFAULT_LIMIT}
 
 
+def _load_grants():
+    if GRANTS_PATH.exists():
+        try:
+            return json.loads(GRANTS_PATH.read_text("utf-8")).get("files", [])
+        except Exception:
+            pass
+    return []
+
+
+def _granted(file_path: str, grants) -> bool:
+    """Match by exact path or by repo-relative suffix (Read passes absolute paths;
+    grants are usually registered as repo-relative Assets/... paths)."""
+    for g in grants:
+        g = g.lstrip("./")
+        if file_path == g or file_path.endswith("/" + g):
+            return True
+    return False
+
+
 def budget_check(session_id: str, file_path: str) -> bool:
     """True = allow, False = deny (limit reached for a new file)."""
     def op(path):
+        if _granted(file_path, _load_grants()):
+            return True  # user-granted task scope — never counted
         d = _load(path)
         if file_path in d["files"]:
             return True  # already counted — re-reading for editing is free
@@ -108,10 +136,26 @@ def admin(argv) -> bool:
         n = int(argv[1])
         STATE_DIR.mkdir(parents=True, exist_ok=True)
         for f in STATE_DIR.glob("*.json"):
+            if f.name == GRANTS_PATH.name:
+                continue
             d = _load(f)
             d["limit"] = n
             f.write_text(json.dumps(d), "utf-8")
         print(f"search-gate: limit bumped to {n}")
+        return True
+    if cmd == "grant":
+        files = _load_grants()
+        if len(argv) >= 2:
+            STATE_DIR.mkdir(parents=True, exist_ok=True)
+            for f in argv[1:]:
+                if f not in files:
+                    files.append(f)
+            GRANTS_PATH.write_text(json.dumps({"files": files}), "utf-8")
+            print(f"search-gate: granted {len(argv) - 1} path(s); active grants: {len(files)}")
+        else:
+            print("search-gate: active grants:" if files else "search-gate: no active grants")
+            for f in files:
+                print(f"  {f}")
         return True
     return False
 

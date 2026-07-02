@@ -44,5 +44,8 @@ The geometric foundation for the whole map. Everything that places things on hex
 - Concrete grid subclasses (`HexGrid`, `VertexGrid`) live in `HexesCore`, not here.
   `AxialSystem` stays a pure-math, dependency-light foundation (`Unity.Mathematics` only).
 
+- Layout deviation: flat utility-style module (no `Components/Systems/…` feature folders) —
+  deliberate for a shared kernel.
+
 ## Current State
 Stable. Used by all spatial modules.

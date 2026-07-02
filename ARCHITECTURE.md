@@ -141,14 +141,10 @@ Folder contract:
 - Per-frame systems are registered with their **concrete** type (`.As<TheSystem>()`), not as
   `IUpdatedSystem`/`ILateUpdatedSystem` — `Boot` injects concretes and wires them into game states by hand.
 
-## Current Structure Notes And Exceptions
-- The repository is partially standardized, not fully uniform.
-- `TerrainGenerator` and `TerrainView` are the closest matches to the full module template.
-- `AxialSystem`, `CurveBuilders`, and `Configs` are flatter utility-style modules rather than full feature modules.
-- `Boot`, `Addressable`, and `MainCanvas` use explicit contract and implementation splits.
-- `Pathfinding` has a root runtime assembly plus a separate installer assembly that exposes an `IInstaller`.
-- `UserInput` currently has `Components`, `Configs`, and `Systems`, but no module-local installer folder.
-- `Assets/Scripts/Extentions` is a legacy typo-named folder and should be treated as existing structure, not a naming standard.
+## Layout Deviations
+- The repository is partially standardized, not fully uniform. Per-module deviation notes live in each
+  module's own MD (INDEX "Reference map"), not here.
+- `Assets/Scripts/Extentions` is a legacy typo-named folder — existing structure, not a naming standard.
 
 ## Domains, Presentation & Modules (architecture)
 Three top-level code layers, boundary enforced by asmdef references:

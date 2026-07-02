@@ -106,3 +106,6 @@ Curate what the script can't derive: current focus, stale docs, cross-doc orient
 - **`WORK.canvas` is the user's living task-intake scratchpad** — he states tasks there as a graphic
   scheme instead of text. It always changes and contains nothing finished: never treat it as stale,
   orphaned, or a deletion candidate.
+- **Policy docs in `.claude/` are OUTSIDE this map.** The index prunes dotfolders, so
+  `.claude/SEARCH_POLICY.md` (the search law) is not listed here and the Obsidian MCP does not see
+  it — read it via plain `Read`. The pointer to it lives in `CLAUDE.md` → Discovery Scouts.

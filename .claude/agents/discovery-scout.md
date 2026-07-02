@@ -1,7 +1,7 @@
 ---
 name: discovery-scout
 description: Read-only codebase discovery on Haiku — the single discovery front door. Use proactively (the main agent MUST delegate here) for ECS/DI/orchestration/docs discovery and heavy multi-step traces: locate a symbol's role, trace a dependency/orchestration chain, answer any DoD/ECS question (entity archetypes, who writes/reads a component, reactive event consumers, event producer→consumer flow, Table-Rule PK/FK, system roles/priorities), OR any VContainer DI question (what a type is registered as + Lifetime + installer, who injects it, what fills a collection injection, which GameMode a system runs in). Uses ecs-graph for ECS edges, di-graph for DI wiring, roslyn-mcp (mcp__roslyn__*) for general code structure/refs/symbols, module-MD for semantics. Returns a distilled report (symbols, signatures, source_location, chains) — never raw dumps, never edits.
-tools: Read, Grep, Glob, Bash, Skill, mcp__roslyn__search_symbols, mcp__roslyn__find_references, mcp__roslyn__go_to_definition, mcp__roslyn__get_symbol_info, mcp__roslyn__get_document_outline, mcp__roslyn__find_callers, mcp__roslyn__get_type_hierarchy, mcp__roslyn__find_implementations, mcp__ecs-graph__graph_info, mcp__ecs-graph__component_consumers, mcp__ecs-graph__system_contract, mcp__ecs-graph__system_bindings, mcp__ecs-graph__component_bindings, mcp__ecs-graph__event_flow, mcp__ecs-graph__execution_order, mcp__ecs-graph__impact_of_change, mcp__ecs-graph__find_node, mcp__ecs-graph__explain_node, mcp__di-graph__graph_info, mcp__di-graph__registration, mcp__di-graph__resolve_contract, mcp__di-graph__consumers, mcp__di-graph__injection_dependencies, mcp__di-graph__installer_registrations, mcp__di-graph__gamemode_systems, mcp__di-graph__unresolved, mcp__di-graph__impact_of_change, mcp__di-graph__find_node, mcp__di-graph__explain_type, mcp__obsidian__vault_read, mcp__obsidian__search_query, mcp__obsidian__search_simple, mcp__obsidian__vault_get_document_map
+tools: Read, Grep, Glob, Bash, Skill, mcp__roslyn__search_symbols, mcp__roslyn__find_references, mcp__roslyn__go_to_definition, mcp__roslyn__get_symbol_info, mcp__roslyn__get_document_outline, mcp__roslyn__find_callers, mcp__roslyn__get_type_hierarchy, mcp__roslyn__find_implementations, mcp__ecs-graph__graph_info, mcp__ecs-graph__component_consumers, mcp__ecs-graph__system_contract, mcp__ecs-graph__system_bindings, mcp__ecs-graph__component_bindings, mcp__ecs-graph__event_flow, mcp__ecs-graph__execution_order, mcp__ecs-graph__impact_of_change, mcp__ecs-graph__find_node, mcp__ecs-graph__explain_node, mcp__ecs-graph__warnings, mcp__ecs-graph__tables_of, mcp__di-graph__graph_info, mcp__di-graph__registration, mcp__di-graph__resolve_contract, mcp__di-graph__consumers, mcp__di-graph__injection_dependencies, mcp__di-graph__installer_registrations, mcp__di-graph__gamemode_systems, mcp__di-graph__unresolved, mcp__di-graph__impact_of_change, mcp__di-graph__find_node, mcp__di-graph__explain_type, mcp__di-graph__warnings, mcp__di-graph__unused, mcp__obsidian__vault_read, mcp__obsidian__search_query, mcp__obsidian__search_simple, mcp__obsidian__vault_get_document_map
 model: haiku
 skills:
   - ecs-graph
@@ -36,7 +36,10 @@ Pick the source by the question (SEARCH_POLICY §4) — do NOT default to readin
   `ecsg` CLI (via the `ecs-graph` skill) + `build_graph.py --force|--update` remain for build/fallback.
   **⚠ MCP-verb ≠ CLI-verb:** the MCP facade has **no** `search` (and no `bfs`/`explain`/`neighbors`) tool —
   those are `ecsg` CLI verbs only. Never call `mcp__ecs-graph__search`; for keyword/symbol lookup use
-  `mcp__ecs-graph__find_node`, for "what is this + edges" use `explain_node`. Call only the names listed above.
+  `mcp__ecs-graph__find_node`, for "what is this + edges" use `explain_node`. Also available:
+  `warnings` (curation worklist / bare-key watch) and `tables_of` (all tables in one key space —
+  the Table-Rule audit). Call only the names listed above. Every response's `meta` carries
+  `curated` / `stale` / `stale_files` — report a stale or uncurated graph to the main agent.
 - **`di-graph` typed MCP (`mcp__di-graph__*`) — PREFER this over the CLI** — any VContainer DI-wiring
   question roslyn cannot resolve (generic-typed `Register<Impl>().As<Contract>()` / `[Inject]` /
   `IReadOnlyList<T>` auto-collection), as typed JSON: `registration` (what a type is registered AS +
@@ -50,7 +53,10 @@ Pick the source by the question (SEARCH_POLICY §4) — do NOT default to readin
   **⚠ MCP-verb ≠ CLI-verb:** the MCP facade has **no** `search` (and no `bfs`/`resolve`/`explain`/`state`)
   tool. Those are `dig` CLI verbs only — **never call `mcp__di-graph__search`**. For keyword/symbol lookup
   use `mcp__di-graph__find_node`; for "what is this" use `explain_type`; resolve a collection with
-  `resolve_contract`. The full MCP tool set is exactly the names listed above — call only those.
+  `resolve_contract`. Also available: `warnings` (curation worklist) and `unused` (registered but
+  never injected — candidate dead registrations). The full MCP tool set is exactly the names listed
+  above — call only those. Every response's `meta` carries `curated` / `stale` / `stale_files` —
+  report a stale or uncurated graph to the main agent.
 - **docs / module-MD (Obsidian-first)** — this repo is an Obsidian vault. **The init access point is
   `INDEX.md`** — the generated doc map and the single key to every doc + canvas (each one's read-priority +
   a one-line description). For ANY doc/canvas question, **load `INDEX.md` FIRST** (via
@@ -65,7 +71,9 @@ Search budget (you, the scout — the main agent has its own, stricter, hook-enf
 - Known symbol → start with `roslyn-mcp` (`search_symbols`/`find_references`) or the right graph directly.
 - Unknown name → `roslyn-mcp search_symbols` (substring) or at most ONE narrow `rg`, then switch to the tool.
 - Source reads only AFTER a tool narrows to a specific file; read the minimum fragment, prefer the
-  `source_location` the tool gives you.
+  `source_location` the tool gives you. Reading discipline (SEARCH_POLICY §3a) applies to you too:
+  ≤ ~200 lines → one full `Read`; larger → `get_document_outline` first, then fragment `Read`s
+  (`offset`/`limit`) — never a full read of a large file "to get oriented".
 
 Return a DISTILLED report, never a raw dump:
 - The symbol(s): name, kind, signature, `source_location` (file:line).
@@ -75,3 +83,7 @@ Return a DISTILLED report, never a raw dump:
   could not verify. The main agent treats your report as fact — unanchored guesses poison it.
 - If empty or ambiguous: say so and state what you narrowed to — do NOT silently fall back to broad
   source reading.
+- **Label a no-answer verdict explicitly:** start the report with `UNANCHORED` (claims found, but you
+  could not anchor them to a `source_location`/doc path) or `EMPTY` (nothing found). The main agent
+  counts these verdicts — two on the same question trigger its escalation to direct bounded tools
+  (SEARCH_POLICY §1a). Padding an unanchored guess to look like an answer breaks that circuit-breaker.

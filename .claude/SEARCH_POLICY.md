@@ -43,6 +43,11 @@ and delegating would stall progress. Otherwise → `@agent-discovery-scout`. The
 modes it exists for: (1) constant mindless grep/read, and (2) cyclic search that bloats context. It is
 **not hook-enforceable** (the hook cannot see "am I editing"), so it is on you, main agent.
 
+**Escalation (anti-cycle):** if `discovery-scout` returns an UNANCHORED or EMPTY result **twice for the
+same question**, do NOT send a third scout round on that question. Switch to the bounded tools yourself
+(`mcp__roslyn__*`, `mcp__ecs-graph__*`, `mcp__di-graph__*`) under this rule — or, if they cannot answer
+it either, ask the user. Cyclic re-delegation is the same failure mode as cyclic search.
+
 ## 2. Decision table
 Verdict ∈ `ALLOW` · `DENY→scout` (delegate to `discovery-scout`) · `SCOUT` (must delegate, not mechanizable).
 `session ∈ {main, subagent}`. Scope of "source" = `Assets/**/*.cs` only.
@@ -96,13 +101,37 @@ Verdict ∈ `ALLOW` · `DENY→scout` (delegate to `discovery-scout`) · `SCOUT`
 
 ## 3. The `.cs` read budget (main agent)
 - **Limit: 8 unique `.cs` files per session.** Counts unique files; re-reading a counted file is free.
+- **Granted task scope (user-authorized).** The `.cs` files the user explicitly names in the confirmed
+  task statement's «Працюй тільки в» block ARE the task's read scope: after the user confirms the
+  statement, the main agent registers exactly those files —
+  `python3 .claude/hooks/search-gate.py grant <path...>` — and reads of them do not consume the budget.
+  The user's confirmation of the statement IS the authorization; never grant a file the user did not
+  name, and never grant a folder wildcard. Grants persist until `reset` (run it when the task is done).
+  A grant relaxes ONLY the read budget — discovery rules (§2: grep/rg/sweeps) stay fully gated.
 - **On exhaustion the hook denies and you must STOP.** Do not keep reading, do not route around it.
   Instead, write the user a short request: *what* you are looking for, *what* you already found, and *why*
   more source is needed. The user can answer directly, or authorize more. (Most code-structure questions
   should be answered by `mcp__roslyn__*` instead of a source read.)
 - **Extension (user-authorized only):**
-  - `python3 .claude/hooks/search-gate.py reset` — fresh allowance now.
+  - `python3 .claude/hooks/search-gate.py reset` — fresh allowance now (also clears grants).
   - `python3 .claude/hooks/search-gate.py bump <N>` — raise the limit to N.
+  - `python3 .claude/hooks/search-gate.py grant <path...>` — register the confirmed task scope (above).
+
+## 3a. Reading discipline (HOW to read source, once a read is legitimate)
+Direct procedure — follow it literally; do not improvise a cheaper-looking shortcut:
+1. **File ≤ ~200 lines → ONE full `Read`.** A full read of a small file is cheaper than several
+   roslyn round-trips. Do not outline it first.
+2. **File > ~200 lines → `mcp__roslyn__get_document_outline` FIRST** (~300 tokens for the whole
+   structure), then `Read` ONLY the fragments you need via `offset`/`limit`. Never full-`Read` a
+   large file to "get oriented" — the outline is the orientation. Most ECS files in this repo sit
+   at 200–300 lines: outline-first is the expected default for them.
+3. **Generic call-site semantics are NOT a reading problem.** What `Set<T>`/`With<T>`/`Register<T>`/
+   `[Inject]` sites MEAN (read vs write, reactive trigger, archetype, DI wiring) comes from
+   `ecs-graph`/`di-graph` (§4) — Roslyn sees the call but cannot classify it, and reading more
+   source will not tell you either. Do not re-derive graph facts from source.
+4. **Budget note:** a fragment `Read` counts exactly like a full one — 1 unique file (§3). The
+   fragment discipline saves your CONTEXT, not your budget; re-reads of a counted file are free,
+   so narrowing with the outline first costs nothing extra.
 
 ## 4. Source → tool/doc mapping (use these, not source)
 | Question | Go to |
@@ -136,4 +165,8 @@ Verdict ∈ `ALLOW` · `DENY→scout` (delegate to `discovery-scout`) · `SCOUT`
   Read `.canvas` via `Tools/read_canvas.sh` (never raw — drop node positions).
 - Return a **distilled** report (symbols, signatures, `source_location`, the chain that answers the
   question). Never raw graph dumps. If empty/ambiguous, say so and state what you narrowed to.
+- **Label a no-answer verdict explicitly** — start the report with `UNANCHORED` (claims found but no
+  anchor) or `EMPTY` (nothing found). The main agent counts these: two such rounds on one question
+  trigger its escalation to direct bounded tools (§1a). Padding an unanchored guess breaks that
+  circuit-breaker — never do it.
 - Read-only. Never edit, never propose code unless asked.

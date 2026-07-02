@@ -62,3 +62,6 @@ From `FantasyMayor.inputactions` (these names are not visible to roslyn-mcp — 
 
 ## Current State
 Stable. Camera movement and hex selection both fully working.
+
+Layout deviation: no module-local `Installer/` folder — both systems are registered at app root
+(`WorldInstaller`, Singleton).

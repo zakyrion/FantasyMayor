@@ -21,5 +21,8 @@ curve type. Holds only the `ICurveBuilder` interface.
 - Contract-only module. All implementations live in consuming modules (currently `TerrainView`).
   This keeps the interface free of terrain-specific dependencies.
 
+- Layout deviation: flat utility-style module (no feature-folder layout) — a single-interface
+  contract needs none.
+
 ## Current State
 Stable. Interface only.

@@ -28,6 +28,15 @@ Then follow INDEX's read-priority:
 Respect the repository constraints you find (startup order, Unity build restrictions, module-folder
 rules, read-on-demand references such as Addressables patterns).
 
+### 1a. Graph health check
+
+Call `mcp__ecs-graph__graph_info` and `mcp__di-graph__graph_info` (2 cheap bounded calls — status
+maintenance, not discovery; allowed for the main agent). From each `meta`, report in one line per
+graph: `curated` (false = curation debt — the STEP-2 pass is pending), `stale` + `stale_count`
+(code changed since the last build), and `warnings_count`. If either graph is stale or uncurated,
+say so in the status summary and offer the fix (`build_graph.py --update` / `build_di_graph.py
+--update`, then the STEP-2 re-curation) — do not run it unprompted.
+
 ### 2. Reconstruct the current state
 
 From the `always` docs and any root status notes INDEX points to, extract only the facts that help
