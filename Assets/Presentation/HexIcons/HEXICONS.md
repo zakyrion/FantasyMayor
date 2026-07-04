@@ -26,7 +26,7 @@ Gameplay — base set = the event; the truth lives in the `HexIconsVisibilityCom
 component). Producer today: `GameplayState.EnterAsync`; later a UI toggle. This reactive trigger is
 not visible in roslyn-mcp — full event flow: the ecs-graph (`/ecs-graph`).
 
-System roles + priorities: `mcp__ecs-graph__system_contract <System>` (roles per `ARCHITECTURE.md`
+System roles + priorities: `ecsg.py explain <System>` (roles per `ARCHITECTURE.md`
 "System Taxonomy").
 
 ## Non-Obvious Invariants

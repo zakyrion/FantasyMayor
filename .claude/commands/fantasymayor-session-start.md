@@ -30,12 +30,15 @@ rules, read-on-demand references such as Addressables patterns).
 
 ### 1a. Graph health check
 
-Call `mcp__ecs-graph__graph_info` and `mcp__di-graph__graph_info` (2 cheap bounded calls — status
-maintenance, not discovery; allowed for the main agent). From each `meta`, report in one line per
-graph: `curated` (false = curation debt — the STEP-2 pass is pending), `stale` + `stale_count`
-(code changed since the last build), and `warnings_count`. If either graph is stale or uncurated,
-say so in the status summary and offer the fix (`build_graph.py --update` / `build_di_graph.py
---update`, then the STEP-2 re-curation) — do not run it unprompted.
+Run `python3 ~/.claude/skills/ecs-graph/scripts/ecsg.py stats` and
+`python3 ~/.claude/skills/di-graph/scripts/dig.py stats` from the project root (2 cheap CLI calls —
+status maintenance, not discovery; allowed for the main agent). Each auto-refreshes stale mechanical
+facts before printing and emits a stderr banner reporting curated-vs-stale state. From each report,
+note in one line per graph: `curated` (false = curation debt — the STEP-2 pass is pending), stale
+files (code changed since the last build), and warnings count. If either graph is stale or uncurated,
+say so in the status summary and offer the fix (`build_graph.py --force` / `build_di_graph.py --force`
+after a rename, else the auto-`--update` already ran, then the STEP-2 re-curation) — do not run it
+unprompted.
 
 ### 2. Reconstruct the current state
 

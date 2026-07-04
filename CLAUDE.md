@@ -17,8 +17,8 @@ Every engineering task runs in three phases. Each is already backed by an existi
 gate — this names the discipline, it adds no new rule:
 1. **Research** — gather facts, do not accumulate source. Discovery is delegated to
    the read-only scouts (see Discovery Scouts) or answered by the bounded
-   `mcp__roslyn__*` / `mcp__ecs-graph__*` / `mcp__di-graph__*` tools; the main agent
-   does **not** do raw source discovery (`.claude/hooks/search-gate.py` enforces it).
+   `mcp__roslyn__*` tools and the ECS/DI graph CLIs (`ecsg.py` / `dig.py`); the main
+   agent does **not** do raw source discovery (`.claude/hooks/search-gate.py` enforces it).
    In = distilled findings, not raw dumps.
 2. **Plan** — restate the task via the Engineering Task Template, ask clarifying
    questions, and **wait for explicit confirmation** before any edit (the HARD GATE

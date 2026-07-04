@@ -7,22 +7,6 @@
       "env": {
         "DOTNET_ROLL_FORWARD": "Major"
       }
-    },
-    "ecs-graph": {
-      "type": "stdio",
-      "command": "/opt/miniconda3/bin/python3",
-      "args": ["/Users/serhiikharsun/.claude/skills/ecs-graph/scripts/ecs_mcp.py"],
-      "env": {
-        "ECS_GRAPH_ROOT": "/Users/serhiikharsun/Documents/HomeProjects/FantasyMayor"
-      }
-    },
-    "di-graph": {
-      "type": "stdio",
-      "command": "/opt/miniconda3/bin/python3",
-      "args": ["/Users/serhiikharsun/.claude/skills/di-graph/scripts/dig_mcp.py"],
-      "env": {
-        "DI_GRAPH_ROOT": "/Users/serhiikharsun/Documents/HomeProjects/FantasyMayor"
-      }
     }
   }
 }

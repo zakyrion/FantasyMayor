@@ -3,8 +3,10 @@
 
 Applies ONLY to the main agent (subagents are exempt — they are the discovery path). In the main
 session it denies source DISCOVERY over Assets/**/*.cs (Grep/Glob sweeps + Bash rg/grep/find + Bash
-viewers cat/head/tail/sed/awk over .cs + direct graph-QUERY CLI ecsg/dig) and routes everything to
-@agent-discovery-scout, and it budgets unique .cs reads (for editing). On budget exhaustion it denies with a STOP message telling the agent to ask the user.
+viewers cat/head/tail/sed/awk over .cs) and routes it to @agent-discovery-scout, and it budgets unique
+.cs reads (for editing). On budget exhaustion it denies with a STOP message telling the agent to ask
+the user. The graph query CLIs (ecsg.py / dig.py) are NOT gated — they return distilled, bounded facts
+(the graph MCP servers were retired in favour of the CLIs).
 
 Reads the hook JSON from stdin; prints a deny decision (or nothing = allow) and exits 0. Fail-open:
 any internal error → allow, so the gate can never wedge the main loop.
@@ -28,16 +30,15 @@ from pathlib import Path
 DEFAULT_LIMIT = 8
 STATE_DIR = Path.home() / ".claude" / ".search-budget"
 GRANTS_PATH = STATE_DIR / "_grants.json"  # user-granted task scope; cleared by `reset`
-SCOUT = ("→ for code structure/refs/symbols use the roslyn-mcp tools (mcp__roslyn__*); "
-         "for ECS/DI/orchestration/docs delegate to @agent-discovery-scout. "
-         "See .claude/SEARCH_POLICY.md.")
+SCOUT = ("→ for ECS/DI facts run the graph CLIs directly (ecsg.py / dig.py) or delegate to "
+         "@agent-discovery-scout; for code structure/refs/symbols use roslyn-mcp (mcp__roslyn__*) "
+         "or the scout. See .claude/SEARCH_POLICY.md.")
 
 SOURCE_RE = re.compile(r"Assets/.*\.cs$")
-# Graph QUERY CLIs only — they dump raw graph TEXT into context (use the bounded MCP / the scout instead).
-# BUILD scripts (build_graph/build_di_graph) are intentionally NOT gated: they only write artifacts + a
-# stat line, so a re-build is maintenance, not discovery — gating them would break the skills themselves.
-# `dig.py` (not bare `dig`, which collides with the Unix DNS tool).
-GRAPH_CLI_EXES = {"ecsg", "ecsg.py", "ecs-graph", "dig.py", "di-graph"}
+# The graph QUERY CLIs (ecsg.py / dig.py) and BUILD scripts (build_graph/build_di_graph) are NOT gated:
+# they read a distilled fact store (or write gitignored artifacts) and return bounded, structured output,
+# not raw source dumps — the main agent is expected to run them directly for ECS/DI facts (the graph MCP
+# servers were retired in favour of the CLIs). Only raw source discovery over Assets/**/*.cs is gated.
 CODE_SEARCH_EXES = {"rg", "ag", "ack"}            # dedicated source-search tools
 GREP_FIND_EXES = {"grep", "egrep", "fgrep", "find"}  # general; gated only over Assets
 # viewers/streamers that would bypass the Read budget; gated only when a .cs under Assets is named
@@ -197,8 +198,6 @@ def bash_is_gated(cmd: str):
     argument (e.g. `grep ecsg CLAUDE.md`) is NOT gated; only an actual invocation is."""
     for seg in re.split(r"\|\||&&|;|\||\n", cmd):
         exe = _segment_exe(seg)
-        if exe in GRAPH_CLI_EXES:
-            return ("Graph queries run via the scout, not the main agent. " + SCOUT)
         if exe in CODE_SEARCH_EXES:
             return ("Source search (rg/ag/ack) in the main session is gated. " + SCOUT)
         if exe in GREP_FIND_EXES and "Assets" in seg:

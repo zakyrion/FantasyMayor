@@ -47,7 +47,7 @@ The overlay is split by concern, following [PATTERN_ORCHESTRATOR_SUBSYSTEM](../.
   `DistrictBuildHexResourcesUISubSystem` (ВИМОГИ), `DistrictBuildPriceUISubSystem` (БУДІВНИЦТВО, cost + payer),
   `DistrictBuildActionsUISubSystem` (ДІЇ — dormant scaffold).
 - **Each section reads ECS directly and pushes to its own section view** — there is no shared read-model
-  (the former `IDistrictBuildData` is retired). Roles/priorities/reads: `mcp__ecs-graph__system_contract <name>`.
+  (the former `IDistrictBuildData` is retired). Roles/priorities/reads: `ecsg.py explain <name>`.
 
 ## Trigger
 `DistrictBuildUISystem` is event-driven: it consumes `DistrictBuildRequestedEvent` (open),

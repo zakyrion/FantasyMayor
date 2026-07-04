@@ -45,7 +45,7 @@ never touches Actions, and the verb never owns the price table.
   `Box` for the catalogue's lifetime and releases it in `OnDispose` (the build window reads it throughout
   play). Same shape as Economy's `DistrictsBuildConfigLoaderSystem`. Config flow rules:
   `Patterns/PATTERN_CONFIG.md` + `Patterns/PATTERN_CONFIG_LOADER.md`.
-- **Loaded once at `ConfigLoadStep`** (registration: `mcp__di-graph__installer_registrations EconomyInstaller`).
+- **Loaded once at `ConfigLoadStep`** (registration: `dig.py installer EconomyInstaller`).
   It fails loud if the catalogue is missing or has null entries — until the asset is authored, the game stops
   at boot rather than running cost-blind.
 

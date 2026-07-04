@@ -18,7 +18,7 @@ Procedural terrain generation: hex grid creation, mountains with foothills, and 
 
 ## Trigger
 `GenerationSystem` is the generation pipeline's **orchestrator** (role/priority:
-`mcp__ecs-graph__system_contract GenerationSystem`): it creates the hex grid itself, then fans out
+`ecsg.py explain GenerationSystem`): it creates the hex grid itself, then fans out
 into the generation **Pipeline SubSystems** (mountain/river/lake/sea). It is run sequentially by the **`MapCreation` game state**
 (`Boot.Implementation`). The pipeline runs once when the `MainMenu` state detects
 `TerrainGenerationGenerateEventComponent` (raised by the HexesUI Generate button) and switches to

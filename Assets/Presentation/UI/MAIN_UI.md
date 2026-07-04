@@ -64,7 +64,7 @@ Adding a window = add its markup to the `UI/MainUI` document + its view MonoBeha
 that resolves it.
 
 ## Trigger
-The HUD systems split two ways (per-system role / priority / anchor: `mcp__ecs-graph__system_contract
+The HUD systems split two ways (per-system role / priority / anchor: `ecsg.py explain
 <System>`, roles per `ARCHITECTURE.md` "System Taxonomy"; each window's doc carries the detail):
 - **`EndTurnViewSystem` owns the shell reveal** — it reveals the whole `BottomPanel` each Gameplay tick (the
   turn corner is its always-present part); the context content never touches the shell.

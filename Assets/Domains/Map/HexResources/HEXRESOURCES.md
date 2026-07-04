@@ -21,7 +21,7 @@ Generates logical resource data for the map. Does not render anything.
 A pipeline stage run by the **`MapCreation`** state — it does **not** listen to an event itself; the
 state runs it (and its generation sub-systems) sequentially. The pipeline fires once, when `MainMenu`
 switches to `MapCreation` on `TerrainGenerationGenerateEventComponent`. Role, priority and the
-sub-system order: `mcp__ecs-graph__system_contract HexResourcesSystem` (or `/ecs-graph`).
+sub-system order: `ecsg.py explain HexResourcesSystem` (or `/ecs-graph`).
 
 ## Non-Obvious Invariants
 

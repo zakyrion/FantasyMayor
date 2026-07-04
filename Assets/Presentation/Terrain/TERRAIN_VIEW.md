@@ -35,7 +35,7 @@ For water: `WATER_VIEW_SETUP.md`.
   an event itself**.
 - The pipeline runs once when `MainMenu` switches to `MapCreation` on `TerrainGenerationGenerateEventComponent`
   (Generate button); the `MapGenerationStep` marker drives it. Role, priority and the full cross-module stage
-  order: `mcp__ecs-graph__execution_order` / `mcp__ecs-graph__system_contract <System>` (roles per
+  order: `ecsg.py explain <System>` (execution order + roles per
   `ARCHITECTURE.md` "System Taxonomy").
 - This module also owns the `HexSelectionViewLoadingSystem` + `TerrainViewDebugSystem` pipeline stages;
   `HexSelectionViewSystem` (the selection highlight) is a **per-frame** system wired by Boot into `Gameplay`

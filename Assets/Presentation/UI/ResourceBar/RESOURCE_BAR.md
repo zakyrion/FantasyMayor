@@ -35,7 +35,7 @@ top bar no longer holds resources — it is now a thin empty placeholder strip.
 
 ## Trigger
 None — this window is **not** reactive; `ResourceBarSystem` runs **per-frame** in Gameplay
-(role/priority: `mcp__ecs-graph__system_contract ResourceBarSystem`).
+(role/priority: `ecsg.py explain ResourceBarSystem`).
 **Per-frame justification** (override of Reactive-by-default, `ARCHITECTURE.md`): no `ResourcesChanged`
 pulse exists yet, so the list reads the City/Mayor `Resource` stacks directly every frame. Cost is trivial
 (2 owners × N rows). Replace with a reactive consumer once a resource-changed pulse lands.
