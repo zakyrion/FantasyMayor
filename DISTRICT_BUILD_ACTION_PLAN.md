@@ -151,30 +151,45 @@ CityId | MayorId | NobleId".)*
 ## ▶ Step 4 — `BuildDistrictAction` lifecycle systems
 
 Splits into draft → edit → commit/discard → tick → complete. **Rule (ACTIONS.md):** UI orchestrates; the **mechanic
-lives in the Actions domain**, not in the view.
+lives in the Actions domain**, not in the view. **Post-move boundary (2026-07-04, see the flip section below):** the
+cost/outcome catalogues are now `Economy` **vocabulary** keyed by `DistrictType`. This verb only owns the live action
+entity + sequencing — it **reads** `Economy.DistrictBuildCost*` for the price and, at commit, **calls an `Economy`
+spend primitive** to deduct. Math in Economy, sequencing in Actions.
 
-**(a) Draft creation.** `DistrictBuildUISystem` (Presentation.UI) creates the draft action entity when
-`DistrictBuildUIView` opens — Sets `ActionIdComponent` (allocate the PK here) + `BuildDistrictActionTag`.
-*(Confirm current `DistrictBuildUISystem` / `DistrictBuildUIView` API + where the open hook is — DISTRICT_BUILD.md +
-DISTRICT_BUILDING_UI.canvas.)*
-**(b) Piecewise edits.** As the player picks district / hex / owner, the DistrictBuild view-subsystems `Set` their own
-components on the draft: `DistrictTypeComponent`, `HexIdComponent`, owner-FK; and **snapshot the cost** from
-`BuildDistrictCostsConfig` (joined by `DistrictType`) into `ActionAPCostComponent` + `ActionResourcePriceComponent`.
-**(c) Commit (`_confirmButton`).** Raise a one-frame commit pulse; an **Actions** verb system reacts: validate
-affordability, **deduct** AP + resources from the owner's inventory (reuse/add an owner-agnostic Economy spend
-helper — *confirm whether one exists*; math stays in Economy, sequencing in Actions), seed `ActionTurnLeftComponent`
-from the config's **`TurnsToBuild`** (added in commit `5f5cb5a`; confirm its home). The entity is now a committed
-pending build.
-**(d) Discard (`_closeButton` without confirm).** Delete the draft entity (dispose).
-**(e) Tick + complete.** An Actions `TurnPhaseSubSystem` decrements `ActionTurnLeftComponent` for every committed
-action each turn; at `Value == 0` Sets `ActionCompleteTag`. Reuse the `Turn` pipeline (TURN.md / TURN_PHASES.md);
-turn-phase priority TBD relative to existing phases.
+**Execution order — 4 session-sized slices:** (4a) draft envelope, (4b) edit/snapshot, (4c) commit/spend,
+(4d) tick/complete. Each is one short bounded session; resolve that slice's open item at its start.
 
-**Open items to resolve at build time:** owner-FK component name; whether an Economy "spend resources for owner N"
-helper exists (else add one, owner-agnostic); `TurnsToBuild`'s config home + accessor; `DistrictBuildUISystem`/view
-open/confirm/close hook points; turn-phase ordering; the commit-pulse mechanism (one-frame event vs tag). *(The
-DISTRICT_BUILD_COST configs have since been renamed with a `Cost` disambiguator — see the Naming-cleanup section
-below; this plan uses the post-rename names.)*
+**(4a) Draft creation.** The window-open pulse is `DistrictBuildRequestedEvent` (raised by
+`HexInfoPanelView.ShowBuildSlot()`, consumed by `DistrictBuildUISystem`, `per_frame` prio 565). An **Actions** reactive
+system consumes that same pulse and creates the draft action entity — Sets `ActionIdComponent` (allocate the PK here) +
+`BuildDistrictActionTag`. (Disposal on close is 4d.)
+**(4b) Piecewise edits.** As the player picks district / hex / owner, the DistrictBuild view-subsystems `Set` their own
+components on the draft: `DistrictTypeComponent`, `HexIdComponent`, the **payer owner-FK** (`CityIdComponent` **or**
+`MayorIdComponent`); and **snapshot the cost** from `DistrictBuildCostsConfigComponent` (Economy world component; the
+per-district entry `DistrictBuildCostConfig`, joined by `DistrictType`) into `ActionAPCostComponent` +
+`ActionResourcePriceComponent`. **Open gap:** the payer is currently LOCAL to the Price subsystem, not in ECS
+(DISTRICT_BUILD.md) — 4b must surface it onto the draft.
+**(4c) Commit (`_confirmButton`).** Today confirm just raises `DistrictBuildClosedEvent` (close-only) — **split it**:
+add a `DistrictBuildCommitRequestedEvent` (one-frame Event + `EventTag`, house style) raised by `_confirmButton`. An
+**Actions** verb system reacts: validate affordability, **deduct** AP + resources from the payer's inventory via a new
+**Economy** spend primitive, then seed `ActionTurnLeftComponent` from `DistrictBuildCostConfig.TurnsToBuild`. **Spend
+model = per-owner (decision ii):** no owner spend helper exists yet (AP is restore-only today), so `Economy` gains an
+affordability query + spend with a **City path and a Mayor path** (Open/Closed by owner), each joining inventory via
+`AsMultiMap<ConcreteFK>` (mirrors `MayorAPRestoreSubSystem`'s `AsMultiMap<MayorIdComponent>`). Home:
+`Domains.Economy.Resource.*`, the spend counterpart of `ResourceLoadoutSpawner`. Affordability failure **fails loud**
+(house rule) — no silent no-op commit.
+**(4d) Discard + dispose.** On `DistrictBuildClosedEvent` (X / scrim / close-without-commit) delete the draft entity.
+**(4e) Tick + complete.** An Actions `TurnPhaseSubSystem` decrements `ActionTurnLeftComponent` for every committed
+action each turn; at `Value == 0` Sets `ActionCompleteTag`. Register in `ActionsInstaller` `.As<TurnPhaseSubSystem>()`;
+priority **~550** — after AP-restore (500), before unlock-eval (1000). Reuse the `Turn` pipeline (TURN.md / TURN_PHASES.md).
+
+**Resolved facts (scout, 2026-07-05):** owner-FK = `CityIdComponent` / `MayorIdComponent`
+(`Domains.Actors.{City,Mayor}.Components`, `{ int Value }`, `IEquatable`); **no** Economy spend helper exists;
+`TurnsToBuild` / `ApPrice` / `DistrictPrices : List<ResourceComponent>` live on `DistrictBuildCostConfig`
+(`Domains.Economy.DistrictBuildCost.Configs`); UI pulses `DistrictBuildRequestedEvent` (open) /
+`DistrictBuildClosedEvent` (close **and** confirm today) / `DistrictBuildSelectionRequestedEvent` (select); commit-pulse
+= one-frame Event + `EventTag`, auto-cleanup. **Still open:** how 4b surfaces the payer into ECS; exact turn-phase slot
+vs future phases.
 
 ---
 

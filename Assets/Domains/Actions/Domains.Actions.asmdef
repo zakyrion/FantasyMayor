@@ -10,7 +10,8 @@
         "Addressables.Core",
         "Core",
         "VContainer",
-        "UniTask"
+        "UniTask",
+        "Unity.Collections"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
