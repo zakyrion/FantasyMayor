@@ -13,7 +13,7 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 47 docs — 3 always · 14 trigger · 30 reference · 4 canvas.
+Totals: 49 docs — 3 always · 15 trigger · 31 reference · 4 canvas.
 
 ## Read at start (always)
 
@@ -41,6 +41,7 @@ Do **not** preload. Read only when the trigger condition holds.
 | [Pattern — Orchestrator + SubSystems](Patterns/PATTERN_ORCHESTRATOR_SUBSYSTEM.md) | before creating an orchestrator + subsystem family (DoD polymorphism / independently ordered parts) | A family of implementations behind one abstract base, DI-collected into an orchestrator that sequences them by |
 | [Pattern — Per-Frame System](Patterns/PATTERN_PERFRAME_SYSTEM.md) | before creating a per-frame system (genuinely continuous logic) | Logic that is genuinely continuous: camera movement, per-frame projection, input polling, selection watching. |
 | [Pattern — Pipeline Stage (one-shot, world-init)](Patterns/PATTERN_PIPELINE_STAGE.md) | before creating a world-init pipeline stage (build/spawn content once during map creation) | One-shot async construction during map creation: spawn entities/views, build runtime world components, load |
+| [Pattern — Polymorphic Config Catalogue → Entity Table](Patterns/PATTERN_POLYMORPHIC_CATALOGUE.md) | before creating a polymorphic ScriptableObject config catalogue that materializes into an entity table (many kinds keyed by a shared FK), or a per-kind polymorphic system family over such a table | A **heterogeneous** set of authored rules/effects — many *kinds*, each with its own parameters — that you (1) author as |
 | [Pattern — Reactive System (pulse + reconcile)](Patterns/PATTERN_REACTIVE_SYSTEM.md) | before creating a reactive (event-driven) system | **The default for runtime logic.** Responds to a one-frame [event](PATTERN_EVENT.md): the event is the base |
 | [Pattern — ECS Tag](Patterns/PATTERN_TAG.md) | before creating an ECS tag (field-less marker / table discriminator) | A tag is an **empty `struct`** that marks an entity. It carries no data; its presence IS the information. |
 
@@ -80,6 +81,7 @@ Per-module navigation docs. `status` mirrors each module's `## Current State`.
 | [Hex Info Panel — Context Sub-Panel](Assets/Presentation/UI/HexInfoPanel/HEX_INFO_PANEL.md) | A | partial | The read-only **CONTEXT sub-panel** (right) of the shared bottom panel: everything known about the currently |
 | [MainUI](Assets/Presentation/UI/MAIN_UI.md) | A | partial | The **`Presentation.UI` assembly** (`Assets/Presentation/UI/`, namespaces `Presentation.UI.*`) — the |
 | [ResourceBar](Assets/Presentation/UI/ResourceBar/RESOURCE_BAR.md) | A | partial | The **left-edge resource panel**: the two inventory pools (City / Mayor) as a vertical scroll list. The |
+| [District-Build Action — Program Plan (FM-10)](DISTRICT_BUILD_ACTION_PLAN.md) | C | — | `Economy.DistrictOpenCondition` already answers **"may this district type be built?"** (`DistrictCanBeBuildTag`), |
 
 ## Canvas map (on demand)
 
@@ -90,7 +92,7 @@ Visual maps (Obsidian Canvas). Read/edit via Obsidian MCP; not preloaded.
 | [DISTRICT_BUILDING_UI](DISTRICT_BUILDING_UI.canvas) | DistrictBuildUISystem |
 | [ECONOMY_ACTORS](ECONOMY_ACTORS.canvas) | Ownables — each carries one OwnerFK + a Tag · My domain view · Owners — actors with an Id used as OwnerFK · Resource… |
 | [ENTITIES](ENTITIES.canvas) | Tables (N rows) · Singletons (one row) · District configs |
-| [WORK](WORK.canvas) | ActionsBuidDistrict |
+| [WORK](WORK.canvas) | HexIdComponent (FK) |
 
 <!-- END GENERATED — content below is the agent zone (pass 2), preserved across runs -->
 

@@ -1,9 +1,9 @@
-using DefaultEcs.System;
+﻿using DefaultEcs.System;
 using DefaultECSExtensions;
 
 namespace Domains.Map.Generation.Systems
 {
-    internal abstract class MapGenerationSubSystem : ISystem<GameState>
+    internal abstract class GenerationSubSystem : ISystem<GameState>
     {
         public bool IsEnabled { get; set; } = true;
 

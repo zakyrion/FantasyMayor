@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using DefaultEcs;
 using Domains.Actions.Components;
 using Domains.Actions.Configs;
@@ -96,7 +96,7 @@ namespace Presentation.UI.DistrictBuild.Systems
             view.SetPayer(_payer);
         }
 
-        private bool TryGetCost(DistrictType type, out ActionsDistrictBuildConfig cost)
+        private bool TryGetCost(DistrictType type, out DistrictBuildCostConfig cost)
         {
             cost = null;
             if (type == DistrictType.Unknown)
@@ -105,10 +105,10 @@ namespace Presentation.UI.DistrictBuild.Systems
                     $"is {DistrictType.Unknown} — the selection must be a real district or {nameof(DistrictType.None)}, " +
                     "never the error marker.");
 
-            if (type == DistrictType.None || !World.Has<ActionsDistrictsBuildConfigComponent>())
+            if (type == DistrictType.None || !World.Has<DistrictsBuildCostConfigComponent>())
                 return false;
 
-            var entries = World.Get<ActionsDistrictsBuildConfigComponent>().Value?.Districts;
+            var entries = World.Get<DistrictsBuildCostConfigComponent>().Value?.Districts;
             if (entries == null)
                 return false;
 

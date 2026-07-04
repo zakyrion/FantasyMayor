@@ -10,7 +10,7 @@ related:
   - "[PATHFINDING](Pathfinding/PATHFINDING.md)"
 status: implemented
 code_refs:
-  systems:    [MapGenerationSystem]
+  systems:    [GenerationSystem]
   components: [HexIdComponent, HexTypeComponent]
   types:      [HexType, VertexGrid]
 ---
@@ -27,7 +27,7 @@ domain to draw it, never the reverse.
 ## Layout (one asmdef `Domains.Map`, feature sub-areas)
 - `Hex/` (`Domains.Map.Hex.*`) — hex entity table, `HexIdComponent` (the universal hex key),
   `HexType` + `HexTypeComponent`, `VertexGrid` and hex utilities.
-- `Generation/` (`Domains.Map.Generation.*`) — procedural map generation: `MapGenerationSystem`
+- `Generation/` (`Domains.Map.Generation.*`) — procedural map generation: `GenerationSystem`
   orchestrator + Mountain/River/Lake/Sea subsystems, on the `MapGenerationStep` world-init pipeline.
   Config types keep the `TerrainGeneration*` names (their addressable keys are unchanged).
 - `HexResources/` (`Domains.Map.HexResources.*`) — natural per-hex resource layer (Forest/Clay/Fish),

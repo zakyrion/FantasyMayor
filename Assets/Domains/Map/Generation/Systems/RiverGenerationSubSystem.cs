@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using DefaultEcs;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
@@ -14,10 +14,10 @@ using Random = UnityEngine.Random;
 namespace Domains.Map.Generation.Systems
 {
     /// <summary>
-    ///     Runs river generation when invoked by <see cref="MapGenerationSystem" />.
+    ///     Runs river generation when invoked by <see cref="GenerationSystem" />.
     /// </summary>
     [UsedImplicitly]
-    internal sealed class RiverGenerationSubSystem : MapGenerationSubSystem
+    internal sealed class RiverGenerationSubSystem : GenerationSubSystem
     {
         private const int ExecutionPriority = 200;
         private const int RiverLevel = -1;

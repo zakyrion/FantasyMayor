@@ -9,9 +9,9 @@ related:
   - "[PATTERN_CONFIG_LOADER](../../../Patterns/PATTERN_CONFIG_LOADER.md)"
 status: partial
 code_refs:
-  world_components: [ActionsDistrictsBuildConfigComponent, DistrictsBuildConfigComponent]
-  systems:          [ActionsDistrictsBuildConfigLoaderSystem]
-  configs:          [ActionsDistrictsBuildConfig, DistrictsBuildConfig]
+  world_components: [DistrictsBuildCostConfigComponent, DistrictsBuildConfigComponent]
+  systems:          [DistrictsBuildCostConfigLoaderSystem]
+  configs:          [DistrictsBuildCostConfig, DistrictsBuildConfig]
 ---
 
 # District Build Cost
@@ -27,12 +27,12 @@ home — adding a price never touches Economy, and gating never touches Actions.
 
 ## Public Contract & Gotchas
 - **Two catalogues, joined by `DistrictType`.** The Economy gating catalogue
-  (`DistrictsBuildConfigComponent`) and this cost catalogue (`ActionsDistrictsBuildConfigComponent`) are
+  (`DistrictsBuildConfigComponent`) and this cost catalogue (`DistrictsBuildCostConfigComponent`) are
   parallel lists keyed on `DistrictType`. A consumer reads gating from one and cost from the other and
   joins per district — there is no single merged config. `DistrictType` is the join key; an entry in one
   catalogue with no match in the other is a config authoring error (the build UI fails loud on it).
-- **The component carries a live SO reference, not a flattened copy.** `ActionsDistrictsBuildConfigComponent`
-  wraps the catalogue SO; the loader (`ActionsDistrictsBuildConfigLoaderSystem`) **retains** the addressable
+- **The component carries a live SO reference, not a flattened copy.** `DistrictsBuildCostConfigComponent`
+  wraps the catalogue SO; the loader (`DistrictsBuildCostConfigLoaderSystem`) **retains** the addressable
   `Box` for the catalogue's lifetime and releases it in `OnDispose` (the build window reads it throughout
   play). Same shape as Economy's `DistrictsBuildConfigLoaderSystem`. Config flow rules:
 `Patterns/PATTERN_CONFIG.md` + `Patterns/PATTERN_CONFIG_LOADER.md`.

@@ -1,4 +1,4 @@
-using DefaultEcs;
+﻿using DefaultEcs;
 using DefaultECSExtensions;
 using JetBrains.Annotations;
 using Domains.Map.Hex.Components;
@@ -12,12 +12,12 @@ using Random = UnityEngine.Random;
 namespace Domains.Map.Generation.Systems
 {
     /// <summary>
-    ///     Runs lake generation when invoked by <see cref="MapGenerationSystem" />.
+    ///     Runs lake generation when invoked by <see cref="GenerationSystem" />.
     ///     Generates a single connected lake near the map centre with area derived from
     ///     <see cref="LakeConfigComponent.SizeFraction" />.
     /// </summary>
     [UsedImplicitly]
-    internal sealed class LakeGenerationSubSystem : MapGenerationSubSystem
+    internal sealed class LakeGenerationSubSystem : GenerationSubSystem
     {
         private const float DistanceWeight = 2f;
         private const int ExecutionPriority = 210;

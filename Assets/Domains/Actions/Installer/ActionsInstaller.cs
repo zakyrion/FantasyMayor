@@ -1,4 +1,4 @@
-using DefaultECSExtensions;
+﻿using DefaultECSExtensions;
 using Domains.Actions.Systems;
 using Modules.Boot.Core;
 using Modules.Turn.Systems;
@@ -16,8 +16,8 @@ namespace Domains.Actions.Installer
     {
         public void Install(IContainerBuilder builder)
         {
-            builder.Register<ActionsDistrictsBuildConfigLoaderSystem>(Lifetime.Singleton)
-                .As<ActionsDistrictsBuildConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
+            builder.Register<DistrictsBuildCostConfigLoaderSystem>(Lifetime.Singleton)
+                .As<DistrictsBuildCostConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
 
             builder.Register<MayorActionPointsRestoreSubSystem>(Lifetime.Singleton)
                 .As<MayorActionPointsRestoreSubSystem, TurnPhaseSubSystem>();

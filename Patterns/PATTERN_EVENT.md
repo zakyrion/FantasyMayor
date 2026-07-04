@@ -47,5 +47,7 @@ pulse.Set(new EventTag());   // marks it one-frame; the cleanup pass disposes it
   (see [PATTERN_CLEANUP_SYSTEM](PATTERN_CLEANUP_SYSTEM.md)).
 - **One-frame events do NOT survive the async map-creation pipeline.** Startup bulk work is a
   [pipeline stage](PATTERN_PIPELINE_STAGE.md), never an event.
-- Naming: `...Event`, in `Events/`. Producer→consumer flow lives in `ecs-graph` (`/ecs-graph`).
+- Naming: `...Event`, in `Events/`. No domain-name prefix — the namespace carries the domain (see
+  [../ECS_CONVENTIONS.md](../ECS_CONVENTIONS.md) → Naming & Construction). Producer→consumer flow lives in
+  `ecs-graph` (`/ecs-graph`).
 ```

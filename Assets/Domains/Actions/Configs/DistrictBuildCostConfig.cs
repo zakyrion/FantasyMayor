@@ -1,12 +1,12 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Domains.Economy.District.Data;
 using Domains.Economy.Resource.Components;
 using UnityEngine;
 
 namespace Domains.Actions.Configs
 {
-    [CreateAssetMenu(fileName = "ActionsDistrictBuildConfig", menuName = "FantasyMayor/Actions/ActionsDistrictBuildConfig")]
-    public class ActionsDistrictBuildConfig : ScriptableObject
+    [CreateAssetMenu(fileName = "DistrictBuildCostConfig", menuName = "FantasyMayor/Actions/DistrictBuildCostConfig")]
+    public class DistrictBuildCostConfig : ScriptableObject
     {
         [SerializeField]
         private DistrictType _districtType;

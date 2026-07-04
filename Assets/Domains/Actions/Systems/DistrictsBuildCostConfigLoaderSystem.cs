@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
@@ -11,26 +11,26 @@ using Modules.Addressable.Core;
 
 namespace Domains.Actions.Systems
 {
-    // Config Loader (ConfigLoadStep, one-shot): loads the ActionsDistrictsBuildConfig SO from Addressables,
-    // validates it, and publishes the ActionsDistrictsBuildConfigComponent world component carrying the SO
+    // Config Loader (ConfigLoadStep, one-shot): loads the DistrictsBuildCostConfig SO from Addressables,
+    // validates it, and publishes the DistrictsBuildCostConfigComponent world component carrying the SO
     // reference. The build window reads this catalogue throughout play, so the loader RETAINS the addressable
     // Box (ADDRESSABLE_PATTERNS "Load non-GameObject asset") and releases it in OnDispose. Sibling of Economy's
     // DistrictsBuildConfigLoaderSystem (gating catalogue); this one owns the cost catalogue.
     [UsedImplicitly]
-    internal sealed class ActionsDistrictsBuildConfigLoaderSystem : ConfigLoaderSystem
+    internal sealed class DistrictsBuildCostConfigLoaderSystem : ConfigLoaderSystem
     {
         private const string ACTIONS_DISTRICTS_BUILD_CONFIG = "ActionsDistrictsBuildConfig";
 
-        private Box<ActionsDistrictsBuildConfig> _config = Box<ActionsDistrictsBuildConfig>.Empty();
+        private Box<DistrictsBuildCostConfig> _config = Box<DistrictsBuildCostConfig>.Empty();
 
-        public ActionsDistrictsBuildConfigLoaderSystem(IAddressable addressable, World world)
+        public DistrictsBuildCostConfigLoaderSystem(IAddressable addressable, World world)
             : base(addressable, world)
         {
         }
 
         protected override async UniTask LoadConfigsAsync(CancellationToken cancellationToken)
         {
-            var box = await LoadConfigAsync<ActionsDistrictsBuildConfig>(ACTIONS_DISTRICTS_BUILD_CONFIG, cancellationToken);
+            var box = await LoadConfigAsync<DistrictsBuildCostConfig>(ACTIONS_DISTRICTS_BUILD_CONFIG, cancellationToken);
 
             if (cancellationToken.IsCancellationRequested)
             {
@@ -41,7 +41,7 @@ namespace Domains.Actions.Systems
             ValidateConfig(box.Value);
 
             _config = box;
-            World.Set(new ActionsDistrictsBuildConfigComponent(box.Value));
+            World.Set(new DistrictsBuildCostConfigComponent(box.Value));
             MarkAsLoaded();
         }
 
@@ -50,15 +50,15 @@ namespace Domains.Actions.Systems
             DisposeBox(ref _config);
         }
 
-        private void ValidateConfig(ActionsDistrictsBuildConfig config)
+        private void ValidateConfig(DistrictsBuildCostConfig config)
         {
             if (config.Districts == null)
-                throw new InvalidOperationException("ActionsDistrictsBuildConfig: Districts array is null.");
+                throw new InvalidOperationException("DistrictsBuildCostConfig: Districts array is null.");
 
             for (var index = 0; index < config.Districts.Length; index++)
                 if (config.Districts[index] == null)
                     throw new InvalidOperationException(
-                        $"ActionsDistrictsBuildConfig: district entry at index {index} is null.");
+                        $"DistrictsBuildCostConfig: district entry at index {index} is null.");
         }
     }
 }

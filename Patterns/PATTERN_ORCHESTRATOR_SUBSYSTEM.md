@@ -76,4 +76,7 @@ public [Name]System(IReadOnlyList<[Name]SubSystem> subSystems /*, World world ..
 - Subsystem priorities order children WITHIN the orchestrator only — unrelated to pipeline-stage priorities.
 - **Routing variant (DoD polymorphism):** make the operation return `bool` (`TrySpawn(config)`); the
   orchestrator tries each subsystem until one handles the input, and **fails loud** when none does.
+- **Naming:** the `[Name]`/`[Feature]` placeholders carry no domain prefix — the namespace does (see
+  [../ECS_CONVENTIONS.md](../ECS_CONVENTIONS.md) → Naming & Construction). `[Domain]Installer` keeps its
+  domain prefix (the documented exception).
 ```

@@ -7,7 +7,7 @@ related:
   - "[HEX_CORE](../Hex/HEX_CORE.md)"
 status: implemented
 code_refs:
-  systems:    [MapGenerationSystem, MountainGenerationSubSystem, RiverGenerationSubSystem, LakeGenerationSubSystem, SeaGenerationSubSystem]
+  systems:    [GenerationSystem, MountainGenerationSubSystem, RiverGenerationSubSystem, LakeGenerationSubSystem, SeaGenerationSubSystem]
   components: [HexTypeComponent, HexLevelComponent, HexIdComponent, TerrainGenerationConfigComponent]
   tags:       [HexTag]
 ---
@@ -17,13 +17,13 @@ code_refs:
 Procedural terrain generation: hex grid creation, mountains with foothills, and water (river / lake / sea).
 
 ## Trigger
-`MapGenerationSystem` is the generation pipeline's **orchestrator** (role/priority:
-`mcp__ecs-graph__system_contract MapGenerationSystem`): it creates the hex grid itself, then fans out
+`GenerationSystem` is the generation pipeline's **orchestrator** (role/priority:
+`mcp__ecs-graph__system_contract GenerationSystem`): it creates the hex grid itself, then fans out
 into the generation **Pipeline SubSystems** (mountain/river/lake/sea). It is run sequentially by the **`MapCreation` game state**
 (`Boot.Implementation`). The pipeline runs once when the `MainMenu` state detects
 `TerrainGenerationGenerateEventComponent` (raised by the HexesUI Generate button) and switches to
 `MapCreation`, which runs every `IPrioritizedUniTaskSystem<MapGenerationStep>` stage in priority
-order. `MapGenerationSystem` no longer publishes a separate resource-generation event — the
+order. `GenerationSystem` no longer publishes a separate resource-generation event — the
 pipeline drives resource generation directly. Roles: `ARCHITECTURE.md` "System Taxonomy". Full flow:
 `BOOT.md` / the ecs-graph (`/ecs-graph`).
 
@@ -39,7 +39,7 @@ the `HexTypeComponent` is synced from it.
 | `2` | Mountain | `Mount` |
 
 ## Non-Obvious Invariants
-- Generation flow: `MapGenerationSystem` creates every hex at Level 0, runs the subsystems in
+- Generation flow: `GenerationSystem` creates every hex at Level 0, runs the subsystems in
   priority order to mutate levels, then **sets HexTypeComponent from the final level** (AssignHexTypes).
   It publishes no event — the next pipeline stage simply runs after it. The type is always derived from
   level, never set independently

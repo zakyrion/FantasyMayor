@@ -1,4 +1,4 @@
-using DefaultEcs;
+﻿using DefaultEcs;
 using DefaultECSExtensions;
 using JetBrains.Annotations;
 using Domains.Map.Hex.Components;
@@ -12,12 +12,12 @@ using Random = UnityEngine.Random;
 namespace Domains.Map.Generation.Systems
 {
     /// <summary>
-    ///     Runs sea generation when invoked by <see cref="MapGenerationSystem" />.
+    ///     Runs sea generation when invoked by <see cref="GenerationSystem" />.
     ///     Generates a single connected sea body seeded from the map edge and biased to
     ///     remain near that edge, with area derived from <see cref="SeaConfigComponent.SizeFraction" />.
     /// </summary>
     [UsedImplicitly]
-    internal sealed class SeaGenerationSubSystem : MapGenerationSubSystem
+    internal sealed class SeaGenerationSubSystem : GenerationSubSystem
     {
         private const int ExecutionPriority = 220;
         private const int SeaLevel = -1;

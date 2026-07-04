@@ -67,7 +67,7 @@ Game-rule bounded contexts — pure data + logic, with **no view/render dependen
 
 | Domain | Assembly | Current responsibility |
 |---|---|---|
-| `Map` | `Domains.Map` | The world-map bounded context: hex grid + terrain types (`Hex/`), procedural map generation (`Generation/` — `MapGenerationSystem` + Mountain/River/Lake/Sea subsystems, on `MapGenerationStep`), natural per-hex resources (`HexResources/`: Forest/Clay/Fish), hex pathfinding (`Pathfinding/`) |
+| `Map` | `Domains.Map` | The world-map bounded context: hex grid + terrain types (`Hex/`), procedural map generation (`Generation/` — `GenerationSystem` + Mountain/River/Lake/Sea subsystems, on `MapGenerationStep`), natural per-hex resources (`HexResources/`: Forest/Clay/Fish), hex pathfinding (`Pathfinding/`) |
 | `Economy` | `Domains.Economy` | Owner-agnostic economic substrate: inventory resource types + the generic `ResourceLoadoutSpawner` mechanism, district scaffold; reads `Domains.Map` (hex types). No actor dependency |
 | `Actors` | `Domains.Actors` | Actor identities (City, Mayor) + startup composition: per-actor spawn, Mayor config/loader, resource loadout; reads `Domains.Economy` |
 | `Actions` | `Domains.Actions` | Application/orchestration layer: actor verbs + cross-domain turn processing; reads `Domains.Economy` + `Domains.Actors`. SCAFFOLD — no systems yet |
@@ -214,6 +214,9 @@ Role invariants (policy — hold regardless of the template you follow):
 - Naming: orchestrators and stages are named `…System`, subsystems `…SubSystem`. Reactive systems carry
   intent names (`ForestSpawnSystem`, `HexIconsVisibilitySystem`) — there is no mandated
   `…ReactiveSystem` suffix.
+- Type names never repeat their owning **domain** — the namespace carries it (`GenerationSystem`, not
+  `MapGenerationSystem`). Full rule + exceptions (FK/PK identity components, DI installers):
+  `ECS_CONVENTIONS.md` → Naming & Construction.
 
 **Turn pipeline (module `Turn`) — same roles, different scope.** The Orchestrator/SubSystem roles are
 reused for turn processing, but turn-scoped (re-run every turn on a `NextTurnEvent` pulse) and executed
@@ -238,6 +241,7 @@ These replace the retired `SYSTEMTEMPLATE.md` / `CONFIGTEMPLATE.md` monoliths; t
 | a config loader (`ConfigLoadStep`, `Box`, validate, `world.Set`) | `Patterns/PATTERN_CONFIG_LOADER.md` |
 | a world-init pipeline stage (spawn / build once during map creation) | `Patterns/PATTERN_PIPELINE_STAGE.md` |
 | an orchestrator + DI-collected subsystem family (DoD polymorphism) | `Patterns/PATTERN_ORCHESTRATOR_SUBSYSTEM.md` |
+| a polymorphic SO config catalogue materialized into an entity table (many kinds keyed by a shared FK; + optional per-kind evaluator) | `Patterns/PATTERN_POLYMORPHIC_CATALOGUE.md` |
 | a per-frame system (continuous logic; `PreUpdate` + `FrameBox`) | `Patterns/PATTERN_PERFRAME_SYSTEM.md` |
 | a reactive system (event-driven — the DEFAULT for runtime logic) | `Patterns/PATTERN_REACTIVE_SYSTEM.md` |
 | one-frame event cleanup (and why you almost never write one) | `Patterns/PATTERN_CLEANUP_SYSTEM.md` |

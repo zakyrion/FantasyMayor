@@ -35,6 +35,8 @@ namespace Domains.[Domain].[Feature].Tags
 - **A parameter-less condition uses a tag where a data kind would use a component.** When a kind carries data,
   the payload component doubles as the discriminator; when it carries none, an empty tag is the discriminator.
 - Naming: `...Tag`. Keep it field-less — the moment it needs a value it is a [component](PATTERN_COMPONENT.md),
-  not a tag.
+  not a tag. No domain-name prefix — the namespace carries the domain (see
+  [../ECS_CONVENTIONS.md](../ECS_CONVENTIONS.md) → Naming & Construction; Table-Rule discriminators are the
+  exception).
 - Tags and their producers/consumers are visible in `ecs-graph` — do not enumerate them in module docs.
 ```

@@ -59,7 +59,7 @@
 		{"id":"n_dbtag","type":"text","text":"UITag","x":1250,"y":800,"width":250,"height":60},
 		{"id":"3f5dce22bfa32b6a","type":"text","text":"DistrictBuildingConfig","x":-620,"y":2260,"width":250,"height":60},
 		{"id":"6334b1bc6bf2d02e","type":"text","text":"Where can be placed","x":-200,"y":2260,"width":250,"height":60},
-		{"id":"a6c0688b9919a359","type":"text","text":"ActionsDistrictBuildConfig","x":-620,"y":2388,"width":250,"height":60},
+		{"id":"a6c0688b9919a359","type":"text","text":"DistrictBuildCostConfig","x":-620,"y":2388,"width":250,"height":60},
 		{"id":"0239ae2f34a74188","type":"text","text":"The price of building","x":-200,"y":2388,"width":250,"height":60},
 		{"id":"51ce34c2cafc0e15","type":"text","text":"DistrictOpenConditionConfig","x":-620,"y":2523,"width":250,"height":60},
 		{"id":"e3b1a828d5f8fed4","type":"text","text":"How to unblock to build","x":-200,"y":2523,"width":250,"height":60}

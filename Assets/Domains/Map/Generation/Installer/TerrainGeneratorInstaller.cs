@@ -1,4 +1,4 @@
-using DefaultECSExtensions;
+﻿using DefaultECSExtensions;
 using Modules.Boot.Core;
 using Domains.Map.Generation.Systems;
 using VContainer;
@@ -12,17 +12,17 @@ namespace Domains.Map.Generation.Installer
         {
             builder.Register<TerrainGenerationConfigLoaderSystem>(Lifetime.Singleton)
                 .As<TerrainGenerationConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
-            builder.Register<MapGenerationSystem>(Lifetime.Singleton)
-                .As<MapGenerationSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
+            builder.Register<GenerationSystem>(Lifetime.Singleton)
+                .As<GenerationSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
 
             builder.Register<MountainGenerationSubSystem>(Lifetime.Singleton)
-                .As<MountainGenerationSubSystem, MapGenerationSubSystem>();
+                .As<MountainGenerationSubSystem, GenerationSubSystem>();
             builder.Register<RiverGenerationSubSystem>(Lifetime.Singleton)
-                .As<RiverGenerationSubSystem, MapGenerationSubSystem>();
+                .As<RiverGenerationSubSystem, GenerationSubSystem>();
             builder.Register<LakeGenerationSubSystem>(Lifetime.Singleton)
-                .As<LakeGenerationSubSystem, MapGenerationSubSystem>();
+                .As<LakeGenerationSubSystem, GenerationSubSystem>();
             builder.Register<SeaGenerationSubSystem>(Lifetime.Singleton)
-                .As<SeaGenerationSubSystem, MapGenerationSubSystem>();
+                .As<SeaGenerationSubSystem, GenerationSubSystem>();
         }
     }
 }

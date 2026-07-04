@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -20,7 +20,7 @@ namespace Domains.Map.Generation.Systems
     ///     Driven by the Boot world-init orchestrator, not by an event subscription.
     /// </summary>
     [UsedImplicitly]
-    internal sealed class MapGenerationSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
+    internal sealed class GenerationSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
         private const int ExecutionPriority = 100;
         private const int FoothillLevel = 1;
@@ -28,7 +28,7 @@ namespace Domains.Map.Generation.Systems
         private const int PlainLevel = 0;
         private const int WaterLevel = -1;
 
-        private readonly IReadOnlyList<MapGenerationSubSystem> _generationSubSystems;
+        private readonly IReadOnlyList<GenerationSubSystem> _generationSubSystems;
         private readonly EntitySet _hexSet;
         private readonly World _world;
 
@@ -37,7 +37,7 @@ namespace Domains.Map.Generation.Systems
 
         /// <param name="world">The ECS world to query and populate.</param>
         /// <param name="generationSubSystems">Generation subsystems executed in priority order.</param>
-        public MapGenerationSystem(World world, IReadOnlyList<MapGenerationSubSystem> generationSubSystems)
+        public GenerationSystem(World world, IReadOnlyList<GenerationSubSystem> generationSubSystems)
         {
             _world = world;
             _hexSet = world.GetEntities()

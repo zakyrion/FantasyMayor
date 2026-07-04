@@ -1,4 +1,4 @@
-using DefaultEcs;
+﻿using DefaultEcs;
 using DefaultECSExtensions;
 using JetBrains.Annotations;
 using Domains.Map.Hex.Components;
@@ -11,13 +11,13 @@ using Random = UnityEngine.Random;
 namespace Domains.Map.Generation.Systems
 {
     /// <summary>
-    ///     Runs mountain generation when invoked by <see cref="MapGenerationSystem" />.
+    ///     Runs mountain generation when invoked by <see cref="GenerationSystem" />.
     ///     Places a blob-shaped mountain body (Level 2) inside a water-safe zone using
     ///     multi-seed BFS: seeds first grow toward each other (centroid pull), then spread
     ///     outward by neighbour cohesion. Foothills (Level 1) are applied in a post-processing pass.
     /// </summary>
     [UsedImplicitly]
-    internal sealed class MountainGenerationSubSystem : MapGenerationSubSystem
+    internal sealed class MountainGenerationSubSystem : GenerationSubSystem
     {
         private const int ExecutionPriority = 300;
         private const int WaterLevel = -1;

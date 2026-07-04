@@ -88,6 +88,17 @@ when designing or reviewing any system.
 
   Pre-existing `…EventComponent` names (e.g. `TerrainGenerationGenerateEventComponent`) predate this rule;
   they stay until a deliberate rename, but new events use the `…Event` suffix.
+- **No domain-name prefix.** A type MUST NOT carry its owning **domain** as a name prefix — the namespace
+  already carries it (`Domains.[Domain].[Feature].*`). Name for concept + role, not location: under
+  `Domains.Map.Generation.*` a system is `GenerationSystem`, **not** `MapGenerationSystem`; the reference
+  model is `DistrictOpenConditionConfig` (`Domains.Economy.*`, carries no `Economy`). Repeating the
+  **feature** name is expected — that is how a feature's types cohere (`DistrictOpenConditionConfig`,
+  `DistrictOpenConditionEvaluatorSystem`).
+  **Exceptions** — a name may carry a token that collides with a domain when it is:
+  (1) an **FK/PK identity component** or **Table-Rule discriminator** — a stable relational identifier
+  referenced across domains (`DistrictTypeComponent`, `HexIdComponent`, `ActorTypeComponent`, and the shared
+  action key space `ActionIdComponent`); or (2) a **DI installer** — the uniform `[Domain]Installer` name is
+  a deliberate disambiguator across the ~13 sibling installers.
 - Single-component entity creation may chain: `world.CreateEntity().Set(...)`
 - Once more than one component is assigned, stop chaining and use a local entity variable
 - Prefer instance-based design; use `static` only when a type is truly stateless utility
