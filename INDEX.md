@@ -13,7 +13,7 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 49 docs — 3 always · 15 trigger · 31 reference · 3 canvas.
+Totals: 51 docs — 3 always · 15 trigger · 33 reference · 3 canvas.
 
 ## Read at start (always)
 
@@ -52,9 +52,11 @@ Per-module navigation docs. `status` mirrors each module's `## Current State`.
 | Doc | Cat | Status | What it is |
 |---|---|---|---|
 | [Actions](Assets/Domains/Actions/ACTIONS.md) | A | partial | The application / orchestration layer: actor verbs and cross-domain turn processing. Depends on both |
-| [Build District Cost](Assets/Domains/Actions/BuildDistrictCost/BUILD_DISTRICT_COST.md) | A | partial | The district-build **cost** config flow: the Actions domain owns the per-district AP + resource price |
+| [Build District Action](Assets/Domains/Actions/BuildDistrictAction/BUILD_DISTRICT_ACTION.md) | A | partial | The owner-scoped **build verb**: turns an owner's confirmed choice into a live, multi-turn construction that |
 | [Turn Phases](Assets/Domains/Actions/TURN_PHASES.md) | A | partial | The Actions domain's turn-phase subsystems: phase **content** that plugs into the `Turn` engine. |
 | [Actors](Assets/Domains/Actors/ACTORS.md) | A | partial | Game-rule domain owning actor identities **and their startup composition**. First domain under |
+| [District Build Cost](Assets/Domains/Economy/DistrictBuildCost/BUILD_DISTRICT_COST.md) | A | partial | The district-build **cost** catalogue: the per-district AP + resource price for building a district type. |
+| [District Build Outcome](Assets/Domains/Economy/DistrictBuildOutcome/BUILD_DISTRICT_OUTCOME.md) | A | partial | The district-build **outcome** catalogue: the per-district consequence that runs when a district finishes |
 | [District Open Conditions](Assets/Domains/Economy/DistrictOpenCondition/DISTRICT_OPEN_CONDITION.md) | A | partial | The district-build **unlock** rules ("how to unblock building of a district type"), authored as a polymorphic |
 | [Economy](Assets/Domains/Economy/ECONOMY.md) | A | partial | Game-rule domain owning economic objects: inventory resources now; districts and buildings later. |
 | [TerrainGenerator](Assets/Domains/Map/Generation/TERRAIN_GENERATOR.md) | A | implemented | Procedural terrain generation: hex grid creation, mountains with foothills, and water (river / lake / sea). |

@@ -12,7 +12,7 @@ status: partial
 code_refs:
   systems:          [DistrictBuildUISystem, DistrictBuildUISpawnSystem, DistrictBuildUISubSystem, DistrictBuildListUISubSystem, DistrictBuildHexResourcesUISubSystem, DistrictBuildPriceUISubSystem, DistrictBuildActionsUISubSystem]
   components:       [DistrictBuildUIViewComponent]
-  world_components: [DistrictBuildUIRootComponent, DistrictBuildSelectionComponent, DistrictBuildListUIViewComponent, DistrictBuildHexResourcesUIViewComponent, DistrictBuildPriceUIViewComponent, DistrictBuildActionsUIViewComponent, DistrictsBuildConfigComponent, DistrictsBuildCostConfigComponent]
+  world_components: [DistrictBuildUIRootComponent, DistrictBuildSelectionComponent, DistrictBuildListUIViewComponent, DistrictBuildHexResourcesUIViewComponent, DistrictBuildPriceUIViewComponent, DistrictBuildActionsUIViewComponent, DistrictsBuildConfigComponent, DistrictBuildCostsConfigComponent]
   events:           [DistrictBuildRequestedEvent, DistrictBuildClosedEvent, DistrictBuildSelectionRequestedEvent]
   views:            [DistrictBuildUIView, DistrictBuildListUIView, DistrictBuildHexResourcesUIView, DistrictBuildPriceUIView, DistrictBuildActionsUIView]
   configs:          [DistrictsBuildConfig, DistrictBuildingConfig, DistrictBuildCostConfig]
@@ -105,13 +105,14 @@ panel-update loop and would blank every UIDocument).
   the current `Payer` and re-renders only the cost column. District selection goes through ECS; payer does not.
 - **Sections self-read ECS (no shared read-model).** Each subsystem builds its own query caches: HexResources
   reads the selected hex's type + `HexResourceComponent` set; Price reads the actor stockpiles + the Mayor's AP
-  (`ActionPoint` resource stack) + `DistrictsBuildCostConfigComponent`; both look up the selected
+  (`ActionPoint` resource stack) + the cost catalogue (`DistrictBuildCost`, Economy) via
+  `DistrictBuildCostsConfigComponent`; both look up the selected
   `DistrictBuildingConfig` in `DistrictsBuildConfigComponent`.
 - **The list is condition-driven, not roster-driven.** `DistrictBuildListUISubSystem` reads the
   `DistrictOpenCondition` entities tagged `DistrictCanBeBuildTag` (key `DistrictTypeComponent`), NOT the full
   `DistrictsBuildConfig` roster. The tag is the buildability key — see `DISTRICT_OPEN_CONDITION.md`.
 - **The catalogue components carry live SO references** (`DistrictsBuildConfigComponent`,
-  `DistrictsBuildCostConfigComponent`) — not flattened copies; the loaders keep their addressable Boxes
+  `DistrictBuildCostsConfigComponent`) — not flattened copies; the loaders keep their addressable Boxes
   alive. The systems allocate nothing — push to views one value at a time (the `ResourceBarSystem` path).
 
 ## What is real vs placeholder (Hybrid)
@@ -133,9 +134,10 @@ panel-update loop and would blank every UIDocument).
   anchors (`DistrictList`, `DetailName`/`ReqLines`, `ApRow`/`CostRows`/`PayerMayor`/`PayerCity`,
   `ActionsPlaceholder`) — wire only if the UXML renames them. Templates carry **no `<Style>`** (a relative `..`
   src breaks the importer; XML comments must avoid `--`); they inherit the host panel's stylesheet.
-- Addressable **`DistrictsBuildConfig`** (Economy gating) + **`ActionsDistrictsBuildConfig`** (Actions cost — the
-  addressable key is unchanged; the class is now `DistrictsBuildCostConfig`) SOs — else the loaders throw at
-  config-load. Let Unity import any new `.uxml` first so it generates the `.meta`.
+- Addressable **`DistrictsBuildConfig`** (Economy placement) + **`ActionsDistrictsBuildConfig`** (the cost
+  catalogue `DistrictBuildCost`, now in Economy — the addressable key is the unchanged legacy string; the class
+  is `DistrictBuildCostsConfig`) SOs — else the loaders throw at config-load. Let Unity import any new `.uxml`
+  first so it generates the `.meta`.
 
 ## Current State
 PARTIAL. The orchestrator + section-subsystem split is implemented: List / HexResources (ВИМОГИ) / Price

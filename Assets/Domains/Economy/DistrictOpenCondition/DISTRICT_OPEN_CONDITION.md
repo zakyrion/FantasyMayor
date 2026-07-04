@@ -4,7 +4,7 @@ read: reference
 tags: [economy, district, config, ecs]
 related:
   - "[ECONOMY](../ECONOMY.md)"
-  - "[BUILD_DISTRICT_COST](../../Actions/BuildDistrictCost/BUILD_DISTRICT_COST.md)"
+  - "[BUILD_DISTRICT_COST](../DistrictBuildCost/BUILD_DISTRICT_COST.md)"
   - "[DISTRICT_BUILD](../../../Presentation/UI/DistrictBuild/DISTRICT_BUILD.md)"
   - "[PATTERN_CONFIG](../../../../Patterns/PATTERN_CONFIG.md)"
   - "[PATTERN_CONFIG_LOADER](../../../../Patterns/PATTERN_CONFIG_LOADER.md)"
@@ -22,8 +22,9 @@ code_refs:
 # District Open Conditions
 
 The district-build **unlock** rules ("how to unblock building of a district type"), authored as a polymorphic
-catalogue and materialized into one entity per condition. The third district concern, beside
-`DistrictBuildingConfig` (where it can be placed) and the Actions cost catalogue (what it costs).
+catalogue and materialized into one entity per condition. One of the sibling district concerns, beside
+`DistrictBuildingConfig` (where it can be placed) and the Economy cost catalogue (`DistrictBuildCost`, sibling —
+what it costs).
 
 ## Purpose
 Open-conditions differ widely per district type, so each is its own `ScriptableObject` subclass of the

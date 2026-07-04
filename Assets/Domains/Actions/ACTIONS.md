@@ -10,7 +10,8 @@ related:
   - "[GAMEPLAY_FOUNDATION](../../../GAMEPLAY_FOUNDATION.md)"
   - "[ECONOMY](../Economy/ECONOMY.md)"
   - "[ACTORS](../Actors/ACTORS.md)"
-  - "[BUILD_DISTRICT_COST](BuildDistrictCost/BUILD_DISTRICT_COST.md)"
+  - "[BUILD_DISTRICT_ACTION](BuildDistrictAction/BUILD_DISTRICT_ACTION.md)"
+  - "[BUILD_DISTRICT_COST](../Economy/DistrictBuildCost/BUILD_DISTRICT_COST.md)"
   - "[TURN_PHASES](TURN_PHASES.md)"
 status: partial
 code_refs:
@@ -50,13 +51,18 @@ Planned content (rest pending):
 ## Current State
 
 PARTIAL. The domain is organized into per-feature **sub-domains** (folder = namespace segment):
-- **`BuildDistrictCost/`** → [BUILD_DISTRICT_COST.md](BuildDistrictCost/BUILD_DISTRICT_COST.md) — the build
-  verb's per-district AP + resource cost catalogue (loaded at `ConfigLoadStep`, read by the UI; no verb
-  spends it yet).
-- **`BuildDistrictAction/`** — seed only (`BuildDistrictActionConfig` stub); the live build-verb lifecycle
-  is not built yet (see [DISTRICT_BUILD_ACTION_PLAN.md](../../../DISTRICT_BUILD_ACTION_PLAN.md)).
+- **`BuildDistrictAction/`** → [BUILD_DISTRICT_ACTION.md](BuildDistrictAction/BUILD_DISTRICT_ACTION.md) — the
+  owner-scoped build **verb**. DATA STRUCTURES ONLY so far (action-lifecycle components/tags); the
+  draft→commit→tick→complete systems are not built yet (see
+  [DISTRICT_BUILD_ACTION_PLAN.md](../../../DISTRICT_BUILD_ACTION_PLAN.md)).
 - **Turn phases** → [TURN_PHASES.md](TURN_PHASES.md) — the Mayor AP-restore phase (`MayorAPRestoreSubSystem`,
   still in `Systems/`; not promoted to its own sub-domain until a second related phase lands).
+
+**Moved out to Economy (district vocabulary, keyed by `DistrictType`):** the **cost** catalogue
+(`DistrictBuildCost` → [BUILD_DISTRICT_COST.md](../Economy/DistrictBuildCost/BUILD_DISTRICT_COST.md)) and the
+**outcome** catalogue (`DistrictBuildOutcome` → [BUILD_DISTRICT_OUTCOME.md](../Economy/DistrictBuildOutcome/BUILD_DISTRICT_OUTCOME.md))
+are owner-agnostic district vocabulary; they moved to `Economy` beside `DistrictOpenCondition`. The
+`BuildDistrictAction` verb READS them (cost on commit, outcome on completion) but does not own them.
 
 Still scaffold: Mayor/Noble verbs, cross-domain turn scenarios (upkeep arithmetic, resolution, yield
 split), and the other turn phases.

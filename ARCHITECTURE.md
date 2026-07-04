@@ -215,7 +215,7 @@ Role invariants (policy — hold regardless of the template you follow):
   intent names (`ForestSpawnSystem`, `HexIconsVisibilitySystem`) — there is no mandated
   `…ReactiveSystem` suffix.
 - Type names are **self-sufficient** — clear without namespace qualification (C#/.NET FDG), so the feature
-  name is repeated, not stripped (`BuildDistrictCostConfig`, never a bare `Config`); only a pure
+  name is repeated, not stripped (`DistrictBuildCostConfig`, never a bare `Config`); only a pure
   non-disambiguating **domain** prefix is dropped (`GenerationSystem`, not `MapGenerationSystem`). Full
   rule + exceptions (FK/PK identity components, DI installers): `ECS_CONVENTIONS.md` → Naming & Construction.
 

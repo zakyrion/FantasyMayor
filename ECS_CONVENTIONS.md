@@ -91,7 +91,7 @@ when designing or reviewing any system.
 - **Self-sufficient names (C# / .NET Framework Design Guidelines).** The simple type name must read clearly
   on its own, **without** leaning on the namespace to disambiguate — this is a C# codebase and follows the
   FDG, **not** Go's "avoid stutter". Two consequences:
-  - **Repeat the feature name — required, not merely tolerated.** `BuildDistrictCostConfig`, never a bare
+  - **Repeat the feature name — required, not merely tolerated.** `DistrictBuildCostConfig`, never a bare
     `CostConfig` / `Config` that would collide with a sibling feature's type. Accept the length (and the
     stutter in the fully-qualified name) — clarity at the use site wins. **Never** push disambiguation onto
     a `using` alias or a namespace qualifier. Repeating the **feature** name is how a feature's types cohere

@@ -9,7 +9,9 @@ tags:
 related:
   - "[ARCHITECTURE](ARCHITECTURE.md)"
   - "[ACTIONS](Assets/Domains/Actions/ACTIONS.md)"
-  - "[BUILD_DISTRICT_COST](Assets/Domains/Actions/BuildDistrictCost/BUILD_DISTRICT_COST.md)"
+  - "[BUILD_DISTRICT_COST](Assets/Domains/Economy/DistrictBuildCost/BUILD_DISTRICT_COST.md)"
+  - "[BUILD_DISTRICT_OUTCOME](Assets/Domains/Economy/DistrictBuildOutcome/BUILD_DISTRICT_OUTCOME.md)"
+  - "[BUILD_DISTRICT_ACTION](Assets/Domains/Actions/BuildDistrictAction/BUILD_DISTRICT_ACTION.md)"
   - "[DISTRICT_OPEN_CONDITION](Assets/Domains/Economy/DistrictOpenCondition/DISTRICT_OPEN_CONDITION.md)"
 ---
 
@@ -233,3 +235,31 @@ Verb-first renames:
 `MayorAPRestoreSubSystem` stays in `Actions/Systems/` — AP-restore is not promoted to its own sub-domain (too
 thin for a single system; revisit when a second related turn phase lands). Addressable key still untouched.
 **Steps 2–5 below use the verb-first names** (`BuildDistrictOutcome*`, `BuildDistrictAction*`).
+
+## Catalogues → Economy + district-first flip — ✅ DONE (2026-07-04)
+
+Cost + Outcome catalogues moved **Actions → Economy** (they are owner-agnostic district **vocabulary**, keyed
+by `DistrictType` — siblings of `DistrictOpenCondition`), and the type names flipped **verb-first →
+district-first**. **`BuildDistrictAction` (the verb) stays in Actions** — it READS cost/outcome but does not own
+them. Current district-first inventory (supersedes the verb-first names in Steps 2/5 above):
+
+| Verb-first (was) | District-first (now) | Home (namespace) |
+|---|---|---|
+| `BuildDistrictOutcomeConfig` | `DistrictBuildOutcomeConfig` | `Domains.Economy.DistrictBuildOutcome.*` |
+| `BuildDistrictOutcomesConfig` | `DistrictBuildOutcomesConfig` | `Domains.Economy.DistrictBuildOutcome.*` |
+| `SpawnDistrictOutcomeConfig` | `SpawnCityCenterOutcomeConfig` | first concrete PER-DISTRICT kind |
+| `SpawnDistrictOutcomeTag` | `SpawnCityCenterOutcomeTag` | per-kind marker |
+| `BuildDistrictOutcomesConfigComponent` | `DistrictBuildOutcomesConfigComponent` | world/config component |
+| `BuildDistrictOutcomesConfigLoaderSystem` | `DistrictBuildOutcomesConfigLoaderSystem` | loader |
+| `BuildDistrictOutcomeSpawnSystem` | `DistrictBuildOutcomeSpawnSystem` | orchestrator (prio 930) |
+| `BuildDistrictOutcomeSpawnSubSystem` | `DistrictBuildOutcomeSpawnSubSystem` | subsystem base |
+| `SpawnDistrictOutcomeSubSystem` | `SpawnCityCenterOutcomeSubSystem` | concrete subsystem |
+| `BuildDistrictOutcomeTag` | `DistrictBuildOutcomeTag` | discriminator |
+
+The cost catalogue kept its district-first names (`DistrictBuildCostConfig`, `DistrictBuildCostsConfig`,
+`DistrictBuildCostsConfigComponent`, `DistrictBuildCostsConfigLoaderSystem`) and moved to
+`Domains.Economy.DistrictBuildCost.*`. Design intent: EACH district gets its OWN `Spawn<District>OutcomeConfig`
+subclass + its own subsystem (Open-Closed). Addressable keys unchanged: cost still loads from the legacy
+`"ActionsDistrictsBuildConfig"`; outcome from `"DistrictBuildOutcomesConfig"`.
+> Steps 2 and 5 above (still verb-first, and still placing the outcome catalogue in `Actions/`) are prior
+> history — read them through this table; the outcome catalogue now lives in `Economy/DistrictBuildOutcome/`.

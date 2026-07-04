@@ -5,6 +5,9 @@ tags: [economy, ecs, domain]
 related:
   - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
   - "[ACTORS](../Actors/ACTORS.md)"
+  - "[DISTRICT_OPEN_CONDITION](DistrictOpenCondition/DISTRICT_OPEN_CONDITION.md)"
+  - "[BUILD_DISTRICT_COST](DistrictBuildCost/BUILD_DISTRICT_COST.md)"
+  - "[BUILD_DISTRICT_OUTCOME](DistrictBuildOutcome/BUILD_DISTRICT_OUTCOME.md)"
 status: partial
 code_refs:
   components:       [ResourceComponent, DistrictIdComponent]
@@ -24,9 +27,21 @@ Game-rule domain owning economic objects: inventory resources now; districts and
 ## Purpose
 Holds the resources, and eventually the districts/buildings, that actors own and that the turn economy
 acts on. This slice ships the **inventory resource** data types plus the generic, owner-agnostic
-`ResourceLoadoutSpawner` mechanism, and the **District build catalogue** config flow. Economy owns NO actor
-knowledge and NO actor spawn/config systems — those moved to `Actors` (see Design Decisions); its own
-District-catalogue config loader stays here.
+`ResourceLoadoutSpawner` mechanism, and the **owner-agnostic district vocabulary** — four sibling catalogues,
+all keyed by `DistrictType`: placement (`DistrictsBuildConfig`), unlock (`DistrictOpenCondition/`), **cost**
+(`DistrictBuildCost/`), **outcome** (`DistrictBuildOutcome/`). Economy owns NO actor knowledge and NO actor
+spawn/config systems — those moved to `Actors` (see Design Decisions); the district-catalogue config loaders
+stay here.
+
+Sub-domains that are district vocabulary (each keyed on `DistrictType`, none knowing about an owner):
+- **`DistrictOpenCondition/`** → [DISTRICT_OPEN_CONDITION.md](DistrictOpenCondition/DISTRICT_OPEN_CONDITION.md) —
+  unlock rules ("may this district be built?"); polymorphic catalogue + spawn + per-turn evaluator.
+- **`DistrictBuildCost/`** → [BUILD_DISTRICT_COST.md](DistrictBuildCost/BUILD_DISTRICT_COST.md) — per-district
+  AP + resource price (loaded at `ConfigLoadStep`, read by the DistrictBuild UI and by the Actions build verb).
+- **`DistrictBuildOutcome/`** → [BUILD_DISTRICT_OUTCOME.md](DistrictBuildOutcome/BUILD_DISTRICT_OUTCOME.md) —
+  the build result per district (spawn City Center first); polymorphic catalogue, spawn-only (no evaluator).
+
+The owner-scoped build **verb** that reads cost/outcome lives in `Actions.BuildDistrictAction`, not here.
 
 ## Non-Obvious Invariants
 - **Inventory resources are owner-scoped stacks, distinct from Hex resources.** Module `HexResources`
