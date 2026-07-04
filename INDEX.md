@@ -83,7 +83,7 @@ Per-module navigation docs. `status` mirrors each module's `## Current State`.
 | [Hex Info Panel — Context Sub-Panel](Assets/Presentation/UI/HexInfoPanel/HEX_INFO_PANEL.md) | A | partial | The read-only **CONTEXT sub-panel** (right) of the shared bottom panel: everything known about the currently |
 | [MainUI](Assets/Presentation/UI/MAIN_UI.md) | A | partial | The **`Presentation.UI` assembly** (`Assets/Presentation/UI/`, namespaces `Presentation.UI.*`) — the |
 | [ResourceBar](Assets/Presentation/UI/ResourceBar/RESOURCE_BAR.md) | A | partial | The **left-edge resource panel**: the two inventory pools (City / Mayor) as a vertical scroll list. The |
-| [District-Build Action — Program Plan (FM-10)](DISTRICT_BUILD_ACTION_PLAN.md) | C | — | `Economy.DistrictOpenCondition` already answers **"may this district type be built?"** (`DistrictCanBeBuildTag`), |
+| [District-Build Action — Program Plan (FM-10)](DISTRICT_BUILD_ACTION_PLAN.md) | C | — | `Economy.DistrictOpenCondition` answers "may this district type be built?"; `Economy.DistrictBuildCost` holds |
 
 ## Canvas map (on demand)
 

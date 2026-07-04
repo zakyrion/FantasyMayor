@@ -7,10 +7,14 @@ related:
   - "[BUILD_DISTRICT_COST](../../Economy/DistrictBuildCost/BUILD_DISTRICT_COST.md)"
   - "[BUILD_DISTRICT_OUTCOME](../../Economy/DistrictBuildOutcome/BUILD_DISTRICT_OUTCOME.md)"
   - "[DISTRICT_BUILD_ACTION_PLAN](../../../../DISTRICT_BUILD_ACTION_PLAN.md)"
+  - "[PATTERN_REACTIVE_SYSTEM](../../../../Patterns/PATTERN_REACTIVE_SYSTEM.md)"
+  - "[PATTERN_EVENT](../../../../Patterns/PATTERN_EVENT.md)"
 status: partial
 code_refs:
-  components: [ActionIdComponent, ActionAPCostComponent, ActionResourcePriceComponent, ActionTurnLeftComponent]
+  components: [ActionIdComponent, ActionIdAllocatorComponent, ActionAPCostComponent, ActionResourcePriceComponent, ActionTurnLeftComponent]
   tags:       [BuildDistrictActionTag, ActionCompleteTag]
+  events:     [BuildDistrictActionDraftRequestedEvent, BuildDistrictActionDiscardRequestedEvent, BuildDistrictActionSnapshotRequestedEvent]
+  systems:    [BuildDistrictDraftSpawnSystem, BuildDistrictDraftDiscardSystem, BuildDistrictActionSnapshotSystem]
 ---
 
 # Build District Action
@@ -19,45 +23,48 @@ The owner-scoped **build verb**: turns an owner's confirmed choice into a live, 
 ticks each turn, completes, and applies the district's outcome.
 
 ## Purpose
-This IS the reason the cost and outcome catalogues are READ here but OWNED by `Economy`. `Economy` holds the
-owner-agnostic district vocabulary (placement, unlock, cost, outcome — all keyed by `DistrictType`, none
-knowing about an owner); this verb is the owner-scoped orchestration that consumes it: it reads the cost, spends
-a specific owner's resources, ticks turns down, and joins the outcome catalogue on completion. Orchestration,
-not vocabulary — the standing `Actions` rule (`ACTIONS.md`: verbs/orchestration here, mechanics in the domains).
+`Economy` owns the owner-agnostic district vocabulary (placement, unlock, cost, outcome — all keyed by
+`DistrictType`, none knowing about an owner). This verb is the owner-scoped orchestration that CONSUMES it: it
+reads the cost, spends a specific owner's resources, ticks turns down, and joins the outcome catalogue on
+completion. Orchestration, not vocabulary — the standing `Actions` rule (`ACTIONS.md`).
 
 ## Current State
-PARTIAL — **DATA STRUCTURES ONLY, no systems yet.** The sub-domain ships the action's live-lifecycle
-components/tags and nothing else. There is no draft/commit/tick/complete system, no spending, no outcome apply.
+PARTIAL, and deliberately **technical, not a usable feature yet** — the Actions-side mechanic is being built
+ahead of the UI that will drive it. **The DistrictBuild UI (window + the raise-sites that fire these events) is a
+SEPARATE task** (see the plan). Until it lands everything here is **dormant**: the systems are registered in
+`ActionsInstaller` but the events that trigger them are never raised, and they are not yet composed into `Boot`'s
+Gameplay loop.
 
-Implemented (data only):
-- `ActionIdComponent` — PK; `{ int Value }`, `IEquatable`. (Shared action key space — keeps the `Action`
-  concept prefix, the FK/PK naming exception. ID **allocation** is a future system concern; here just the type.)
-- `BuildDistrictActionTag` — discriminator ("this row is a build-district action").
-- `ActionAPCostComponent` — `{ int }` AP price snapshot.
-- `ActionResourcePriceComponent` — **zero-alloc** fixed inline struct: 7 named `ResourceComponent` slots +
-  `Count` (used slots) + a `this[int]` indexer. No lists/arrays — the zero-alloc translation of the config's
-  `List<ResourceComponent> DistrictPrices`.
-- `ActionTurnLeftComponent` — `{ int }` turns remaining until finished.
-- `ActionCompleteTag` — "completed; apply the outcome now".
+Built (Actions-side, dormant):
+- **Draft lifecycle** — `BuildDistrictDraftSpawnSystem` reconciles to exactly one draft (allocates the
+  `ActionIdComponent` PK via the `ActionIdAllocatorComponent` world singleton, sets `BuildDistrictActionTag`) on a
+  draft-requested pulse; `BuildDistrictDraftDiscardSystem` disposes it on a discard-requested pulse. Reactive
+  (`PATTERN_REACTIVE_SYSTEM`), one event each — the create/destroy split.
+- **Snapshot** — `BuildDistrictActionSnapshotSystem` reacts to `BuildDistrictActionSnapshotRequestedEvent`
+  (payload: `DistrictType` + target `HexIdComponent`) and writes onto the draft: `DistrictTypeComponent`,
+  `HexIdComponent` (FK), and the frozen cost — `ActionAPCostComponent` + `ActionResourcePriceComponent` joined
+  from `DistrictBuildCostsConfig` (Economy) by `DistrictType`. Fails loud on no draft / no catalogue / unknown
+  district.
 
-## Planned Lifecycle (FUTURE — systems not built)
-Draft → edit → commit / discard → tick → complete. The **mechanic lives in this Actions domain**, not in the
-DistrictBuild view (`ACTIONS.md`); the UI only orchestrates.
-- **Draft** — a draft action entity is born when the DistrictBuild window opens (Set `ActionIdComponent` +
-  `BuildDistrictActionTag`).
-- **Edit** — as the player picks district / hex / owner, the DistrictBuild view-subsystems `Set` their own FK
-  components on the draft and **snapshot** the cost from `DistrictBuildCostsConfig` (Economy, joined by
-  `DistrictType`) into `ActionAPCostComponent` + `ActionResourcePriceComponent`.
-- **Commit** — on confirm, an Actions verb system validates affordability, deducts AP + resources from the
-  owner's inventory (math stays owner-agnostic in Economy, sequencing here), and seeds `ActionTurnLeftComponent`
-  from the config's `TurnsToBuild`.
-- **Discard** — on close without confirm, the draft entity is disposed.
-- **Tick + complete** — an Actions `TurnPhaseSubSystem` decrements `ActionTurnLeftComponent` each turn; at zero
-  it Sets `ActionCompleteTag`. On completion the action's `DistrictType` **joins** the `DistrictBuildOutcome`
-  table (Economy) and the matching outcome runs (first: spawn City Center).
+Not built: commit (spend AP+resources, seed `ActionTurnLeftComponent`), tick+complete (`ActionCompleteTag`),
+apply-outcome (join `DistrictBuildOutcome`, spawn City Center). See the plan's remaining steps.
 
-## Future Archetype (assembled once the lifecycle systems land)
-`ActionIdComponent` (PK) + `BuildDistrictActionTag` (discriminator) + `HexIdComponent` (FK) +
-`DistrictTypeComponent` (FK) + owner-FK (City/Mayor/Noble id) + `ActionAPCostComponent` +
-`ActionResourcePriceComponent` + `ActionTurnLeftComponent` [+ `ActionCompleteTag` when done]. Refresh the
-ecs-graph when this materializes in code.
+## Public Contract & Gotchas
+- **Actions-owned trigger events, raised by the UI.** `Domains.Actions` does NOT reference `Presentation.UI`, so
+  the lifecycle triggers are Actions-owned events (`Events/`); the UI (which references Actions) raises them. The
+  snapshot event carries a small identifying payload (`DistrictType` + `HexIdComponent`) because the player's
+  choice originates in UI/selection state Actions cannot read — the `PATTERN_EVENT` tolerated-payload case.
+- **Actions references `Domains.Map`** (asmdef) so the draft carries the real `HexIdComponent` FK (the hex
+  entity's PK). That makes the draft natively joinable to the hex table (`AsMap<HexIdComponent>`) at apply time; a
+  bare coordinate would not join. No cycle — `Economy` already references `Map`. (`DistrictType` is likewise the
+  join key into the Economy catalogues.)
+- **One draft at a time.** The draft is a singleton — spawn guards on the current draft set, discard disposes it.
+  Priorities: spawn 560, discard 561, snapshot 563 (all before `EventCleanupSystem`).
+- **The cost is a frozen snapshot**, not a live read — the draft is a durable pending record; snapshotting at edit
+  time isolates it from later config changes and enables refund-on-discard down the line.
+
+## Full Archetype (assembled once commit/tick land)
+`ActionIdComponent` (PK) + `BuildDistrictActionTag` (discriminator) + `DistrictTypeComponent` (FK) +
+`HexIdComponent` (FK) + owner-FK (`CityIdComponent`/`MayorIdComponent`, added at commit) + `ActionAPCostComponent`
++ `ActionResourcePriceComponent` + `ActionTurnLeftComponent` [+ `ActionCompleteTag` when done]. Refresh the
+ecs-graph as each piece materializes.

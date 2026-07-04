@@ -22,6 +22,7 @@ namespace Domains.Actions.Installer
 
             builder.Register<BuildDistrictDraftSpawnSystem>(Lifetime.Singleton);
             builder.Register<BuildDistrictDraftDiscardSystem>(Lifetime.Singleton);
+            builder.Register<BuildDistrictActionSnapshotSystem>(Lifetime.Singleton);
         }
     }
 }
