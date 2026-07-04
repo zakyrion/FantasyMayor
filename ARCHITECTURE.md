@@ -214,9 +214,10 @@ Role invariants (policy — hold regardless of the template you follow):
 - Naming: orchestrators and stages are named `…System`, subsystems `…SubSystem`. Reactive systems carry
   intent names (`ForestSpawnSystem`, `HexIconsVisibilitySystem`) — there is no mandated
   `…ReactiveSystem` suffix.
-- Type names never repeat their owning **domain** — the namespace carries it (`GenerationSystem`, not
-  `MapGenerationSystem`). Full rule + exceptions (FK/PK identity components, DI installers):
-  `ECS_CONVENTIONS.md` → Naming & Construction.
+- Type names are **self-sufficient** — clear without namespace qualification (C#/.NET FDG), so the feature
+  name is repeated, not stripped (`BuildDistrictCostConfig`, never a bare `Config`); only a pure
+  non-disambiguating **domain** prefix is dropped (`GenerationSystem`, not `MapGenerationSystem`). Full
+  rule + exceptions (FK/PK identity components, DI installers): `ECS_CONVENTIONS.md` → Naming & Construction.
 
 **Turn pipeline (module `Turn`) — same roles, different scope.** The Orchestrator/SubSystem roles are
 reused for turn processing, but turn-scoped (re-run every turn on a `NextTurnEvent` pulse) and executed

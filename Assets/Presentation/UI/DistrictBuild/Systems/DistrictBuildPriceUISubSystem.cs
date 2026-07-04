@@ -1,7 +1,5 @@
 ﻿using System;
 using DefaultEcs;
-using Domains.Actions.Components;
-using Domains.Actions.Configs;
 using Domains.Actors.City.Components;
 using Domains.Actors.Components;
 using Domains.Actors.Mayor.Components;
@@ -14,6 +12,8 @@ using Presentation.UI.DistrictBuild.Components;
 using Presentation.UI.DistrictBuild.Data;
 using Presentation.UI.DistrictBuild.Views;
 using UnityEngine;
+using Domains.Economy.DistrictBuildCost.Configs;
+using Domains.Economy.DistrictBuildCost.Components;
 
 namespace Presentation.UI.DistrictBuild.Systems
 {
@@ -105,10 +105,10 @@ namespace Presentation.UI.DistrictBuild.Systems
                     $"is {DistrictType.Unknown} — the selection must be a real district or {nameof(DistrictType.None)}, " +
                     "never the error marker.");
 
-            if (type == DistrictType.None || !World.Has<DistrictsBuildCostConfigComponent>())
+            if (type == DistrictType.None || !World.Has<DistrictBuildCostsConfigComponent>())
                 return false;
 
-            var entries = World.Get<DistrictsBuildCostConfigComponent>().Value?.Districts;
+            var entries = World.Get<DistrictBuildCostsConfigComponent>().Value?.Districts;
             if (entries == null)
                 return false;
 

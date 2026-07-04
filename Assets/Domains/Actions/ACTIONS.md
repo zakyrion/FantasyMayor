@@ -10,11 +10,12 @@ related:
   - "[GAMEPLAY_FOUNDATION](../../../GAMEPLAY_FOUNDATION.md)"
   - "[ECONOMY](../Economy/ECONOMY.md)"
   - "[ACTORS](../Actors/ACTORS.md)"
-  - "[DISTRICT_BUILD_COST](DISTRICT_BUILD_COST.md)"
+  - "[BUILD_DISTRICT_COST](BuildDistrictCost/BUILD_DISTRICT_COST.md)"
   - "[TURN_PHASES](TURN_PHASES.md)"
 status: partial
 code_refs:
-  installers: [ActionsInstaller]
+  installers:
+    - ActionsInstaller
 ---
 
 # Actions
@@ -47,10 +48,15 @@ Planned content (rest pending):
   phase subsystems; Actions provides the phase content, `Turn` runs it.
 
 ## Current State
-PARTIAL. Two feature-areas have landed — each documented in its own file:
-- **District-build cost config** → [DISTRICT_BUILD_COST.md](DISTRICT_BUILD_COST.md) — the build verb's
-  per-district cost catalogue (loaded at `ConfigLoadStep`, read by the UI; no verb spends it yet).
-- **Turn phases** → [TURN_PHASES.md](TURN_PHASES.md) — the Mayor AP-restore phase.
+
+PARTIAL. The domain is organized into per-feature **sub-domains** (folder = namespace segment):
+- **`BuildDistrictCost/`** → [BUILD_DISTRICT_COST.md](BuildDistrictCost/BUILD_DISTRICT_COST.md) — the build
+  verb's per-district AP + resource cost catalogue (loaded at `ConfigLoadStep`, read by the UI; no verb
+  spends it yet).
+- **`BuildDistrictAction/`** — seed only (`BuildDistrictActionConfig` stub); the live build-verb lifecycle
+  is not built yet (see [DISTRICT_BUILD_ACTION_PLAN.md](../../../DISTRICT_BUILD_ACTION_PLAN.md)).
+- **Turn phases** → [TURN_PHASES.md](TURN_PHASES.md) — the Mayor AP-restore phase (`MayorAPRestoreSubSystem`,
+  still in `Systems/`; not promoted to its own sub-domain until a second related phase lands).
 
 Still scaffold: Mayor/Noble verbs, cross-domain turn scenarios (upkeep arithmetic, resolution, yield
 split), and the other turn phases.

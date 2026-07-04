@@ -4,7 +4,7 @@ read: reference
 tags: [economy, district, config, ecs]
 related:
   - "[ECONOMY](../ECONOMY.md)"
-  - "[DISTRICT_BUILD_COST](../../Actions/DISTRICT_BUILD_COST.md)"
+  - "[BUILD_DISTRICT_COST](../../Actions/BuildDistrictCost/BUILD_DISTRICT_COST.md)"
   - "[DISTRICT_BUILD](../../../Presentation/UI/DistrictBuild/DISTRICT_BUILD.md)"
   - "[PATTERN_CONFIG](../../../../Patterns/PATTERN_CONFIG.md)"
   - "[PATTERN_CONFIG_LOADER](../../../../Patterns/PATTERN_CONFIG_LOADER.md)"

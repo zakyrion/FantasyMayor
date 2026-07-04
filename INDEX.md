@@ -13,7 +13,7 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 49 docs — 3 always · 15 trigger · 31 reference · 4 canvas.
+Totals: 49 docs — 3 always · 15 trigger · 31 reference · 3 canvas.
 
 ## Read at start (always)
 
@@ -52,7 +52,7 @@ Per-module navigation docs. `status` mirrors each module's `## Current State`.
 | Doc | Cat | Status | What it is |
 |---|---|---|---|
 | [Actions](Assets/Domains/Actions/ACTIONS.md) | A | partial | The application / orchestration layer: actor verbs and cross-domain turn processing. Depends on both |
-| [District Build Cost](Assets/Domains/Actions/DISTRICT_BUILD_COST.md) | A | partial | The district-build **cost** config flow: the Actions domain owns the per-district AP + resource price |
+| [Build District Cost](Assets/Domains/Actions/BuildDistrictCost/BUILD_DISTRICT_COST.md) | A | partial | The district-build **cost** config flow: the Actions domain owns the per-district AP + resource price |
 | [Turn Phases](Assets/Domains/Actions/TURN_PHASES.md) | A | partial | The Actions domain's turn-phase subsystems: phase **content** that plugs into the `Turn` engine. |
 | [Actors](Assets/Domains/Actors/ACTORS.md) | A | partial | Game-rule domain owning actor identities **and their startup composition**. First domain under |
 | [District Open Conditions](Assets/Domains/Economy/DistrictOpenCondition/DISTRICT_OPEN_CONDITION.md) | A | partial | The district-build **unlock** rules ("how to unblock building of a district type"), authored as a polymorphic |
@@ -91,7 +91,6 @@ Visual maps (Obsidian Canvas). Read/edit via Obsidian MCP; not preloaded.
 |---|---|
 | [DISTRICT_BUILDING_UI](DISTRICT_BUILDING_UI.canvas) | DistrictBuildUISystem |
 | [ECONOMY_ACTORS](ECONOMY_ACTORS.canvas) | Ownables — each carries one OwnerFK + a Tag · My domain view · Owners — actors with an Id used as OwnerFK · Resource… |
-| [ENTITIES](ENTITIES.canvas) | Tables (N rows) · Singletons (one row) · District configs |
 | [WORK](WORK.canvas) | HexIdComponent (FK) |
 
 <!-- END GENERATED — content below is the agent zone (pass 2), preserved across runs -->

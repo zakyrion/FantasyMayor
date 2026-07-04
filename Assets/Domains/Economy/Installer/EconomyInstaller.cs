@@ -1,5 +1,7 @@
 using DefaultECSExtensions;
 using Domains.Economy.District.Systems;
+using Domains.Economy.DistrictBuildCost.Systems;
+using Domains.Economy.DistrictBuildOutcome.Systems;
 using Domains.Economy.DistrictOpenCondition.Systems;
 using Modules.Boot.Core;
 using Modules.Turn.Systems;
@@ -17,6 +19,18 @@ namespace Domains.Economy.Installer
         {
             builder.Register<DistrictsBuildConfigLoaderSystem>(Lifetime.Singleton)
                 .As<DistrictsBuildConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
+
+            builder.Register<DistrictBuildCostsConfigLoaderSystem>(Lifetime.Singleton)
+                .As<DistrictBuildCostsConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
+
+            builder.Register<DistrictBuildOutcomesConfigLoaderSystem>(Lifetime.Singleton)
+                .As<DistrictBuildOutcomesConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
+
+            builder.Register<DistrictBuildOutcomeSpawnSystem>(Lifetime.Singleton)
+                .As<DistrictBuildOutcomeSpawnSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
+
+            builder.Register<SpawnCityCenterOutcomeSubSystem>(Lifetime.Singleton)
+                .As<SpawnCityCenterOutcomeSubSystem, DistrictBuildOutcomeSpawnSubSystem>();
 
             builder.Register<DistrictOpenConditionsConfigLoaderSystem>(Lifetime.Singleton)
                 .As<DistrictOpenConditionsConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();

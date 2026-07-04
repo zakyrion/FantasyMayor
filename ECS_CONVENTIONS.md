@@ -88,12 +88,18 @@ when designing or reviewing any system.
 
   Pre-existing `…EventComponent` names (e.g. `TerrainGenerationGenerateEventComponent`) predate this rule;
   they stay until a deliberate rename, but new events use the `…Event` suffix.
-- **No domain-name prefix.** A type MUST NOT carry its owning **domain** as a name prefix — the namespace
-  already carries it (`Domains.[Domain].[Feature].*`). Name for concept + role, not location: under
-  `Domains.Map.Generation.*` a system is `GenerationSystem`, **not** `MapGenerationSystem`; the reference
-  model is `DistrictOpenConditionConfig` (`Domains.Economy.*`, carries no `Economy`). Repeating the
-  **feature** name is expected — that is how a feature's types cohere (`DistrictOpenConditionConfig`,
-  `DistrictOpenConditionEvaluatorSystem`).
+- **Self-sufficient names (C# / .NET Framework Design Guidelines).** The simple type name must read clearly
+  on its own, **without** leaning on the namespace to disambiguate — this is a C# codebase and follows the
+  FDG, **not** Go's "avoid stutter". Two consequences:
+  - **Repeat the feature name — required, not merely tolerated.** `BuildDistrictCostConfig`, never a bare
+    `CostConfig` / `Config` that would collide with a sibling feature's type. Accept the length (and the
+    stutter in the fully-qualified name) — clarity at the use site wins. **Never** push disambiguation onto
+    a `using` alias or a namespace qualifier. Repeating the **feature** name is how a feature's types cohere
+    (`DistrictOpenConditionConfig`, `DistrictOpenConditionEvaluatorSystem`).
+  - **Strip only a pure domain prefix that adds no clarity** — exactly as .NET itself does (`System.IO.File`,
+    not `IOFile`): under `Domains.Map.Generation.*` a system is `GenerationSystem`, **not**
+    `MapGenerationSystem`; the reference model is `DistrictOpenConditionConfig` (`Domains.Economy.*`, carries
+    no `Economy`). If stripping the domain would make the name ambiguous, keep enough to stay self-sufficient.
   **Exceptions** — a name may carry a token that collides with a domain when it is:
   (1) an **FK/PK identity component** or **Table-Rule discriminator** — a stable relational identifier
   referenced across domains (`DistrictTypeComponent`, `HexIdComponent`, `ActorTypeComponent`, and the shared

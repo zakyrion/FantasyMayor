@@ -7,7 +7,7 @@ related:
   - "[TURN](../../Modules/Turn/TURN.md)"
 status: partial
 code_refs:
-  systems: [MayorActionPointsRestoreSubSystem, TurnProcessorSystem]
+  systems: [MayorAPRestoreSubSystem, TurnProcessorSystem]
 ---
 
 # Turn Phases
@@ -21,7 +21,7 @@ Per the domain's "turn engine reuse" decision (`ACTIONS.md`), Actions does not r
 and how they are collected: `mcp__di-graph__installer_registrations ActionsInstaller`.)
 
 ## Public Contract & Gotchas
-- **AP restore is a SET, not an accumulate.** `MayorActionPointsRestoreSubSystem` resets every Mayor's
+- **AP restore is a SET, not an accumulate.** `MayorAPRestoreSubSystem` resets every Mayor's
   live `ActionPoint` resource stack to the Mayor's per-turn restore value at the start of each new turn.
   Action Points do **not** carry over between turns, so the phase overwrites the stack to full — it does
   not add to it.
@@ -32,6 +32,6 @@ and how they are collected: `mcp__di-graph__installer_registrations ActionsInsta
   any player-action phase would spend it (spending phases are not built yet).
 
 ## Current State
-PARTIAL. `MayorActionPointsRestoreSubSystem` is implemented and wired. The other turn phases
+PARTIAL. `MayorAPRestoreSubSystem` is implemented and wired. The other turn phases
 (cross-domain upkeep arithmetic, resolution, yield split) are scaffold. AP **spending** mechanics do not
 exist yet — only restore.

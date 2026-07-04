@@ -15,6 +15,11 @@ MonoBehaviour:
   m_GroupName: Districts
   m_GUID: 59a9e40e14cb7476c8c3e0b35c0aeb68
   m_SerializeEntries:
+  - m_GUID: 1cc48c764c4f6413fba9e062332fa06f
+    m_Address: DistrictBuildCostsConfig
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 345491d4b0e1b400d9c9586f2f7d9054
     m_Address: DistrictsBuildConfig
     m_ReadOnly: 0
@@ -22,6 +27,11 @@ MonoBehaviour:
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 507d84c712b2a43ac8bae5170143f771
     m_Address: DistrictOpenConditionsConfig
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: 6a9c8d222fb4748828efb1c9700b238b
+    m_Address: BuildDistrictOutcomesConfig
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
