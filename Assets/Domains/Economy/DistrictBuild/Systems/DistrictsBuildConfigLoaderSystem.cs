@@ -6,6 +6,7 @@ using DefaultEcs;
 using DefaultECSExtensions;
 using Domains.Economy.DistrictBuild.Components;
 using Domains.Economy.DistrictBuild.Configs;
+using Domains.Kernel.Data;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 
@@ -54,9 +55,16 @@ namespace Domains.Economy.DistrictBuild.Systems
 
             for (var index = 0; index < config.Districts.Length; index++)
             {
-                if (config.Districts[index] == null)
+                var district = config.Districts[index];
+
+                if (district == null)
                     throw new InvalidOperationException(
                         $"DistrictsBuildConfig: district entry at index {index} is null.");
+
+                if (district.AllowedOwners == ActorType.Unknown)
+                    throw new InvalidOperationException(
+                        $"DistrictsBuildConfig: district '{district.DistrictType}' at index {index} " +
+                        "has no allowed owners (AllowedOwners is Unknown).");
             }
         }
     }

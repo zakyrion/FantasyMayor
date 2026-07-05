@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Domains.Economy.District.Data;
+using Domains.Kernel.Data;
 using Domains.Map.Hex.Data;
 using Domains.Map.HexResources.Data;
 using UnityEngine;
@@ -13,6 +14,8 @@ namespace Domains.Economy.DistrictBuild.Configs
         [SerializeField]
         private DistrictType _districtType;
         [SerializeField]
+        private ActorType _allowedOwners;
+        [SerializeField]
         private List<HexType> _impossibleToBuildTypes;
         [SerializeField]
         private HexResourceType _requiredHexResourceType;
@@ -20,6 +23,7 @@ namespace Domains.Economy.DistrictBuild.Configs
         private bool _needEmptyHexResourcesToBuild;
 
         public DistrictType DistrictType => _districtType;
+        public ActorType AllowedOwners => _allowedOwners;
         public List<HexType> ImpossibleToBuildTypes => _impossibleToBuildTypes;
         public HexResourceType RequiredHexResourceType => _requiredHexResourceType;
         public bool NeedEmptyHexResourcesToBuild => _needEmptyHexResourcesToBuild;
