@@ -17,6 +17,9 @@ status: partial
 code_refs:
   installers:
     - ActionsInstaller
+  components:
+    - ActionIdComponent
+    - ActionIdAllocatorComponent
 ---
 
 # Actions
@@ -52,11 +55,14 @@ Planned content (rest pending):
 
 PARTIAL. The domain is organized into per-feature **sub-domains** (folder = namespace segment):
 - **`BuildDistrictAction/`** → [BUILD_DISTRICT_ACTION.md](BuildDistrictAction/BUILD_DISTRICT_ACTION.md) — the
-  owner-scoped build **verb**. Draft→snapshot→commit are built and registered in `ActionsInstaller`, but
-  dormant (no UI raises the events yet, not composed into Boot's Gameplay loop); tick→complete and
-  apply-outcome are not built. See that doc's Current State for the exact built/not-built split.
-- **`ResourceSpend/`** — the owner-scoped resource/AP spend mechanic the commit step calls
-  (`ResourceSpender` + per-owner subsystems); consumed by `BuildDistrictAction`, not yet its own doc.
+  owner-scoped build **verb**. The earlier draft→snapshot→commit implementation (plus the `ResourceSpend/`
+  resource-spend mechanic it called) was judged badly-done and rolled back to a bare scaffold — it is being
+  rebuilt in small ECS steps, one mechanic at a time, instead of all at once. See that doc's Current State
+  for what remains.
+- **Shared Actions identity** — `Components/` holds `ActionIdComponent` (PK) + `ActionIdAllocatorComponent`
+  (world-singleton allocator), the generic action-identity scaffold meant for any action verb, not owned by
+  `BuildDistrictAction`. Kept through the rollback as the one useful piece of that code; currently dormant —
+  nothing writes or reads them yet.
 - **Turn phases** → [TURN_PHASES.md](TURN_PHASES.md) — the Mayor AP-restore phase (`MayorAPRestoreSubSystem`,
   still in `Systems/`; not promoted to its own sub-domain until a second related phase lands).
 
@@ -64,7 +70,8 @@ PARTIAL. The domain is organized into per-feature **sub-domains** (folder = name
 (`DistrictBuildCost` → [BUILD_DISTRICT_COST.md](../Economy/DistrictBuildCost/BUILD_DISTRICT_COST.md)) and the
 **outcome** catalogue (`DistrictBuildOutcome` → [BUILD_DISTRICT_OUTCOME.md](../Economy/DistrictBuildOutcome/BUILD_DISTRICT_OUTCOME.md))
 are owner-agnostic district vocabulary; they moved to `Economy` beside `DistrictOpenCondition`. The
-`BuildDistrictAction` verb READS them (cost on commit, outcome on completion) but does not own them.
+`BuildDistrictAction` verb, once rebuilt, reads them (cost on commit, outcome on completion) but does not
+own them.
 
 Still scaffold: Mayor/Noble verbs, cross-domain turn scenarios (upkeep arithmetic, resolution, yield
 split), and the other turn phases.
