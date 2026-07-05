@@ -45,7 +45,9 @@ loadouts it depends on `Economy` (`Actors → Economy`); see Design Decisions.
   *(The discriminator is `ActorTypeComponent` carrying the `ActorType` enum — it superseded the earlier
   planned `CityTag` / `MayorTag` tags.)*
 - `Actors → Economy`, never the reverse. Actors depends on Economy's owner-agnostic substrate
-  (`ResourceComponent`, `ResourceType`, the generic `ResourceLoadoutSpawner`) to attach loadouts.
+  (`ResourceAmount`, `ResourceType`, the generic `ResourceLoadoutSpawner`) to attach loadouts —
+  `ResourceAmount` is the authored/value alias (config loadout entries); the entity-state component
+  `ResourceComponent` is Economy-internal and never crosses into Actors' config types.
   Owner-keyed logic (which actor owns which stacks) lives HERE, not in Economy — the invariant that
   keeps the DAG acyclic.
 

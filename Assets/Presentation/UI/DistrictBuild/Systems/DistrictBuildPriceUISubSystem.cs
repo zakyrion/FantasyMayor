@@ -39,7 +39,7 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public DistrictBuildPriceUISubSystem(World world) : base(world)
         {
-            _mayorActor = world.GetEntities().With<MayorIdComponent>().With<ActorTypeComponent>().AsSet();
+            _mayorActor = world.GetEntities().With<MayorIdComponent>().With<MayorAPComponent>().With<ActorTypeComponent>().AsSet();
             _cityActor = world.GetEntities().With<CityIdComponent>().With<ActorTypeComponent>().AsSet();
             _mayorResources = world.GetEntities()
                 .With<MayorIdComponent>().With<ResourceTag>().AsMultiMap<MayorIdComponent>();
@@ -81,7 +81,8 @@ namespace Presentation.UI.DistrictBuild.Systems
                 return;
             }
 
-            view.SetAp(cost.ApPrice, AmountOf(Payer.Mayor, ResourceType.ActionPoint));
+            var ap = _mayorActor.GetEntities()[0].Get<MayorIdComponent>().Value;
+            view.SetAp(cost.ApPrice, ap);
 
             view.ClearCosts();
             var prices = cost.DistrictPrices;

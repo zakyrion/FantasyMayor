@@ -1,5 +1,5 @@
 using Domains.Actors.Mayor.Configs;
-using Domains.Economy.Resource.Components;
+using Domains.Economy.Resource.Data;
 
 namespace Domains.Actors.Mayor.Components
 {
@@ -11,15 +11,14 @@ namespace Domains.Actors.Mayor.Components
     // The array is copied out of the SO so the loader can release the addressable after flattening.
     public struct MayorConfigComponent
     {
-        public ResourceComponent[] Resources;
+        public ResourceAmount[] Resources;
         public int StartActionPoints;
 
         public static MayorConfigComponent FromConfig(MayorConfig config)
         {
             return new MayorConfigComponent
             {
-                Resources = (ResourceComponent[])config.Resources.Clone(),
-                StartActionPoints = config.StartActionPoints
+                Resources = (ResourceAmount[])config.Resources.Clone()
             };
         }
     }

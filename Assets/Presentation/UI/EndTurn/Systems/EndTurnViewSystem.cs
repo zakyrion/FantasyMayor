@@ -3,7 +3,6 @@ using DefaultEcs;
 using DefaultECSExtensions;
 using Domains.Actors.Mayor.Components;
 using Domains.Economy.Resource.Components;
-using Domains.Economy.Resource.Data;
 using Domains.Economy.Resource.Tags;
 using JetBrains.Annotations;
 using Modules.Turn.Components;
@@ -26,13 +25,13 @@ namespace Presentation.UI.EndTurn.Systems
     public sealed class EndTurnViewSystem : UpdatedSystem
     {
         private const int ExecutionPriority = 560;
-
-        private readonly World _world;
+        private readonly EntityMultiMap<MayorIdComponent> _mayorResources;
 
         // Declarative query caches (self-maintaining views, not system state): the single Mayor row carrying a
         // restore rule, and the Mayor-owned resource stacks indexed by the owner FK (Table Rule).
         private readonly EntitySet _mayors;
-        private readonly EntityMultiMap<MayorIdComponent> _mayorResources;
+
+        private readonly World _world;
 
         public override int Priority => ExecutionPriority;
 
@@ -69,6 +68,19 @@ namespace Presentation.UI.EndTurn.Systems
             base.Dispose();
         }
 
+        private static bool TryGetActionPoints(ReadOnlySpan<Entity> stacks, out int amount)
+        {
+            foreach (var stack in stacks)
+            {
+                var resource = stack.Get<ResourceComponent>();
+                amount = resource.Amount;
+                return true;
+            }
+
+            amount = 0;
+            return false;
+        }
+
         // Always exactly one Mayor: «НАСТ. ХІД» = MayorAPRestoreComponent.Value, «ДІЇ ЗАРАЗ» = the live
         // ActionPoint stack Amount. Fail-loud if the Mayor or its AP stack is unseeded (MayorSpawnSystem owns it).
         private void PushActionPoints(EndTurnView view)
@@ -92,22 +104,6 @@ namespace Presentation.UI.EndTurn.Systems
 
             view.SetActionPointsCurrent(current);
             view.SetActionPointsNext(next);
-        }
-
-        private static bool TryGetActionPoints(ReadOnlySpan<Entity> stacks, out int amount)
-        {
-            foreach (var stack in stacks)
-            {
-                var resource = stack.Get<ResourceComponent>();
-                if (resource.Type != ResourceType.ActionPoint)
-                    continue;
-
-                amount = resource.Amount;
-                return true;
-            }
-
-            amount = 0;
-            return false;
         }
     }
 }

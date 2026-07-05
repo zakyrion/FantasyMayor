@@ -14,13 +14,13 @@ namespace Domains.Economy.Resource.Helpers
     public static class ResourceLoadoutSpawner
     {
         public static void SpawnLoadout<TOwnerId>(World world, in TOwnerId owner,
-            ReadOnlySpan<ResourceComponent> startingAmounts = default) where TOwnerId : struct
+            ReadOnlySpan<ResourceAmount> startingAmounts = default) where TOwnerId : struct
         {
             foreach (ResourceType type in Enum.GetValues(typeof(ResourceType)))
             {
                 // ActionPoint is NOT part of the generic inventory loadout: only AP owners (Mayor, later
                 // Important Citizens) hold an AP stack, seeded explicitly via SpawnResource. The City has none.
-                if (type == ResourceType.Unknown || type == ResourceType.ActionPoint)
+                if (type == ResourceType.Unknown)
                     continue;
 
                 SpawnResource(world, owner, type, AmountFor(type, startingAmounts));
@@ -38,7 +38,7 @@ namespace Domains.Economy.Resource.Helpers
             entity.Set(new ResourceTag());
         }
 
-        private static int AmountFor(ResourceType type, ReadOnlySpan<ResourceComponent> startingAmounts)
+        private static int AmountFor(ResourceType type, ReadOnlySpan<ResourceAmount> startingAmounts)
         {
             foreach (var entry in startingAmounts)
                 if (entry.Type == type)

@@ -13,7 +13,7 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 51 docs — 2 always · 16 trigger · 33 reference · 3 canvas.
+Totals: 50 docs — 2 always · 16 trigger · 32 reference · 3 canvas.
 
 ## Read at start (always)
 
@@ -83,7 +83,6 @@ Per-module navigation docs. `status` mirrors each module's `## Current State`.
 | [Hex Info Panel — Context Sub-Panel](Assets/Presentation/UI/HexInfoPanel/HEX_INFO_PANEL.md) | A | partial | The read-only **CONTEXT sub-panel** (right) of the shared bottom panel: everything known about the currently |
 | [MainUI](Assets/Presentation/UI/MAIN_UI.md) | A | partial | The **`Presentation.UI` assembly** (`Assets/Presentation/UI/`, namespaces `Presentation.UI.*`) — the |
 | [ResourceBar](Assets/Presentation/UI/ResourceBar/RESOURCE_BAR.md) | A | partial | The **left-edge resource panel**: the two inventory pools (City / Mayor) as a vertical scroll list. The |
-| [District-Build Action — Program Plan (FM-10)](DISTRICT_BUILD_ACTION_PLAN.md) | C | — | `Economy.DistrictOpenCondition` answers "may this district type be built?"; `Economy.DistrictBuildCost` holds |
 
 ## Canvas map (on demand)
 
@@ -93,7 +92,7 @@ Visual maps (Obsidian Canvas). Read/edit via Obsidian MCP; not preloaded.
 |---|---|
 | [DISTRICT_BUILDING_UI](DISTRICT_BUILDING_UI.canvas) | DistrictBuildUISystem |
 | [ECONOMY_ACTORS](ECONOMY_ACTORS.canvas) | Ownables — each carries one OwnerFK + a Tag · My domain view · Owners — actors with an Id used as OwnerFK · Resource… |
-| [WORK](WORK.canvas) | HexIdComponent (FK) |
+| [WORK](WORK.canvas) | ActionTurnLeftComponent |
 
 <!-- END GENERATED — content below is the agent zone (pass 2), preserved across runs -->
 

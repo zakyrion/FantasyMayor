@@ -3,6 +3,7 @@ using DefaultECSExtensions;
 using Domains.Actions.BuildDistrictAction.Components;
 using Domains.Actions.BuildDistrictAction.Events;
 using Domains.Actions.BuildDistrictAction.Tags;
+using Domains.Actions.Components;
 using JetBrains.Annotations;
 
 namespace Domains.Actions.BuildDistrictAction.Systems

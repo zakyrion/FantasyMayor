@@ -6,7 +6,6 @@ using DefaultECSExtensions;
 using Domains.Actors.Components;
 using Domains.Actors.Data;
 using Domains.Actors.Mayor.Components;
-using Domains.Economy.Resource.Data;
 using Domains.Economy.Resource.Helpers;
 using JetBrains.Annotations;
 using Modules.Boot.Core;
@@ -59,10 +58,9 @@ namespace Domains.Actors.Mayor.Systems
             mayor.Set(mayorIdComponent);
             mayor.Set(new ActorTypeComponent { Type = ActorType.Mayor });
             mayor.Set(new MayorAPRestoreComponent { Value = config.StartActionPoints });
+            mayor.Set(new MayorAPComponent { Value = config.StartActionPoints });
 
             ResourceLoadoutSpawner.SpawnLoadout(_world, mayorIdComponent, config.Resources);
-            ResourceLoadoutSpawner.SpawnResource(_world, mayorIdComponent, ResourceType.ActionPoint,
-                config.StartActionPoints);
 
             return UniTask.CompletedTask;
         }

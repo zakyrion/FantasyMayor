@@ -1,4 +1,4 @@
-using Domains.Economy.Resource.Components;
+using Domains.Economy.Resource.Data;
 using UnityEngine;
 
 namespace Domains.Actors.Mayor.Configs
@@ -7,11 +7,11 @@ namespace Domains.Actors.Mayor.Configs
     public class MayorConfig : ScriptableObject
     {
         [SerializeField]
-        private int _startAPCount;
+        private int _startActionPoints;
         [SerializeField]
-        private ResourceComponent[] _resources;
+        private ResourceAmount[] _resources;
 
-        public int StartActionPoints => _startAPCount;
-        public ResourceComponent[] Resources => _resources;
+        public ResourceAmount[] Resources => _resources;
+        public int StartActionPoints => _startActionPoints;
     }
 }

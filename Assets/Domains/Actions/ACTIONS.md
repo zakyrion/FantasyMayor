@@ -52,9 +52,11 @@ Planned content (rest pending):
 
 PARTIAL. The domain is organized into per-feature **sub-domains** (folder = namespace segment):
 - **`BuildDistrictAction/`** → [BUILD_DISTRICT_ACTION.md](BuildDistrictAction/BUILD_DISTRICT_ACTION.md) — the
-  owner-scoped build **verb**. DATA STRUCTURES ONLY so far (action-lifecycle components/tags); the
-  draft→commit→tick→complete systems are not built yet (see
-  [DISTRICT_BUILD_ACTION_PLAN.md](../../../DISTRICT_BUILD_ACTION_PLAN.md)).
+  owner-scoped build **verb**. Draft→snapshot→commit are built and registered in `ActionsInstaller`, but
+  dormant (no UI raises the events yet, not composed into Boot's Gameplay loop); tick→complete and
+  apply-outcome are not built. See that doc's Current State for the exact built/not-built split.
+- **`ResourceSpend/`** — the owner-scoped resource/AP spend mechanic the commit step calls
+  (`ResourceSpender` + per-owner subsystems); consumed by `BuildDistrictAction`, not yet its own doc.
 - **Turn phases** → [TURN_PHASES.md](TURN_PHASES.md) — the Mayor AP-restore phase (`MayorAPRestoreSubSystem`,
   still in `Systems/`; not promoted to its own sub-domain until a second related phase lands).
 

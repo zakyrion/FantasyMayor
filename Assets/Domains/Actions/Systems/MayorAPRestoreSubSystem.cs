@@ -1,11 +1,7 @@
-using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using DefaultEcs;
 using Domains.Actors.Mayor.Components;
-using Domains.Economy.Resource.Components;
-using Domains.Economy.Resource.Data;
-using Domains.Economy.Resource.Tags;
 using JetBrains.Annotations;
 using Modules.Turn.Data;
 using Modules.Turn.Systems;
@@ -25,15 +21,12 @@ namespace Domains.Actions.Systems
         // Declarative query caches (self-maintaining views, not system state): the Mayor rows that carry a
         // restore rule, and the Mayor-owned resource stacks indexed by the owner FK (Table Rule).
         private readonly EntitySet _mayors;
-        private readonly EntityMultiMap<MayorIdComponent> _mayorResources;
 
         public override int Priority => ExecutionPriority;
 
         public MayorAPRestoreSubSystem(World world)
         {
-            _mayors = world.GetEntities().With<MayorIdComponent>().With<MayorAPRestoreComponent>().AsSet();
-            _mayorResources = world.GetEntities().With<ResourceTag>().With<MayorIdComponent>()
-                .AsMultiMap<MayorIdComponent>();
+            _mayors = world.GetEntities().With<MayorIdComponent>().With<MayorAPRestoreComponent>().With<MayorAPComponent>().AsSet();
         }
 
         public override async UniTask Update(TurnPhaseStep state, CancellationToken cancellationToken)
@@ -53,32 +46,9 @@ namespace Domains.Actions.Systems
         {
             foreach (var mayor in _mayors.GetEntities())
             {
-                var id = mayor.Get<MayorIdComponent>();
                 var restore = mayor.Get<MayorAPRestoreComponent>().Value;
-
-                if (!_mayorResources.TryGetEntities(id, out var stacks))
-                    throw new InvalidOperationException(
-                        $"MayorActionPointsRestoreSubSystem: Mayor {id.Value} has no resource stacks — MayorSpawnSystem must seed them.");
-
-                if (!TrySetActionPoints(stacks, restore))
-                    throw new InvalidOperationException(
-                        $"MayorActionPointsRestoreSubSystem: Mayor {id.Value} has no ActionPoint stack — MayorSpawnSystem must seed it.");
+                mayor.Set(new MayorAPComponent { Value = restore });
             }
-        }
-
-        private static bool TrySetActionPoints(ReadOnlySpan<Entity> stacks, int amount)
-        {
-            foreach (var stack in stacks)
-            {
-                if (stack.Get<ResourceComponent>().Type != ResourceType.ActionPoint)
-                    continue;
-
-                // Publishing write (Set, never ref-mutation) so the AP stack stays reactive-observable.
-                stack.Set(new ResourceComponent { Type = ResourceType.ActionPoint, Amount = amount });
-                return true;
-            }
-
-            return false;
         }
     }
 }

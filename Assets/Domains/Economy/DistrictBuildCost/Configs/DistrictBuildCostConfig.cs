@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using Domains.Economy.District.Data;
-using Domains.Economy.Resource.Components;
+using Domains.Economy.DistrictBuildCost.Data;
 using UnityEngine;
 
 namespace Domains.Economy.DistrictBuildCost.Configs{
@@ -10,14 +10,14 @@ namespace Domains.Economy.DistrictBuildCost.Configs{
         [SerializeField]
         private DistrictType _districtType;
         [SerializeField]
-        private List<ResourceComponent> _districtPrices;
+        private List<ResourceCost> _districtPrices;
         [SerializeField]
         private int _apPrice;
         [SerializeField][Range(1,100)]
         private int _turnsToBuild;
 
         public DistrictType DistrictType => _districtType;
-        public List<ResourceComponent> DistrictPrices => _districtPrices;
+        public List<ResourceCost> DistrictPrices => _districtPrices;
         public int ApPrice => _apPrice;
         public int TurnsToBuild => _turnsToBuild;
     }

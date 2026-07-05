@@ -67,14 +67,14 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             throw new InvalidOperationException($"No DistrictBuildCost entry for district type {districtType}.");
         }
 
-        private static ActionResourcePriceComponent BuildResourcePrice(DistrictBuildCostConfig cost)
+        private static DistrictBuildCostResourcePriceComponent BuildResourcePrice(DistrictBuildCostConfig cost)
         {
             var prices = cost.DistrictPrices;
-            if (prices.Count > ActionResourcePriceComponent.Capacity)
+            if (prices.Count > DistrictBuildCostResourcePriceComponent.Capacity)
                 throw new InvalidOperationException(
-                    $"District {cost.DistrictType} lists {prices.Count} resource prices; max is {ActionResourcePriceComponent.Capacity}.");
+                    $"District {cost.DistrictType} lists {prices.Count} resource prices; max is {DistrictBuildCostResourcePriceComponent.Capacity}.");
 
-            var price = new ActionResourcePriceComponent();
+            var price = new DistrictBuildCostResourcePriceComponent();
             for (var index = 0; index < prices.Count; index++)
                 price[index] = prices[index];
             price.Count = prices.Count;

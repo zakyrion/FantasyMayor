@@ -1,4 +1,4 @@
-using Domains.Economy.Resource.Components;
+using Domains.Economy.Resource.Data;
 using UnityEngine;
 
 namespace Domains.Actors.City.Configs
@@ -7,8 +7,8 @@ namespace Domains.Actors.City.Configs
     public class CityConfig : ScriptableObject
     {
         [SerializeField]
-        private ResourceComponent[] _resources;
+        private ResourceAmount[] _resources;
 
-        public ResourceComponent[] Resources => _resources;
+        public ResourceAmount[] Resources => _resources;
     }
 }

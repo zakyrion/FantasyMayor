@@ -1,29 +1,23 @@
 using System;
-using Domains.Economy.Resource.Components;
+using Domains.Economy.DistrictBuildCost.Data;
 
-namespace Domains.Actions.BuildDistrictAction.Components
+namespace Domains.Economy.DistrictBuildCost.Components
 {
-    // Zero-allocation snapshot of a district's resource price, copied from BuildDistrictCostConfig.DistrictPrices
-    // (a List<ResourceComponent>) onto the committed build-action entity at commit (Step 4). Fixed inline slots —
-    // no managed list/array as component data (zero-allocation systems rule). Capacity = 7 = the number of
-    // spendable ResourceType members (Grain, Clay, Wood, RawMeat, RawFish, SmokedMeat, SmokedFish; ActionPoint is
-    // the separate AP cost carried by ActionAPCostComponent), so a full price always fits. Only the first `Count`
-    // slots are meaningful.
-    public struct ActionResourcePriceComponent
+    public struct DistrictBuildCostResourcePriceComponent
     {
         public const int Capacity = 7;
 
-        public ResourceComponent Price1;
-        public ResourceComponent Price2;
-        public ResourceComponent Price3;
-        public ResourceComponent Price4;
-        public ResourceComponent Price5;
-        public ResourceComponent Price6;
-        public ResourceComponent Price7;
+        public ResourceCost Price1;
+        public ResourceCost Price2;
+        public ResourceCost Price3;
+        public ResourceCost Price4;
+        public ResourceCost Price5;
+        public ResourceCost Price6;
+        public ResourceCost Price7;
 
         public int Count;
 
-        public ResourceComponent this[int index]
+        public ResourceCost this[int index]
         {
             get
             {

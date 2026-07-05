@@ -1,7 +1,10 @@
 ---
 category: A
 read: reference
-tags: [economy, ecs, domain]
+tags:
+  - economy
+  - ecs
+  - domain
 related:
   - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
   - "[ACTORS](../Actors/ACTORS.md)"
@@ -9,15 +12,18 @@ related:
   - "[BUILD_DISTRICT_COST](DistrictBuildCost/BUILD_DISTRICT_COST.md)"
   - "[BUILD_DISTRICT_OUTCOME](DistrictBuildOutcome/BUILD_DISTRICT_OUTCOME.md)"
 status: partial
-code_refs:
-  components:       [ResourceComponent, DistrictIdComponent]
-  tags:             [ResourceTag, DistrictTag]
-  world_components: [DistrictsBuildConfigComponent, DistrictIdAllocatorComponent]
-  systems:          [DistrictsBuildConfigLoaderSystem]
-  configs:          [DistrictsBuildConfig, DistrictBuildingConfig]
-  enums:            [ResourceType]
-  installers:       [EconomyInstaller]
-  helpers:          [ResourceLoadoutSpawner]
+code_refs: >-
+  {
+    "components": ["ResourceComponent", "DistrictIdComponent"],
+    "types": ["ResourceAmount"],
+    "tags": ["ResourceTag", "DistrictTag"],
+    "world_components": ["DistrictsBuildConfigComponent", "DistrictIdAllocatorComponent"],
+    "systems": ["DistrictsBuildConfigLoaderSystem"],
+    "configs": ["DistrictsBuildConfig", "DistrictBuildingConfig"],
+    "enums": ["ResourceType"],
+    "installers": ["EconomyInstaller"],
+    "helpers": ["ResourceLoadoutSpawner", "ResourceLedger"]
+  }
 ---
 
 # Economy
@@ -61,6 +67,16 @@ The owner-scoped build **verb** that reads cost/outcome lives in `Actions.BuildD
   `ResourceId`**. One stack per (owner, type).
 - A given owner's stacks are read with `With<OwnerFK>` + `With<ResourceTag>` → `AsMultiMap<OwnerFK>`,
   never a bare key (the owner id is a PK on the actor AND a FK here). See `ECS_CONVENTIONS.md` → Table Rule.
+
+- **`ResourceComponent` is entity-state ONLY — never an authored/config/value role.** It is the SoA
+  inventory-stack component living on a resource entity. Any authored quantity (a config loadout entry,
+  a spend price) uses the distinct value-alias struct `ResourceAmount` (`Domains.Economy.Resource.Data`)
+  instead — structurally identical, but a different type by role. The two are never mixed: converting
+  between them is **always an explicit field assignment at the boundary** (config→spawn, ledger deduct),
+  never a shared type or a conversion helper/operator. This is deliberate friction to keep authored data
+  from silently blending with live entity state.
+- `ResourceLedger` (`CanAfford` / `Deduct`) takes `ResourceAmount` prices and reads/writes the stack's
+  `ResourceComponent` — the same boundary rule applies at the spend site.
 
 ## Design Decisions
 - **Feature-first layout.** Economy is split by sub-system (`Resource/`, later `District/`, `Building/`),

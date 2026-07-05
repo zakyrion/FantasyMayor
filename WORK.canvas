@@ -1,25 +1,21 @@
 {
 	"nodes":[
-		{"id":"e8b9a7e0e0930127","type":"text","text":"HexIdComponent (FK)","x":-100,"y":0,"width":250,"height":55,"color":"6"},
-		{"id":"20b58caae962e029","type":"text","text":"ActionAPCostComponent","x":-100,"y":103,"width":250,"height":60},
-		{"id":"4a411cbc2e818e85","type":"text","text":"Contain list like structure that have an access as an array, but it is predefined fields Price1, Price2, etc, and count for used field","x":350,"y":185,"width":250,"height":83},
-		{"id":"84f7fb2e836f3093","type":"text","text":"ActionResourcePriceComponent","x":-100,"y":196,"width":280,"height":60},
 		{"id":"d16a85ae06414179","type":"text","text":"ActionTurnLeftComponent","x":-100,"y":300,"width":250,"height":60},
 		{"id":"25aec43611b72964","type":"text","text":"How long need to wait till building will be finished","x":350,"y":300,"width":250,"height":60},
 		{"id":"c50ab3adce5688cc","type":"text","text":"DistrictType (FK)","x":-100,"y":400,"width":250,"height":60,"color":"6"},
 		{"id":"445ae23b698c602c","type":"text","text":"OwnerFK: CityId | MayorId | NobleId","x":-100,"y":500,"width":300,"height":46,"color":"6"},
-		{"id":"f8c9c5f19edb2046","type":"text","text":"ActionId (PK)","x":-100,"y":-100,"width":250,"height":60,"color":"4"},
 		{"id":"f7b7f159f584f8a7","type":"text","text":"ActionCompleteTag","x":-100,"y":600,"width":250,"height":60},
 		{"id":"5bff5e88449ad899","type":"text","text":"Signal about action is compelted and now you may apply the result of it","x":350,"y":605,"width":280,"height":55},
 		{"id":"3c83879998f88686","type":"text","text":"BuildDistrictOutcome","x":-560,"y":880,"width":322,"height":50},
 		{"id":"eec152bed41fbba7","type":"text","text":"DistrictType (FK)","x":-100,"y":820,"width":250,"height":60,"color":"6"},
 		{"id":"1b9b787334316047","type":"text","text":"Some specific actions","x":-100,"y":905,"width":250,"height":60},
-		{"id":"a69e58922f27d1d7","type":"text","text":"BuildDistrictAction","x":-534,"y":256,"width":270,"height":50}
+		{"id":"f8c9c5f19edb2046","type":"text","text":"ActionId (PK)","x":-100,"y":101,"width":250,"height":60,"color":"4"},
+		{"id":"e8b9a7e0e0930127","type":"text","text":"HexIdComponent (FK)","x":-100,"y":201,"width":250,"height":55,"color":"6"},
+		{"id":"a69e58922f27d1d7","type":"text","text":"BuildDistrictAction","x":-560,"y":350,"width":270,"height":50},
+		{"id":"3a813540b428dd82","x":-560,"y":1201,"width":250,"height":60,"type":"text","text":"DistrictBuildCost"},
+		{"id":"cbbfc09531eb7781","x":-100,"y":1172,"width":389,"height":59,"type":"text","text":"DistrictBuildCostResourcePriceComponent"}
 	],
 	"edges":[
-		{"id":"60b1231c7bc505ec","fromNode":"a69e58922f27d1d7","fromSide":"right","toNode":"20b58caae962e029","toSide":"left"},
-		{"id":"d4636149f64bdc03","fromNode":"a69e58922f27d1d7","fromSide":"right","toNode":"84f7fb2e836f3093","toSide":"left"},
-		{"id":"138b81b1bac0db36","fromNode":"84f7fb2e836f3093","fromSide":"right","toNode":"4a411cbc2e818e85","toSide":"left"},
 		{"id":"9fd767c2316c2c9f","fromNode":"a69e58922f27d1d7","fromSide":"right","toNode":"d16a85ae06414179","toSide":"left"},
 		{"id":"b830d0ce06539941","fromNode":"d16a85ae06414179","fromSide":"right","toNode":"25aec43611b72964","toSide":"left"},
 		{"id":"dd274ba7eb7babd8","fromNode":"a69e58922f27d1d7","fromSide":"right","toNode":"c50ab3adce5688cc","toSide":"left"},
@@ -29,6 +25,7 @@
 		{"id":"826f04f5d8311d61","fromNode":"a69e58922f27d1d7","fromSide":"right","toNode":"f8c9c5f19edb2046","toSide":"left"},
 		{"id":"1dda4392c952f9d9","fromNode":"a69e58922f27d1d7","fromSide":"right","toNode":"e8b9a7e0e0930127","toSide":"left"},
 		{"id":"ffe827822ddb296b","fromNode":"3c83879998f88686","fromSide":"right","toNode":"eec152bed41fbba7","toSide":"left"},
-		{"id":"9f39bc23a61ca631","fromNode":"3c83879998f88686","fromSide":"right","toNode":"1b9b787334316047","toSide":"left"}
+		{"id":"9f39bc23a61ca631","fromNode":"3c83879998f88686","fromSide":"right","toNode":"1b9b787334316047","toSide":"left"},
+		{"id":"b7e704f8d542d5e7","fromNode":"3a813540b428dd82","fromSide":"right","toNode":"cbbfc09531eb7781","toSide":"left"}
 	]
 }

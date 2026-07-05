@@ -1,5 +1,6 @@
 ﻿using DefaultECSExtensions;
 using Domains.Actions.BuildDistrictAction.Systems;
+using Domains.Actions.ResourceSpend.Systems;
 using Domains.Actions.Systems;
 using Modules.Boot.Core;
 using Modules.Turn.Systems;
@@ -23,6 +24,16 @@ namespace Domains.Actions.Installer
             builder.Register<BuildDistrictDraftSpawnSystem>(Lifetime.Singleton);
             builder.Register<BuildDistrictDraftDiscardSystem>(Lifetime.Singleton);
             builder.Register<BuildDistrictActionSnapshotSystem>(Lifetime.Singleton);
+
+            // Per-owner resource spend: VContainer collects the subsystems into ResourceSpender's
+            // IReadOnlyList<ResourceSpendSubSystem>. Concrete-singleton commit system; Boot wires it later (dormant).
+            builder.Register<CityResourceSpendSubSystem>(Lifetime.Singleton)
+                .As<CityResourceSpendSubSystem, ResourceSpendSubSystem>();
+            builder.Register<MayorResourceSpendSubSystem>(Lifetime.Singleton)
+                .As<MayorResourceSpendSubSystem, ResourceSpendSubSystem>();
+            builder.Register<ResourceSpender>(Lifetime.Singleton);
+
+            builder.Register<BuildDistrictActionCommitSystem>(Lifetime.Singleton);
         }
     }
 }
