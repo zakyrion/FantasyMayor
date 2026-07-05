@@ -5,7 +5,7 @@ using DefaultEcs;
 using DefaultECSExtensions;
 using Domains.Actors.City.Components;
 using Domains.Actors.Components;
-using Domains.Actors.Data;
+using Domains.Kernel.Data;
 using Domains.Economy.Resource.Helpers;
 using JetBrains.Annotations;
 using Modules.Boot.Core;

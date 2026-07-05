@@ -2,6 +2,7 @@
     "name": "Domains.Actors",
     "rootNamespace": "",
     "references": [
+        "Domains.Kernel",
         "Domains.Economy",
         "DefaultECS.Extensions",
         "Boot.Core",

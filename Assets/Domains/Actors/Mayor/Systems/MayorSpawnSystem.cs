@@ -4,7 +4,7 @@ using Cysharp.Threading.Tasks;
 using DefaultEcs;
 using DefaultECSExtensions;
 using Domains.Actors.Components;
-using Domains.Actors.Data;
+using Domains.Kernel.Data;
 using Domains.Actors.Mayor.Components;
 using Domains.Economy.Resource.Helpers;
 using JetBrains.Annotations;

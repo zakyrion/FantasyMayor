@@ -1,17 +1,7 @@
 {
-    "name": "Domains.Economy",
+    "name": "Domains.Kernel",
     "rootNamespace": "",
-    "references": [
-        "Domains.Kernel",
-        "Domains.Map",
-        "VContainer",
-        "DefaultECS.Extensions",
-        "Boot.Core",
-        "Core",
-        "Addressables.Core",
-        "UniTask",
-        "Turn"
-    ],
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

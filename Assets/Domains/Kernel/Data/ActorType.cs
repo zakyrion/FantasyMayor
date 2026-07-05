@@ -1,4 +1,4 @@
-namespace Domains.Actors.Data
+namespace Domains.Kernel.Data
 {
     public enum ActorType
     {
