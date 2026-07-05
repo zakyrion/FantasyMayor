@@ -1,6 +1,7 @@
 ---
 category: C
-read: always
+read: trigger
+trigger: "before authoring or reviewing any .md for DOC_STANDARD compliance (the docs-curator's charter; the main agent reads it only when it authors a doc itself)"
 tags: [docs, conventions]
 related:
   - "[ARCHITECTURE](ARCHITECTURE.md)"

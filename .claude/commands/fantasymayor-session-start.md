@@ -20,8 +20,10 @@ single key to every doc + canvas: each one's read-priority (`always` / `trigger`
 a one-line description.
 
 Then follow INDEX's read-priority:
-- Read every `read: always` doc next (currently `ARCHITECTURE.md`, `CLAUDE.md`, `DOC_STANDARD.md`).
+- Read every `read: always` doc next (currently `ARCHITECTURE.md`, `CLAUDE.md`).
   Execute the instructions inside `CLAUDE.md` — do not just summarize them.
+  (`DOC_STANDARD.md` is `read: trigger`, not always — the `docs-curator` agent owns it; load it only
+  when you author or review a doc yourself.)
 - Open `trigger` docs only when their condition holds, and `reference` (per-module) docs on demand —
   never preload them.
 

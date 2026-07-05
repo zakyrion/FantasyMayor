@@ -85,6 +85,23 @@ gate — this names the discipline, it adds no new rule:
   - **arch-scout** — `/arch-check` audit (stateful systems + collections bans); detector only.
   - **asset-scout** — `unity-asset-graph` queries (build contents, usage, dead assets, enum values).
 
+## Doc Curation (the write path)
+- The scouts above are read-only. Doc **authoring** has its own executor: **docs-curator** (Sonnet,
+  `.claude/agents/docs-curator.md`) — the only write-capable agent. It owns `DOC_STANDARD.md`; the main
+  agent does not read it to author docs.
+- **Delegate the docs/graph sync to it AFTER code lands and the user approves it** (the sync gate stands
+  — finish code, STOP, ask, then delegate). Hand it a brief with four things: (1) what changed in code
+  (symbols added/renamed/removed), (2) **why** — the intent/decisions only you hold, (3) which docs are
+  likely affected, (4) what NOT to touch. Invoke it scoped — an MD-sync run OR a graph STEP-2 run, not
+  both in one call.
+- It VALIDATES the brief against `DOC_STANDARD.md` rather than transcribing it — **drop freely** (strip
+  tool-derivable facts), **verify freely** (check claims against the tools), **never invent** (a semantic
+  gap the brief did not supply is flagged back, never reconstructed from source). So your brief must carry
+  the "why"; if it omits it, the curator reports a gap instead of fabricating one.
+- It authors Category A MDs + the INDEX pass-2 zone + graph STEP-2 curation only. Category C policy
+  (`CLAUDE.md`, `ARCHITECTURE.md`, `ECS_CONVENTIONS.md`, `DOC_STANDARD.md`) and Category B patterns stay
+  with the main agent / the user — the curator flags, never edits them.
+
 ## Engineering Task Template
 - **HARD GATE — no actions before a confirmed task statement. For any engineering task you MUST first restate the task using the template below AND, if you have any doubt that you understood the task correctly, ask me your own clarifying questions in the same message. Then STOP and wait for my explicit confirmation. Only AFTER I confirm the statement may you create a plan or do any work. Forming a plan, entering plan mode, reading-for-implementation, or editing anything before that confirmation is a process violation. The duty to ask is yours: when in doubt, ask me — do not assume, and do not wait for me to question you. This overrides any default "just start planning" behavior.**
 - Use the following template for engineering tasks by default. Engineering tasks include coding, architecture changes, refactors, module documentation, config-flow work, and other repository changes.
@@ -123,11 +140,13 @@ gate — this names the discipline, it adds no new rule:
 
 ## Module MD Files
 - Every module has an MD reference file in its root folder.
-- **`DOC_STANDARD.md` (repo root) is the single source of truth for how every MD file is written.** Read it before creating or editing any `.md`.
+- **`DOC_STANDARD.md` (repo root) is the single source of truth for how every MD file is written.** It is
+  `read: trigger` and owned by the **docs-curator** agent (see Doc Curation). The main agent reads it only
+  when it authors/reviews a doc itself; the default path is to delegate doc authoring to the curator.
 - **Before reading any source file in a module, read its MD file first.**
 - Division of labor: **`roslyn-mcp`** (LSP) is the reference for code STRUCTURE — types, signatures, references, call/type hierarchy; **`ecs-graph`/`di-graph`** for ECS/DI relationships. Module MD files cover ONLY what those tools cannot extract: intent, non-obvious invariants, design decisions, how-to-use-correctly, and current state.
 - Read source files only when both the MD and the tools (`roslyn-mcp` / `ecs-graph` / `di-graph`) lack the specific detail needed.
-- If you change a module's invariants, public-usage rules, or current state, update its MD file per `DOC_STANDARD.md`.
+- If you change a module's invariants, public-usage rules, or current state, its MD file needs updating — do it via the **docs-curator** (brief it with the delta + the "why"); the curator applies it per `DOC_STANDARD.md`.
 - If you add or change an ECS entity archetype, refresh the ecs-graph (`/ecs-graph`) — the sole archetype/event registry.
 - Architecture, stack, and module layout are described in `ARCHITECTURE.md`; point-of-code ECS/runtime conventions live in `ECS_CONVENTIONS.md`. Do not duplicate or override either in module MD files.
 
