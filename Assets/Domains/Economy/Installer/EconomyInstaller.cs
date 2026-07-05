@@ -1,5 +1,5 @@
 using DefaultECSExtensions;
-using Domains.Economy.District.Systems;
+using Domains.Economy.DistrictBuild.Systems;
 using Domains.Economy.DistrictBuildCost.Systems;
 using Domains.Economy.DistrictBuildOutcome.Systems;
 using Domains.Economy.DistrictOpenCondition.Systems;

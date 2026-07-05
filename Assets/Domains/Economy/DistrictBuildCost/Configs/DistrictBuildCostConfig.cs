@@ -13,8 +13,8 @@ namespace Domains.Economy.DistrictBuildCost.Configs{
         private List<ResourceCost> _districtPrices;
         [SerializeField]
         private int _apPrice;
-        [SerializeField][Range(1,100)]
-        private int _turnsToBuild;
+        [SerializeField][Range(0,100)]
+        private int _turnsToBuild = 1;
 
         public DistrictType DistrictType => _districtType;
         public List<ResourceCost> DistrictPrices => _districtPrices;

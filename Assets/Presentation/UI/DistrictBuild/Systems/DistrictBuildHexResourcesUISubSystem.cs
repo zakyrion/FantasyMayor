@@ -1,8 +1,9 @@
 using System;
 using DefaultEcs;
 using Domains.Economy.District.Components;
-using Domains.Economy.District.Configs;
 using Domains.Economy.District.Data;
+using Domains.Economy.DistrictBuild.Components;
+using Domains.Economy.DistrictBuild.Configs;
 using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Data;
 using Domains.Map.Hex.Tags;
@@ -75,7 +76,7 @@ namespace Presentation.UI.DistrictBuild.Systems
                     HexHasResource(coords, district.RequiredHexResourceType));
         }
 
-        private bool TryGetDistrict(DistrictType type, out DistrictBuildingConfig district)
+        private bool TryGetDistrict(DistrictType type, out DistrictBuildConfig district)
         {
             district = null;
             if (type == DistrictType.Unknown)
@@ -84,10 +85,10 @@ namespace Presentation.UI.DistrictBuild.Systems
                     $"is {DistrictType.Unknown} — the selection must be a real district or {nameof(DistrictType.None)}, " +
                     "never the error marker.");
 
-            if (type == DistrictType.None || !World.Has<DistrictsBuildConfigComponent>())
+            if (type == DistrictType.None || !World.Has<DistrictBuildsConfigComponent>())
                 return false;
 
-            var districts = World.Get<DistrictsBuildConfigComponent>().Value?.Districts;
+            var districts = World.Get<DistrictBuildsConfigComponent>().Value?.Districts;
             if (districts == null)
                 return false;
 

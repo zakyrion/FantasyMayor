@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4f5f5052ac7e489c9215005a21d38f88, type: 3}
-  m_Name: DistrictsBuildConfig
+  m_Name: DistrictBuildsConfig
   m_EditorClassIdentifier: Domains.Economy::Domains.Economy.District.Configs.DistrictsBuildConfig
   _districts:
   - {fileID: 11400000, guid: ff9bfba0c1031432d8e6dcf6cd7e6631, type: 2}

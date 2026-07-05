@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e84cb7bb34474f5091b06b5f88d6b549, type: 3}
-  m_Name: FarmBuildingCostConfig
+  m_Name: CityCenterBuildCostConfig
   m_EditorClassIdentifier: Domains.Actions::Domains.Actions.Configs.ActionsDistrictBuildConfig
-  _districtType: 2
+  _districtType: 1
   _districtPrices: []
-  _apPrice: 1
+  _apPrice: 2
   _turnsToBuild: 1

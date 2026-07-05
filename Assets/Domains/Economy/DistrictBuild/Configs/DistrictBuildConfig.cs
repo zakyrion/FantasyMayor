@@ -5,10 +5,10 @@ using Domains.Map.Hex.Data;
 using Domains.Map.HexResources.Data;
 using UnityEngine;
 
-namespace Domains.Economy.District.Configs
+namespace Domains.Economy.DistrictBuild.Configs
 {
-    [CreateAssetMenu(fileName = "DistrictBuildingConfig", menuName = "FantasyMayor/Districts/DistrictBuildingConfig")]
-    public class DistrictBuildingConfig : ScriptableObject
+    [CreateAssetMenu(fileName = "DistrictBuildConfig", menuName = "FantasyMayor/Districts/DistrictBuildConfig")]
+    public class DistrictBuildConfig : ScriptableObject
     {
         [SerializeField]
         private DistrictType _districtType;
