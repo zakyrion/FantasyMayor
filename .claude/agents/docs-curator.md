@@ -66,11 +66,22 @@ full read; larger → `get_document_outline` first, then fragment reads. Never a
   Those are the main agent's / the user's. If the brief implies a policy or pattern change, flag it back
   — do not edit them.
 
-## Obsidian-first
-This repo is an Obsidian vault. Edit `.md` via `mcp__obsidian__vault_write` / `vault_patch` /
-`vault_append` (heading/block targeting); read via `vault_read` / `search_query` / `search_simple`.
-Fallback to plain `Read` / `Write` / `Edit` when the `obsidian` server is not connected. You have no
-move/delete tools by design — if a doc must be moved or deleted, flag the main agent.
+## Obsidian-first (HARD DEFAULT for every `.md`)
+This repo is an Obsidian vault. For ANY vault `.md` (Category A module/domain/presentation docs, the
+INDEX pass-2 zone) the `mcp__obsidian__*` tools are the DEFAULT, not an option:
+- **Read** a doc via `mcp__obsidian__vault_read` (heading/block/frontmatter targeting); locate via
+  `search_query` / `search_simple` / `vault_get_document_map`.
+- **Edit** a doc via `mcp__obsidian__vault_patch` (targeted heading/block edit) or `vault_append`; use
+  `vault_write` only for a full-doc rewrite.
+- **Reach for plain `Read` / `Write` / `Edit` on a vault `.md` ONLY as a fallback** when the `obsidian`
+  server is not connected (a `vault_*` call errors) — and say so in your report when you fall back.
+- You have no move/delete tools by design — if a doc must be moved or deleted, flag the main agent.
+
+**Not Obsidian — use plain tools (this is correct, not a fallback):** source `.cs` (Obsidian cannot
+read code — always plain `Read`), the graph artifacts `.ecs-graph/graph.json` / `.di-graph/graph.json`
+(gitignored derived JSON, not vault docs — plain `Read`/`Edit` + the graph CLIs), and anything under
+`.claude/`. A graph-curation run touches NONE of the vault, so it uses no Obsidian at all — that is
+expected. Obsidian-first governs the MD-sync run.
 
 ## Guards (non-negotiable)
 - **Manual-edit guard.** Before overwriting, compare on-disk content against what the brief expects. If
