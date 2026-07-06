@@ -1,6 +1,7 @@
 using System;
 using DefaultEcs;
 using DefaultECSExtensions;
+using Domains.Actions.BuildDistrictAction.Events;
 using Presentation.UI.DistrictBuild.Events;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -12,9 +13,9 @@ namespace Presentation.UI.DistrictBuild.Views
     ///     Chrome + visibility shell for the district-build overlay (a separate UIDocument from the HUD). It is the
     ///     MonoBehaviour DI resolves; it owns ONLY the overlay show/hide and the chrome (close / scrim / confirm).
     ///     All section content (list / requirements / price / actions) lives in its own section MonoBehaviour view
-    ///     driven by its own subsystem — this view holds no section data or read-model. Confirm is close-only while
-    ///     the build action is a dormant later slice. PanelRenderer builds its tree asynchronously, so chrome is
-    ///     (re)hooked in the reload callback.
+    ///     driven by its own subsystem — this view holds no section data or read-model. Confirm raises the
+    ///     DistrictBuildConfirmedEvent build pulse and also closes the overlay (two separate events). PanelRenderer
+    ///     builds its tree asynchronously, so chrome is (re)hooked in the reload callback.
     /// </summary>
     public sealed class DistrictBuildUIView : MonoBehaviour
     {
@@ -85,11 +86,25 @@ namespace Presentation.UI.DistrictBuild.Views
             _overlay.style.display = _visible ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
-        private void OnConfirmClicked() => RaiseClose();
+        private void OnConfirmClicked()
+        {
+            RaiseConfirm();
+            RaiseClose();
+        }
+
         private void OnCloseClicked() => RaiseClose();
         private void OnScrimClicked(ClickEvent evt) => RaiseClose();
 
-        // One-frame close pulse; DistrictBuildUISystem hides the window. Build is dormant for now.
+        // One-frame confirm pulse on its own entity; the BuildDistrictAction reactive-orchestrator reacts. Kept
+        // separate from the close pulse below — build and close are two events.
+        private void RaiseConfirm()
+        {
+            var entity = _world.CreateEntity();
+            entity.Set(new DistrictBuildConfirmedEvent());
+            entity.Set(new EventTag());
+        }
+
+        // One-frame close pulse; DistrictBuildUISystem hides the window.
         private void RaiseClose()
         {
             var entity = _world.CreateEntity();

@@ -13,7 +13,7 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 54 docs — 2 always · 18 trigger · 34 reference · 3 canvas.
+Totals: 55 docs — 2 always · 19 trigger · 34 reference · 3 canvas.
 
 ## Read at start (always)
 
@@ -44,6 +44,7 @@ Do **not** preload. Read only when the trigger condition holds.
 | [Pattern — Per-Frame System](Patterns/PATTERN_PERFRAME_SYSTEM.md) | before creating a per-frame system (genuinely continuous logic) | Logic that is genuinely continuous: camera movement, per-frame projection, input polling, selection watching. |
 | [Pattern — Pipeline Stage (one-shot, world-init)](Patterns/PATTERN_PIPELINE_STAGE.md) | before creating a world-init pipeline stage (build/spawn content once during map creation) | One-shot async construction during map creation: spawn entities/views, build runtime world components, load |
 | [Pattern — Polymorphic Config Catalogue → Entity Table](Patterns/PATTERN_POLYMORPHIC_CATALOGUE.md) | before creating a polymorphic ScriptableObject config catalogue that materializes into an entity table (many kinds keyed by a shared FK), or a per-kind polymorphic system family over such a table | A **heterogeneous** set of authored rules/effects — many *kinds*, each with its own parameters — that you (1) author as |
+| [Pattern — Reactive Orchestrator System (pulse → fan-out)](Patterns/PATTERN_REACTIVE_ORCHESTRATOR_SYSTEM.md) | before creating a reactive system whose event handling has several independently-ordered parts (fan-out) | A [reactive system](PATTERN_REACTIVE_SYSTEM.md) whose handling is **too big for one file**: on the pulse it fans |
 | [Pattern — Reactive System (pulse + reconcile)](Patterns/PATTERN_REACTIVE_SYSTEM.md) | before creating a reactive (event-driven) system | **The default for runtime logic.** Responds to a one-frame [event](PATTERN_EVENT.md): the event is the base |
 | [Pattern — ECS Tag](Patterns/PATTERN_TAG.md) | before creating an ECS tag (field-less marker / table discriminator) | A tag is an **empty `struct`** that marks an entity. It carries no data; its presence IS the information. |
 

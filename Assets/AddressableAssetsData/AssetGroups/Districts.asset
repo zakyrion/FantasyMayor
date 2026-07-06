@@ -21,7 +21,7 @@ MonoBehaviour:
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 345491d4b0e1b400d9c9586f2f7d9054
-    m_Address: DistrictsBuildConfig
+    m_Address: DistrictBuildsConfig
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0

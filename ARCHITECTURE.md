@@ -17,6 +17,8 @@ related:
 > writing or editing any ECS system, component, event, config, or query.
 > Style: mechanizable rules here are s-expr decision tables — extend in kind, one
 > `(condition → verdict) ;; why` line per rule; prose is reserved for the "why".
+> Notation is Clojure-flavored (`[a b]` vectors, `{:k v}` maps, stacked `:qualifiers` = AND) —
+> the normative spec is `DOC_STANDARD.md` → Rule Style; the human tutorial is `LISP_RULES_GUIDE.md`.
 
 ## Stack
 - Engine: Unity · ECS: `DefaultEcs` (DoD style, not Unity DOTS) · DI: `VContainer` · Async: `UniTask`
@@ -151,6 +153,7 @@ implementation. Each is a Category B doc in `Patterns/` (also in `INDEX.md`). Th
 | a polymorphic SO config catalogue materialized into an entity table (many kinds keyed by a shared FK; + optional per-kind evaluator) | `Patterns/PATTERN_POLYMORPHIC_CATALOGUE.md` |
 | a per-frame system (continuous logic; `PreUpdate` + `FrameBox`) | `Patterns/PATTERN_PERFRAME_SYSTEM.md` |
 | a reactive system (event-driven — the DEFAULT for runtime logic) | `Patterns/PATTERN_REACTIVE_SYSTEM.md` |
+| a reactive system whose event handling has several independently-ordered parts (reactive trigger + subsystem fan-out) | `Patterns/PATTERN_REACTIVE_ORCHESTRATOR_SYSTEM.md` |
 | one-frame event cleanup (and why you almost never write one) | `Patterns/PATTERN_CLEANUP_SYSTEM.md` |
 
 ## Known deviations

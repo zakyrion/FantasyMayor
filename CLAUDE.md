@@ -133,6 +133,32 @@ gate — this names the discipline, it adds no new rule:
 - [який вихід очікується]
 ```
 
+**EQUAL ALTERNATIVE — the LISP s-expr statement.** Same standing as the prose template;
+the user picks either form per task. Expect and accept both:
+
+```lisp
+(task "title: A → B → C"                          ;; заголовок = ланцюжок потоку, не назва тікета
+  (goal
+    (mechanic-a → NEW thing, when/where it fires)
+    (mechanic-b → NEW system; listens X → creates Y))
+  ;; опційні поля — кожне присутнє знімає відповідне питання агента:
+  (scope :only  → [файл/ папка/ …])               ;; = «Працюй тільки в»; вектор — список без ком
+  (off-limits   → [що поза scope])                ;; = «Не дивись»
+  (pattern      → Patterns/PATTERN_*.md)          ;; = «Роби за шаблоном»
+  (decided      → що вже вирішено)                ;; = «Архітектурні рішення»
+  {:skip що-не-робити  :result очікуваний-вихід}) ;; мапа дрібних полів = «Не потрібно» + «Результат»
+```
+
+- The notation is Clojure-flavored — brackets carry meaning: round `()` = rules/mechanics,
+  square `[a b]` = ordered list without commas, curly `{:k v}` = a bundle of small key→value
+  fields on one line. ASCII `->` is equivalent to `→`.
+- The s-expr `goal` replaces the «Задача» block with a precise logic chain: one inner bracket
+  per mechanic; exact names are literal anchors; `NEW` marks what must be created.
+- The HARD GATE and the missing-block rules apply UNCHANGED: an absent field means "ask about
+  that block, aiming the question at the specific `goal` bracket" — never "no constraints".
+- Notation spec: `DOC_STANDARD.md` → Rule Style; tutorial + worked examples:
+  `LISP_RULES_GUIDE.md` (§10 task statements, §11 Clojure literals).
+
 ## Module MD Files
 - Every module has an MD reference file in its root folder.
 - **`DOC_STANDARD.md` (repo root) is the single source of truth for how every MD file is written.** It is

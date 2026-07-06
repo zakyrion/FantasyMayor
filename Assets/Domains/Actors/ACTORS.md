@@ -1,18 +1,37 @@
 ---
 category: A
 read: reference
-tags: [actors, ecs, domain]
-related:
-  - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
-  - "[ECONOMY](../Economy/ECONOMY.md)"
-  - "[ACTIONS](../Actions/ACTIONS.md)"
+tags:
+  - actors
+  - ecs
+  - domain
+related: |-
+  [
+    "[ARCHITECTURE](../../../ARCHITECTURE.md)",
+    "[KERNEL](../Kernel/KERNEL.md)",
+    "[ECONOMY](../Economy/ECONOMY.md)",
+    "[ACTIONS](../Actions/ACTIONS.md)"
+  ]
 status: partial
 code_refs:
-  systems:          [CitySpawnSystem, MayorSpawnSystem, CityConfigLoaderSystem, MayorConfigLoaderSystem]
-  components:       [CityIdComponent, MayorIdComponent, CityConfigComponent, MayorConfigComponent, MayorAPRestoreComponent]
-  world_components: [CityIdAllocatorComponent, MayorIdAllocatorComponent]
-  installers:       [ActorsInstaller]
-  helpers:          [ResourceLoadoutSpawner]
+  systems:
+    - CitySpawnSystem
+    - MayorSpawnSystem
+    - CityConfigLoaderSystem
+    - MayorConfigLoaderSystem
+  components:
+    - CityIdComponent
+    - MayorIdComponent
+    - CityConfigComponent
+    - MayorConfigComponent
+    - MayorAPRestoreComponent
+  world_components:
+    - CityIdAllocatorComponent
+    - MayorIdAllocatorComponent
+  installers:
+    - ActorsInstaller
+  helpers:
+    - ResourceLoadoutSpawner
 ---
 
 # Actors

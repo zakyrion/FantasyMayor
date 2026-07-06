@@ -74,7 +74,49 @@ Every spawn prompt carries four fields:
 (stop     → when to stop digging)              ;; e.g. "first producer found" / "≤2 tool rounds per lead, then report"
 ```
 
+## 1c. The search flow (main agent) — walk in order, first match wins
+Discovery is a **DISPATCH, not a reflex**: classify the question, then take the FIRST rung that answers it.
+grep sits at the BOTTOM by construction — you reach it only after every rung above has nothing. The single
+failure this ladder kills: reaching for grep/`find` before classifying (grep jumping the queue). This is the
+ORDERED reading of §2 + §4; §2 is the same law as a mechanizable table, §4 is the per-question tool map.
+
+```lisp
+;; STEP 0 — is it even discovery?
+(reading-to-edit :file-known         → Read, budgeted §3)         ;; editing ≠ discovery — not a search at all
+(answerable-by-a-doc                 → INDEX.md → the doc)        ;; docs = the one direct knowledge layer (§4)
+
+;; STEP 1 — a bounded tool OWNS the question → call it directly, then STOP (always allowed)
+(asmdef reachability|layering|owner  → Tools/asmdef_reach.py)     ;; NEVER find/grep over *.asmdef
+(code structure :one-off [defn|refs|callers|hierarchy|outline]   → mcp__roslyn__*)  ;; bounded, not raw files
+(domain-term → code-anchor           → GLOSSARY.md, then the owning tool)
+
+;; STEP 2 — tool-owned but under the two-condition rule (§1a): direct ONLY if editing-or-critical, else → STEP 3
+(ECS edge [archetype|writes|reads|reactive|Table-Rule|priority]  → ecsg.py [§1a] | else scout)
+(DI wiring [registered-as|lifetime|injects|collection|GameMode]  → dig.py  [§1a] | else scout)
+(roslyn :as-a-discovery-sweep [not one-off]                      → [§1a]         | else scout)
+
+;; STEP 3 — no single tool owns it → the front door
+(semantics|intent|invariants|call-order                          → @agent-discovery-scout §1b)
+(heavy multi-step | read/write | reactive | collection classify  → @agent-discovery-scout §1b)
+
+;; STEP 4 — locating a FILE by name/glob (NOT its content)
+(file-by-name|by-pattern             → Glob)                      ;; a path lookup is not a content search; never `find` (budget nuance §3b)
+
+;; STEP 5 — LAST resort: raw content-substring, only when nothing above fits
+(content-substring :no-tool-equivalent :grep-budget<4            → grep-family, counted §3b)  ;; a string literal / comment / a just-renamed type roslyn can't see yet (Freshness policy)
+(grep-family :budget-spent                                       → @agent-discovery-scout)    ;; escalate — do NOT ask to bump (§3b)
+
+;; the invariants the ladder encodes
+(grep                → the FLOOR)                                 ;; every other rung is tried first; grep is a WASTE of the fallback allowance if a rung above can answer
+(grep :legitimate-only-for content-substring w/o a tool equivalent)
+(structural [asmdef|DI|ECS|refs]     → its owning tool, NEVER grep)
+(file-location                       → Glob, its own lane, NEVER find|grep)
+```
+
 ## 2. Decision table
+This table is the **mechanizable form of the §1c flow** — the hook enforces the subset it can see; where the
+table and the flow seem to differ, the §1c ORDER is the intent the table cannot express.
+
 Verdict ∈ `ALLOW` · `DENY→scout` (delegate to `discovery-scout`) · `SCOUT` (must delegate, not mechanizable).
 `session ∈ {main, subagent}`. Scope of "source" = `Assets/**/*.cs` only.
 

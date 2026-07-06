@@ -5,22 +5,25 @@ tags:
   - economy
   - ecs
   - domain
-related:
-  - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
-  - "[ACTORS](../Actors/ACTORS.md)"
-  - "[DISTRICT_OPEN_CONDITION](DistrictOpenCondition/DISTRICT_OPEN_CONDITION.md)"
-  - "[BUILD_DISTRICT_COST](DistrictBuildCost/BUILD_DISTRICT_COST.md)"
-  - "[BUILD_DISTRICT_OUTCOME](DistrictBuildOutcome/BUILD_DISTRICT_OUTCOME.md)"
+related: >-
+  [
+    "[ARCHITECTURE](../../../ARCHITECTURE.md)",
+    "[KERNEL](../Kernel/KERNEL.md)",
+    "[ACTORS](../Actors/ACTORS.md)",
+    "[DISTRICT_OPEN_CONDITION](DistrictOpenCondition/DISTRICT_OPEN_CONDITION.md)",
+    "[BUILD_DISTRICT_COST](DistrictBuildCost/BUILD_DISTRICT_COST.md)",
+    "[BUILD_DISTRICT_OUTCOME](DistrictBuildOutcome/BUILD_DISTRICT_OUTCOME.md)"
+  ]
 status: partial
 code_refs: >-
   {
     "components": ["ResourceComponent", "DistrictIdComponent"],
     "types": ["ResourceAmount"],
     "tags": ["ResourceTag", "DistrictTag"],
-    "world_components": ["DistrictsBuildConfigComponent", "DistrictIdAllocatorComponent"],
+    "world_components": ["DistrictBuildsConfigComponent", "DistrictIdAllocatorComponent"],
     "systems": ["DistrictsBuildConfigLoaderSystem"],
-    "configs": ["DistrictsBuildConfig", "DistrictBuildingConfig"],
-    "enums": ["ResourceType"],
+    "configs": ["DistrictBuildsConfig", "DistrictBuildConfig"],
+    "enums": ["ResourceType", "ActorType"],
     "installers": ["EconomyInstaller"],
     "helpers": ["ResourceLoadoutSpawner", "ResourceLedger"]
   }
@@ -77,6 +80,16 @@ The owner-scoped build **verb** that reads cost/outcome lives in `Actions.BuildD
   from silently blending with live entity state.
 - `ResourceLedger` (`CanAfford` / `Deduct`) takes `ResourceAmount` prices and reads/writes the stack's
   `ResourceComponent` — the same boundary rule applies at the spend site.
+
+
+- **`DistrictBuildConfig.AllowedOwners` is authored owner-eligibility DATA, not enforcement.** It
+  declares which owner types (`Domains.Kernel.Data.ActorType`, a `[Flags]` mask) may build/own this
+  district type. Economy only stores and validates the mask — it does not gate building on it; that
+  is a deliberate later step in the Actions verb (`BuildDistrictAction`). Economy references only the
+  shared-kernel `ActorType` token and stays owner-agnostic in its own logic.
+- `DistrictsBuildConfigLoaderSystem` fails loud (throws) if a district's `AllowedOwners` is
+  `ActorType.Unknown` — an authored district with no allowed owner is a config error, not a silent
+  "buildable by no one".
 
 ## Design Decisions
 - **Feature-first layout.** Economy is split by sub-system (`Resource/`, later `District/`, `Building/`),

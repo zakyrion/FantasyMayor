@@ -49,7 +49,24 @@ it literally when WRITING such a table, not only when reading one.
 ```text
 → maps-to/do-this   :requires X   :only-when X   :never / NEVER   :in <place>
 :must-not X         :contains X   :exists-only-under X            | alternatives
+[a b c] vector      {:k v, :k2 v2} map           -> ASCII form of →
 ```
+
+### Clojure literals & composite reading
+
+The notation is Clojure-flavored: different brackets carry different meanings — round `()`
+for rules/actions, square `[]` for lists, curly `{}` for field bundles.
+
+- `[a b c]` — **vector**: ordered list, no commas: `(scope :only → [BuildDistrictAction/ DistrictBuildUIView])`.
+- `{:k v, :k2 v2}` — **map**: several small key→value fields on one line (comma optional):
+  `{:skip AP-spending  :result event-flows-UI→ECS}`. Use for fields too small to earn their own bracket.
+- **Stacked qualifiers = AND**, broader→narrower: `(grep-family :session main :grep-budget<4 → ALLOW)`
+  reads "grep-family, in the main session, AND while budget < 4".
+- **`→` chain `A → B → C` = pipeline** ("A produces B, B produces C"). Inside a quoted title it is
+  free-text flow, not an operator — structurally only ONE arrow exists per bracket.
+- `?` as a verdict — the author left the field open deliberately: the reader must ASK, not invent.
+
+Human tutorial with worked examples: `LISP_RULES_GUIDE.md` (§10 task statements, §11 Clojure).
 
 ### Grouping
 
@@ -115,10 +132,10 @@ answers — duplicated structure goes stale, and stale docs are worse than no do
 ## Size budgets (lint-checked by `gen_index.py` — SOFT, warn-only)
 
 ```lisp
-(category-A body        ≤ 120 lines :soft)   ;; a SIGNAL, not a wall — the lint warns, never blocks
-(first content line     ≤ 120 chars :soft)   ;; it IS the INDEX description — one informative sentence
-(shrink-attempts        ≤ 2 per doc)         ;; two honest passes (drop tool-derivable, s-expr the rules); still over → leave it, report the size, move on
-(contracts-vs-budget    → contracts WIN)     ;; NEVER cut Public Contract / invariants / Trigger semantics to hit the number
+(category-A body        → ≤ 120 lines)    ;; SOFT signal, not a wall — the lint warns, never blocks
+(first content line     → ≤ 120 chars)    ;; it IS the INDEX description — one informative sentence
+(shrink-attempts        → ≤ 2 per doc)    ;; two honest passes (drop tool-derivable, s-expr the rules); still over → leave it, report the size, move on
+(contracts-vs-budget    → contracts WIN)  ;; NEVER cut Public Contract / invariants / Trigger semantics to hit the number
 ```
 
 ---

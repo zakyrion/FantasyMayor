@@ -3,6 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using DefaultEcs;
 using DefaultECSExtensions;
+using Domains.Actions.BuildDistrictAction.Systems;
 using Modules.Boot.Core;
 using Modules.Boot.Implementation.States;
 using Presentation.HexIcons.Systems;
@@ -86,6 +87,7 @@ namespace Modules.Boot.Implementation
             HexInfoPanelResourcesSystem hexInfoPanelResources,
             HexInfoPanelDistrictSystem hexInfoPanelDistrict,
             DistrictBuildUISystem districtBuildUI,
+            BuildDistrictActionSystem buildDistrictAction,
             ResourceBarSystem resourceBar,
             EndTurnViewSystem endTurnViewSystem,
             ContextTabSelectionSystem contextTabSelection,
@@ -110,8 +112,8 @@ namespace Modules.Boot.Implementation
                 {
                     hexSelection, hexSelectionView, forestSpawn, forestDespawn, hexIconsVisibility,
                     hexInfoPanel, hexInfoPanelHeader, hexInfoPanelResources, hexInfoPanelDistrict,
-                    districtBuildUI, resourceBar, endTurnViewSystem, contextTabSelection, contextTabsAvailability,
-                    turnProcessor, turnCount, eventCleanup
+                    districtBuildUI, buildDistrictAction, resourceBar, endTurnViewSystem, contextTabSelection,
+                    contextTabsAvailability, turnProcessor, turnCount, eventCleanup
                 },
                 new ILateUpdatedSystem[] { cameraMovement, hexIconsContainerPosition });
 

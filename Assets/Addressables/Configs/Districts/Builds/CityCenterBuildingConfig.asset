@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: CityCenterBuildingConfig
   m_EditorClassIdentifier: Domains.Economy::Domains.Economy.District.Configs.DistrictBuildingConfig
   _districtType: 1
-  _hexTypesRequirement: 
+  _allowedOwners: 2
   _impossibleToBuildTypes: 04000000
   _requiredHexResourceType: 0
   _needEmptyHexResourcesToBuild: 1
