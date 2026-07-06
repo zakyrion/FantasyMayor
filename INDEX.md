@@ -13,7 +13,7 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 53 docs — 2 always · 17 trigger · 34 reference · 3 canvas.
+Totals: 54 docs — 2 always · 18 trigger · 34 reference · 3 canvas.
 
 ## Read at start (always)
 
@@ -28,6 +28,7 @@ Do **not** preload. Read only when the trigger condition holds.
 
 | Doc | Read it… | What it is |
 |---|---|---|
+| [AI-flow regime change — expectations & metrics check (due 2026-07-14)](AI_FLOW_METRICS.md) | on/after 2026-07-14 — run the AI-flow metrics check (python3 Tools/ai_flow_metrics.py --since 2026-07-07) and judge against the expectations here | Follow-up protocol for the 2026-07-06 AI-flow overhaul: baseline, expected outcomes, falsifiers, |
 | [IAddressable Contract](Assets/Modules/Addressable/ADDRESSABLE_PATTERNS.md) | before writing/editing/reviewing Addressables, IAddressable, Box<T> or Result<T> code | Single source of truth for addressable loading. Read this; do not grep. |
 | [DOC_STANDARD.md](DOC_STANDARD.md) | before authoring or reviewing any .md for DOC_STANDARD compliance (the docs-curator's charter; the main agent reads it only when it authors a doc itself) | Single source of truth for how to write Markdown docs in this project. |
 | [FantasyMayor — ECS & Runtime Conventions](ECS_CONVENTIONS.md) | before writing or editing any ECS system, component, event, config, or query | The ECS/runtime rulebook: where state lives, how systems are decomposed, and the write / collection / |
