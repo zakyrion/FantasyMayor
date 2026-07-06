@@ -74,44 +74,27 @@ gate — this names the discipline, it adds no new rule:
 
 ## Discovery Scouts (the search front door)
 - **The law is `.claude/SEARCH_POLICY.md`; the teeth are the hook `.claude/hooks/search-gate.py`.**
-  The full decision table, budgets, and rationale live THERE — this section is only the behavioral
-  rule; do not restate the details here.
-- The main agent's raw source discovery over `Assets/**/*.cs` is BUDGETED, not free: 4 grep-family
-  ops + 12 unique `.cs` reads per task (hook-counted; both re-armed by the `task` ritual). Grep is
-  the last-resort fallback — the bounded tools and the scout come first. On exhaustion: reads →
-  STOP and ask the user; greps → delegate to the scout. Subagents are exempt.
-- **Exception:** the bounded `mcp__roslyn__*` tools return structured, not raw, output — the main
-  agent MAY call them directly for surgical code-structure lookups.
-- Delegate discovery to the read-only scouts in `.claude/agents/` (auto via their
-  `description`, or explicitly `@agent-<name>`); they return distilled reports, never raw dumps:
-  - **discovery-scout** (Sonnet) — the single front door: code structure (`roslyn-mcp`), ECS
-    (`ecs-graph`), DI (`di-graph`), docs (Obsidian MCP).
-  - **arch-scout** — `/arch-check` audit (stateful systems + collections bans); detector only.
-  - **asset-scout** — `unity-asset-graph` queries (build contents, usage, dead assets, enum values).
+  The decision table, budgets (12 `.cs` reads + 4 grep-family ops per task, re-armed by the `task`
+  ritual), and escalation rules live THERE — do not restate them here.
+- Discovery is delegated: **discovery-scout** (Sonnet) is the single front door; **arch-scout** and
+  **asset-scout** cover arch-check and the asset graph (details in each `.claude/agents/*.md` —
+  always set `subagent_type` explicitly). Bounded `mcp__roslyn__*` calls are allowed directly; raw
+  grep is a budgeted last resort. On exhaustion: reads → STOP and ask; greps → delegate to the
+  scout. Subagents are exempt from the gates.
 
 ## Doc Curation (the write path)
-- The scouts above are read-only. Doc **authoring** has its own executor: **docs-curator** (Sonnet,
-  `.claude/agents/docs-curator.md`) — the only write-capable agent. It owns `DOC_STANDARD.md`; the main
-  agent does not read it to author docs.
-- **Sync cadence is per-MILESTONE, not per-task.** The default is ONE batched curator run covering the
-  whole branch delta, at a milestone / before merging the branch — not after every task. Mechanical
-  facts self-heal in the interim (the graph CLIs auto-`--update`; code names are canonical), so a
-  few days of semantic-doc lag is safe. Sync per-task only when the user explicitly asks.
-- **The sync gate stands:** delegate AFTER code lands and the user approves the sync (finish code,
-  STOP, ask, then delegate). Hand it a brief with four things: (1) what changed in code
-  (symbols added/renamed/removed), (2) **why** — the intent/decisions only you hold, (3) which docs are
-  likely affected, (4) what NOT to touch. For a milestone run the brief covers the branch delta —
-  accumulate the per-task "why" bullets as you go so they are not lost. Invoke it scoped — an MD-sync
-  run OR a graph STEP-2 run, not both in one call.
-- It VALIDATES the brief against `DOC_STANDARD.md` rather than transcribing it — **drop freely** (strip
-  tool-derivable facts), **verify freely** (check claims against the tools), **never invent** (a semantic
-  gap the brief did not supply is flagged back, never reconstructed from source). So your brief must carry
-  the "why"; if it omits it, the curator reports a gap instead of fabricating one.
-- It authors Category A MDs + the INDEX pass-2 zone + graph STEP-2 curation only. Category C policy
-  (`CLAUDE.md`, `ARCHITECTURE.md`, `ECS_CONVENTIONS.md`, `DOC_STANDARD.md`) and Category B patterns stay
-  with the main agent / the user — the curator flags, never edits them. `ARCHITECTURE.md` is additionally
-  **FROZEN** (`status: frozen`): NO agent edits it — the graph-gate hook turns an edit attempt into a
-  user-approval ask; propose the change to the user instead.
+- **docs-curator** (Sonnet, `.claude/agents/docs-curator.md`) is the ONLY write-capable agent and owns
+  `DOC_STANDARD.md`. It VALIDATES briefs — drop tool-derivable, verify against tools, **never invent**
+  — so every brief must carry the "why": (1) what changed, (2) intent/decisions only you hold,
+  (3) affected docs, (4) what NOT to touch. A brief without the "why" yields a flagged gap, not a doc.
+- **Cadence: ONE batched run per milestone / before merge, covering the branch delta** — never
+  per-task unless the user asks (graphs auto-`--update` in the interim; days of semantic lag are safe).
+  The gate stands: finish code, STOP, get the user's approval, then delegate — scoped (an MD-sync run
+  OR a graph STEP-2 run, never both). Accumulate per-task "why" bullets for the milestone brief.
+- It authors Category A MDs + the INDEX pass-2 zone + graph STEP-2 only. Category C policy and
+  Category B patterns stay with the main agent / user — the curator flags, never edits them.
+  `ARCHITECTURE.md` is additionally **FROZEN**: NO agent edits it — the graph-gate hook turns an
+  attempt into a user-approval ask; propose the change to the user instead.
 
 ## Engineering Task Template
 - **HARD GATE — no actions before a confirmed task statement. For any engineering task you MUST first restate the task using the template below AND, if you have any doubt that you understood the task correctly, ask me your own clarifying questions in the same message. Then STOP and wait for my explicit confirmation. Only AFTER I confirm the statement may you create a plan or do any work. Forming a plan, entering plan mode, reading-for-implementation, or editing anything before that confirmation is a process violation. The duty to ask is yours: when in doubt, ask me — do not assume, and do not wait for me to question you. This overrides any default "just start planning" behavior.**

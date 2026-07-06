@@ -13,7 +13,7 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 52 docs — 2 always · 17 trigger · 33 reference · 3 canvas.
+Totals: 53 docs — 2 always · 17 trigger · 34 reference · 3 canvas.
 
 ## Read at start (always)
 
@@ -85,6 +85,7 @@ Per-module navigation docs. `status` mirrors each module's `## Current State`.
 | [Hex Info Panel — Context Sub-Panel](Assets/Presentation/UI/HexInfoPanel/HEX_INFO_PANEL.md) | A | partial | The read-only **CONTEXT sub-panel** (right) of the shared bottom panel: everything known about the |
 | [MainUI](Assets/Presentation/UI/MAIN_UI.md) | A | partial | The **`Presentation.UI` assembly** (`Assets/Presentation/UI/`, namespaces `Presentation.UI.*`) — the |
 | [ResourceBar](Assets/Presentation/UI/ResourceBar/RESOURCE_BAR.md) | A | partial | The **left-edge resource panel**: the two inventory pools (City / Mayor) as a vertical scroll list. The |
+| [Як читати і писати LISP-правила](LISP_RULES_GUIDE.md) | B | — | Людський підручник до s-expr стилю правил у цьому репозиторії. Нормативна специфікація для |
 
 ## Canvas map (on demand)
 
