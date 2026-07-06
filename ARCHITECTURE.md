@@ -17,8 +17,9 @@ related:
 > writing or editing any ECS system, component, event, config, or query.
 > Style: mechanizable rules here are s-expr decision tables — extend in kind, one
 > `(condition → verdict) ;; why` line per rule; prose is reserved for the "why".
-> Notation is Clojure-flavored (`[a b]` vectors, `{:k v}` maps, stacked `:qualifiers` = AND) —
-> the normative spec is `DOC_STANDARD.md` → Rule Style; the human tutorial is `LISP_RULES_GUIDE.md`.
+> The notation is defined ONCE — the canonical glossary is `~/.claude/CLAUDE.md` →
+> "LISP/Clojure-like task notation" (already in every agent's context); the authoring
+> spec is `DOC_STANDARD.md` → Rule Style.
 
 ## Stack
 - Engine: Unity · ECS: `DefaultEcs` (DoD style, not Unity DOTS) · DI: `VContainer` · Async: `UniTask`

@@ -149,15 +149,12 @@ the user picks either form per task. Expect and accept both:
   {:skip що-не-робити  :result очікуваний-вихід}) ;; мапа дрібних полів = «Не потрібно» + «Результат»
 ```
 
-- The notation is Clojure-flavored — brackets carry meaning: round `()` = rules/mechanics,
-  square `[a b]` = ordered list without commas, curly `{:k v}` = a bundle of small key→value
-  fields on one line. ASCII `->` is equivalent to `→`.
-- The s-expr `goal` replaces the «Задача» block with a precise logic chain: one inner bracket
-  per mechanic; exact names are literal anchors; `NEW` marks what must be created.
 - The HARD GATE and the missing-block rules apply UNCHANGED: an absent field means "ask about
   that block, aiming the question at the specific `goal` bracket" — never "no constraints".
-- Notation spec: `DOC_STANDARD.md` → Rule Style; tutorial + worked examples:
-  `LISP_RULES_GUIDE.md` (§10 task statements, §11 Clojure literals).
+- The notation is defined ONCE — do not re-explain it here or anywhere else. The canonical
+  glossary (all operators/literals, with examples): `~/.claude/CLAUDE.md` → "LISP/Clojure-like
+  task notation", already in every agent's context; authoring spec for s-expr rules inside
+  docs: `DOC_STANDARD.md` → Rule Style.
 
 ## Module MD Files
 - Every module has an MD reference file in its root folder.

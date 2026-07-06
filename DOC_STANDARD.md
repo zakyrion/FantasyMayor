@@ -44,29 +44,13 @@ it literally when WRITING such a table, not only when reading one.
 - **;; why** — one clause. Drop it only when the rule is self-evident; a rule whose "why" needs
   more than a clause is a design decision → prose section, not a table line.
 
-### Vocabulary — reuse these, do not invent synonyms
+### Vocabulary — defined once, elsewhere
 
-```text
-→ maps-to/do-this   :requires X   :only-when X   :never / NEVER   :in <place>
-:must-not X         :contains X   :exists-only-under X            | alternatives
-[a b c] vector      {:k v, :k2 v2} map           -> ASCII form of →
-```
-
-### Clojure literals & composite reading
-
-The notation is Clojure-flavored: different brackets carry different meanings — round `()`
-for rules/actions, square `[]` for lists, curly `{}` for field bundles.
-
-- `[a b c]` — **vector**: ordered list, no commas: `(scope :only → [BuildDistrictAction/ DistrictBuildUIView])`.
-- `{:k v, :k2 v2}` — **map**: several small key→value fields on one line (comma optional):
-  `{:skip AP-spending  :result event-flows-UI→ECS}`. Use for fields too small to earn their own bracket.
-- **Stacked qualifiers = AND**, broader→narrower: `(grep-family :session main :grep-budget<4 → ALLOW)`
-  reads "grep-family, in the main session, AND while budget < 4".
-- **`→` chain `A → B → C` = pipeline** ("A produces B, B produces C"). Inside a quoted title it is
-  free-text flow, not an operator — structurally only ONE arrow exists per bracket.
-- `?` as a verdict — the author left the field open deliberately: the reader must ASK, not invent.
-
-Human tutorial with worked examples: `LISP_RULES_GUIDE.md` (§10 task statements, §11 Clojure).
+The reading glossary — operators, invariant qualifiers, `[a b c]` / `{:k v}` literals,
+composite reading (stacked qualifiers, `→` chains, `(-> A B C)` threading, `?` verdict) —
+is maintained in ONE place: `~/.claude/CLAUDE.md` → "LISP/Clojure-like task notation",
+already injected into every agent's context. Reuse that vocabulary, do not invent
+synonyms; a new operator/literal gets its glossary row there BEFORE it appears in any doc.
 
 ### Grouping
 

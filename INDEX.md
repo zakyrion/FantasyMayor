@@ -87,7 +87,7 @@ Per-module navigation docs. `status` mirrors each module's `## Current State`.
 | [Hex Info Panel — Context Sub-Panel](Assets/Presentation/UI/HexInfoPanel/HEX_INFO_PANEL.md) | A | partial | The read-only **CONTEXT sub-panel** (right) of the shared bottom panel: everything known about the |
 | [MainUI](Assets/Presentation/UI/MAIN_UI.md) | A | partial | The **`Presentation.UI` assembly** (`Assets/Presentation/UI/`, namespaces `Presentation.UI.*`) — the |
 | [ResourceBar](Assets/Presentation/UI/ResourceBar/RESOURCE_BAR.md) | A | partial | The **left-edge resource panel**: the two inventory pools (City / Mayor) as a vertical scroll list. The |
-| [Як читати і писати LISP-правила](LISP_RULES_GUIDE.md) | B | — | Людський підручник до s-expr стилю правил у цьому репозиторії. Нормативна специфікація для |
+| [Як читати і писати s-expr-правила (LISP + Clojure)](LISP_RULES_GUIDE.md) | B | — | Людський підручник до s-expr-нотації правил і задач: LISP-ядро, Clojure-шар і спільний |
 
 ## Canvas map (on demand)
 
