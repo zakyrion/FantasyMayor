@@ -63,6 +63,17 @@ same question**, do NOT send a third scout round on that question. Switch to the
 (`mcp__roslyn__*`, the `ecsg.py` / `dig.py` CLIs) under this rule — or, if they cannot answer
 it either, ask the user. Cyclic re-delegation is the same failure mode as cyclic search.
 
+## 1b. Delegation brief (required fields for every discovery-scout spawn)
+An unanchored one-liner is what makes a scout wander (the pre-Sonnet median was 23 tool calls/run).
+Every spawn prompt carries four fields:
+
+```lisp
+(question → ONE specific question)             ;; with a yes/no/list-shaped answer — a topic is not a question
+(anchors  → symbols | files | GLOSSARY terms)  ;; where to start; none known → write "no anchor — check GLOSSARY first"
+(shape    → expected output form)              ;; e.g. "list of (system, event, source_location)" / "yes/no + the chain"
+(stop     → when to stop digging)              ;; e.g. "first producer found" / "≤2 tool rounds per lead, then report"
+```
+
 ## 2. Decision table
 Verdict ∈ `ALLOW` · `DENY→scout` (delegate to `discovery-scout`) · `SCOUT` (must delegate, not mechanizable).
 `session ∈ {main, subagent}`. Scope of "source" = `Assets/**/*.cs` only.

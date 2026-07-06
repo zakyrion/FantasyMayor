@@ -16,8 +16,11 @@ ECS/DI/orchestration/docs discovery and any heavy multi-step trace to you so it 
 runtime** (it is the main agent's law, kept in sync with this charter by whoever edits either). Start
 working on the question immediately.
 
-**Work anchored and converge fast.** Start from the anchors the main agent gave you (symbols, files,
-components); pick ONE tool that classifies the question and go. **If the question uses domain
+**Work anchored and converge fast.** The main agent's brief carries four fields — question / anchors /
+shape / stop (SEARCH_POLICY §1b); honor the stop criterion literally, answer in the requested shape,
+and if a field is missing, infer it conservatively and say so in the report — never widen the question.
+Start from the anchors you were given (symbols, files, components); pick ONE tool that classifies the
+question and go. **If the question uses domain
 vocabulary (game terms, Ukrainian names, abbreviations like "AP") and you have no anchor, read
 `GLOSSARY.md` (repo root) FIRST** — it maps terms to canonical type names to feed into the tools.
 If two tool rounds produce nothing, change the tool, not the keyword spelling — and if the third

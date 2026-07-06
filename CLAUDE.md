@@ -78,7 +78,8 @@ gate — this names the discipline, it adds no new rule:
   ritual), and escalation rules live THERE — do not restate them here.
 - Discovery is delegated: **discovery-scout** (Sonnet) is the single front door; **arch-scout** and
   **asset-scout** cover arch-check and the asset graph (details in each `.claude/agents/*.md` —
-  always set `subagent_type` explicitly). Bounded `mcp__roslyn__*` calls are allowed directly; raw
+  always set `subagent_type` explicitly). Every discovery-scout spawn uses the 4-field brief of
+  SEARCH_POLICY §1b: question / anchors / shape / stop. Bounded `mcp__roslyn__*` calls are allowed directly; raw
   grep is a budgeted last resort. On exhaustion: reads → STOP and ask; greps → delegate to the
   scout. Subagents are exempt from the gates.
 
@@ -149,6 +150,10 @@ gate — this names the discipline, it adds no new rule:
 - Do not run Unity project builds from the agent side.
 - Do not run `dotnet build`, `msbuild`, `xbuild`, or Unity CLI build commands for this repository.
 - If compile validation is needed, request a Unity-side check from the user.
+- **Pre-check BEFORE asking:** first run `mcp__roslyn__get_diagnostics` (solutionPath:
+  `FantasyMayor.sln`, scoped to the edited project/files) and fix what it reports. Unity stays the
+  authority — roslyn's workspace misses codegen and types added/renamed since the last Unity regen —
+  so the pre-check filters plain C# errors out of the round-trip; it never replaces the user's check.
 - Do not read Unity scene files such as `.unity` or other scene-serialized assets unless the user explicitly allows it in the current task.
 - Never generate or hand-write Unity `.meta` files under any circumstances. If a `.meta` file is needed, stop and ask the user.
 
