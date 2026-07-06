@@ -15,7 +15,7 @@ unless they asked for implementation in the same request.
 
 ### 1. Load INDEX.md first — the doc map
 
-Read `INDEX.md` before anything else (Obsidian MCP `vault_read`; fallback plain `Read`). It is the
+Read `INDEX.md` before anything else (plain `Read`). It is the
 single key to every doc + canvas: each one's read-priority (`always` / `trigger` / `reference`) plus
 a one-line description.
 

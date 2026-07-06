@@ -13,13 +13,13 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 50 docs — 2 always · 16 trigger · 32 reference · 3 canvas.
+Totals: 52 docs — 2 always · 17 trigger · 33 reference · 3 canvas.
 
 ## Read at start (always)
 
 Read these every session before doing anything else.
 
-- [FantasyMayor — Architecture Reference](ARCHITECTURE.md) — Modules are now **engine-facing / infra / UI only**. The former Hex/Terrain feature modules became the
+- [FantasyMayor — Architecture Reference](ARCHITECTURE.md) — `Unity App UI` (`com.unity.dt.app-ui`) as the component foundation — see `GENERAL_UI_STYLE.md` §15
 - [CLAUDE.md](CLAUDE.md) — This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Read on demand (by trigger)
@@ -33,6 +33,7 @@ Do **not** preload. Read only when the trigger condition holds.
 | [FantasyMayor — ECS & Runtime Conventions](ECS_CONVENTIONS.md) | before writing or editing any ECS system, component, event, config, or query | The ECS/runtime rulebook: where state lives, how systems are decomposed, and the write / collection / |
 | [FantasyMayor - Gameplay Foundation](GAMEPLAY_FOUNDATION.md) | ONLY when the user explicitly asks to open this file — never on session-start, never by topic/keyword | `FantasyMayor` is a turn-based game about governing a city through a scarcity of `Action Points`, limited resources, population as a productive and political force, and an unstable balance of power between the mayor and the local elites. |
 | [GENERAL_UI_STYLE.md](GENERAL_UI_STYLE.md) | before creating or changing UI (UI Toolkit, panels, tokens, USS) | The general UI design language for FantasyMayor: the global HUD layout model, design principles, visual |
+| [GLOSSARY — domain vocabulary → code anchors](GLOSSARY.md) | when a domain term (any language) needs its canonical code name before searching roslyn / ecs-graph / di-graph | Map from human vocabulary (game-design terms, Ukrainian/English synonyms, abbreviations) to the |
 | [Pattern — One-Frame Event Cleanup](Patterns/PATTERN_CLEANUP_SYSTEM.md) | before writing any one-frame-event cleanup (and to learn why you usually should not) | **You almost never write a cleanup system.** There is ONE global `EventCleanupSystem` (DefaultECSExtensions): a |
 | [Pattern — ECS Data Component](Patterns/PATTERN_COMPONENT.md) | before creating an ECS data component (a struct holding runtime values) | A component is a plain `struct` of runtime values. No behavior, no methods (except equality when it is a |
 | [Pattern — Config (ScriptableObject + Component)](Patterns/PATTERN_CONFIG.md) | before creating a ScriptableObject config and its runtime component | Authored data lives in a `ScriptableObject`, loaded via Addressables, and published as a **world component** |
@@ -59,10 +60,11 @@ Per-module navigation docs. `status` mirrors each module's `## Current State`.
 | [District Build Outcome](Assets/Domains/Economy/DistrictBuildOutcome/BUILD_DISTRICT_OUTCOME.md) | A | partial | The district-build **outcome** catalogue: the per-district consequence that runs when a district finishes |
 | [District Open Conditions](Assets/Domains/Economy/DistrictOpenCondition/DISTRICT_OPEN_CONDITION.md) | A | partial | The district-build **unlock** rules ("how to unblock building of a district type"), authored as a polymorphic |
 | [Economy](Assets/Domains/Economy/ECONOMY.md) | A | partial | Game-rule domain owning economic objects: inventory resources now; districts and buildings later. |
+| [Kernel](Assets/Domains/Kernel/KERNEL.md) | A | implemented | The DDD Shared Kernel: cross-context vocabulary tokens that would otherwise force a dependency |
 | [TerrainGenerator](Assets/Domains/Map/Generation/TERRAIN_GENERATOR.md) | A | implemented | Procedural terrain generation: hex grid creation, mountains with foothills, and water (river / lake / sea). |
 | [HexCore](Assets/Domains/Map/Hex/HEX_CORE.md) | A | implemented | Core hex grid data structures and the per-hex terrain type. |
 | [HexResources](Assets/Domains/Map/HexResources/HEXRESOURCES.md) | A | implemented | Generates logical resource data for the map. Does not render anything. |
-| [Map](Assets/Domains/Map/MAP.md) | A | implemented | The world-map rule domain (bounded context): the hex grid + terrain types, procedural map generation, natural per-hex resources, and hex pathfinding. |
+| [Map](Assets/Domains/Map/MAP.md) | A | implemented | The world-map rule domain: the hex grid + terrain types, procedural generation, per-hex resources, and pathfinding. |
 | [Pathfinding](Assets/Domains/Map/Pathfinding/PATHFINDING.md) | A | implemented | Hex-grid BFS pathfinding over ECS entities using native Unity collections. |
 | [AxialSystem](Assets/Modules/AxialSystem/AXIAL_SYSTEM.md) | A | implemented | Hex grid coordinate system: axial math, coordinate types, and generic sparse grid storage. |
 | [Boot](Assets/Modules/Boot/BOOT.md) | A | partial | Entry-point orchestration: a one-time config bootstrap, then a hand-wired game-state machine. |
@@ -70,7 +72,7 @@ Per-module navigation docs. `status` mirrors each module's `## Current State`.
 | [Configs](Assets/Modules/Configs/CONFIGS.md) | A | implemented | Generic async loader pattern for ScriptableObject configs from Addressables. |
 | [CurveBuilders](Assets/Modules/CurveBuilders/CURVE_BUILDERS.md) | A | implemented | Interface contract for building and evaluating animation curves used in terrain generation. |
 | [MainCanvas](Assets/Modules/MainCanvas/MAIN_CANVAS.md) | A | implemented | Singleton provider for the main UI canvas root, behind an interface for DI. |
-| [Turn](Assets/Modules/Turn/TURN.md) | A | partial | Engine that runs a game turn: on a turn pulse it fires an ordered set of phase subsystems off the main thread and signals "a turn is being processed" so other systems can gate. |
+| [Turn](Assets/Modules/Turn/TURN.md) | A | partial | Engine that runs a game turn: on a pulse it fires ordered phase subsystems off-thread, gating other systems. |
 | [UserInput](Assets/Modules/UserInput/USER_INPUT.md) | A | implemented | Bridges Unity InputSystem to ECS: camera pan/drag/zoom and hex selection. |
 | [HexIcons](Assets/Presentation/HexIcons/HEXICONS.md) | A | partial | Manages per-hex UI icon badges using a UI Toolkit Screen-Space overlay. |
 | [HexResourcesView](Assets/Presentation/HexResources/HEXRESOURCESVIEW.md) | A | partial | Visualizes resource entities from `HexResources` by instantiating prefabs on terrain. |
@@ -80,7 +82,7 @@ Per-module navigation docs. `status` mirrors each module's `## Current State`.
 | [Context Tabs — Tab Row of the Context Sub-Panel](Assets/Presentation/UI/ContextTabs/CONTEXT_TABS.md) | A | partial | The **tab row** (Огляд / Будівлі / Дії) of the bottom panel's context sub-panel |
 | [DistrictBuild](Assets/Presentation/UI/DistrictBuild/DISTRICT_BUILD.md) | A | partial | The district-build **modal overlay** (`Assets/Presentation/UI/DistrictBuild/`, namespaces |
 | [Turn Corner (End Turn) — Turn Sub-Panel](Assets/Presentation/UI/EndTurn/END_TURN.md) | A | partial | The **TURN sub-panel** (left) of the shared bottom panel (`GENERAL_UI_STYLE.md` §4): the turn number «Хід N», two |
-| [Hex Info Panel — Context Sub-Panel](Assets/Presentation/UI/HexInfoPanel/HEX_INFO_PANEL.md) | A | partial | The read-only **CONTEXT sub-panel** (right) of the shared bottom panel: everything known about the currently |
+| [Hex Info Panel — Context Sub-Panel](Assets/Presentation/UI/HexInfoPanel/HEX_INFO_PANEL.md) | A | partial | The read-only **CONTEXT sub-panel** (right) of the shared bottom panel: everything known about the |
 | [MainUI](Assets/Presentation/UI/MAIN_UI.md) | A | partial | The **`Presentation.UI` assembly** (`Assets/Presentation/UI/`, namespaces `Presentation.UI.*`) — the |
 | [ResourceBar](Assets/Presentation/UI/ResourceBar/RESOURCE_BAR.md) | A | partial | The **left-edge resource panel**: the two inventory pools (City / Mayor) as a vertical scroll list. The |
 

@@ -20,7 +20,7 @@ code_refs:
 
 # Turn
 
-Engine that runs a game turn: on a turn pulse it fires an ordered set of phase subsystems off the main thread and signals "a turn is being processed" so other systems can gate.
+Engine that runs a game turn: on a pulse it fires ordered phase subsystems off-thread, gating other systems.
 
 ## Purpose
 Infrastructure the gameplay domains consume. The turn phases of `GAMEPLAY_FOUNDATION.md`

@@ -43,16 +43,11 @@ public struct [Name]Component : IEquatable<[Name]Component>
 
 ## Rules
 
-- **Write via `entity.Set<T>(value)` / `world.Set<T>(value)`** — never mutate through `ref Get`. `Set` is what
-  triggers reactive filters and maintained maps; a silent `ref` mutation breaks them.
-- **Naming:** `...Component` for data; `...Tag` for a field-less marker (see [PATTERN_TAG](PATTERN_TAG.md));
-  one-frame event is `...Event` (see [PATTERN_EVENT](PATTERN_EVENT.md)). No domain-name prefix — the
-  namespace carries the domain (see [../ECS_CONVENTIONS.md](../ECS_CONVENTIONS.md) → Naming & Construction;
-  FK/PK identity components are the exception).
-- **Entity vs world component:** the same struct can live on an entity (`entity.Set`) or as a world singleton
-  (`world.Set`). A world component is **not** query-matchable (`With<T>` / `WhenAdded<T>` do not see it) — read
-  it with `world.Get<T>()` guarded by `world.Has<T>()`. Full storage taxonomy in `../ECS_CONVENTIONS.md`.
-- **Key components need `IEquatable<T>` + `GetHashCode`** so they can key a table; define the shared key once
-  and reuse it everywhere (Table Rule, `../ECS_CONVENTIONS.md`).
-- Component shape (fields, types) is recovered by `roslyn-mcp` / `ecs-graph` — do not restate it in module docs.
+```lisp
+(write             → entity.Set<T>(v) | world.Set<T>(v))   ;; NEVER mutate via ref Get — Set() is what triggers reactive filters + maintained maps
+(naming :data      → "…Component")                         ;; field-less marker → "…Tag" (PATTERN_TAG); one-frame pulse → "…Event" (PATTERN_EVENT)
+(naming :prefix    → none)                                 ;; the namespace carries the domain; FK/PK identity components are the exception (ECS_CONVENTIONS → Naming & Construction)
+(world-component   :not-query-matchable)                   ;; With<T>/WhenAdded<T> do NOT see it — read world.Get<T>() guarded by world.Has<T>(); storage taxonomy: ECS_CONVENTIONS
+(table-key         :requires IEquatable<T> + GetHashCode)  ;; define the shared key ONCE, reuse everywhere (Table Rule, ECS_CONVENTIONS)
+(component-shape   → roslyn | ecs-graph)                   ;; fields/types are tool-derivable — never restate them in module docs
 ```

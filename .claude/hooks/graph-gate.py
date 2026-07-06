@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""PreToolUse gate — forbids the MAIN agent from BUILDING or CURATING the ECS/DI graphs.
+"""PreToolUse gate — forbids the MAIN agent from BUILDING or CURATING the ECS/DI graphs,
+and turns any main-agent edit of a FROZEN policy doc (ARCHITECTURE.md) into a user-approval ASK.
 
 The mechanical build (`build_graph.py` / `build_di_graph.py`) AND the STEP-2 AI curation
 (writing the curated `.ecs-graph/graph.json` / `.di-graph/graph.json`) belong to the
@@ -29,6 +30,12 @@ import sys
 GRAPH_DIR_RE = re.compile(r"\.(?:ecs|di)-graph\b")   # matches .ecs-graph / .di-graph anywhere in a path/command
 BUILD_EXES = {"build_graph.py", "build_di_graph.py"}  # mutation entry points → docs-curator
 QUERY_EXES = {"ecsg.py", "dig.py"}                    # read-only query CLIs → allowed for the main agent
+# Policy-frozen docs (status: frozen): an agent edit becomes a user-approval ASK, not a silent write.
+FROZEN_DOCS = ("ARCHITECTURE.md",)
+BASH_WRITE_EXES = {"sed", "tee", "cp", "mv", "rm", "truncate"}  # write-capable bash vectors onto a frozen doc
+FROZEN_ASK = ("ARCHITECTURE.md is FROZEN policy (see its header banner) — agents do not edit it. "
+              "If the user explicitly ordered this policy change, they can approve this prompt; "
+              "otherwise flag the needed change back to the user instead of editing.")
 # wrappers to skip when finding a pipeline segment's real executable (mirrors search-gate.py)
 WRAPPERS = {"python", "python3", "uv", "run", "time", "nice", "env", "sudo", "command", "exec", "xargs"}
 # STEP-2 curation checklists — reading them is the curator's job, not the main agent's
@@ -47,6 +54,20 @@ def deny(reason: str):
         "permissionDecisionReason": reason,
     }}))
     sys.exit(0)
+
+
+def ask(reason: str):
+    print(json.dumps({"hookSpecificOutput": {
+        "hookEventName": "PreToolUse",
+        "permissionDecision": "ask",
+        "permissionDecisionReason": reason,
+    }}))
+    sys.exit(0)
+
+
+def _is_frozen(path: str) -> bool:
+    p = path.replace("\\", "/")
+    return any(p == d or p.endswith("/" + d) for d in FROZEN_DOCS)
 
 
 def _segment_exe(segment: str) -> str:
@@ -81,6 +102,8 @@ def bash_is_gated(cmd: str):
             return ("Direct Bash access to .ecs-graph/ / .di-graph/ (writing or reading the graph "
                     "artifacts ad-hoc) is denied in the main session. Query via ecsg.py / dig.py; "
                     "to build or curate, " + DELEGATE)
+        if exe in BASH_WRITE_EXES and any(d in seg for d in FROZEN_DOCS):
+            return "FROZEN_ASK"
     return None
 
 
@@ -101,11 +124,15 @@ def main():
         if GRAPH_DIR_RE.search(fp):
             deny("Writing the graph artifacts (.ecs-graph/ / .di-graph/) in the main session is denied. "
                  + DELEGATE)
+        if _is_frozen(fp):
+            ask(FROZEN_ASK)
         return
 
     if tool == "Bash":
         reason = bash_is_gated(ti.get("command", "") or "")
-        if reason:
+        if reason == "FROZEN_ASK":
+            ask(FROZEN_ASK)
+        elif reason:
             deny(reason)
         return
 

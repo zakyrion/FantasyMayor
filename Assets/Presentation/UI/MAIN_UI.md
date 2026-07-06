@@ -64,15 +64,14 @@ Adding a window = add its markup to the `UI/MainUI` document + its view MonoBeha
 that resolves it.
 
 ## Trigger
-The HUD systems split two ways (per-system role / priority / anchor: `ecsg.py explain
-<System>`, roles per `ARCHITECTURE.md` "System Taxonomy"; each window's doc carries the detail):
+The HUD systems split two ways (per-system role/priority/anchor: `ecsg.py explain <System>`; each
+window's doc carries the detail):
 - **`EndTurnViewSystem` owns the shell reveal** — it reveals the whole `BottomPanel` each Gameplay tick (the
   turn corner is its always-present part); the context content never touches the shell.
 - **The context sub-panel reconciles on the `SelectedHexChangedEvent` pulse** (raised by
   `UserInput.HexSelectionSystem`): one system owns show/hide, the block systems each fill their block off the
   current `HexSelectedComponent` — **no intermediary refresh event**, each skips gracefully on no selection.
-- **`ResourceBarSystem` is the deliberate per-frame exception** — no `ResourcesChanged` pulse exists yet
-  (justification in `ResourceBar/RESOURCE_BAR.md`).
+- **`ResourceBarSystem` is the deliberate per-frame exception** (justification in `ResourceBar/RESOURCE_BAR.md`).
 
 ## Non-Obvious Invariants
 - **The shared `PanelRenderer` builds its visual tree asynchronously** (unlike `UIDocument`, whose root is
@@ -94,13 +93,13 @@ The HUD systems split two ways (per-system role / priority / anchor: `ecsg.py ex
   `MapCreation`). It owns the loaded prefab instance + addressable handle, released in `Dispose`
   (`ADDRESSABLE_PATTERNS.md`). The Generate button dispatches generation via an entity with
   `TerrainGenerationGenerateEventComponent + EventTag`.
-- `MainUISpawnSystem` (**Pipeline Stage 800**, orchestrator) instantiates the single `UI/MainUI` prefab under
-  the main canvas (owns the one addressable handle), then runs its **spawn subsystems** (`MainUISpawnSubSystem`,
-  ordered by Priority): `HexInfoPanelSpawnSubSystem` (0), `EndTurnSpawnSubSystem` (10) and
-  `ContextTabsSpawnSubSystem` (20). Each subsystem instantiates nothing — it `GetComponentInChildren`s its view
-  off the shared instance and publishes the view singleton. `HexInfoPanelSpawnSubSystem` sets the context to
-  its empty state; `EndTurnSpawnSubSystem` leaves the whole bottom-panel shell hidden — `EndTurnViewSystem` reveals
-  it on entering Gameplay; `ContextTabsSpawnSubSystem` seeds the view + active tab (Overview) as **world
+- `MainUISpawnSystem` (orchestrator; order: `ecsg.py explain <System>`) instantiates the single `UI/MainUI`
+  prefab under the main canvas (owns the one addressable handle), then runs its **spawn subsystems**
+  (`MainUISpawnSubSystem`): `HexInfoPanelSpawnSubSystem`, `EndTurnSpawnSubSystem`, `ContextTabsSpawnSubSystem`.
+  Each subsystem instantiates nothing — it `GetComponentInChildren`s its view off the shared instance and
+  publishes the view singleton. `HexInfoPanelSpawnSubSystem` sets the context to its empty state;
+  `EndTurnSpawnSubSystem` leaves the whole bottom-panel shell hidden — `EndTurnViewSystem` reveals it on
+  entering Gameplay; `ContextTabsSpawnSubSystem` seeds the view + active tab (Overview) as **world
   singletons** (no entity) + applies the initial highlight.
 
 ## Current State
@@ -119,16 +118,14 @@ The HUD systems split two ways (per-system role / priority / anchor: `ecsg.py ex
   «наст. хід», fed by `EndTurnViewSystem` from the Mayor's live `ActionPoint` stack / `MayorAPRestoreComponent`)
   all work. See `EndTurn/END_TURN.md`.
 - Resource strip (ResourceBar): **code implemented** — config + loader/component, View, Spawn subsystem,
-  per-frame `ResourceBarSystem`, `TopBar` markup in the shared document + USS, DI + Boot wiring. Needs
-  Unity-side authoring: the `InventoryResourceIconConfig.asset` (+ sprites) at key `"InventoryResourceIconConfig"`
-  and a `ResourceBarView` MonoBehaviour on the `UI/MainUI` prefab with the shared `PanelRenderer` assigned
-  (else the spawn subsystem throws). See `ResourceBar/RESOURCE_BAR.md`.
+  per-frame `ResourceBarSystem`, DI + Boot wiring. Needs Unity-side authoring: the
+  `InventoryResourceIconConfig.asset` and a `ResourceBarView` MonoBehaviour on the `UI/MainUI` prefab with
+  the shared `PanelRenderer` assigned (else the spawn subsystem throws). See `ResourceBar/RESOURCE_BAR.md`.
 - Context tabs (ContextTabs): **implemented** — components/event/enum/View/Spawn + selection & availability
-  systems, registered in `UIInstaller`, wired into Gameplay by `Boot`; the three `ui:Toggle` tabs (active via
-  `:checked`) and the three content panes live in the shared document, and `SetActive` swaps both. Requires the
-  `ContextTabsView` MonoBehaviour on the `UI/MainUI` prefab with its `PanelRenderer` assigned (else the spawn
-  subsystem throws). Availability is a stub (all tabs enabled); `BuildingsPane` / `ActionsPane` content is
-  pending. See `ContextTabs/CONTEXT_TABS.md`.
+  systems, wired into Gameplay by `Boot`; the three `ui:Toggle` tabs and the three content panes live in the
+  shared document, `SetActive` swaps both. Requires the `ContextTabsView` MonoBehaviour on the `UI/MainUI`
+  prefab with its `PanelRenderer` assigned (else the spawn subsystem throws). Availability is a stub (all
+  tabs enabled). See `ContextTabs/CONTEXT_TABS.md`.
 
 ## Window Design Docs
 - `HexInfoPanel/HEX_INFO_PANEL.md` — the selected-hex context sub-panel (right): blocks, the filled ↔ empty

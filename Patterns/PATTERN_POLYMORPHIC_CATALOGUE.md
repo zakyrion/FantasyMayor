@@ -27,20 +27,19 @@ discriminators**, the **routing vs non-routing** orchestrator split, and the **d
 **Canonical implementation:** `Economy.DistrictOpenCondition` (`Assets/Domains/Economy/DistrictOpenCondition/`). Read
 its `DISTRICT_OPEN_CONDITION.md` for the live example; this recipe is the generic procedure.
 
-## When to use
+## When to use / when NOT
 
-- Authored data comes in **several kinds that differ in shape** (different parameters, or some parameter-less), all
-  sharing one **key** (a FK such as `DistrictTypeComponent`).
-- Runtime code must **query or join** those entries by key — react to them, look them up per turn, combine with another
-  table — rather than read them once.
-- A new kind should plug in **without editing** the orchestrator (Open-Closed).
+```lisp
+;; ── USE when ALL hold ───────────────────────────────────────────────────────
+(authored-kinds    → several, differing in shape)          ;; different parameters, or some parameter-less — all sharing one KEY (a FK such as DistrictTypeComponent)
+(runtime           → queries/joins entries BY KEY)         ;; reacts, looks up per turn, combines with another table — not a read-once blob
+(new-kind          → plugs in WITHOUT editing the orchestrator)  ;; Open-Closed
 
-## When NOT to use
-
-- **One** config, one shape → plain [PATTERN_CONFIG](PATTERN_CONFIG.md) (flatten or wrap into a world component). Do
-  not spawn an entity for a singleton config.
-- Homogeneous list read once at startup and never queried by key → a flattened world component is cheaper than a table.
-- You need behavior *on* the config → no. SO configs stay **pure data**; the type-switch lives in the subsystems.
+;; ── do NOT use when ─────────────────────────────────────────────────────────
+(one-config-one-shape          → PATTERN_CONFIG)           ;; flatten or wrap into a world component — never spawn an entity for a singleton config
+(homogeneous-read-once-list    → flattened world component) ;; cheaper than a table when never queried by key
+(behavior-on-the-config        → NO)                       ;; SO configs stay pure data — the type-switch lives in the subsystems
+```
 
 ---
 
@@ -190,25 +189,29 @@ internal sealed class BarFooEvaluatorSubSystem : FooEvaluatorSubSystem
 
 Both host an `IReadOnlyList<TSubSystem>`; they differ in HOW they call it:
 
-| | **Routing (spawn)** | **Non-routing (evaluator)** |
-|---|---|---|
-| Loop | per config entry, `TrySpawn` down the list, **first match wins** | run **every** enabled subsystem unconditionally |
-| Input | one authored config → one owner | each subsystem self-queries its own rows |
-| Unhandled kind | **fail loud** (no subsystem matched) | **silent no-op** (that kind simply has no rows touched) |
-| Use for | materializing config → entities | periodic reconcile of existing rows |
+```lisp
+(routing :spawn
+  (loop            → per config entry, TrySpawn down the list, first match wins)
+  (input           → one authored config → one owner)
+  (unhandled-kind  → FAIL LOUD)                            ;; a kind with no spawn-subsystem is an AUTHORING BUG
+  (use-for         → materializing config → entities))
 
-The asymmetry is deliberate: a config kind with no spawn-subsystem is an authoring bug (loud); a kind with no
-evaluator yet is just not-implemented-yet (quiet, expected).
+(non-routing :evaluator
+  (loop            → run EVERY enabled subsystem unconditionally)
+  (input           → each subsystem self-queries its own rows)
+  (unhandled-kind  → silent no-op)                         ;; no evaluator yet = not-implemented-yet — quiet, expected
+  (use-for         → periodic reconcile of existing rows))
+```
+
+The loud/quiet asymmetry is deliberate — see the `;;` notes above.
 
 ## Per-kind discriminator rule
 
-- **Data-carrying kind** → a payload **component** that doubles as the discriminator (present ⇒ this kind). e.g.
-  `BarFooComponent { RequiredThing }`.
-- **Parameter-less kind** → an empty marker **tag** (present ⇒ this kind). Without it, a parameter-less row is
-  indistinguishable from any other. See [PATTERN_TAG](PATTERN_TAG.md).
-
-Never overload the *key* as the kind discriminator — the key is the subject (1:N per key is expected), the discriminator
-is the kind.
+```lisp
+(kind :with-data   → payload component doubles as discriminator)  ;; present ⇒ this kind, e.g. BarFooComponent { RequiredThing }
+(kind :param-less  → empty marker tag)                     ;; without it a parameter-less row is indistinguishable (PATTERN_TAG)
+(key-as-discriminator → NEVER)                             ;; the key is the SUBJECT (1:N per key expected); the discriminator is the KIND
+```
 
 ## Dual-host reuse (when the evaluator must run at two lifecycles)
 
@@ -243,11 +246,13 @@ Three pieces, orchestrator untouched:
 
 ## Checklist
 
-- [ ] Container SO holds `FooConfig[]`; abstract base carries only the shared key; concretes are pure data.
-- [ ] Loader at `ConfigLoadStep` wraps the **live SO ref**, retains the `Box`, fails loud on null/empty, releases on dispose.
-- [ ] Spawn orchestrator fails loud on a null entry / unhandled type; subsystems return `bool` from `TrySpawn` (Try-pattern).
-- [ ] Every row = key (FK) + discriminator tag + per-kind marker; consumers query the table, never the bare key.
-- [ ] Payload kinds → component discriminator; parameter-less kinds → marker tag.
-- [ ] Evaluator (if present) is non-routing, self-queries its slice, joins by key via `AsMap`/`AsMultiMap`, Sets/Removes idempotently.
-- [ ] Dual-host only if two lifecycles are needed; both reuse one subsystem list.
-- [ ] All `Singleton`; subsystems `.As<AbstractBase>()`; collected field `[StateAllowed]`.
+```lisp
+(container-SO      → FooConfig[] items; base carries ONLY the shared key; concretes pure data)
+(loader            → wraps live SO ref, RETAINS the Box, fails loud on null/empty, releases on dispose)
+(spawn-orchestrator → fail loud on null entry | unhandled type; subsystems bool TrySpawn — Try-pattern)
+(row               → key(FK) + discriminator tag + per-kind marker; consumers query the TABLE, never the bare key)
+(kind :with-data   → component discriminator) (kind :param-less → marker tag)
+(evaluator :if-present → non-routing, self-queries its slice, joins by key AsMap|AsMultiMap, Sets/Removes idempotently)
+(dual-host         :only-when two lifecycles needed; both reuse ONE subsystem list)
+(di                → all Singleton; subsystems .As<AbstractBase>(); collected field [StateAllowed])
+```

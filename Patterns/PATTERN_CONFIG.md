@@ -62,13 +62,10 @@ Two shapes — pick by what the SO holds:
 
 ## Rules
 
-- **The SO is authoring-only.** Runtime reads the component (`world.Get<[Name]ConfigComponent>()`), never the
-  asset — unless the component is the wrap variant, whose whole job is to carry the SO reference.
-- **Flatten vs wrap:** flatten pure values (no asset lifetime to manage); **wrap** when entries carry engine
-  references or a sub-config list consumed lazily — a flattened copy would lose them. Wrapping is the norm for
-  catalogue configs; record the wrapped component in `ecs-graph`.
-- **Authored validity** (one entry per type, no null entries, non-empty lists) is validated at load — see
-  [PATTERN_CONFIG_LOADER](PATTERN_CONFIG_LOADER.md), not in the SO.
-- The config component is a **world component** (`world.Set`), never an entity. Storage taxonomy:
-  `../ARCHITECTURE.md`.
+```lisp
+(SO                → authoring-only)                       ;; runtime reads the component (world.Get<[Name]ConfigComponent>()), never the asset — except the wrap variant, whose whole job is carrying the SO reference
+(shape :scalar-tunables → FLATTEN)                         ;; copy values out; loader releases the SO after copying — no asset lifetime to manage
+(shape :engine-refs|sub-config-lists → WRAP live SO ref)   ;; a flattened copy would lose them; the norm for catalogues — record the wrapped component in ecs-graph
+(validation        → at load, in the loader)               ;; one-entry-per-type, no nulls, non-empty — PATTERN_CONFIG_LOADER, never inside the SO
+(storage           → world component via world.Set)        ;; never an entity for a singleton config; storage taxonomy: ECS_CONVENTIONS
 ```

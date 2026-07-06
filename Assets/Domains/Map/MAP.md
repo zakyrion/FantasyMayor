@@ -17,7 +17,7 @@ code_refs:
 
 # Map
 
-The world-map rule domain (bounded context): the hex grid + terrain types, procedural map generation, natural per-hex resources, and hex pathfinding.
+The world-map rule domain: the hex grid + terrain types, procedural generation, per-hex resources, and pathfinding.
 
 ## Purpose
 `Domains.Map` owns the spatial substrate of the game — everything that *is* the world, as data and

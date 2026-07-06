@@ -57,14 +57,13 @@ protected override void OnDispose() => DisposeBox(ref _config);
 
 ## Rules
 
-- **Flatten → release the box** in `finally`. **Wrap → RETAIN the box**, release in `OnDispose` — disposing it
-  while the component holds the SO reference would dangle it. See [PATTERN_CONFIG](PATTERN_CONFIG.md).
-- **Validate, then `MarkAsLoaded()`.** A loader that publishes garbage and continues hides the bug — fail loud
-  (`../ARCHITECTURE.md`). `LoadConfigAsync` already throws on a failed load — keep it.
-- **Publish a world component** (`World.Set`), never `CreateEntity` for the config itself.
-- A loader MAY build derived runtime world components (e.g. a grid from the config); it MUST NOT do per-frame
-  or gameplay logic.
-- `cancellationToken.IsCancellationRequested` is the only quiet `return`.
-- **Wiring:** register in the module installer as `IUniTaskSystem<ConfigLoadStep>`; `Boot` runs all loaders
-  sequentially at startup. Addressable ownership: `Assets/Modules/Addressable/ADDRESSABLE_PATTERNS.md`.
+```lisp
+(box :flatten      → release in finally)
+(box :wrap         → RETAIN in a field, release in OnDispose)  ;; disposing while the component holds the SO reference would dangle it (PATTERN_CONFIG)
+(order             → validate, THEN MarkAsLoaded())            ;; publishing garbage and continuing hides the bug — fail loud; LoadConfigAsync already throws on failed load, keep it
+(publish           → World.Set world component)                ;; never CreateEntity for the config itself
+(loader :may       → build derived runtime world components)   ;; e.g. a grid from the config
+(loader :must-not  → per-frame or gameplay logic)
+(quiet-return      → cancellationToken.IsCancellationRequested ONLY)
+(wiring            → installer .As<IUniTaskSystem<ConfigLoadStep>>)  ;; Boot runs all loaders sequentially at startup; addressable ownership: ADDRESSABLE_PATTERNS.md
 ```

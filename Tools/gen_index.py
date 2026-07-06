@@ -152,6 +152,23 @@ def _code_ref_names(block):
     return names
 
 
+BODY_BUDGET_LINES = 120   # Category A size budget (DOC_STANDARD → Size budgets)
+DESC_BUDGET_CHARS = 120   # first content line = the INDEX description
+
+
+def lint_budgets(docs):
+    """Size budgets (DOC_STANDARD → Size budgets). WARN-level: reported, never blocks —
+    promote into lint() once the first shrink-pass brings the corpus under budget."""
+    warns = []
+    for p, m in docs:
+        body_lines = sum(1 for ln in m["_body"].splitlines() if ln.strip())
+        if m["category"] == "A" and body_lines > BODY_BUDGET_LINES:
+            warns.append(f"{p}: body {body_lines} lines > budget {BODY_BUDGET_LINES} (Category A)")
+        if len(m["desc"]) > DESC_BUDGET_CHARS:
+            warns.append(f"{p}: first content line {len(m['desc'])} chars > {DESC_BUDGET_CHARS}")
+    return warns
+
+
 def lint(docs):
     """DOC_STANDARD's checklist, mechanized. Returns a list of issue strings."""
     issues = []
@@ -325,6 +342,10 @@ def main():
           f"{len(canvases)} canvas")
 
     # doc lint — INDEX is already written; issues are doc drift to fix in the docs
+    warns = lint_budgets(docs)
+    if warns:
+        sys.stderr.write(f"BUDGET: {len(warns)} over-budget doc(s) (warn-only):\n  "
+                         + "\n  ".join(warns) + "\n")
     issues = lint(docs)
     if issues:
         sys.stderr.write(f"LINT: {len(issues)} issue(s) — INDEX itself is written; "

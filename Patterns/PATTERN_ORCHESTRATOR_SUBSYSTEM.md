@@ -63,20 +63,14 @@ public [Name]System(IReadOnlyList<[Name]SubSystem> subSystems /*, World world ..
 
 ## Rules
 
-- **The orchestrator holds NO domain logic** — sort by Priority, skip `IsEnabled == false`, run. All real work
-  is in the subsystems.
-- **DI collection:** register each concrete subsystem AS the base type —
-  `.As<[Feature]SubSystem, [Name]SubSystem>()` — so VContainer fills the orchestrator's
-  `IReadOnlyList<[Name]SubSystem>`. The orchestrator registers by its host contract (pipeline stage →
-  `IPrioritizedUniTaskSystem<MapGenerationStep>`; per-frame → concrete, then wired in `Boot.Construct`).
-- **`[StateAllowed]` on the list applies only when the orchestrator is itself a system** (the two arch-check
-  bans target systems): the `IReadOnlyList` + `OrderBy().ToArray()` are fixed composition. The subsystem base
-  is a plain `IDisposable` (NOT a system) — arch-check ignores it, so it may freely hold state and query caches.
-- **The base owns SHARED queries / `Try…` helpers;** each subsystem owns and disposes its OWN extra queries.
-- Subsystem priorities order children WITHIN the orchestrator only — unrelated to pipeline-stage priorities.
-- **Routing variant (DoD polymorphism):** make the operation return `bool` (`TrySpawn(config)`); the
-  orchestrator tries each subsystem until one handles the input, and **fails loud** when none does.
-- **Naming:** the `[Name]`/`[Feature]` placeholders carry no domain prefix — the namespace does (see
-  [../ECS_CONVENTIONS.md](../ECS_CONVENTIONS.md) → Naming & Construction). `[Domain]Installer` keeps its
-  domain prefix (the documented exception).
+```lisp
+(orchestrator      :contains no-domain-logic)              ;; sort by Priority, skip IsEnabled==false, run — ALL real work is in the subsystems
+(di :subsystem     → .As<[Feature]SubSystem, [Name]SubSystem>())  ;; register AS the base so VContainer fills the orchestrator's IReadOnlyList<[Name]SubSystem>
+(di :orchestrator  → its host contract)                    ;; pipeline stage → .As<IPrioritizedUniTaskSystem<MapGenerationStep>>; per-frame → concrete + wired in Boot.Construct
+([StateAllowed]    :only-when orchestrator-is-a-system)    ;; the list + OrderBy().ToArray() are fixed composition; the subsystem base is plain IDisposable (NOT a system) — arch-check ignores it, state/query caches are free there
+(queries :shared   → the base owns them + Try… helpers)
+(queries :own      → each subsystem owns AND disposes its own)
+(priority :scope   → children WITHIN the orchestrator only) ;; unrelated to pipeline-stage priorities
+(routing-variant   → bool TrySpawn(config), first match wins, fail loud on none)  ;; DoD polymorphism
+(naming            → no domain prefix on [Name]/[Feature])  ;; namespace carries it; [Domain]Installer keeps its prefix (the documented exception; ECS_CONVENTIONS → Naming & Construction)
 ```

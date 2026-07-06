@@ -37,17 +37,11 @@ pulse.Set(new EventTag());   // marks it one-frame; the cleanup pass disposes it
 
 ## Rules
 
-- **Payload-less.** No coordinates, lists, or ids inside the event. The consumer reads world state and
-  reconciles (idempotent) — see [PATTERN_REACTIVE_SYSTEM](PATTERN_REACTIVE_SYSTEM.md). If a change has
-  persistent truth, store the truth in a world component / on an entity; the event only says "re-read it".
-- **Tolerated exception:** a tiny *identifying* payload (e.g. which item was clicked) is acceptable when the
-  target cannot be derived from state — but prefer writing the target to a world component + a payload-less
-  pulse. Never put bulk or derived data on an event.
-- **Always `Set(new EventTag())`** alongside the event so the cleanup pass disposes the entity that tick
-  (see [PATTERN_CLEANUP_SYSTEM](PATTERN_CLEANUP_SYSTEM.md)).
-- **One-frame events do NOT survive the async map-creation pipeline.** Startup bulk work is a
-  [pipeline stage](PATTERN_PIPELINE_STAGE.md), never an event.
-- Naming: `...Event`, in `Events/`. No domain-name prefix — the namespace carries the domain (see
-  [../ECS_CONVENTIONS.md](../ECS_CONVENTIONS.md) → Naming & Construction). Producer→consumer flow lives in
-  `ecs-graph` (`/ecs-graph`).
+```lisp
+(payload           → none)                                 ;; no coords/lists/ids — the consumer reconciles from world state (PATTERN_REACTIVE_SYSTEM); persistent truth lives in a world component / on an entity, the event only says "re-read it"
+(payload :tolerated → tiny IDENTIFYING value)              ;; only when the target cannot be derived from state; prefer target→world-component + payload-less pulse; NEVER bulk or derived data
+(raise             → pulse.Set(event) + pulse.Set(new EventTag()))  ;; EventTag opts it into end-of-tick disposal (PATTERN_CLEANUP_SYSTEM)
+(startup-bulk-work → pipeline-stage, never an event)       ;; one-frame events do NOT survive the async map-creation pipeline (PATTERN_PIPELINE_STAGE)
+(naming            → "…Event" :in Events/)                 ;; no domain prefix — namespace carries it (ECS_CONVENTIONS → Naming & Construction)
+(producer→consumer → ecs-graph)
 ```

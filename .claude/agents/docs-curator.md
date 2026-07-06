@@ -14,9 +14,9 @@ delegates a doc sync to you AFTER code has landed and the user has approved it, 
 context (or its Opus budget) on the doc-mechanics grind. You do the finding, the reading, the
 DOC_STANDARD-compliant editing, and the mechanical sync; the main agent keeps only the design intent.
 
-**FIRST, every run: read `DOC_STANDARD.md` (repo root) — it is your charter.** Read it via
-`mcp__obsidian__vault_read` (fallback plain `Read` if the `obsidian` server is not connected). It is
-`read: trigger`, so it is NOT auto-loaded — you load it yourself, every run, before touching a doc.
+**FIRST, every run: read `DOC_STANDARD.md` (repo root) — it is your charter.** Read it via plain
+`Read`. It is `read: trigger`, so it is NOT auto-loaded — you load it yourself, every run, before
+touching a doc.
 Everything below is subordinate to it: Rule 0 (docs are agent-facing), the Division of Labor (a doc
 holds ONLY what a tool cannot answer), Category A structure, frontmatter + `code_refs` rules, the
 forbidden list, and the pre-save checklist.
@@ -66,22 +66,21 @@ full read; larger → `get_document_outline` first, then fragment reads. Never a
   Those are the main agent's / the user's. If the brief implies a policy or pattern change, flag it back
   — do not edit them.
 
-## Obsidian-first (HARD DEFAULT for every `.md`)
-This repo is an Obsidian vault. For ANY vault `.md` (Category A module/domain/presentation docs, the
-INDEX pass-2 zone) the `mcp__obsidian__*` tools are the DEFAULT, not an option:
-- **Read** a doc via `mcp__obsidian__vault_read` (heading/block/frontmatter targeting); locate via
-  `search_query` / `search_simple` / `vault_get_document_map`.
-- **Edit** a doc via `mcp__obsidian__vault_patch` (targeted heading/block edit) or `vault_append`; use
-  `vault_write` only for a full-doc rewrite.
-- **Reach for plain `Read` / `Write` / `Edit` on a vault `.md` ONLY as a fallback** when the `obsidian`
-  server is not connected (a `vault_*` call errors) — and say so in your report when you fall back.
+## Doc tooling: plain edits, Obsidian for search
+This repo is an Obsidian vault, but Obsidian sees on-disk changes — so plain file tools are the
+EDIT path, and the `mcp__obsidian__*` tools are the SEARCH/NAVIGATION path:
+- **Edit** any `.md` via plain `Read` + `Edit`/`Write` (exact-string matching, harness-verified).
+  Do NOT use `vault_patch`/`vault_append`/`vault_write` for edits — heading-targeted patching against
+  a moving doc was the project's top tool-error source (17 target-not-found failures on record).
+- **Locate/search** via `mcp__obsidian__search_query` / `search_simple` / `vault_get_document_map`;
+  a heading-scoped `vault_read` is fine for pulling one section of a LARGE doc. If the `obsidian`
+  server is down, plain `Grep` over `*.md` replaces search.
 - You have no move/delete tools by design — if a doc must be moved or deleted, flag the main agent.
 
-**Not Obsidian — use plain tools (this is correct, not a fallback):** source `.cs` (Obsidian cannot
-read code — always plain `Read`), the graph artifacts `.ecs-graph/graph.json` / `.di-graph/graph.json`
-(gitignored derived JSON, not vault docs — plain `Read`/`Edit` + the graph CLIs), and anything under
-`.claude/`. A graph-curation run touches NONE of the vault, so it uses no Obsidian at all — that is
-expected. Obsidian-first governs the MD-sync run.
+**Never Obsidian (not even for search):** source `.cs` (always plain `Read`), the graph artifacts
+`.ecs-graph/` / `.di-graph/` (gitignored derived JSON — the graph CLIs own them), and anything under
+`.claude/` (outside the vault index). A graph-curation run touches NONE of the vault, so it uses no
+Obsidian at all — that is expected.
 
 ## Guards (non-negotiable)
 - **Manual-edit guard.** Before overwriting, compare on-disk content against what the brief expects. If

@@ -27,28 +27,23 @@ triggers are not visible in roslyn-mcp — full event flow: the ecs-graph (`/ecs
 
 ## Init vs Reactive — who does what
 
-Two different mechanisms live here, on purpose. Do not confuse them
-(roles per `ARCHITECTURE.md` "System Taxonomy"):
+Two different mechanisms live here, on purpose — do not confuse them. Roles/priorities:
+`ecsg.py explain <System>`.
 
-| System | Role | Driven by | Responsibility |
-|---|---|---|---|
-| `HexResourcesViewSystem` | Pipeline Orchestrator (priority 400) | `MapCreation` game state | runs **Forest/Clay/Fish** view subsystems once |
-| `ForestHexResourceViewSubSystem` | Pipeline SubSystem (priority 400) | `HexResourcesViewSystem` | **startup bulk**: plants every forest hex's trees + paints their ground, once |
-| `ClayHexResourceViewSubSystem` | Pipeline SubSystem (priority 200) | `HexResourcesViewSystem` | sinks a clay depression into `VertexGrid` + paints a clay gradient into the terrain texture (implemented) |
-| `FishHexResourceViewSubSystem` | Pipeline SubSystem (priority 300) | `HexResourcesViewSystem` | scaffold-only, `Update()` empty |
-| `ForestSpawnSystem` | Reactive System (Gameplay) | `ForestHexAppearedEvent` pulse | reconciles forest resources **without** a view → plant them (runtime; dormant — no emitter yet) |
-| `ForestDespawnSystem` | Reactive System (Gameplay) | `ForestHexRemovedEvent` pulse | reconciles views whose hex **lost** its forest resource → destroy them (runtime; dormant) |
-| `ForestPlanter` | helper in `Helpers/` (not a system) | the two spawners | **stateless**: places trees as view entities + collects ground splats; the shared spawn logic |
-| `ForestGroundPainter` | helper in `Helpers/` (not a system) | the spawners | **stateless**: splats green ground into the terrain texture (append-only) |
-| `ClayFootprint` / `ClayDepressionShaper` / `ClayGroundPainter` | helpers in `Helpers/` (not systems) | `ClayHexResourceViewSubSystem` | shared contour + mesh depression + texture gradient |
+| System | Responsibility |
+|---|---|
+| `HexResourcesViewSystem` | Pipeline Orchestrator (`MapCreation`): runs **Forest/Clay/Fish** view subsystems once |
+| `ForestHexResourceViewSubSystem` | **startup bulk**: plants every forest hex's trees + paints their ground, once |
+| `ClayHexResourceViewSubSystem` | sinks a clay depression into `VertexGrid` + paints a clay gradient into the terrain texture (implemented) |
+| `FishHexResourceViewSubSystem` | scaffold-only, `Update()` empty |
+| `ForestSpawnSystem` | Reactive (Gameplay), `ForestHexAppearedEvent`: reconciles forest resources **without** a view → plant them (dormant — no emitter yet) |
+| `ForestDespawnSystem` | Reactive (Gameplay), `ForestHexRemovedEvent`: reconciles views whose hex **lost** its forest resource → destroy them (dormant) |
+| `ForestPlanter` / `ForestGroundPainter` | **stateless** helpers in `Helpers/` (not systems): shared spawn logic / append-only ground splat |
+| `ClayFootprint` / `ClayDepressionShaper` / `ClayGroundPainter` | helpers in `Helpers/` for `ClayHexResourceViewSubSystem`: shared contour + mesh depression + texture gradient |
 
 **Naming marker:** `...SubSystem` = one-shot pipeline child; `...SpawnSystem`/`...DespawnSystem` =
-reactive event-driven maintainers (anchored on a one-frame pulse, not per-frame diffing).
-(`ForestView` = the per-tree MonoBehaviour on the prefab; `ForestViewComponent` = the ECS handle to it
-— both unchanged.)
-
-**Folder marker:** plain non-system helper classes live in `Helpers/` (painters, the clay shaper, the
-footprint). ECS systems/subsystems stay in `Systems/`.
+reactive event-driven maintainers (anchored on a one-frame pulse, not per-frame diffing). Plain
+non-system helpers live in `Helpers/`; ECS systems/subsystems stay in `Systems/`.
 
 ### Forest lifecycle: one-shot startup + two reactive runtime systems
 Forest is split by **when** the work happens, not by a per-frame god-system:
@@ -93,12 +88,8 @@ against **current world state**, which makes it idempotent (a second pulse in th
 - `HexResourcesViewConfig` **allows duplicate** `ResourceType` entries by design — all matching forest
   entries are collected, enabling random prefab selection with per-entry `Radius`, `ScaleRange`, and
   `GroundTint` (e.g. multiple tree variants with different sizes/footprints).
-- `HexResourcesViewConfigEntry` carries:
-  - `ScaleRange` (Vector2, x=min y=max) — uniform `localScale` chosen per instance via `Random.Range`.
-  - `Radius` (float) — physical footprint of the prefab. Used both for placement rejection and as the
-    green ground-splat radius.
-  - `GroundTint` (Color) — color splatted under the instance; **alpha drives splat strength** (alpha 0 ⇒
-    no paint).
+- `HexResourcesViewConfigEntry.Radius` is dual-use: placement-rejection footprint AND the green
+  ground-splat radius. `GroundTint`'s **alpha drives splat strength** (alpha 0 ⇒ no paint).
 - One forest resource entity can produce **multiple** view entities (one hex → several tree instances).
 - View entities (`HexIdComponent` + `ForestViewComponent`) are separate from resource entities; on hex
   removal they are matched back by `HexIdComponent.Coords` and disposed.
@@ -110,15 +101,12 @@ against **current world state**, which makes it idempotent (a second pulse in th
   `distance < entryRadius + placedRadius` — **per-prefab radii**, not a global minimum distance.
 
 ## Ground painting (`ForestGroundPainter`)
-- **Stateless and append-only.** `Paint` blends the batch of new splats directly into the texture's current
-  pixels (terrain plus any earlier forest paint) and uploads once. It keeps no baseline and never reverts a
-  patch — removal is not a requirement (chopped forest = vegetated ground, not bare terrain). `ComputeUvRect`
-  is a pure function of the hex set; the caller recomputes it on the rare paint delta.
-- World→pixel mapping (`ComputeSquareUVRect`, `WorldToPixel`) is **duplicated** from
-  `TerrainViewTextureSubSystem` so splats land in the identical UV space as the baked texture. Duplication
-  here is a deliberate DoD choice, not an oversight.
-- Splat = colored circle with linear distance falloff, blended over existing pixels (does not overwrite
-  terrain). Deterministic, no noise.
+- **Stateless and append-only.** `Paint` blends new splats directly into the texture's current pixels and
+  uploads once — no baseline kept, never reverts a patch (chopped forest = vegetated ground, not bare
+  terrain). `ComputeUvRect` is a pure function of the hex set.
+- World→pixel mapping is **duplicated** from `TerrainViewTextureSubSystem` (deliberate DoD choice, not an
+  oversight) so splats land in the identical UV space as the baked texture.
+- Splat = colored circle with linear distance falloff, blended over existing pixels. Deterministic, no noise.
 
 ## How Clay works (`ClayHexResourceViewSubSystem` + `Helpers/Clay*`)
 Clay has its **own** config: `Configs/ClayViewConfig` (SO) → flattened into `ClayViewConfigComponent` by
@@ -126,9 +114,8 @@ Clay has its **own** config: `Configs/ClayViewConfig` (SO) → flattened into `C
 prefab-less, and that config's loader rejects entries without a prefab. Keep clay tuning out of the
 forest/prefab entries.
 
-One-shot, runs in the view pipeline (`HexResourcesViewSystem` at 400, **after** `TerrainViewSystem` at
-300), so the mesh, the persistent `TerrainTextureComponent`, and the `VertexGrid` already exist. For each
-clay hex it:
+One-shot, runs in the view pipeline **after** `TerrainViewSystem` (order: `ecsg.py explain <System>`), so
+the mesh, the persistent `TerrainTextureComponent`, and the `VertexGrid` already exist. For each clay hex it:
 - builds a `ClayFootprint` — the **single source of truth** for the patch outline (ellipse via
   `FootprintAspect` → optional pear via `PearFactor` → an organic `snoise` ring). Both the geometry and
   the texture query it, so the sunk mesh and the painted clay share the exact same edge.
@@ -148,19 +135,15 @@ uploads the texture **once** (`ClayGroundPainter.Apply`). Clay is persistent →
 - **Seam-safety.** Only vertices strictly inside the footprint move, and the falloff reaches 0 at the edge.
   Keep `DepressionRadius` within the hex inradius (~0.86·CellSize) so the shared boundary vertices are not
   pulled down — otherwise a seam appears with neighbours.
-- **Ordering vs forest.** Both run in the same pipeline: Clay at priority 200 paints before
-  `ForestHexResourceViewSubSystem` at 400, so forest splats land on top of clay. Clay and forest never share
-  a hex (one district per hex), so they do not overlap anyway.
+- **Ordering vs forest.** Clay paints before `ForestHexResourceViewSubSystem` in the same pipeline, so
+  forest splats land on top of clay. Clay and forest never share a hex (one district per hex) anyway.
 - **`VertexGrid.GetOwnedVertexCoords` returns the live owner-cache `HashSet`.** `VertexGrid.Set` mutates
-  that same set, so you must **snapshot the coords first** (e.g. into a `NativeList`) before looping and
-  calling `Set` — otherwise it throws "Collection was modified". `ClayDepressionShaper` does this; the
-  forest spawn copies the coords for the same reason.
-- `ClayHexResourceViewSubSystem` reads **world components** via `world.Get`: `TerrainViewConfigComponent`
-  (CellSize), `VertexGridComponent` (depression — through the base `TryGetVertexGrid`, backed by
-  `world.Has`/`world.Get`), and `TerrainTextureComponent` (paint target — also a world component, guarded
-  by `world.Has`). Only `TerrainViewComponent` (mesh re-apply) is still read via an entity set, which it
-  disposes in `Dispose()`. The forest subsystems (`ForestHexResourceViewSubSystem`/`ForestSpawnSystem`) read
-  `TerrainTextureComponent` the same way — `world.Get`, no entity set.
+  that same set, so you must **snapshot the coords first** before looping and calling `Set` — otherwise it
+  throws "Collection was modified". `ClayDepressionShaper` and the forest spawn both do this.
+- `ClayHexResourceViewSubSystem` reads `TerrainViewConfigComponent`/`VertexGridComponent`/
+  `TerrainTextureComponent` as **world components** (`world.Get`/`world.Has`); only `TerrainViewComponent`
+  (mesh re-apply) is still read via an entity set. The forest subsystems read `TerrainTextureComponent` the
+  same way.
 
 ## Current State
 Forest view fully implemented end-to-end: startup spawn + append-only ground paint via the one-shot

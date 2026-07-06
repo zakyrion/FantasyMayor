@@ -23,32 +23,103 @@ succeeds when an agent can act on it correctly **without opening the source**.
 
 ---
 
+## Rule Style — s-expr decision tables (all categories)
+
+Mechanizable rules — conditions→verdicts, invariants, checklists, do/don't lists — are written as
+**s-expr decision tables** inside a `lisp` code fence. This section is the authoring spec: follow
+it literally when WRITING such a table, not only when reading one.
+
+### The form — one rule per line
+
+```text
+(subject :qualifier → verdict)   ;; why — the one fact that makes the rule make sense
+```
+
+- **subject** — what the rule is about: a kebab-case concept (`startup-bulk-work`) or the literal
+  API name (`EventCleanupSystem`). Left-align subjects; pad so the `→` column lines up.
+- **:qualifier** — optional variant/condition, colon-prefixed: `(shape :scalar-tunables → FLATTEN)`.
+  One rule per variant beats one rule with branching prose.
+- **→ verdict** — what to do / where it goes / what it must be. `|` separates alternatives
+  (`pipeline-stage | sub-system`). CAPS for emphasis (`NEVER`, `ONLY`, `FAIL LOUD`).
+- **;; why** — one clause. Drop it only when the rule is self-evident; a rule whose "why" needs
+  more than a clause is a design decision → prose section, not a table line.
+
+### Vocabulary — reuse these, do not invent synonyms
+
+```text
+→ maps-to/do-this   :requires X   :only-when X   :never / NEVER   :in <place>
+:must-not X         :contains X   :exists-only-under X            | alternatives
+```
+
+### Grouping
+
+- `;; ── section label ───` divider comments group related rules inside ONE fence.
+- Nested clauses express a structured variant (see `PATTERN_POLYMORPHIC_CATALOGUE.md` →
+  routing vs non-routing): `(routing :spawn (loop → …) (input → …))` — indent the children.
+
+### What converts, what stays
+
+```lisp
+(invariants|checklists|do-donts|condition→verdict → s-expr table)
+(intent|design-rationale|behavioral-contract      → prose)      ;; the nuance IS the payload — never compress it into a table
+(code-skeleton                                    → its own language)  ;; C# stays C#
+(doc-reference :inside-fence                      → bare name)  ;; PATTERN_EVENT, not a markdown link — the doc↔doc edge lives in frontmatter related; INDEX lint skips fenced links
+(extending-a-table                                → in kind)    ;; one new line per rule — never grow it back into prose
+```
+
+### Worked example (before → after)
+
+Before (prose bullet):
+> **Always `Set(new EventTag())`** alongside the event so the cleanup pass disposes the entity that tick.
+
+After (table line):
+
+```lisp
+(raise → pulse.Set(event) + pulse.Set(new EventTag()))  ;; EventTag opts it into end-of-tick disposal (PATTERN_CLEANUP_SYSTEM)
+```
+
+Reference implementations: `.claude/SEARCH_POLICY.md` §2 (gate decision table), `ARCHITECTURE.md`
+(placement / invariants), any `Patterns/PATTERN_*.md` → `## Rules`.
+
+---
+
 ## Division of Labor — what belongs in a doc
 
 The tools recover everything structural from code. A Markdown file must NOT repeat what a tool
 answers — duplicated structure goes stale, and stale docs are worse than no docs.
 
-| Structural fact | Owner (never the doc) |
-|---|---|
-| types, signatures, references, call/type hierarchy, outline | `roslyn-mcp` (`mcp__roslyn__*`) |
-| component writers/readers, reactive consumers, archetypes, Table-Rule PK/FK, priorities | `ecs-graph` |
-| registered-as + Lifetime + installer, injectors, collection resolution, GameMode | `di-graph` |
+```lisp
+;; ── structural facts: a tool owns them, the doc NEVER does ──────────────────
+(types|signatures|references|hierarchy|outline      → roslyn-mcp)
+(writers|readers|reactive-consumers|archetypes|PK-FK|priorities → ecs-graph)
+(registered-as|Lifetime|installer|injectors|collections|GameMode → di-graph)
+(asmdef reachability|layering                       → Tools/asmdef_reach.py)
+(domain term → canonical code anchor                → GLOSSARY.md)
 
-A doc holds ONLY what no tool can extract:
+;; ── what a doc holds: ONLY what no tool can extract ─────────────────────────
+(intent               → why this module/type exists)
+(non-obvious-invariant → constraints that look different than they are)
+(design-decision      → why it is built this way)
+(usage-rules          → how to use a non-trivial public API correctly)
+(behavioral-contract  → side-effects, ownership/disposal, aliasing live-vs-copy, call order, idempotency, re-entrancy)
+(current-state        → implemented vs scaffold, bluntly)
+(archetype            → one-line naming ONLY)   ;; the registry is the ecs-graph
 
-- **Intent** — why this module/type exists
-- **Non-obvious invariants** — constraints that look different than they are
-- **Design decisions** — why it is built this way
-- **How to use it correctly** — usage rules for a non-trivial public API
-- **Behavioral contract** — the semantics behind a signature: side-effects, ownership/disposal,
-  aliasing (live vs copy), required call order, idempotency, re-entrancy
-- **Current state** — implemented vs scaffold
-- **Entity archetypes** — one-line naming only; the registry is the ecs-graph (`/ecs-graph`)
+;; ── the filter ──────────────────────────────────────────────────────────────
+(tool-answers-it?     → delete it from the MD)
+(semantics-vs-shape   → keep the semantics, drop the shape)  ;; a signature is forbidden; that method's CONTRACT is required
+```
 
-Rule of thumb: if a tool can answer it, delete it from the MD.
-Corollary (do not over-strip): tools give the **skeleton** (names, signatures, edges), never the
-**semantics**. A method's signature is forbidden here; that method's *contract* is required here.
-When in doubt: keep the semantics, drop the shape.
+---
+
+## Size budgets (lint-checked by `gen_index.py` — SOFT, warn-only)
+
+```lisp
+(category-A body        ≤ 120 lines :soft)   ;; a SIGNAL, not a wall — the lint warns, never blocks
+(first content line     ≤ 120 chars :soft)   ;; it IS the INDEX description — one informative sentence
+(shrink-attempts        ≤ 2 per doc)         ;; two honest passes (drop tool-derivable, s-expr the rules); still over → leave it, report the size, move on
+(contracts-vs-budget    → contracts WIN)     ;; NEVER cut Public Contract / invariants / Trigger semantics to hit the number
+```
 
 ---
 
@@ -58,7 +129,7 @@ Every `.md` file falls into exactly one category.
 
 | Category | What it is | Files | Rule |
 |---|---|---|---|
-| **A — Navigation** | Per-module reference | module MDs in `Assets/Modules/**`, `Assets/Domains/**`, `Assets/Presentation/**` | Follow the structure below. Strip anything the tools cover. |
+| **A — Navigation** | Per-module reference + vocabulary | module MDs in `Assets/Modules/**`, `Assets/Domains/**`, `Assets/Presentation/**`; `GLOSSARY.md` (root) | Follow the structure below. Strip anything the tools cover. |
 | **B — Template / Reference** | How to build new code, or how to use a tricky API | `Patterns/PATTERN_*.md`, `ADDRESSABLE_PATTERNS.md` | Do **not** strip. Keep accurate, keep complete. |
 | **C — Policy** | Project-wide rules | `CLAUDE.md`, `ARCHITECTURE.md`, `ECS_CONVENTIONS.md`, this file | Rules and orientation. Keep current. |
 
@@ -267,6 +338,8 @@ Behavioral-contract example (the tools list `Set`/`GetOwnedVertexCoords` but not
 - [ ] (Category A) `code_refs` lists the symbols the prose reasons about, nested by kind, bare
       names only — and every name resolves (a non-resolving name is drift to fix, not to ship).
 - [ ] Every line answers something the tools cannot.
+- [ ] Mechanizable rules (invariants, checklists, do/don't) are s-expr decision tables (Rule Style),
+      not prose bullets; body is within the size budget or the excess is justified.
 - [ ] No type tables, signatures, dep lists, folder trees, priorities, inheritance.
 - [ ] Key public/cross-module types carry their **behavioral contract**.
 - [ ] Scaffold / incomplete work is marked explicitly.

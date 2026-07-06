@@ -40,19 +40,12 @@ public sealed class [Name]System : UpdatedSystem   // or LateUpdatedSystem
 
 ## Rules
 
-- **Base set = the work set** (the table the system processes — Table Rule: key + discriminator) **or a tick
-  anchor** (a singleton whose presence gates the tick).
-- **`LateUpdatedSystem`** when the system must observe the frame's final state (after camera / gameplay writes).
-- **Stateless** — no cross-frame instance fields. Where state belongs instead: persistent → a component / world
-  component; valid-only-this-frame → the `PreUpdate` + `FrameBox<T>` pattern; genuinely unavoidable →
-  `[StateAllowed("reason")]`, a reviewed exception.
-- **Per-frame shared inputs:** override `PreUpdate(GameState)` to resolve + fail-loud-guard everything the
-  per-entity loop shares, and carry it to `Update` in a **`FrameBox<T>`** (`Core`) — frame-stamped (stale reads
-  throw; `Dispose` drops held references); the field carries `[StateAllowed("...")]`. **Forbidden in UniTask
-  systems** — an `await` spans frames, so the box goes stale.
-- A per-frame system that scans/diffs collections each tick to detect change is a god-system smell — that IS
-  reactive: emit a pulse where the change happens (`../ARCHITECTURE.md` → Decomposition).
-- **Push to a View one value at a time** (ResourceBar pattern) — never build a managed snapshot inside a system.
-- **Wiring:** register the **concrete** type in the installer, then wire it into a game state by hand in
-  `Boot.Construct` (almost always `Gameplay`). A system not wired into a state never runs.
+```lisp
+(base-set          → work-set | tick-anchor)               ;; the table it processes (Table Rule: key + discriminator) OR a singleton whose presence gates the tick
+(LateUpdatedSystem :when observe-final-frame-state)        ;; after camera / gameplay writes
+(state             → none across frames)                   ;; persistent → component / world component; this-frame-only → PreUpdate + FrameBox<T>; genuinely unavoidable → [StateAllowed("reason")], a reviewed exception
+(shared-inputs     → PreUpdate(GameState) resolve + fail-loud, carry in FrameBox<T>)  ;; frame-stamped: stale reads throw, Dispose drops refs; field carries [StateAllowed]; FORBIDDEN in UniTask systems — await spans frames, the box goes stale
+(scan-diff-each-tick → god-system smell — make it reactive) ;; emit a pulse where the change happens (ECS_CONVENTIONS → Decomposition)
+(view-output       → push ONE value at a time)             ;; ResourceBar pattern — never build a managed snapshot inside a system
+(wiring            → concrete in installer + hand-wired in Boot.Construct)  ;; almost always Gameplay; a system not wired into a state never runs
 ```

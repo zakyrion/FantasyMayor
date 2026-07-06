@@ -28,15 +28,12 @@ namespace Domains.[Domain].[Feature].Tags
 
 ## Rules
 
-- **Add it with `entity.Set(new [Name]Tag())`** (or `entity.Set<[Name]Tag>()`).
-- **It is the table discriminator** — query the table as key + discriminator, never a bare key:
-  `world.GetEntities().With<[Key]Component>().With<[Name]Tag>().AsMultiMap<[Key]Component>()` (Table Rule,
-  `../ARCHITECTURE.md`).
-- **A parameter-less condition uses a tag where a data kind would use a component.** When a kind carries data,
-  the payload component doubles as the discriminator; when it carries none, an empty tag is the discriminator.
-- Naming: `...Tag`. Keep it field-less — the moment it needs a value it is a [component](PATTERN_COMPONENT.md),
-  not a tag. No domain-name prefix — the namespace carries the domain (see
-  [../ECS_CONVENTIONS.md](../ECS_CONVENTIONS.md) → Naming & Construction; Table-Rule discriminators are the
-  exception).
-- Tags and their producers/consumers are visible in `ecs-graph` — do not enumerate them in module docs.
+```lisp
+(add               → entity.Set(new [Name]Tag()))
+(query :table      → With<[Key]Component>().With<[Name]Tag>().AsMultiMap<[Key]Component>())  ;; key + discriminator, NEVER a bare key (Table Rule)
+(kind :with-data   → payload component doubles as discriminator)
+(kind :param-less  → empty tag IS the discriminator)
+(naming            → "…Tag" :field-less)                   ;; the moment it needs a value it is a component (PATTERN_COMPONENT), not a tag
+(naming :prefix    → none)                                 ;; namespace carries the domain; Table-Rule discriminators are the exception (ECS_CONVENTIONS → Naming & Construction)
+(producers|consumers → ecs-graph)                          ;; do not enumerate tags in module docs
 ```

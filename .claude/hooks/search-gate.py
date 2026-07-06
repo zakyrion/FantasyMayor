@@ -2,23 +2,27 @@
 """PreToolUse gate — enforces the project search policy (.claude/SEARCH_POLICY.md).
 
 Applies ONLY to the main agent (subagents are exempt — they are the discovery path). In the main
-session it denies source DISCOVERY over Assets/**/*.cs (Grep/Glob sweeps + Bash rg/grep/find + Bash
-viewers cat/head/tail/sed/awk over .cs) and routes it to @agent-discovery-scout, and it budgets unique
-.cs reads (for editing). On budget exhaustion it denies with a STOP message telling the agent to ask
-the user. The graph query CLIs (ecsg.py / dig.py) are NOT gated — they return distilled, bounded facts
-(the graph MCP servers were retired in favour of the CLIs).
+session it BUDGETS source discovery over Assets/**/*.cs (Grep/Glob sweeps + Bash rg/grep/find:
+first GREP_LIMIT ops per task are allowed, then deny→scout), hard-denies Bash viewers
+(cat/head/tail/sed/awk over .cs — they bypass the Read budget), and budgets unique .cs reads
+(for editing). On read-budget exhaustion it denies with a STOP message telling the agent to ask
+the user. The graph query CLIs (ecsg.py / dig.py) are NOT gated — they return distilled, bounded
+facts (the graph MCP servers were retired in favour of the CLIs).
+
+A "session" here = ONE task: the user runs /clear or /compact between tasks. /compact keeps the
+session_id, so budgets are re-armed by the `task` command at each confirmed task statement.
 
 Reads the hook JSON from stdin; prints a deny decision (or nothing = allow) and exits 0. Fail-open:
 any internal error → allow, so the gate can never wedge the main loop.
 
-Admin (run by the user / on user authorization — not gated, writes only under ~/.claude):
+Admin (run by the main agent on task confirmation, or by the user — not gated, writes only under ~/.claude):
+    python3 search-gate.py task <path...>   # NEW-TASK ritual: reset all budgets + grants, then grant
+                                            # the confirmed statement's «Працюй тільки в» .cs files.
+                                            # The user's confirmation of the statement IS the
+                                            # authorization — the main agent runs this itself.
     python3 search-gate.py reset            # clear all session budgets AND grants (fresh allowance now)
-    python3 search-gate.py bump <N>         # raise the limit to N on every active session budget file
-    python3 search-gate.py grant <path...>  # register the confirmed task statement's «Працюй тільки в»
-                                            # .cs files as task scope: reads of them don't consume the
-                                            # budget. Authorization = the user's confirmation of the
-                                            # statement. Grants persist until `reset`. Discovery rules
-                                            # (grep/rg/sweeps) stay fully gated regardless of grants.
+    python3 search-gate.py bump <N>         # raise the .cs-read limit to N on every active session budget
+    python3 search-gate.py grant <path...>  # add task-scope .cs files without resetting budgets
     python3 search-gate.py grant            # list active grants
 """
 import json
@@ -27,7 +31,8 @@ import re
 import sys
 from pathlib import Path
 
-DEFAULT_LIMIT = 8
+DEFAULT_LIMIT = 12       # unique .cs files readable per task (grants excluded)
+DEFAULT_GREP_LIMIT = 4   # grep-family discovery ops per task (Grep/Glob over source, bash rg/grep/find)
 STATE_DIR = Path.home() / ".claude" / ".search-budget"
 GRANTS_PATH = STATE_DIR / "_grants.json"  # user-granted task scope; cleared by `reset`
 SCOUT = ("→ for ECS/DI facts run the graph CLIs directly (ecsg.py / dig.py) or delegate to "
@@ -81,10 +86,12 @@ def _load(path: Path):
             d = json.loads(path.read_text("utf-8"))
             d.setdefault("files", [])
             d.setdefault("limit", DEFAULT_LIMIT)
+            d.setdefault("greps", 0)
+            d.setdefault("grep_limit", DEFAULT_GREP_LIMIT)
             return d
         except Exception:
             pass
-    return {"files": [], "limit": DEFAULT_LIMIT}
+    return {"files": [], "limit": DEFAULT_LIMIT, "greps": 0, "grep_limit": DEFAULT_GREP_LIMIT}
 
 
 def _load_grants():
@@ -122,11 +129,34 @@ def budget_check(session_id: str, file_path: str) -> bool:
     return _with_lock(_state_path(session_id), op)
 
 
+def grep_budget_check(session_id: str):
+    """(allowed, spent, limit) — consumes one grep-family discovery op if under the limit."""
+    def op(path):
+        d = _load(path)
+        if d["greps"] < d["grep_limit"]:
+            d["greps"] += 1
+            path.write_text(json.dumps(d), "utf-8")
+            return True, d["greps"], d["grep_limit"]
+        return False, d["greps"], d["grep_limit"]
+    return _with_lock(_state_path(session_id), op)
+
+
 # ----------------------------------------------------------------- admin
 def admin(argv) -> bool:
     if not argv:
         return False
     cmd = argv[0]
+    if cmd == "task":
+        # New-task ritual: fresh budgets + fresh grants in one call (session = one task).
+        if STATE_DIR.exists():
+            for f in STATE_DIR.glob("*.json"):
+                f.unlink()
+        files = list(dict.fromkeys(argv[1:]))
+        if files:
+            STATE_DIR.mkdir(parents=True, exist_ok=True)
+            GRANTS_PATH.write_text(json.dumps({"files": files}), "utf-8")
+        print(f"search-gate: new task — budgets reset, {len(files)} path(s) granted")
+        return True
     if cmd == "reset":
         if STATE_DIR.exists():
             for f in STATE_DIR.glob("*.json"):
@@ -193,19 +223,20 @@ def _segment_exe(segment: str) -> str:
     return toks[i].rsplit("/", 1)[-1]  # basename, so /path/ecsg.py -> ecsg.py
 
 
-def bash_is_gated(cmd: str):
-    """Gate by each pipeline segment's EXECUTABLE — so a mere mention of 'ecsg' or 'grep' as an
-    argument (e.g. `grep ecsg CLAUDE.md`) is NOT gated; only an actual invocation is."""
+def bash_gate_kind(cmd: str):
+    """Classify a Bash command by each pipeline segment's EXECUTABLE — a mere mention of 'grep'
+    as an argument (e.g. `grep ecsg CLAUDE.md`) is NOT gated; only an actual invocation is.
+    Returns ('deny', reason) for viewers over .cs (hard deny — bypasses the Read budget),
+    ('grep', None) for a grep-family source search (budgeted), or (None, None)."""
+    is_grep = False
     for seg in re.split(r"\|\||&&|;|\||\n", cmd):
         exe = _segment_exe(seg)
-        if exe in CODE_SEARCH_EXES:
-            return ("Source search (rg/ag/ack) in the main session is gated. " + SCOUT)
-        if exe in GREP_FIND_EXES and "Assets" in seg:
-            return ("Source search over Assets in the main session is gated. " + SCOUT)
         if exe in VIEW_EXES and CS_IN_SEG_RE.search(seg):
-            return ("Viewing .cs source through Bash bypasses the Read budget. "
-                    "Use the Read tool on the file you are editing (budgeted). " + SCOUT)
-    return None
+            return "deny", ("Viewing .cs source through Bash bypasses the Read budget. "
+                            "Use the Read tool on the file you are editing (budgeted). " + SCOUT)
+        if exe in CODE_SEARCH_EXES or (exe in GREP_FIND_EXES and "Assets" in seg):
+            is_grep = True
+    return ("grep", None) if is_grep else (None, None)
 
 
 def main():
@@ -224,13 +255,19 @@ def main():
 
     if tool in ("Grep", "Glob"):
         if grep_glob_targets_source(ti):
-            deny("Source discovery in the main session is gated. " + SCOUT)
+            ok, spent, limit = grep_budget_check(data.get("session_id", ""))
+            if not ok:
+                deny(f"grep budget spent ({spent}/{limit} this task) — no more raw source sweeps. " + SCOUT)
         return
 
     if tool == "Bash":
-        reason = bash_is_gated(ti.get("command", "") or "")
-        if reason:
+        kind, reason = bash_gate_kind(ti.get("command", "") or "")
+        if kind == "deny":
             deny(reason)
+        elif kind == "grep":
+            ok, spent, limit = grep_budget_check(data.get("session_id", ""))
+            if not ok:
+                deny(f"grep budget spent ({spent}/{limit} this task) — no more raw source sweeps. " + SCOUT)
         return
 
     if tool == "Read":

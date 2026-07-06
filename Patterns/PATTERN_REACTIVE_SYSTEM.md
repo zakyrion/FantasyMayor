@@ -54,16 +54,12 @@ public sealed class [Name]System : UpdatedSystem
 
 ## Rules
 
-- **Reconcile, do not delta.** On the pulse, rebuild the desired set from current state and diff — never treat
-  the event as a per-entity change. This makes the system **idempotent**: a second pulse the same frame is a
-  no-op; a coalesced/missed pulse is repaired by the next.
-- **Base set = `With<TheEvent>`** → the system costs nothing while no pulse exists. The event is payload-less
-  (see [PATTERN_EVENT](PATTERN_EVENT.md)); persistent truth lives in a world component / on an entity — the
-  event only says "re-read it".
-- **Priority below the cleanup pass** so the pulse is consumed the tick it is raised.
-- **Don't destroy entities while iterating** the map/set that indexes them — snapshot into a `NativeList<Entity>`
-  first, then destroy.
-- **Split smells:** one system that both creates and destroys the same content → two reactive systems, one
-  event each. A per-frame "just to check" tick → it is reactive; emit a pulse at the change source.
-- **Wiring:** register the concrete type, then wire it into a game state in `Boot.Construct`.
+```lisp
+(on-pulse          → reconcile, never delta)               ;; rebuild desired state from CURRENT world data and diff — idempotent: a 2nd pulse same frame = no-op; a missed pulse is repaired by the next
+(base-set          → With<TheEvent>)                       ;; zero cost while no pulse exists; the event is payload-less (PATTERN_EVENT) — persistent truth lives in a world component / on an entity
+(priority          < cleanup-pass)                         ;; so the pulse is consumed the tick it is raised
+(destroy-while-iterating → forbidden)                      ;; snapshot into NativeList<Entity> first, then destroy
+(smell :create+destroy-same-content → two reactive systems, one event each)
+(smell :per-frame-just-to-check     → it IS reactive)      ;; emit the pulse at the change source
+(wiring            → concrete in installer + wired in Boot.Construct)
 ```

@@ -51,16 +51,13 @@ internal sealed class [Name]System : IPrioritizedUniTaskSystem<MapGenerationStep
 
 ## Rules
 
-- **Stages run sequentially in ascending Priority**, awaited by map creation. A stage may rely on everything
-  lower-priority stages produced — fail loud if a prerequisite is missing.
-- **Idempotency:** if the stage can be re-entered (regeneration), guard with an `_isLoaded` flag or
-  destroy-and-recreate. Stages owning an addressable handle keep it and release in `Dispose`
-  (`Assets/Modules/Addressable/ADDRESSABLE_PATTERNS.md`).
-- `cancellationToken.IsCancellationRequested` is the only quiet `return` — own line, never combined with a
-  validity check.
-- A stage that creates a singleton **view** entity publishes it for consumers (a `...ViewComponent`); a stage
-  that creates single-instance non-queried state uses a **world component**.
-- **Wiring:** register as `IPrioritizedUniTaskSystem<MapGenerationStep>`; the pipeline auto-collects it — no
-  `Boot.Construct` edit. Several independently ordered parts / a family of impls? →
-  [PATTERN_ORCHESTRATOR_SUBSYSTEM](PATTERN_ORCHESTRATOR_SUBSYSTEM.md).
+```lisp
+(execution         → sequential, ascending Priority, awaited)  ;; a stage may rely on everything lower-priority stages produced — fail loud on a missing prerequisite
+(re-entry          → _isLoaded guard | destroy-and-recreate)   ;; only if regeneration can re-enter the stage
+(addressable-handle → keep owned, release in Dispose)          ;; ADDRESSABLE_PATTERNS.md
+(quiet-return      → cancellationToken.IsCancellationRequested ONLY)  ;; own line, never combined with a validity check
+(singleton :view   → publish a "…ViewComponent" for consumers)
+(singleton :non-queried → world component)
+(wiring            → .As<IPrioritizedUniTaskSystem<MapGenerationStep>>)  ;; pipeline auto-collects — no Boot.Construct edit
+(family-of-parts   → PATTERN_ORCHESTRATOR_SUBSYSTEM)           ;; several independently ordered parts / one-base-many-impls
 ```

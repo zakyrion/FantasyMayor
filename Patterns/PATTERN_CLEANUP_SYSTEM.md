@@ -29,13 +29,9 @@ That is the entire contract. See [PATTERN_EVENT](PATTERN_EVENT.md).
 
 ## Rules
 
-- **Do NOT write a per-event cleanup system.** `EventCleanupSystem` is a single global system (no subclasses);
-  it cleans every `EventTag` entity regardless of event type. A per-event one duplicates it.
-- **`EventCleanupSystem` runs last** (highest priority). Every reactive consumer of the event must have a LOWER
-  priority so it reads the pulse before cleanup disposes it (see
-  [PATTERN_REACTIVE_SYSTEM](PATTERN_REACTIVE_SYSTEM.md)).
-- **Forget `EventTag` → the entity leaks**: it lives forever and `With<[Name]Event>` keeps matching it every
-  frame. Always pair the event with `EventTag`.
-- An entity that carries persistent data must NOT carry `EventTag` — cleanup would destroy it. Only the
-  throwaway pulse entity is tagged.
+```lisp
+(per-event-cleanup → NEVER write one)                      ;; EventCleanupSystem is the single global cleaner (no subclasses) — a per-event one duplicates it
+(EventCleanupSystem → runs last, int.MaxValue)             ;; every reactive consumer must have LOWER priority to read the pulse before disposal (PATTERN_REACTIVE_SYSTEM)
+(forget-EventTag   → the entity LEAKS)                     ;; lives forever, With<[Name]Event> keeps matching every frame — always pair event + EventTag
+(persistent-data-entity :never-carries EventTag)           ;; cleanup would destroy it — only the throwaway pulse entity is tagged
 ```

@@ -1,20 +1,27 @@
 # SEARCH_POLICY
 
 The law for how code knowledge is obtained in this project. Two readers:
-- **`discovery-scout`** (the discovery agent) — this is your **charter**; read it FIRST, every run.
+- **`discovery-scout`** (the discovery agent) — its charter is embedded in `.claude/agents/discovery-scout.md`
+  (kept in sync with this file; the scout does NOT read this file at runtime).
 - **the main agent** — these are your **constraints**; the PreToolUse hook `.claude/hooks/search-gate.py`
   enforces the mechanizable subset. The hook is the teeth; this document is the law.
+
+Style note: mechanizable rules in this file are written as s-expr decision tables (§2). When adding or
+editing rules, extend the table in kind — one `(condition … ) → VERDICT ;; why` line per rule — instead
+of adding prose.
 
 ---
 
 ## 0. Why this exists
 Reading source files into the main agent's context, then embedding + reasoning over them, is the most
 expensive and least reliable way to answer a question that a tool or a doc already answers. It also goes
-stale. So: **the main agent does NOT do raw source discovery.** It either (a) calls the bounded
-`mcp__roslyn__*` tools or the ECS/DI graph CLIs (`ecsg.py` / `dig.py`) directly for surgical
-code-structure / ECS / DI lookups, or (b) delegates a trace to `discovery-scout`, which uses roslyn +
-the graphs + docs and returns a *distilled* answer — not raw dumps. The main agent spends its budget on
-reasoning and edits, not on raw output.
+stale. So the main agent's discovery order is: (a) the bounded `mcp__roslyn__*` tools or the ECS/DI graph
+CLIs (`ecsg.py` / `dig.py`) for surgical code-structure / ECS / DI lookups; (b) a delegated trace to
+`discovery-scout`, which uses roslyn + the graphs + docs and returns a *distilled* answer — not raw
+dumps; (c) as a LAST-resort fallback, a small **budgeted** allowance of raw grep-family searches
+(§3b — 4 per task, hook-counted). Grep is legal, but it is the fallback, never the first move: the
+bounded tools answer better and cheaper. The main agent spends its budget on reasoning and edits,
+not on raw output.
 
 ## 1. The model — bounded tools + one front door
 ```
@@ -70,10 +77,11 @@ Verdict ∈ `ALLOW` · `DENY→scout` (delegate to `discovery-scout`) · `SCOUT`
 (bash ecsg.py|dig.py [query CLI]  :main :speculative)                 → SCOUT        ;; default ECS/DI discovery → scout
 (bash asmdef_reach.py             :session main)                      → ALLOW        ;; asmdef reachability / layering — bounded CLI
 
-;; ── source DISCOVERY by the main agent: forbidden, delegate ─────────────────
-(grep|glob                        :over Assets/**/*.cs :session main) → DENY→scout
-(bash rg|ag|ack                   :session main)                      → DENY→scout
-(bash grep|egrep|find             :over Assets        :session main)  → DENY→scout
+;; ── source DISCOVERY by the main agent: budgeted fallback (§3b) ─────────────
+(grep|glob :over Assets/**/*.cs   :session main :grep-budget<4)       → ALLOW (counted) ;; legal fallback, never the first move
+(bash rg|ag|ack                   :session main :grep-budget<4)       → ALLOW (counted) ;; same counter
+(bash grep|egrep|find :over Assets :session main :grep-budget<4)      → ALLOW (counted) ;; same counter
+(grep-family                      :session main :grep-budget-spent)   → DENY→scout
 (bash cat|head|tail|sed|awk       :over Assets/**/*.cs :session main) → DENY→Read    ;; bypasses the Read budget — use Read
 (bash build_graph|build_di_graph  :session main)                      → ALLOW        ;; build = maintenance, not a query
 
@@ -95,6 +103,10 @@ Verdict ∈ `ALLOW` · `DENY→scout` (delegate to `discovery-scout`) · `SCOUT`
 - **`DENY→scout`** denials return a reason the main agent sees; on it, either call the bounded
   `mcp__roslyn__*` tool / the `ecsg.py`|`dig.py` CLI yourself (§1a), or delegate the same question to
   `@agent-discovery-scout` — do not work around the gate with raw source.
+- **Grep-family searches are a budgeted fallback, not a workflow.** The 4-op allowance (§3b) exists for
+  the "just-added/renamed type" freshness gap and quick anchoring when the bounded tools have nothing.
+  Spending it on speculative sweeps that roslyn/`ecsg`/`dig` would answer is a waste of the allowance —
+  and once it is spent, the deny routes you to the scout for the rest of the task.
 - **Reading to edit is legitimate.** To change a class you must read it — that is `ALLOW` (under budget).
   The ban is on *discovery*, not *editing*.
 - **Graph QUERY CLIs (`ecsg.py`/`dig.py`) are the interface and the gate ALLOWS them for the main agent**
@@ -119,22 +131,34 @@ Verdict ∈ `ALLOW` · `DENY→scout` (delegate to `discovery-scout`) · `SCOUT`
   for freshly-edited (non-renamed) files.
 
 ## 3. The `.cs` read budget (main agent)
-- **Limit: 8 unique `.cs` files per session.** Counts unique files; re-reading a counted file is free.
-- **Granted task scope (user-authorized).** The `.cs` files the user explicitly names in the confirmed
-  task statement's «Працюй тільки в» block ARE the task's read scope: after the user confirms the
-  statement, the main agent registers exactly those files —
-  `python3 .claude/hooks/search-gate.py grant <path...>` — and reads of them do not consume the budget.
-  The user's confirmation of the statement IS the authorization; never grant a file the user did not
-  name, and never grant a folder wildcard. Grants persist until `reset` (run it when the task is done).
-  A grant relaxes ONLY the read budget — discovery rules (§2: grep/rg/sweeps) stay fully gated.
+- **A "session" = ONE task.** The user runs `/clear` or `/compact` between tasks; budgets are re-armed
+  per task by the `task` ritual below, not per conversation.
+- **Limit: 12 unique `.cs` files per task.** Counts unique files; re-reading a counted file is free.
+- **The new-task ritual (main agent runs it itself).** Immediately after the user confirms the task
+  statement, run ONE command:
+  `python3 .claude/hooks/search-gate.py task <path...>` — it resets all budgets (read + grep) AND
+  registers the `.cs` files the user named in the statement's «Працюй тільки в» block as granted task
+  scope (reads of them do not consume the budget). The user's confirmation of the statement IS the
+  authorization; never grant a file the user did not name, and never grant a folder wildcard. A grant
+  relaxes ONLY the read budget — the grep budget (§3b) is unaffected.
 - **On exhaustion the hook denies and you must STOP.** Do not keep reading, do not route around it.
   Instead, write the user a short request: *what* you are looking for, *what* you already found, and *why*
   more source is needed. The user can answer directly, or authorize more. (Most code-structure questions
   should be answered by `mcp__roslyn__*` instead of a source read.)
 - **Extension (user-authorized only):**
+  - `python3 .claude/hooks/search-gate.py bump <N>` — raise the read limit to N.
   - `python3 .claude/hooks/search-gate.py reset` — fresh allowance now (also clears grants).
-  - `python3 .claude/hooks/search-gate.py bump <N>` — raise the limit to N.
-  - `python3 .claude/hooks/search-gate.py grant <path...>` — register the confirmed task scope (above).
+  - `python3 .claude/hooks/search-gate.py grant <path...>` — add task-scope files without a reset.
+
+## 3b. The grep budget (main agent)
+- **Limit: 4 grep-family ops per task**, one shared counter for: `Grep`/`Glob` over source, Bash
+  `rg`/`ag`/`ack`, Bash `grep`/`egrep`/`find` over `Assets`. Reset by the `task` ritual (§3).
+- **It is a fallback allowance, not a search workflow.** Intended uses: anchoring a just-added/renamed
+  type roslyn cannot see yet (§ Freshness policy), or one quick existence check before editing. The
+  bounded tools (`mcp__roslyn__*`, `ecsg.py`/`dig.py`) stay the FIRST move — they answer better and
+  do not spend the allowance.
+- **On exhaustion: deny→scout.** Delegate the question to `@agent-discovery-scout`; do not ask the user
+  to bump this one — if 4 greps did not anchor it, the scout's tool stack is the right escalation.
 
 ## 3a. Reading discipline (HOW to read source, once a read is legitimate)
 Direct procedure — follow it literally; do not improvise a cheaper-looking shortcut:
@@ -159,6 +183,7 @@ Direct procedure — follow it literally; do not improvise a cheaper-looking sho
 | entity archetype / who writes-or-reads a component / reactive event consumers / producer→consumer / AsSet-AsMap-AsMultiMap bindings / Table-Rule PK-FK / system role+priority | **`ecs-graph`** — the `ecsg.py` CLI (main agent: two-condition rule §1a) or via scout |
 | what a type is registered AS / its Lifetime / which installer / who injects it / what fills a collection injection (`IReadOnlyList<T>`) / which `GameMode` a system runs in (Boot composition) | **`di-graph`** — the `dig.py` CLI (main agent: two-condition rule §1a) or via scout |
 | can assembly A use type T? / shortest asmdef reference path / which assembly owns a type / asmdef layering & boundaries | **`Tools/asmdef_reach.py`** (`can` / `path` / `refs` / `assembly-of`) — directly, or via scout |
+| a domain term (any language) → its canonical code names to search from | **`GLOSSARY.md`** (root) — read the term's `:anchors`, feed them to roslyn/ecsg/dig |
 | intent, invariants, side-effects, ownership, call order, current state | **module-MD** (via scout) |
 | visual map of entities / economy / relations | **`.canvas`** via `Tools/read_canvas.sh` (via scout) |
 | architecture policy, conventions, taxonomy | `ARCHITECTURE.md` |
@@ -175,7 +200,10 @@ Direct procedure — follow it literally; do not improvise a cheaper-looking sho
   its layout.
 
 ## 5. Scout charter (discovery-scout)
-- Read this file FIRST. You are the discovery front door; the main agent depends on you.
+The operative charter lives IN the agent definition (`.claude/agents/discovery-scout.md`) — the scout
+does not read this file at runtime. This section is the normative summary; when editing either, keep
+the two in sync.
+- You are the discovery front door; the main agent depends on you.
 - Pick the source by §4. Prefer `roslyn-mcp`/`ecs-graph`/`di-graph`/module-MD; read source only after a
   tool narrows to a specific file, minimum fragment, `source_location` first. For ECS/DI questions use the
   `ecsg.py` / `dig.py` CLIs (via Bash) — they auto-refresh stale facts and banner pending curation.
