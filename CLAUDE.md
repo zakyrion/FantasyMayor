@@ -22,7 +22,10 @@ gate — this names the discipline, it adds no new rule:
    `.claude/hooks/search-gate.py` counts them). In = distilled findings, not raw dumps.
 2. **Plan** — restate the task via the Engineering Task Template, ask clarifying
    questions, and **wait for explicit confirmation** before any edit (the HARD GATE
-   below). Immediately after confirmation run the new-task ritual:
+   below). Surface ALL open decisions in ONE consolidated pass and BATCH the questions —
+   a stated effect whose value-source is not given (e.g. "add an id" with no id source) is an
+   ask exactly like a missing field, never a licence to stub; do not drip questions across rounds.
+   Immediately after confirmation run the new-task ritual:
    `python3 .claude/hooks/search-gate.py task <the .cs files named in «Працюй тільки в»>`
    — it re-arms the read+grep budgets for this task and grants the named files.
    Persist the plan as an on-disk artifact **only for multi-session programs**
@@ -184,6 +187,8 @@ the user picks either form per task. Expect and accept both:
 - Write code that is ready to pass strict review.
 - Review incoming code as if done by a senior engineer with 20 years of experience in a very critical mood.
 - Prefer instance-based design; introduce `static` only when there is a clear architectural reason.
+- Default to the SIMPLEST structure that solves the task. Patterns (orchestrator/subsystem fan-out, snapshot-before-iterate, …) serve the problem — reach for one ONLY when cardinality or real complexity demands it, never because a doc or code comment mentions it. A one-element set needs no snapshot; a one-line tag swap needs no subsystem family.
+- Never ship a knowingly-wrong placeholder (e.g. a hardcoded id) behind "out of scope". When a value needs a real source you do not yet have, surface it as a decision during Plan — do not implement a stub and present it as done.
 
 ## Code Documentation Policy
 - Add comments only where the logic stops being simple and unambiguous.

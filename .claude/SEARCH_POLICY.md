@@ -63,6 +63,13 @@ same question**, do NOT send a third scout round on that question. Switch to the
 (`mcp__roslyn__*`, the `ecsg.py` / `dig.py` CLIs) under this rule — or, if they cannot answer
 it either, ask the user. Cyclic re-delegation is the same failure mode as cyclic search.
 
+**No double-spend (the two-path trap).** Pick ONE path per question. If you delegated to `discovery-scout`,
+TRUST its distilled answer — do NOT re-verify the same facts with your own `mcp__roslyn__*` / grep / reads;
+a genuine gap goes back to the SAME scout as one follow-up, not a self-run re-derivation. And do NOT spawn a
+(Sonnet) scout for a SMALL or already-anchored scope that a couple of bounded `mcp__roslyn__*` calls settle
+directly — the scout earns its cost on broad multi-file traces, not on what one `search_symbols` + one
+`find_references` answer. Scout-then-re-verify is the measured waste that turns a 5-tool task into 30.
+
 ## 1b. Delegation brief (required fields for every discovery-scout spawn)
 An unanchored one-liner is what makes a scout wander (the pre-Sonnet median was 23 tool calls/run).
 Every spawn prompt carries four fields:
