@@ -29,16 +29,18 @@ its `DISTRICT_OPEN_CONDITION.md` for the live example; this recipe is the generi
 
 ## When to use / when NOT
 
-```lisp
+```clojure
 ;; ── USE when ALL hold ───────────────────────────────────────────────────────
-(authored-kinds    → several, differing in shape)          ;; different parameters, or some parameter-less — all sharing one KEY (a FK such as DistrictTypeComponent)
-(runtime           → queries/joins entries BY KEY)         ;; reacts, looks up per turn, combines with another table — not a read-once blob
-(new-kind          → plugs in WITHOUT editing the orchestrator)  ;; Open-Closed
+(def use-when
+  {:authored-kinds "several, differing in shape"                  ;; different parameters, or some parameter-less — all sharing one KEY (a FK such as DistrictTypeComponent)
+   :runtime        "queries/joins entries BY KEY"                 ;; reacts, looks up per turn, combines with another table — not a read-once blob
+   :new-kind       "plugs in WITHOUT editing the orchestrator"})  ;; Open-Closed
 
 ;; ── do NOT use when ─────────────────────────────────────────────────────────
-(one-config-one-shape          → PATTERN_CONFIG)           ;; flatten or wrap into a world component — never spawn an entity for a singleton config
-(homogeneous-read-once-list    → flattened world component) ;; cheaper than a table when never queried by key
-(behavior-on-the-config        → NO)                       ;; SO configs stay pure data — the type-switch lives in the subsystems
+(cond
+  (one-config-one-shape?)       PATTERN_CONFIG              ;; flatten or wrap into a world component — never spawn an entity for a singleton config
+  (homogeneous-read-once-list?) :flattened-world-component  ;; cheaper than a table when never queried by key
+  (behavior-on-the-config?)     :NO)                        ;; SO configs stay pure data — the type-switch lives in the subsystems
 ```
 
 ---
@@ -189,28 +191,29 @@ internal sealed class BarFooEvaluatorSubSystem : FooEvaluatorSubSystem
 
 Both host an `IReadOnlyList<TSubSystem>`; they differ in HOW they call it:
 
-```lisp
-(routing :spawn
-  (loop            → per config entry, TrySpawn down the list, first match wins)
-  (input           → one authored config → one owner)
-  (unhandled-kind  → FAIL LOUD)                            ;; a kind with no spawn-subsystem is an AUTHORING BUG
-  (use-for         → materializing config → entities))
+```clojure
+(def routing  ;; the :spawn discipline
+  {:loop           "per config entry, TrySpawn down the list, first match wins"
+   :input          "one authored config → one owner"
+   :unhandled-kind :FAIL-LOUD                          ;; a kind with no spawn-subsystem is an AUTHORING BUG
+   :use-for        "materializing config → entities"})
 
-(non-routing :evaluator
-  (loop            → run EVERY enabled subsystem unconditionally)
-  (input           → each subsystem self-queries its own rows)
-  (unhandled-kind  → silent no-op)                         ;; no evaluator yet = not-implemented-yet — quiet, expected
-  (use-for         → periodic reconcile of existing rows))
+(def non-routing  ;; the :evaluator discipline
+  {:loop           "run EVERY enabled subsystem unconditionally"
+   :input          "each subsystem self-queries its own rows"
+   :unhandled-kind :silent-no-op                       ;; no evaluator yet = not-implemented-yet — quiet, expected
+   :use-for        "periodic reconcile of existing rows"})
 ```
 
 The loud/quiet asymmetry is deliberate — see the `;;` notes above.
 
 ## Per-kind discriminator rule
 
-```lisp
-(kind :with-data   → payload component doubles as discriminator)  ;; present ⇒ this kind, e.g. BarFooComponent { RequiredThing }
-(kind :param-less  → empty marker tag)                     ;; without it a parameter-less row is indistinguishable (PATTERN_TAG)
-(key-as-discriminator → NEVER)                             ;; the key is the SUBJECT (1:N per key expected); the discriminator is the KIND
+```clojure
+(def per-kind-discriminator
+  {:kind-with-data       "payload component doubles as discriminator"  ;; present ⇒ this kind, e.g. BarFooComponent { RequiredThing }
+   :kind-param-less      "empty marker tag"    ;; without it a parameter-less row is indistinguishable (PATTERN_TAG)
+   :key-as-discriminator :NEVER})              ;; the key is the SUBJECT (1:N per key expected); the discriminator is the KIND
 ```
 
 ## Dual-host reuse (when the evaluator must run at two lifecycles)
@@ -246,13 +249,14 @@ Three pieces, orchestrator untouched:
 
 ## Checklist
 
-```lisp
-(container-SO      → FooConfig[] items; base carries ONLY the shared key; concretes pure data)
-(loader            → wraps live SO ref, RETAINS the Box, fails loud on null/empty, releases on dispose)
-(spawn-orchestrator → fail loud on null entry | unhandled type; subsystems bool TrySpawn — Try-pattern)
-(row               → key(FK) + discriminator tag + per-kind marker; consumers query the TABLE, never the bare key)
-(kind :with-data   → component discriminator) (kind :param-less → marker tag)
-(evaluator :if-present → non-routing, self-queries its slice, joins by key AsMap|AsMultiMap, Sets/Removes idempotently)
-(dual-host         :only-when two lifecycles needed; both reuse ONE subsystem list)
-(di                → all Singleton; subsystems .As<AbstractBase>(); collected field [StateAllowed])
+```clojure
+(def checklist
+  {:container-SO       "FooConfig[] items; base carries ONLY the shared key; concretes pure data"
+   :loader             "wraps live SO ref, RETAINS the Box, fails loud on null/empty, releases on dispose"
+   :spawn-orchestrator "fail loud on null entry / unhandled type; subsystems bool TrySpawn — Try-pattern"
+   :row                "key(FK) + discriminator tag + per-kind marker; consumers query the TABLE, never the bare key"
+   :kind               {:with-data "component discriminator" :param-less "marker tag"}
+   :evaluator          {:if-present "non-routing, self-queries its slice, joins by key AsMap/AsMultiMap, Sets/Removes idempotently"}
+   :dual-host          {:only-when "two lifecycles needed"}  ;; both reuse ONE subsystem list
+   :di                 "all Singleton; subsystems .As<AbstractBase>(); collected field [StateAllowed]"})
 ```

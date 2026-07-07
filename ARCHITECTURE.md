@@ -15,11 +15,11 @@ related:
 > is `ecsg.py` / `dig.py`; asmdef layering is `Tools/asmdef_reach.py`; per-role skeletons are
 > `Patterns/` (picker below); point-of-code conventions are `ECS_CONVENTIONS.md` — read it before
 > writing or editing any ECS system, component, event, config, or query.
-> Style: mechanizable rules here are s-expr decision tables — extend in kind, one
-> `(condition → verdict) ;; why` line per rule; prose is reserved for the "why".
-> The notation is defined ONCE — the canonical glossary is `~/.claude/CLAUDE.md` →
-> "LISP/Clojure-like task notation" (already in every agent's context); the authoring
-> spec is `DOC_STANDARD.md` → Rule Style.
+> Style: mechanizable rules here are Clojure rule blocks — `(def subject {…})` maps,
+> `cond` branching, `#{}` alternatives; extend in kind, one `:key value ;; why` entry
+> per rule; prose is reserved for the "why". The notation is defined ONCE — the
+> canonical glossary is `~/.claude/CLAUDE.md` → "Clojure instruction notation" (already
+> in every agent's context); the authoring spec is `DOC_STANDARD.md` → Rule Style.
 
 ## Stack
 - Engine: Unity · ECS: `DefaultEcs` (DoD style, not Unity DOTS) · DI: `VContainer` · Async: `UniTask`
@@ -29,15 +29,17 @@ related:
 ## Layers
 Three top-level code layers; boundaries are enforced by asmdef references (`Tools/asmdef_reach.py`):
 
-```lisp
-(layer :domain        → "Assets/Domains/<Name>/")  ;; game-rule bounded context (DDD-strategic): owns its entity tables + turn-phase logic; pure data+logic, NO view/render dependency
-(layer :presentation  → "Assets/Presentation/")    ;; render/view tier — two asms: Presentation (world/scene views: terrain, hex resources, icons), Presentation.UI (screen-space HUD, UI Toolkit + App UI)
-(layer :module        → "Assets/Modules/")         ;; engine-facing infrastructure: addressables, input, cameras, canvas, boot, config providers, shared kernels
+```clojure
+(def layers
+  {:domain       "Assets/Domains/<Name>/"   ;; game-rule bounded context (DDD-strategic): owns its entity tables + turn-phase logic; pure data+logic, NO view/render dependency
+   :presentation "Assets/Presentation/"     ;; render/view tier — two asms: Presentation (world/scene views: terrain, hex resources, icons), Presentation.UI (screen-space HUD, UI Toolkit + App UI)
+   :module       "Assets/Modules/"})        ;; engine-facing infrastructure: addressables, input, cameras, canvas, boot, config providers, shared kernels
 
-(depends :domain→domain        → substrate→agents→verbs DAG only)  ;; Map/Economy (leaves) → Actors → Actions; owner-keyed logic lives in Actors/Actions, NEVER in the owner-agnostic Economy substrate
-(depends :presentation→domain  → one-way, onto what it renders)    ;; domains never depend on presentation
-(depends :domain→module        → shared kernels only)              ;; e.g. AxialSystem, CurveBuilders
-(namespaces                    → follow folders)                   ;; Domains.Map.Hex.*, Presentation.Terrain.*, Presentation.UI.ResourceBar.*
+(def depends
+  {:domain->domain       "substrate → agents → verbs DAG only" ;; Map/Economy (leaves) → Actors → Actions; owner-keyed logic lives in Actors/Actions, NEVER in the owner-agnostic Economy substrate
+   :presentation->domain "one-way, onto what it renders"       ;; domains never depend on presentation
+   :domain->module       "shared kernels only"                 ;; e.g. AxialSystem, CurveBuilders
+   :namespaces           "follow folders"})                    ;; Domains.Map.Hex.*, Presentation.Terrain.*, Presentation.UI.ResourceBar.*
 ```
 
 **Why this shape.** This is **DDD-strategic bounded contexts + a layered presentation tier**, on top of a
@@ -48,48 +50,50 @@ to this code-layering. We borrow DDD's **strategic** half (contexts, ubiquitous 
 its OO **tactical** patterns (aggregates/repositories), which ECS expresses as tables + systems.
 
 ## Shared kernel (app skeleton)
-```lisp
-(asm Core                   → "Assets/Scripts/Core")                 ;; shared primitives: Box<T>, Result<T>, FrameBox<T>, StateAllowedAttribute — enumerate members via roslyn
-(asm DefaultECS.Extensions  → "Assets/Scripts/DefaultECSExtensions") ;; ECS loop contracts + base systems: UpdatedSystem/LateUpdatedSystem, ConfigLoaderSystem, IPrioritizedUniTaskSystem<T>, EventCleanupSystem, GameState
-(asm Installers[.World]     → "Assets/Scripts/Installers")           ;; app-root DI: root LifetimeScope, world composition, input wiring, installer orchestration
-(authored-config-assets     → "Assets/Addressables/Configs/*")
+```clojure
+(def shared-kernel
+  {Core                    "Assets/Scripts/Core"                 ;; shared primitives: Box<T>, Result<T>, FrameBox<T>, StateAllowedAttribute — enumerate members via roslyn
+   DefaultECS.Extensions   "Assets/Scripts/DefaultECSExtensions" ;; ECS loop contracts + base systems: UpdatedSystem/LateUpdatedSystem, ConfigLoaderSystem, IPrioritizedUniTaskSystem<T>, EventCleanupSystem, GameState
+   Installers.World        "Assets/Scripts/Installers"           ;; app-root DI: root LifetimeScope, world composition, input wiring, installer orchestration
+   :authored-config-assets "Assets/Addressables/Configs/*"})
 ```
 
 ## Placement
-```lisp
-;; place(new-code) → destination
-(place :domain-rule  → "Assets/Domains/<Domain>/<Feature>/")  ;; the bounded context that owns the rule; a NEW domain = deliberate architecture decision
-(place :world-view   → "Assets/Presentation/<SubArea>/")
-(place :hud          → "Assets/Presentation/UI/<Window>/")
-(place :infra        → "Assets/Modules/<FeatureName>/")
-(place :di :feature  → "<Feature>/Installer/")
-(place :di :app-root → "Assets/Scripts/Installers/")          ;; cross-cutting / app-root only
-(place :ui-assets    → "<Feature>/Prefabs/")                  ;; prefabs, uxml, uss
+```clojure
+(def place  ;; {what-the-new-code-is destination}
+  {:domain-rule "Assets/Domains/<Domain>/<Feature>/" ;; the bounded context that owns the rule; a NEW domain = deliberate architecture decision
+   :world-view  "Assets/Presentation/<SubArea>/"
+   :hud         "Assets/Presentation/UI/<Window>/"
+   :infra       "Assets/Modules/<FeatureName>/"
+   :di-feature  "<Feature>/Installer/"
+   :di-app-root "Assets/Scripts/Installers/"          ;; cross-cutting / app-root only
+   :ui-assets   "<Feature>/Prefabs/"})                ;; prefabs, uxml, uss
 ```
 
 ## Feature folder layout (every layer)
-```lisp
-;; (folder → contents) ;; never-contains
-(Components/ → pure data structs)               ;; never: logic, side effects
-(Tags/       → tag components)
-(Events/     → one-frame event components)
-(Configs/    → ScriptableObject class defs)     ;; never: runtime logic, config assets
-(Data/       → collections, records, enums)     ;; never: ECS systems, MonoBehaviours
-(Systems/    → ECS systems + orchestration)     ;; never: view logic, config definitions
-(Helpers/    → stateless computation)           ;; never: cross-frame state, entity ownership
-(Views/      → MonoBehaviour view layer)        ;; never: business logic
-(Prefabs/    → module-scoped prefabs, uxml, uss)
-(Installer/  → VContainer registration ONLY)
+```clojure
+(def feature-folders  ;; {folder {:contains … :never …}}
+  {"Components/" {:contains "pure data structs"           :never "logic, side effects"}
+   "Tags/"       {:contains "tag components"}
+   "Events/"     {:contains "one-frame event components"}
+   "Configs/"    {:contains "ScriptableObject class defs"  :never "runtime logic, config assets"}
+   "Data/"       {:contains "collections, records, enums"  :never "ECS systems, MonoBehaviours"}
+   "Systems/"    {:contains "ECS systems + orchestration"  :never "view logic, config definitions"}
+   "Helpers/"    {:contains "stateless computation"        :never "cross-frame state, entity ownership"}
+   "Views/"      {:contains "MonoBehaviour view layer"     :never "business logic"}
+   "Prefabs/"    {:contains "module-scoped prefabs, uxml, uss"}
+   "Installer/"  {:contains "VContainer registration ONLY"}})
 ```
 
 ## DI composition
-```lisp
-(lifetime-scope     → WorldInstaller ONLY)                      ;; app-root composition = WorldInstaller.Configure()
-(installer          → plain class : VContainer.IInstaller)
-(installer :mono    → only when it owns [SerializeField] data)
-(install-order      → explicit in Configure())                  ;; dependencies before dependents
-(per-frame-system   → register CONCRETE, .As<TheSystem>())      ;; never As<IUpdatedSystem> — Boot injects concretes and wires states by hand
-(public-api-module  → Core/ contract asm + Implementation/ asm) ;; canonical examples: Addressable, MainCanvas, Boot
+```clojure
+(def di-composition
+  {:lifetime-scope    WorldInstaller                              ;; ONLY — app-root composition = WorldInstaller.Configure()
+   :installer         "plain class : VContainer.IInstaller"
+   :installer-mono    {:only-when "it owns [SerializeField] data"}
+   :install-order     "explicit in Configure()"                   ;; dependencies before dependents
+   :per-frame-system  "register CONCRETE, .As<TheSystem>()"       ;; never As<IUpdatedSystem> — Boot injects concretes and wires states by hand
+   :public-api-module "Core/ contract asm + Implementation/ asm"});; canonical examples: Addressable, MainCanvas, Boot
 ```
 
 ## System Taxonomy
@@ -109,16 +113,17 @@ in docs, reviews, and design discussions. The concrete skeleton for each role li
 | **Cleanup** | `EventCleanupSystem`, `Priority = int.MaxValue` | every active state, runs last | disposes all `EventTag` entities each tick |
 
 Role invariants (policy — hold regardless of the template you follow):
-```lisp
-(startup-bulk-work          → pipeline-stage | sub-system)      ;; one-frame events die at tick end (EventCleanupSystem) — startup is never event-driven
-(runtime-logic :default     → reactive-system)
-(per-frame-system           :requires written-justification)    ;; missing justification = decomposition smell (ECS_CONVENTIONS → Decomposition Rules)
-(orchestrator               :contains no-domain-logic)
-(sub-system                 :exists-only-under orchestrator)
-(naming orchestrator|stage  → "…System")
-(naming sub-system          → "…SubSystem")
-(naming reactive            → intent-name)                       ;; ForestSpawnSystem, HexIconsVisibilitySystem — no mandated …ReactiveSystem suffix
-(type-name                  :self-sufficient-without-namespace)  ;; repeat the feature name (DistrictBuildCostConfig, never a bare Config); drop only a pure non-disambiguating domain prefix (GenerationSystem, not MapGenerationSystem); full rule + exceptions: ECS_CONVENTIONS → Naming & Construction
+```clojure
+(def role-invariants
+  {:startup-bulk-work #{pipeline-stage sub-system}             ;; one-frame events die at tick end (EventCleanupSystem) — startup is never event-driven
+   :runtime-logic     reactive-system                          ;; the DEFAULT
+   :per-frame-system  {:requires "written justification"}      ;; missing justification = decomposition smell (ECS_CONVENTIONS → Decomposition Rules)
+   :orchestrator      {:contains :no-domain-logic}
+   :sub-system        {:exists-only-under orchestrator}
+   :naming            {#{orchestrator stage} "…System"
+                       sub-system            "…SubSystem"
+                       reactive              "intent-name"}    ;; ForestSpawnSystem, HexIconsVisibilitySystem — no mandated …ReactiveSystem suffix
+   :type-name         :self-sufficient-without-namespace})     ;; repeat the feature name (DistrictBuildCostConfig, never a bare Config); drop only a pure non-disambiguating domain prefix (GenerationSystem, not MapGenerationSystem); full rule + exceptions: ECS_CONVENTIONS → Naming & Construction
 ```
 
 **Turn pipeline (module `Turn`) — same roles, different scope.** The Orchestrator/SubSystem roles are
@@ -129,11 +134,12 @@ pipeline. The phase base is `TurnPhaseSubSystem`; the launcher is the per-frame 
 world write stays on the main thread; the pool only computes.
 
 ## Boot flow (invariants)
-```lisp
-(boot-order    → ConfigLoadStep bootstrap, then GameModeMachine)  ;; states: MainMenu | MapCreation | MapLoading | Gameplay
-(active-state  → ONLY its systems run)                            ;; composition is manual + visible in Boot.Construct; live wiring: dig.py state <GameMode>; semantics: Assets/Modules/Boot/BOOT.md
-(world-init    → IPrioritizedUniTaskSystem<MapGenerationStep>)    ;; run by the MapCreation state, stages sequential in ascending Priority
-(tick-order    → ascending Priority within a state)               ;; EventCleanupSystem (int.MaxValue) always last — disposes the frame's event entities
+```clojure
+(def boot-flow
+  {:boot-order   (-> ConfigLoadStep-bootstrap GameModeMachine)   ;; states: #{MainMenu MapCreation MapLoading Gameplay}
+   :active-state "ONLY its systems run"                          ;; composition is manual + visible in Boot.Construct; live wiring: dig.py state <GameMode>; semantics: Assets/Modules/Boot/BOOT.md
+   :world-init   IPrioritizedUniTaskSystem<MapGenerationStep>    ;; run by the MapCreation state, stages sequential in ascending Priority
+   :tick-order   "ascending Priority within a state"})           ;; EventCleanupSystem (int.MaxValue) always last — disposes the frame's event entities
 ```
 
 ## Pattern Recipes

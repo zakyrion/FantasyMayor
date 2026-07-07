@@ -62,10 +62,11 @@ Two shapes — pick by what the SO holds:
 
 ## Rules
 
-```lisp
-(SO                → authoring-only)                       ;; runtime reads the component (world.Get<[Name]ConfigComponent>()), never the asset — except the wrap variant, whose whole job is carrying the SO reference
-(shape :scalar-tunables → FLATTEN)                         ;; copy values out; loader releases the SO after copying — no asset lifetime to manage
-(shape :engine-refs|sub-config-lists → WRAP live SO ref)   ;; a flattened copy would lose them; the norm for catalogues — record the wrapped component in ecs-graph
-(validation        → at load, in the loader)               ;; one-entry-per-type, no nulls, non-empty — PATTERN_CONFIG_LOADER, never inside the SO
-(storage           → world component via world.Set)        ;; never an entity for a singleton config; storage taxonomy: ECS_CONVENTIONS
+```clojure
+(def config-rules
+  {SO          :authoring-only                       ;; runtime reads the component (world.Get<[Name]ConfigComponent>()), never the asset — except the wrap variant, whose whole job is carrying the SO reference
+   :shape      {#{scalar-tunables}                :flatten          ;; copy values out; loader releases the SO after copying — no asset lifetime to manage
+                #{engine-refs sub-config-lists}   :wrap-live-SO-ref} ;; a flattened copy would lose them; the norm for catalogues — record the wrapped component in ecs-graph
+   :validation "at load, in the loader"             ;; one-entry-per-type, no nulls, non-empty — PATTERN_CONFIG_LOADER, never inside the SO
+   :storage    "world component via world.Set"})    ;; never an entity for a singleton config; storage taxonomy: ECS_CONVENTIONS
 ```

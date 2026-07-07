@@ -13,7 +13,7 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 55 docs — 2 always · 19 trigger · 34 reference · 3 canvas.
+Totals: 54 docs — 2 always · 18 trigger · 34 reference · 3 canvas.
 
 ## Read at start (always)
 
@@ -28,7 +28,6 @@ Do **not** preload. Read only when the trigger condition holds.
 
 | Doc | Read it… | What it is |
 |---|---|---|
-| [AI-flow regime change — expectations & metrics check (due 2026-07-14)](AI_FLOW_METRICS.md) | on/after 2026-07-14 — run the AI-flow metrics check (python3 Tools/ai_flow_metrics.py --since 2026-07-07) and judge against the expectations here | Follow-up protocol for the 2026-07-06 AI-flow overhaul: baseline, expected outcomes, falsifiers, |
 | [IAddressable Contract](Assets/Modules/Addressable/ADDRESSABLE_PATTERNS.md) | before writing/editing/reviewing Addressables, IAddressable, Box<T> or Result<T> code | Single source of truth for addressable loading. Read this; do not grep. |
 | [DOC_STANDARD.md](DOC_STANDARD.md) | before authoring or reviewing any .md for DOC_STANDARD compliance (the docs-curator's charter; the main agent reads it only when it authors a doc itself) | Single source of truth for how to write Markdown docs in this project. |
 | [FantasyMayor — ECS & Runtime Conventions](ECS_CONVENTIONS.md) | before writing or editing any ECS system, component, event, config, or query | The ECS/runtime rulebook: where state lives, how systems are decomposed, and the write / collection / |
@@ -87,7 +86,7 @@ Per-module navigation docs. `status` mirrors each module's `## Current State`.
 | [Hex Info Panel — Context Sub-Panel](Assets/Presentation/UI/HexInfoPanel/HEX_INFO_PANEL.md) | A | partial | The read-only **CONTEXT sub-panel** (right) of the shared bottom panel: everything known about the |
 | [MainUI](Assets/Presentation/UI/MAIN_UI.md) | A | partial | The **`Presentation.UI` assembly** (`Assets/Presentation/UI/`, namespaces `Presentation.UI.*`) — the |
 | [ResourceBar](Assets/Presentation/UI/ResourceBar/RESOURCE_BAR.md) | A | partial | The **left-edge resource panel**: the two inventory pools (City / Mayor) as a vertical scroll list. The |
-| [Як читати і писати s-expr-правила (LISP + Clojure)](LISP_RULES_GUIDE.md) | B | — | Людський підручник до s-expr-нотації правил і задач: LISP-ядро, Clojure-шар і спільний |
+| [Як читати і писати Clojure-інструкції](CLOJURE_GUIDE.md) | B | — | Людський підручник до Clojure-нотації задач і правил: реальний синтаксис Clojure як мова |
 
 ## Canvas map (on demand)
 
@@ -113,6 +112,3 @@ Curate what the script can't derive: current focus, stale docs, cross-doc orient
 - **`WORK.canvas` is the user's living task-intake scratchpad** — he states tasks there as a graphic
   scheme instead of text. It always changes and contains nothing finished: never treat it as stale,
   orphaned, or a deletion candidate.
-- **Policy docs in `.claude/` are OUTSIDE this map.** The index prunes dotfolders, so
-  `.claude/SEARCH_POLICY.md` (the search law) is not listed here and the Obsidian MCP does not see
-  it — read it via plain `Read`. The pointer to it lives in `CLAUDE.md` → Discovery Scouts.

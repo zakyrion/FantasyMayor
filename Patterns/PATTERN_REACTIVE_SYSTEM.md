@@ -54,12 +54,13 @@ public sealed class [Name]System : UpdatedSystem
 
 ## Rules
 
-```lisp
-(on-pulse          → reconcile, never delta)               ;; rebuild desired state from CURRENT world data and diff — idempotent: a 2nd pulse same frame = no-op; a missed pulse is repaired by the next
-(base-set          → With<TheEvent>)                       ;; zero cost while no pulse exists; the event is payload-less (PATTERN_EVENT) — persistent truth lives in a world component / on an entity
-(priority          < cleanup-pass)                         ;; so the pulse is consumed the tick it is raised
-(destroy-while-iterating → forbidden)                      ;; snapshot into NativeList<Entity> first, then destroy
-(smell :create+destroy-same-content → two reactive systems, one event each)
-(smell :per-frame-just-to-check     → it IS reactive)      ;; emit the pulse at the change source
-(wiring            → concrete in installer + wired in Boot.Construct)
+```clojure
+(def reactive-rules
+  {:on-pulse "reconcile, never delta"        ;; rebuild desired state from CURRENT world data and diff — idempotent: a 2nd pulse same frame = no-op; a missed pulse is repaired by the next
+   :base-set "With<TheEvent>"                ;; zero cost while no pulse exists; the event is payload-less (PATTERN_EVENT) — persistent truth lives in a world component / on an entity
+   :priority "< cleanup-pass"                ;; so the pulse is consumed the tick it is raised
+   :destroy-while-iterating :forbidden       ;; snapshot into NativeList<Entity> first, then destroy
+   :smell    {:create+destroy-same-content "two reactive systems, one event each"
+              :per-frame-just-to-check     "it IS reactive"}  ;; emit the pulse at the change source
+   :wiring   "concrete in installer + wired in Boot.Construct"})
 ```

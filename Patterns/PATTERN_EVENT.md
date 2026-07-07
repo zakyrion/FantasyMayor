@@ -37,11 +37,12 @@ pulse.Set(new EventTag());   // marks it one-frame; the cleanup pass disposes it
 
 ## Rules
 
-```lisp
-(payload           → none)                                 ;; no coords/lists/ids — the consumer reconciles from world state (PATTERN_REACTIVE_SYSTEM); persistent truth lives in a world component / on an entity, the event only says "re-read it"
-(payload :tolerated → tiny IDENTIFYING value)              ;; only when the target cannot be derived from state; prefer target→world-component + payload-less pulse; NEVER bulk or derived data
-(raise             → pulse.Set(event) + pulse.Set(new EventTag()))  ;; EventTag opts it into end-of-tick disposal (PATTERN_CLEANUP_SYSTEM)
-(startup-bulk-work → pipeline-stage, never an event)       ;; one-frame events do NOT survive the async map-creation pipeline (PATTERN_PIPELINE_STAGE)
-(naming            → "…Event" :in Events/)                 ;; no domain prefix — namespace carries it (ECS_CONVENTIONS → Naming & Construction)
-(producer→consumer → ecs-graph)
+```clojure
+(def event-rules
+  {:payload            :none                                          ;; no coords/lists/ids — the consumer reconciles from world state (PATTERN_REACTIVE_SYSTEM); persistent truth lives in a world component / on an entity, the event only says "re-read it"
+   :payload-tolerated  "tiny IDENTIFYING value"                       ;; only when the target cannot be derived from state; prefer target→world-component + payload-less pulse; NEVER bulk or derived data
+   :raise              "pulse.Set(event) + pulse.Set(new EventTag())" ;; EventTag opts it into end-of-tick disposal (PATTERN_CLEANUP_SYSTEM)
+   :startup-bulk-work  pipeline-stage                                 ;; never an event — one-frame events do NOT survive the async map-creation pipeline (PATTERN_PIPELINE_STAGE)
+   :naming             {:suffix "…Event" :in "Events/"}               ;; no domain prefix — namespace carries it (ECS_CONVENTIONS → Naming & Construction)
+   :producer->consumer ecs-graph})
 ```

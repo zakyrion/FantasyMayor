@@ -15,24 +15,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Working Contract: Research → Plan → Execute
 Every engineering task runs in three phases. Each is already backed by an existing
 gate — this names the discipline, it adds no new rule:
-1. **Research** — gather facts, do not accumulate source. Discovery is delegated to
-   the read-only scouts (see Discovery Scouts) or answered by the bounded
-   `mcp__roslyn__*` tools and the ECS/DI graph CLIs (`ecsg.py` / `dig.py`); raw
-   grep-family discovery by the main agent is a budgeted last resort (4 ops/task,
-   `.claude/hooks/search-gate.py` counts them). In = distilled findings, not raw dumps.
+1. **Research** — gather facts, do not accumulate source. Module MDs first; structure
+   via the bounded `mcp__roslyn__*` tools and the ECS/DI graph CLIs (`ecsg.py` / `dig.py`);
+   grep/read directly as needed — read the files you will edit yourself, once. For haystack
+   questions (who-consumes / where-wired across many files) optionally delegate to
+   **discovery-scout** (Haiku, pointer-contract — see Discovery Scouts). In = distilled
+   findings, not raw dumps.
 2. **Plan** — restate the task via the Engineering Task Template, ask clarifying
    questions, and **wait for explicit confirmation** before any edit (the HARD GATE
    below). Surface ALL open decisions in ONE consolidated pass and BATCH the questions —
    a stated effect whose value-source is not given (e.g. "add an id" with no id source) is an
    ask exactly like a missing field, never a licence to stub; do not drip questions across rounds.
-   Immediately after confirmation run the new-task ritual:
-   `python3 .claude/hooks/search-gate.py task <the .cs files named in «Працюй тільки в»>`
-   — it re-arms the read+grep budgets for this task and grants the named files.
+   When new code will consume types across an asmdef boundary, verify the consuming
+   `.asmdef` references (or run `Tools/asmdef_reach.py`) BEFORE asking for GO.
    Persist the plan as an on-disk artifact **only for multi-session programs**
    (a dedicated top-level plan doc); single-session tasks stay in plan-mode / the chat.
 3. **Execute** — edit under the standing invariants (ECS writes via `Set()`,
-   instance-by-default, zero-allocation systems). Reads-for-editing are budgeted by the
-   same hook; on exhaustion, STOP and ask.
+   instance-by-default, zero-allocation systems).
 
 # FantasyMayor: Project Context & Architectural Decisions
 
@@ -75,16 +74,14 @@ gate — this names the discipline, it adds no new rule:
 - Questions have higher priority than solving the task quickly.
 - Use Context7 when I need library/API documentation or code generation, setup or configuration steps and you have some doubts about it.
 
-## Discovery Scouts (the search front door)
-- **The law is `.claude/SEARCH_POLICY.md`; the teeth are the hook `.claude/hooks/search-gate.py`.**
-  The decision table, budgets (12 `.cs` reads + 4 grep-family ops per task, re-armed by the `task`
-  ritual), and escalation rules live THERE — do not restate them here.
-- Discovery is delegated: **discovery-scout** (Sonnet) is the single front door; **arch-scout** and
-  **asset-scout** cover arch-check and the asset graph (details in each `.claude/agents/*.md` —
-  always set `subagent_type` explicitly). Every discovery-scout spawn uses the 4-field brief of
-  SEARCH_POLICY §1b: question / anchors / shape / stop. Bounded `mcp__roslyn__*` calls are allowed directly; raw
-  grep is a budgeted last resort. On exhaustion: reads → STOP and ask; greps → delegate to the
-  scout. Subagents are exempt from the gates.
+## Discovery Scouts (optional tools, not a front door)
+- **discovery-scout** (Haiku, `.claude/agents/discovery-scout.md`) is OPTIONAL — spawn it only for
+  haystack questions the tools can't answer directly (who-consumes / where-wired across many files),
+  and say why. Its contract: return `file:line` pointers + facts of 1–2 lines, never essays; never
+  open files named as edit-targets (the main agent reads those itself, once); ONE round per task.
+- **arch-scout** and **asset-scout** cover arch-check and the asset graph (details in each
+  `.claude/agents/*.md` — always set `subagent_type` explicitly).
+- Default discovery path is the main agent's own: module MDs → roslyn / graph CLIs → direct grep/reads.
 
 ## Doc Curation (the write path)
 - **docs-curator** (Sonnet, `.claude/agents/docs-curator.md`) is the ONLY write-capable agent and owns
@@ -137,27 +134,33 @@ gate — this names the discipline, it adds no new rule:
 - [який вихід очікується]
 ```
 
-**EQUAL ALTERNATIVE — the LISP s-expr statement.** Same standing as the prose template;
-the user picks either form per task. Expect and accept both:
+**EQUAL ALTERNATIVE — the Clojure statement.** Same standing as the prose template;
+the user picks either form per task. Shape: one map per mechanic, a vector of maps
+for a batch:
 
-```lisp
-(task "title: A → B → C"                          ;; заголовок = ланцюжок потоку, не назва тікета
-  (goal
-    (mechanic-a → NEW thing, when/where it fires)
-    (mechanic-b → NEW system; listens X → creates Y))
-  ;; опційні поля — кожне присутнє знімає відповідне питання агента:
-  (scope :only  → [файл/ папка/ …])               ;; = «Працюй тільки в»; вектор — список без ком
-  (off-limits   → [що поза scope])                ;; = «Не дивись»
-  (pattern      → Patterns/PATTERN_*.md)          ;; = «Роби за шаблоном»
-  (decided      → що вже вирішено)                ;; = «Архітектурні рішення»
-  {:skip що-не-робити  :result очікуваний-вихід}) ;; мапа дрібних полів = «Не потрібно» + «Результат»
+```clojure
+[{:task :add-event                            ;; :task = id мапи — сусідні посилаються ним
+  :goal "подія-сигнал: район побудовано"       ;; лапки = абстрактний лист, можна перепитати
+  :where Actions.BuildDistrictAction.Events}  ;; голий символ = якір, дослівно
+
+ {:task :create-spawner-system
+  :listen :add-event                          ;; keyword = посилання на :task-id сусідньої мапи
+  :pattern PATTERN_REACTIVE_SYSTEM            ;; = «Роби за шаблоном»
+  :name :by-naming-policy                     ;; агент пропонує за політикою, юзер вето
+  :do "реактивна система за шаблоном"
+  :skip "AP-spending"                         ;; = «Не потрібно»
+  :result "пульс події → префаб району на гексі"}]   ;; = «Результат»
 ```
 
-- The HARD GATE and the missing-block rules apply UNCHANGED: an absent field means "ask about
-  that block, aiming the question at the specific `goal` bracket" — never "no constraints".
+Field ↔ template-block mapping: `:where` = «Працюй тільки в», `:off-limits` = «Не дивись»,
+`:pattern` = «Роби за шаблоном», `:decided` = «Архітектурні рішення», `:skip` + `:result` =
+«Не потрібно» + «Результат».
+
+- The HARD GATE and the missing-block rules apply UNCHANGED: an absent key means "ask about
+  that block, aiming the question at the specific map" — never "no constraints".
 - The notation is defined ONCE — do not re-explain it here or anywhere else. The canonical
-  glossary (all operators/literals, with examples): `~/.claude/CLAUDE.md` → "LISP/Clojure-like
-  task notation", already in every agent's context; authoring spec for s-expr rules inside
+  glossary (all forms/literals, with examples): `~/.claude/CLAUDE.md` → "Clojure instruction
+  notation", already in every agent's context; authoring spec for Clojure rules inside
   docs: `DOC_STANDARD.md` → Rule Style.
 
 ## Module MD Files

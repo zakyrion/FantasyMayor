@@ -29,9 +29,10 @@ That is the entire contract. See [PATTERN_EVENT](PATTERN_EVENT.md).
 
 ## Rules
 
-```lisp
-(per-event-cleanup → NEVER write one)                      ;; EventCleanupSystem is the single global cleaner (no subclasses) — a per-event one duplicates it
-(EventCleanupSystem → runs last, int.MaxValue)             ;; every reactive consumer must have LOWER priority to read the pulse before disposal (PATTERN_REACTIVE_SYSTEM)
-(forget-EventTag   → the entity LEAKS)                     ;; lives forever, With<[Name]Event> keeps matching every frame — always pair event + EventTag
-(persistent-data-entity :never-carries EventTag)           ;; cleanup would destroy it — only the throwaway pulse entity is tagged
+```clojure
+(def cleanup-rules
+  {:per-event-cleanup      :never-write-one            ;; EventCleanupSystem is the single global cleaner (no subclasses) — a per-event one duplicates it
+   EventCleanupSystem      "runs last, int.MaxValue"   ;; every reactive consumer must have LOWER priority to read the pulse before disposal (PATTERN_REACTIVE_SYSTEM)
+   :forget-EventTag        "the entity LEAKS"          ;; lives forever, With<[Name]Event> keeps matching every frame — always pair event + EventTag
+   :persistent-data-entity {:never-carries EventTag}}) ;; cleanup would destroy it — only the throwaway pulse entity is tagged
 ```

@@ -51,13 +51,14 @@ internal sealed class [Name]System : IPrioritizedUniTaskSystem<MapGenerationStep
 
 ## Rules
 
-```lisp
-(execution         → sequential, ascending Priority, awaited)  ;; a stage may rely on everything lower-priority stages produced — fail loud on a missing prerequisite
-(re-entry          → _isLoaded guard | destroy-and-recreate)   ;; only if regeneration can re-enter the stage
-(addressable-handle → keep owned, release in Dispose)          ;; ADDRESSABLE_PATTERNS.md
-(quiet-return      → cancellationToken.IsCancellationRequested ONLY)  ;; own line, never combined with a validity check
-(singleton :view   → publish a "…ViewComponent" for consumers)
-(singleton :non-queried → world component)
-(wiring            → .As<IPrioritizedUniTaskSystem<MapGenerationStep>>)  ;; pipeline auto-collects — no Boot.Construct edit
-(family-of-parts   → PATTERN_ORCHESTRATOR_SUBSYSTEM)           ;; several independently ordered parts / one-base-many-impls
+```clojure
+(def pipeline-stage-rules
+  {:execution           "sequential, ascending Priority, awaited"       ;; a stage may rely on everything lower-priority stages produced — fail loud on a missing prerequisite
+   :re-entry            #{"_isLoaded guard" "destroy-and-recreate"}     ;; only if regeneration can re-enter the stage
+   :addressable-handle  "keep owned, release in Dispose"                ;; ADDRESSABLE_PATTERNS.md
+   :quiet-return        "cancellationToken.IsCancellationRequested ONLY" ;; own line, never combined with a validity check
+   :singleton-view      "publish a …ViewComponent for consumers"
+   :singleton-non-queried :world-component
+   :wiring              ".As<IPrioritizedUniTaskSystem<MapGenerationStep>>" ;; pipeline auto-collects — no Boot.Construct edit
+   :family-of-parts     PATTERN_ORCHESTRATOR_SUBSYSTEM})                ;; several independently ordered parts / one-base-many-impls
 ```

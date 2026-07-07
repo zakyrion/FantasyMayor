@@ -18,9 +18,10 @@ domain logic of its own. It is the composition of two existing recipes — react
 event) + orchestrator **fan-out** (subsystems do the work). Use it when a single event must drive several
 independent mechanics (e.g. confirm-build → spawn entity, spend resources, set turns-left).
 
-```lisp
-(reactive-system      → handling fits one Update body)                 ;; use PATTERN_REACTIVE_SYSTEM
-(reactive-orchestrator → handling is complex / several independent parts / unsure it belongs in one file)
+```clojure
+(cond
+  (handling-fits-one-Update-body?) PATTERN_REACTIVE_SYSTEM
+  :else                            reactive-orchestrator)  ;; complex / several independent parts / unsure it belongs in one file
 ```
 
 ## Orchestrator (reactive: base set IS the event)
@@ -71,14 +72,15 @@ yet.
 
 ## Rules
 
-```lisp
-(base-set          → With<TheEvent>)                        ;; zero cost while no pulse exists; the event is payload-less (PATTERN_EVENT) — persistent truth lives in world components / on entities
-(on-pulse          → subsystems reconcile, never delta)     ;; each Run() rebuilds from CURRENT state and diffs — idempotent
-(priority          < cleanup-pass)                          ;; so the pulse is consumed the tick it is raised
-(orchestrator      :contains no-domain-logic)               ;; sort by Priority, skip IsEnabled==false, Run — ALL real work is in the subsystems
-(subsystem         → plain IDisposable, NOT a system)       ;; [StateAllowed] on the orchestrator's list; query caches live in each subsystem
-(di :subsystem     → .As<[Feature]SubSystem, [Name]SubSystem>())  ;; register AS the base so VContainer fills the list
-(di :orchestrator  → concrete + wired in Boot.Construct)    ;; per-frame/reactive systems are grouped into a GameMode by hand
-(empty-collection  → forbidden)                             ;; no subsystems yet → reactive shell (no list injection) until the first one lands
-(destroy-while-iterating → forbidden)                       ;; snapshot into NativeList<Entity> first, then destroy
+```clojure
+(def reactive-orchestrator-rules
+  {:base-set        "With<TheEvent>"                              ;; zero cost while no pulse exists; the event is payload-less (PATTERN_EVENT) — persistent truth lives in world components / on entities
+   :on-pulse        "subsystems reconcile, never delta"           ;; each Run() rebuilds from CURRENT state and diffs — idempotent
+   :priority        "< cleanup-pass"                              ;; so the pulse is consumed the tick it is raised
+   :orchestrator    {:contains :no-domain-logic}                  ;; sort by Priority, skip IsEnabled==false, Run — ALL real work is in the subsystems
+   :subsystem       "plain IDisposable, NOT a system"             ;; [StateAllowed] on the orchestrator's list; query caches live in each subsystem
+   :di-subsystem    ".As<[Feature]SubSystem, [Name]SubSystem>()"  ;; register AS the base so VContainer fills the list
+   :di-orchestrator "concrete + wired in Boot.Construct"          ;; per-frame/reactive systems are grouped into a GameMode by hand
+   :empty-collection :forbidden                                   ;; no subsystems yet → reactive shell (no list injection) until the first one lands
+   :destroy-while-iterating :forbidden})                          ;; snapshot into NativeList<Entity> first, then destroy
 ```

@@ -28,12 +28,13 @@ namespace Domains.[Domain].[Feature].Tags
 
 ## Rules
 
-```lisp
-(add               → entity.Set(new [Name]Tag()))
-(query :table      → With<[Key]Component>().With<[Name]Tag>().AsMultiMap<[Key]Component>())  ;; key + discriminator, NEVER a bare key (Table Rule)
-(kind :with-data   → payload component doubles as discriminator)
-(kind :param-less  → empty tag IS the discriminator)
-(naming            → "…Tag" :field-less)                   ;; the moment it needs a value it is a component (PATTERN_COMPONENT), not a tag
-(naming :prefix    → none)                                 ;; namespace carries the domain; Table-Rule discriminators are the exception (ECS_CONVENTIONS → Naming & Construction)
-(producers|consumers → ecs-graph)                          ;; do not enumerate tags in module docs
+```clojure
+(def tag-rules
+  {:add             "entity.Set(new [Name]Tag())"
+   :query-table     "With<[Key]Component>().With<[Name]Tag>().AsMultiMap<[Key]Component>()" ;; key + discriminator, NEVER a bare key (Table Rule)
+   :kind-with-data  "payload component doubles as discriminator"
+   :kind-param-less "empty tag IS the discriminator"
+   :naming          {:suffix "…Tag" :requires :field-less}  ;; the moment it needs a value it is a component (PATTERN_COMPONENT), not a tag
+   :naming-prefix   :none                                   ;; namespace carries the domain; Table-Rule discriminators are the exception (ECS_CONVENTIONS → Naming & Construction)
+   :producers+consumers ecs-graph})                         ;; do not enumerate tags in module docs
 ```

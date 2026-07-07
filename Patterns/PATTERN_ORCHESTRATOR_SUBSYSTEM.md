@@ -63,14 +63,15 @@ public [Name]System(IReadOnlyList<[Name]SubSystem> subSystems /*, World world ..
 
 ## Rules
 
-```lisp
-(orchestrator      :contains no-domain-logic)              ;; sort by Priority, skip IsEnabled==false, run — ALL real work is in the subsystems
-(di :subsystem     → .As<[Feature]SubSystem, [Name]SubSystem>())  ;; register AS the base so VContainer fills the orchestrator's IReadOnlyList<[Name]SubSystem>
-(di :orchestrator  → its host contract)                    ;; pipeline stage → .As<IPrioritizedUniTaskSystem<MapGenerationStep>>; per-frame → concrete + wired in Boot.Construct
-([StateAllowed]    :only-when orchestrator-is-a-system)    ;; the list + OrderBy().ToArray() are fixed composition; the subsystem base is plain IDisposable (NOT a system) — arch-check ignores it, state/query caches are free there
-(queries :shared   → the base owns them + Try… helpers)
-(queries :own      → each subsystem owns AND disposes its own)
-(priority :scope   → children WITHIN the orchestrator only) ;; unrelated to pipeline-stage priorities
-(routing-variant   → bool TrySpawn(config), first match wins, fail loud on none)  ;; DoD polymorphism
-(naming            → no domain prefix on [Name]/[Feature])  ;; namespace carries it; [Domain]Installer keeps its prefix (the documented exception; ECS_CONVENTIONS → Naming & Construction)
+```clojure
+(def orchestrator-rules
+  {:orchestrator    {:contains :no-domain-logic}                 ;; sort by Priority, skip IsEnabled==false, run — ALL real work is in the subsystems
+   :di-subsystem    ".As<[Feature]SubSystem, [Name]SubSystem>()" ;; register AS the base so VContainer fills the orchestrator's IReadOnlyList<[Name]SubSystem>
+   :di-orchestrator "its host contract"                          ;; pipeline stage → .As<IPrioritizedUniTaskSystem<MapGenerationStep>>; per-frame → concrete + wired in Boot.Construct
+   :StateAllowed    {:only-when "orchestrator is a system"}      ;; the list + OrderBy().ToArray() are fixed composition; the subsystem base is plain IDisposable (NOT a system) — arch-check ignores it, state/query caches are free there
+   :queries         {:shared "the base owns them + Try… helpers"
+                     :own    "each subsystem owns AND disposes its own"}
+   :priority-scope  "children WITHIN the orchestrator only"      ;; unrelated to pipeline-stage priorities
+   :routing-variant "bool TrySpawn(config), first match wins, fail loud on none"  ;; DoD polymorphism
+   :naming          "no domain prefix on [Name]/[Feature]"})     ;; namespace carries it; [Domain]Installer keeps its prefix (the documented exception; ECS_CONVENTIONS → Naming & Construction)
 ```

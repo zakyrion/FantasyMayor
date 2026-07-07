@@ -46,9 +46,10 @@ roles/priorities: the ecs-graph (`/ecs-graph`).
   that is the event-driven `HexIconsVisibilitySystem`'s job (Gameplay). Spawn no longer reads the camera,
   the `VertexGrid`, or `HexResourceIconConfigComponent`.
 
-```lisp
-(prefab has no HexIconsView              → throw + destroy the instance)
-(HexIconsConfigComponent or prefab missing → throw)
+```clojure
+(cond
+  (prefab-has-no-HexIconsView?)                 :throw+destroy-the-instance
+  (HexIconsConfigComponent-or-prefab-missing?)  :throw)
 ```
 
 - `HexIconsViewComponent` is a world component (not an entity), read via `world.Get`.
@@ -76,9 +77,10 @@ roles/priorities: the ecs-graph (`/ecs-graph`).
   resources by scanning the resource table (matched by `Coords`) and doing a linear `TryFindSprite` over
   `HexResourceIconConfig.Entries`. **No render state is cached** — every event is a full clear-and-rebuild.
 
-```lisp
-(TryFindSprite: entry missing        → skip, not an error)   ;; not every resource has art
-(TryFindSprite: entry sprite is null → skip, not an error)
+```clojure
+(def TryFindSprite
+  {:entry-missing     :skip    ;; not an error — not every resource has art
+   :entry-sprite-null :skip})
 ```
 
 ## Non-Obvious Invariants (Per-frame positioning)

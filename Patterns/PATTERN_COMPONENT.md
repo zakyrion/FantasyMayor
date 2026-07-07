@@ -43,11 +43,12 @@ public struct [Name]Component : IEquatable<[Name]Component>
 
 ## Rules
 
-```lisp
-(write             → entity.Set<T>(v) | world.Set<T>(v))   ;; NEVER mutate via ref Get — Set() is what triggers reactive filters + maintained maps
-(naming :data      → "…Component")                         ;; field-less marker → "…Tag" (PATTERN_TAG); one-frame pulse → "…Event" (PATTERN_EVENT)
-(naming :prefix    → none)                                 ;; the namespace carries the domain; FK/PK identity components are the exception (ECS_CONVENTIONS → Naming & Construction)
-(world-component   :not-query-matchable)                   ;; With<T>/WhenAdded<T> do NOT see it — read world.Get<T>() guarded by world.Has<T>(); storage taxonomy: ECS_CONVENTIONS
-(table-key         :requires IEquatable<T> + GetHashCode)  ;; define the shared key ONCE, reuse everywhere (Table Rule, ECS_CONVENTIONS)
-(component-shape   → roslyn | ecs-graph)                   ;; fields/types are tool-derivable — never restate them in module docs
+```clojure
+(def component-rules
+  {:write           #{"entity.Set<T>(v)" "world.Set<T>(v)"}    ;; NEVER mutate via ref Get — Set() is what triggers reactive filters + maintained maps
+   :naming-data     "…Component"                               ;; field-less marker → "…Tag" (PATTERN_TAG); one-frame pulse → "…Event" (PATTERN_EVENT)
+   :naming-prefix   :none                                      ;; the namespace carries the domain; FK/PK identity components are the exception (ECS_CONVENTIONS → Naming & Construction)
+   :world-component :not-query-matchable                       ;; With<T>/WhenAdded<T> do NOT see it — read world.Get<T>() guarded by world.Has<T>(); storage taxonomy: ECS_CONVENTIONS
+   :table-key       {:requires "IEquatable<T> + GetHashCode"}  ;; define the shared key ONCE, reuse everywhere (Table Rule, ECS_CONVENTIONS)
+   :component-shape #{roslyn ecs-graph}})                      ;; fields/types are tool-derivable — never restate them in module docs
 ```

@@ -57,13 +57,14 @@ protected override void OnDispose() => DisposeBox(ref _config);
 
 ## Rules
 
-```lisp
-(box :flatten      → release in finally)
-(box :wrap         → RETAIN in a field, release in OnDispose)  ;; disposing while the component holds the SO reference would dangle it (PATTERN_CONFIG)
-(order             → validate, THEN MarkAsLoaded())            ;; publishing garbage and continuing hides the bug — fail loud; LoadConfigAsync already throws on failed load, keep it
-(publish           → World.Set world component)                ;; never CreateEntity for the config itself
-(loader :may       → build derived runtime world components)   ;; e.g. a grid from the config
-(loader :must-not  → per-frame or gameplay logic)
-(quiet-return      → cancellationToken.IsCancellationRequested ONLY)
-(wiring            → installer .As<IUniTaskSystem<ConfigLoadStep>>)  ;; Boot runs all loaders sequentially at startup; addressable ownership: ADDRESSABLE_PATTERNS.md
+```clojure
+(def config-loader-rules
+  {:box-flatten  "release in finally"
+   :box-wrap     "RETAIN in a field, release in OnDispose"   ;; disposing while the component holds the SO reference would dangle it (PATTERN_CONFIG)
+   :order        (-> validate MarkAsLoaded)                  ;; publishing garbage and continuing hides the bug — fail loud; LoadConfigAsync already throws on failed load, keep it
+   :publish      "World.Set world component"                 ;; never CreateEntity for the config itself
+   :loader       {:may      "build derived runtime world components"  ;; e.g. a grid from the config
+                  :must-not "per-frame or gameplay logic"}
+   :quiet-return "cancellationToken.IsCancellationRequested ONLY"
+   :wiring       "installer .As<IUniTaskSystem<ConfigLoadStep>>"})  ;; Boot runs all loaders sequentially at startup; addressable ownership: ADDRESSABLE_PATTERNS.md
 ```

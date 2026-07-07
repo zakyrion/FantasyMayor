@@ -39,21 +39,23 @@ catalogue on completion. Orchestration, not vocabulary — the standing `Actions
 Three reactive systems, one per pulse of the draft lifecycle (full producer→consumer flow: the ecs-graph,
 `/ecs-graph`):
 
-```lisp
-(BuildDistrictTemplateSpawnSystem  :on DistrictBuildStartedEvent   → spawn draft entity)
-(BuildDistrictActionSystem         :on DistrictBuildConfirmedEvent → promote draft → committed)
-(BuildDistrictTemplateCancelSystem :on DistrictBuildCancelledEvent → discard draft entity)
+```clojure
+(def triggers  ;; {system {:on pulse :do effect}}
+  {BuildDistrictTemplateSpawnSystem  {:on DistrictBuildStartedEvent   :do "spawn draft entity"}
+   BuildDistrictActionSystem         {:on DistrictBuildConfirmedEvent :do "promote draft → committed"}
+   BuildDistrictTemplateCancelSystem {:on DistrictBuildCancelledEvent :do "discard draft entity"}})
 ```
 
 ## Non-Obvious Invariants
-```lisp
-(draft-entity :while overlay-open             → exactly one BuildDistrictActionTemplateTag entity)  ;; spawn open → discard cancel → promote confirm
-(BuildDistrictActionSystem :confirm, no draft → THROW)             ;; broken invariant, not a benign no-op
-(BuildDistrictTemplateCancelSystem :cancel, no draft → no-op)      ;; sanctioned quiet return
-(DistrictBuildStartedEvent   → carries HexCoord + DistrictType)    ;; payload event — why: Design Decisions
-(DistrictBuildCancelledEvent → payload-less)                       ;; targets whichever entity carries the template tag
-(confirm ↔ cancel            → DECOUPLED, never both)              ;; why: Design Decisions
-(ActionIdAllocatorComponent  → world component, seeded Next=1 in BuildDistrictActionSystem ctor)  ;; ids start at 1, 0 = unset
+```clojure
+(def invariants
+  {:draft-entity-while-overlay-open  "exactly one BuildDistrictActionTemplateTag entity"  ;; spawn open → discard cancel → promote confirm
+   BuildDistrictActionSystem         {:confirm-no-draft :THROW}   ;; broken invariant, not a benign no-op
+   BuildDistrictTemplateCancelSystem {:cancel-no-draft  :no-op}   ;; sanctioned quiet return
+   DistrictBuildStartedEvent         "carries HexCoord + DistrictType"  ;; payload event — why: Design Decisions
+   DistrictBuildCancelledEvent       :payload-less                ;; targets whichever entity carries the template tag
+   :confirm<->cancel                 "DECOUPLED, never both"      ;; why: Design Decisions
+   ActionIdAllocatorComponent        "world component, seeded Next=1 in BuildDistrictActionSystem ctor"})  ;; ids start at 1, 0 = unset
 ```
 
 ## Design Decisions
