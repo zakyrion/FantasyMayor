@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""PreToolUse gate — forbids the MAIN agent from BUILDING or CURATING the ECS/DI graphs,
-and turns any main-agent edit of a FROZEN policy doc (ARCHITECTURE.md) into a user-approval ASK.
+"""PreToolUse gate — forbids the MAIN agent from BUILDING/CURATING the DI graph and from reaching into
+either graph dir ad-hoc, and turns any main-agent edit of a FROZEN policy doc (ARCHITECTURE.md) into a
+user-approval ASK.
 
-The mechanical build (`build_graph.py` / `build_di_graph.py`) AND the STEP-2 AI curation
-(writing the curated `.ecs-graph/graph.json` / `.di-graph/graph.json`) belong to the
-**docs-curator** subagent (CLAUDE.md → Doc Curation). The main agent may only QUERY the
-graphs through the read-only CLIs `ecsg.py` / `dig.py` (whose internal auto-`--update` is
-the CLI's own self-heal, not the agent curating).
+The ecs-graph is DETERMINISTIC now: `build_graph.py` extracts AND curates (`curate()`) in one call, so the
+main agent MAY run it directly. The di-graph build (`build_di_graph.py`) + its STEP-2 AI curation still
+belong to the **docs-curator** subagent (CLAUDE.md → Doc Curation). Writing/reading the `.ecs-graph/` /
+`.di-graph/` artifacts ad-hoc stays denied — query through the read-only CLIs `ecsg.py` / `dig.py`.
 
 This closes the Bash bypass that a Write/Edit-only ban misses: a redirect, an inline
 `python3 -c "... json.dump(open('.ecs-graph/graph.json','w'))"`, `tee`, `sed -i`, `cp`/`mv`,
@@ -28,8 +28,10 @@ import re
 import sys
 
 GRAPH_DIR_RE = re.compile(r"\.(?:ecs|di)-graph\b")   # matches .ecs-graph / .di-graph anywhere in a path/command
-BUILD_EXES = {"build_graph.py", "build_di_graph.py"}  # mutation entry points → docs-curator
-QUERY_EXES = {"ecsg.py", "dig.py"}                    # read-only query CLIs → allowed for the main agent
+BUILD_EXES = {"build_di_graph.py"}                    # di-graph build+STEP-2 is still the docs-curator's LLM job
+# ecs-graph is DETERMINISTIC now (build_graph.py = extract + curate() in one call), so the MAIN agent may run
+# it directly, alongside the read-only query CLIs.
+QUERY_EXES = {"ecsg.py", "dig.py", "build_graph.py"}
 # Policy-frozen docs (status: frozen): an agent edit becomes a user-approval ASK, not a silent write.
 FROZEN_DOCS = ("ARCHITECTURE.md",)
 BASH_WRITE_EXES = {"sed", "tee", "cp", "mv", "rm", "truncate"}  # write-capable bash vectors onto a frozen doc
@@ -38,9 +40,9 @@ FROZEN_ASK = ("ARCHITECTURE.md is FROZEN policy (see its header banner) — agen
               "otherwise flag the needed change back to the user instead of editing.")
 # wrappers to skip when finding a pipeline segment's real executable (mirrors search-gate.py)
 WRAPPERS = {"python", "python3", "uv", "run", "time", "nice", "env", "sudo", "command", "exec", "xargs"}
-# STEP-2 curation checklists — reading them is the curator's job, not the main agent's
-CHECKLISTS = ("skills/ecs-graph/references/ecs-patterns.md",
-              "skills/di-graph/references/di-patterns.md")
+# di-graph STEP-2 checklist — reading it is the curator's job. (ecs-patterns.md is now IMPLEMENTED in
+# build_graph.py curate(), so it is a plain readable spec, no longer gated.)
+CHECKLISTS = ("skills/di-graph/references/di-patterns.md",)
 
 DELEGATE = ("Graph build + STEP-2 curation is the docs-curator's job (CLAUDE.md → Doc Curation): "
             "delegate to @agent-docs-curator, scoped to a graph STEP-2 run. The main agent may only "
@@ -96,8 +98,8 @@ def bash_is_gated(cmd: str):
     for seg in re.split(r"\|\||&&|;|\||\n", cmd):
         exe = _segment_exe(seg)
         if exe in BUILD_EXES:
-            return ("Running the graph build script (build_graph.py / build_di_graph.py) in the main "
-                    "session is denied — building the skeleton is part of the curation pipeline. " + DELEGATE)
+            return ("Running the di-graph build script (build_di_graph.py) in the main session is denied — "
+                    "its STEP-2 curation is the docs-curator's LLM job. " + DELEGATE)
         if GRAPH_DIR_RE.search(seg) and exe not in QUERY_EXES:
             return ("Direct Bash access to .ecs-graph/ / .di-graph/ (writing or reading the graph "
                     "artifacts ad-hoc) is denied in the main session. Query via ecsg.py / dig.py; "

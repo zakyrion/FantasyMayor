@@ -12,8 +12,8 @@
 		{"id":"f8c9c5f19edb2046","type":"text","text":"ActionId (PK)","x":-100,"y":101,"width":250,"height":60,"color":"4"},
 		{"id":"e8b9a7e0e0930127","type":"text","text":"HexIdComponent (FK)","x":-100,"y":201,"width":250,"height":55,"color":"6"},
 		{"id":"a69e58922f27d1d7","type":"text","text":"BuildDistrictAction","x":-560,"y":350,"width":270,"height":50},
-		{"id":"3a813540b428dd82","x":-560,"y":1201,"width":250,"height":60,"type":"text","text":"DistrictBuildCost"},
-		{"id":"cbbfc09531eb7781","x":-100,"y":1172,"width":389,"height":59,"type":"text","text":"DistrictBuildCostResourcePriceComponent"}
+		{"id":"cbbfc09531eb7781","type":"text","text":"DistrictBuildCostResourcePriceComponent","x":-100,"y":1172,"width":389,"height":59},
+		{"id":"3a813540b428dd82","type":"text","text":"DistrictBuildCost","x":-560,"y":1171,"width":250,"height":60}
 	],
 	"edges":[
 		{"id":"9fd767c2316c2c9f","fromNode":"a69e58922f27d1d7","fromSide":"right","toNode":"d16a85ae06414179","toSide":"left"},

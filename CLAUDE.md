@@ -94,8 +94,9 @@ gate — this names the discipline, it adds no new rule:
 - **Cadence: ONE batched run per milestone / before merge, covering the branch delta** — never
   per-task unless the user asks (graphs auto-`--update` in the interim; days of semantic lag are safe).
   The gate stands: finish code, STOP, get the user's approval, then delegate — scoped (an MD-sync run
-  OR a graph STEP-2 run, never both). Accumulate per-task "why" bullets for the milestone brief.
-- It authors Category A MDs + the INDEX pass-2 zone + graph STEP-2 only. Category C policy and
+  OR a di-graph STEP-2 run, never both). Accumulate per-task "why" bullets for the milestone brief.
+- It authors Category A MDs + the INDEX pass-2 zone + di-graph STEP-2 only (ecs-graph curation is
+  deterministic in build_graph.py — run it directly). Category C policy and
   Category B patterns stay with the main agent / user — the curator flags, never edits them.
   `ARCHITECTURE.md` is additionally **FROZEN**: NO agent edits it — the graph-gate hook turns an
   attempt into a user-approval ask; propose the change to the user instead.
