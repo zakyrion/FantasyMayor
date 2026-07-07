@@ -6,6 +6,7 @@ using DefaultECSExtensions;
 using Domains.Actions.BuildDistrictAction.Systems;
 using Modules.Boot.Core;
 using Modules.Boot.Implementation.States;
+using Presentation.Districts.Systems;
 using Presentation.HexIcons.Systems;
 using Presentation.HexResources.Systems;
 using Presentation.UI.ContextTabs.Systems;
@@ -80,6 +81,7 @@ namespace Modules.Boot.Implementation
             HexSelectionViewSystem hexSelectionView,
             ForestSpawnSystem forestSpawn,
             ForestDespawnSystem forestDespawn,
+            DistrictViewSpawnSystem districtViewSpawn,
             HexIconsContainerPositionSystem hexIconsContainerPosition,
             HexIconsVisibilitySystem hexIconsVisibility,
             HexInfoPanelSystem hexInfoPanel,
@@ -112,7 +114,7 @@ namespace Modules.Boot.Implementation
                 world,
                 new IUpdatedSystem[]
                 {
-                    hexSelection, hexSelectionView, forestSpawn, forestDespawn, hexIconsVisibility,
+                    hexSelection, hexSelectionView, forestSpawn, forestDespawn, districtViewSpawn, hexIconsVisibility,
                     hexInfoPanel, hexInfoPanelHeader, hexInfoPanelResources, hexInfoPanelDistrict,
                     districtBuildUI, buildDistrictAction, buildDistrictTemplateSpawn, buildDistrictTemplateCancel,
                     resourceBar, endTurnViewSystem, contextTabSelection,

@@ -9,6 +9,7 @@ using Modules.Boot.Core;
 using Presentation.HexIcons.Installer;
 using Domains.Map.HexResources.Installer;
 using Presentation.HexResources.Installer;
+using Presentation.Districts.Installer;
 using Presentation.UI.Installer;
 using Modules.MainCanvas.Core;
 using Modules.MainCanvas.Implementation;
@@ -74,6 +75,7 @@ namespace Installers.World
             new TerrainViewInstaller().Install(builder);
             new HexResourcesInstaller().Install(builder);
             new HexResourcesViewInstaller().Install(builder);
+            new DistrictsInstaller().Install(builder);
             new HexIconsInstaller().Install(builder);
             new TurnInstaller().Install(builder);
             new ActorsInstaller().Install(builder);
