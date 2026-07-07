@@ -3,6 +3,8 @@ using System.Linq;
 using Core;
 using DefaultEcs;
 using DefaultECSExtensions;
+using Domains.Actions.BuildDistrictAction.Events;
+using Domains.Economy.District.Data;
 using Domains.Map.Hex.Components;
 using JetBrains.Annotations;
 using Presentation.Terrain.Components;
@@ -16,8 +18,9 @@ namespace Presentation.UI.DistrictBuild.Systems
     ///     Drives the district-build overlay: visibility + section dispatch. Anchored on the
     ///     DistrictBuildUIViewComponent singleton (ticks once per frame). Coalesces the window pulses —
     ///     <see cref="DistrictBuildRequestedEvent" /> (open), <see cref="DistrictBuildClosedEvent" /> (hide),
-    ///     <see cref="DistrictBuildSelectionRequestedEvent" /> (re-populate after a selection change). It owns NO
-    ///     domain logic and never touches — it only sequences
+    ///     <see cref="DistrictBuildSelectionRequestedEvent" /> (re-populate after a selection change). On open it
+    ///     also emits <see cref="DistrictBuildStartedEvent" /> — the Actions-layer pulse carrying the selected hex +
+    ///     district that spawns the draft build entity. It owns NO domain logic and never touches — it only sequences
     ///     pulses into the section populators, each of which reconciles its own view from ECS (orchestrator +
     ///     subsystem family, like DistrictOpenConditionSpawnSystem).
     /// </summary>
@@ -74,8 +77,24 @@ namespace Presentation.UI.DistrictBuild.Systems
             if (_selectedHexSet.Count == 0)
                 return;
 
+            RaiseStarted();
             PopulateSections();
             view.Show();
+        }
+
+        // Hands the selected hex + district to the Actions layer as a pulse payload so it can spawn the draft build
+        // entity: the build domain can't read the Presentation selection directly (that would invert the
+        // Presentation → Actions assembly dependency). District is Unknown until the player picks one from the list.
+        private void RaiseStarted()
+        {
+            var coords = _selectedHexSet.GetEntities()[0].Get<HexSelectedComponent>().Coords;
+            var type = _world.Has<DistrictBuildSelectionComponent>()
+                ? _world.Get<DistrictBuildSelectionComponent>().Selected
+                : DistrictType.Unknown;
+
+            var entity = _world.CreateEntity();
+            entity.Set(new DistrictBuildStartedEvent { Coords = coords, Type = type });
+            entity.Set(new EventTag());
         }
 
         // Each section subsystem reconciles its own view from the current ECS selection; the orchestrator only

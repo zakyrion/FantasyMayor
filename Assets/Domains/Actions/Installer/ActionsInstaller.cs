@@ -20,6 +20,13 @@ namespace Domains.Actions.Installer
 
             builder.Register<BuildDistrictActionSystem>(Lifetime.Singleton)
                 .As<BuildDistrictActionSystem>();
+
+            // Build-district draft lifecycle, all reactive systems wired into Gameplay by Boot: spawn (open) and
+            // discard (cancel); promote-on-confirm is BuildDistrictActionSystem itself (registered above).
+            builder.Register<BuildDistrictTemplateSpawnSystem>(Lifetime.Singleton)
+                .As<BuildDistrictTemplateSpawnSystem>();
+            builder.Register<BuildDistrictTemplateCancelSystem>(Lifetime.Singleton)
+                .As<BuildDistrictTemplateCancelSystem>();
         }
     }
 }

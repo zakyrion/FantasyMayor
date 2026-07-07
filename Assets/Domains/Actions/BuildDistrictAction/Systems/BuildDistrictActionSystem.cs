@@ -1,17 +1,19 @@
+using System;
 using DefaultEcs;
 using DefaultECSExtensions;
+using Domains.Actions.BuildDistrictAction.Components;
 using Domains.Actions.BuildDistrictAction.Events;
+using Domains.Actions.Components;
 using JetBrains.Annotations;
 
 namespace Domains.Actions.BuildDistrictAction.Systems
 {
     /// <summary>
-    ///     Reactive-orchestrator for the build-district verb. Its base set is the
-    ///     <see cref="DistrictBuildConfirmedEvent" /> pulse, so it fires the tick the player confirms «Збудувати».
-    ///     This is the SHELL: it owns no domain logic. The build mechanics (spawn the build entity, spend
-    ///     resources, set turns-left, …) land as a DI-collected subsystem family fanned out from here in the next
-    ///     one-mechanic steps; until the first subsystem exists this is an intentional no-op catch that proves the
-    ///     confirm → pulse → system wiring. See <c>Patterns/PATTERN_REACTIVE_ORCHESTRATOR_SYSTEM.md</c>.
+    ///     Reactive: on the <see cref="DistrictBuildConfirmedEvent" /> pulse promotes the draft build entity into a
+    ///     committed one — stamps a unique <c>ActionIdComponent</c> (handed out by the shared
+    ///     <c>ActionIdAllocatorComponent</c> counter, seeded here) and swaps <c>BuildDistrictActionTemplateTag</c> →
+    ///     <c>BuildDistrictActionTag</c>. The pulse entity is ignored — the target is the entity carrying the template
+    ///     tag (exactly one while the overlay is open). See <c>Patterns/PATTERN_REACTIVE_SYSTEM.md</c>.
     /// </summary>
     [UsedImplicitly]
     public sealed class BuildDistrictActionSystem : UpdatedSystem
@@ -19,17 +21,54 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         // Reactive: must run before the cleanup pass so the confirm pulse is consumed the tick it is raised.
         private const int ExecutionPriority = 600;
 
+        private readonly World _world;
+        private readonly EntitySet _templates;
+
         public override int Priority => ExecutionPriority;
 
         public BuildDistrictActionSystem(World world)
             : base(world.GetEntities().With<DistrictBuildConfirmedEvent>().AsSet())
         {
+            _world = world;
+            _templates = world.GetEntities().With<BuildDistrictActionTemplateTag>().AsSet();
+
+            // Seed the shared action-id counter once; ids start at 1 (0 = unset).
+            if (!world.Has<ActionIdAllocatorComponent>())
+                world.Set(new ActionIdAllocatorComponent { Next = 1 });
         }
 
-        // Catch-only shell. Reconciliation against the current selection/hex and the fan-out to build subsystems
-        // arrive with the first mechanic; the pulse entity is ignored by design (reconcile-against-state, not delta).
         protected override void Update(GameState state, in Entity pulse)
         {
+            var templates = _templates.GetEntities();
+
+            // Confirm can only fire while the overlay is open, which means the draft was spawned — its absence is a
+            // broken invariant, not a benign no-op.
+            if (templates.Length == 0)
+                throw new InvalidOperationException(
+                    "BuildDistrictActionSystem: confirm pulse with no BuildDistrictActionTemplateTag entity — " +
+                    "the draft build entity must exist while the overlay is open.");
+
+            // Exactly one draft at a time; dropping the template tag ends this single-element iteration.
+            foreach (var entity in templates)
+            {
+                entity.Set(new ActionIdComponent { Value = AllocateId() });
+                entity.Remove<BuildDistrictActionTemplateTag>();
+                entity.Set(new BuildDistrictActionTag());
+            }
+        }
+
+        // Hands out the next unique action id and advances the shared counter (write via Set).
+        private int AllocateId()
+        {
+            var id = _world.Get<ActionIdAllocatorComponent>().Next;
+            _world.Set(new ActionIdAllocatorComponent { Next = id + 1 });
+            return id;
+        }
+
+        public override void Dispose()
+        {
+            _templates.Dispose();
+            base.Dispose();
         }
     }
 }

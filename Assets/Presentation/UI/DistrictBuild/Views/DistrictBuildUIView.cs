@@ -13,9 +13,11 @@ namespace Presentation.UI.DistrictBuild.Views
     ///     Chrome + visibility shell for the district-build overlay (a separate UIDocument from the HUD). It is the
     ///     MonoBehaviour DI resolves; it owns ONLY the overlay show/hide and the chrome (close / scrim / confirm).
     ///     All section content (list / requirements / price / actions) lives in its own section MonoBehaviour view
-    ///     driven by its own subsystem — this view holds no section data or read-model. Confirm raises the
-    ///     DistrictBuildConfirmedEvent build pulse and also closes the overlay (two separate events). PanelRenderer
-    ///     builds its tree asynchronously, so chrome is (re)hooked in the reload callback.
+    ///     driven by its own subsystem — this view holds no section data or read-model. Confirm raises
+    ///     DistrictBuildConfirmedEvent + DistrictBuildClosedEvent (promote + hide); dismiss (close / scrim) raises
+    ///     DistrictBuildCancelledEvent + DistrictBuildClosedEvent (discard draft + hide) — cancel and close are
+    ///     separate so a confirmed build is not discarded. PanelRenderer builds its tree asynchronously, so chrome is
+    ///     (re)hooked in the reload callback.
     /// </summary>
     public sealed class DistrictBuildUIView : MonoBehaviour
     {
@@ -92,15 +94,32 @@ namespace Presentation.UI.DistrictBuild.Views
             RaiseClose();
         }
 
-        private void OnCloseClicked() => RaiseClose();
-        private void OnScrimClicked(ClickEvent evt) => RaiseClose();
+        // Dismiss (X / scrim): discard the draft build entity AND hide the window — two separate events. Confirm
+        // never raises cancel, so a confirmed build survives the close.
+        private void OnCloseClicked() => Dismiss();
+        private void OnScrimClicked(ClickEvent evt) => Dismiss();
 
-        // One-frame confirm pulse on its own entity; the BuildDistrictAction reactive-orchestrator reacts. Kept
-        // separate from the close pulse below — build and close are two events.
+        private void Dismiss()
+        {
+            RaiseCancel();
+            RaiseClose();
+        }
+
+        // One-frame confirm pulse on its own entity; the BuildDistrictAction reactive-orchestrator promotes the
+        // draft. Kept separate from cancel/close — confirm commits, it does not discard.
         private void RaiseConfirm()
         {
             var entity = _world.CreateEntity();
             entity.Set(new DistrictBuildConfirmedEvent());
+            entity.Set(new EventTag());
+        }
+
+        // One-frame cancel pulse on its own entity; BuildDistrictTemplateCancelSystem discards the draft build
+        // entity. Distinct from the close pulse — cancel is the Actions-domain discard, close only hides.
+        private void RaiseCancel()
+        {
+            var entity = _world.CreateEntity();
+            entity.Set(new DistrictBuildCancelledEvent());
             entity.Set(new EventTag());
         }
 

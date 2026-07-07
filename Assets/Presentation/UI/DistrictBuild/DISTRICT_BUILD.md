@@ -7,13 +7,14 @@ related:
   - "[HEX_INFO_PANEL](../HexInfoPanel/HEX_INFO_PANEL.md)"
   - "[ECONOMY](../../../Domains/Economy/ECONOMY.md)"
   - "[DISTRICT_OPEN_CONDITION](../../../Domains/Economy/DistrictOpenCondition/DISTRICT_OPEN_CONDITION.md)"
+  - "[BUILD_DISTRICT_ACTION](../../../Domains/Actions/BuildDistrictAction/BUILD_DISTRICT_ACTION.md)"
   - "[PATTERN_ORCHESTRATOR_SUBSYSTEM](../../../../Patterns/PATTERN_ORCHESTRATOR_SUBSYSTEM.md)"
 status: partial
 code_refs:
   systems:          [DistrictBuildUISystem, DistrictBuildUISpawnSystem, DistrictBuildUISubSystem, DistrictBuildListUISubSystem, DistrictBuildHexResourcesUISubSystem, DistrictBuildPriceUISubSystem, DistrictBuildActionsUISubSystem]
   components:       [DistrictBuildUIViewComponent]
   world_components: [DistrictBuildUIRootComponent, DistrictBuildSelectionComponent, DistrictBuildListUIViewComponent, DistrictBuildHexResourcesUIViewComponent, DistrictBuildPriceUIViewComponent, DistrictBuildActionsUIViewComponent, DistrictsBuildConfigComponent, DistrictBuildCostsConfigComponent]
-  events:           [DistrictBuildRequestedEvent, DistrictBuildClosedEvent, DistrictBuildSelectionRequestedEvent]
+  events:           [DistrictBuildRequestedEvent, DistrictBuildClosedEvent, DistrictBuildSelectionRequestedEvent, DistrictBuildStartedEvent, DistrictBuildConfirmedEvent, DistrictBuildCancelledEvent]
   views:            [DistrictBuildUIView, DistrictBuildListUIView, DistrictBuildHexResourcesUIView, DistrictBuildPriceUIView, DistrictBuildActionsUIView]
   configs:          [DistrictsBuildConfig, DistrictBuildingConfig, DistrictBuildCostConfig]
   enums:            [Payer]
@@ -73,17 +74,23 @@ Selection of the active district lives in ECS, not in a view:
 Flow:
 - **Open** — `HexInfoPanelView`'s build slot raises `DistrictBuildRequestedEvent`. The orchestrator (guarded by a
   live `HexSelectedComponent`) sets `DistrictBuildSelectionComponent` to the **default** (first buildable
-  district), reconciles all sections, and shows the overlay.
+  district), raises `DistrictBuildStartedEvent` (hex + district payload, so the Actions domain can spawn its
+  draft build entity — [BUILD_DISTRICT_ACTION](../../../Domains/Actions/BuildDistrictAction/BUILD_DISTRICT_ACTION.md)),
+  reconciles all sections, and shows the overlay.
 - **Select** — the list view raises a local C# `SelectionChanged`; `DistrictBuildListUISubSystem` translates it
   into `DistrictBuildSelectionRequestedEvent` (so the **view stays World-free**). Next tick the orchestrator
   updates `DistrictBuildSelectionComponent` and reconciles the sections to the new district.
-- **Close** — the «X», the scrim, and the «ЗБУДУВАТИ» button each raise `DistrictBuildClosedEvent` from the root
-  view; the orchestrator hides the overlay. Build itself is a **dormant later slice** — «ЗБУДУВАТИ» only closes.
+- **Confirm** — the «ЗБУДУВАТИ» button raises `DistrictBuildConfirmedEvent` + `DistrictBuildClosedEvent` from the
+  root view; the Actions domain promotes the draft build entity, the orchestrator hides the overlay.
+- **Dismiss** — the «X» and the scrim each raise `DistrictBuildCancelledEvent` + `DistrictBuildClosedEvent`; the
+  Actions domain discards the draft build entity, the orchestrator hides the overlay. Confirm never raises
+  cancel, so a just-promoted entity survives the close (full contract: `BUILD_DISTRICT_ACTION.md`).
 
 ## Section views + the PanelRenderer reload contract
 Each section is its own MonoBehaviour on the overlay prefab, bound to the **shared** `PanelRenderer` tree:
-- **`DistrictBuildUIView`** — chrome only: `Show`/`Hide`, close/scrim/confirm. Holds no section data; confirm is
-  close-only while build is dormant (the «НЕДОСТУПНО» availability styling was dropped until the build slice).
+- **`DistrictBuildUIView`** — chrome only: `Show`/`Hide`, close/scrim/confirm. Holds no section data; confirm
+  raises `DistrictBuildConfirmedEvent` (Actions promotes the draft) + close (the «НЕДОСТУПНО» availability
+  styling was dropped until the build slice).
 - **`DistrictBuildListUIView`** — clones a `DistrictRow` per buildable district, marks the selected row, raises
   `SelectionChanged` on click.
 - **`DistrictBuildHexResourcesUIView`** — the district-name header + one ✓/✕ `ReqLine` per active gate dimension.
@@ -150,6 +157,8 @@ Open gaps:
   now attaches/removes `DistrictCanBeBuildTag` for that kind (`DISTRICT_OPEN_CONDITION.md` → Condition
   Evaluation); `DistrictExistConditionComponent`-gated districts still have no evaluator, so their tag is
   never produced yet.
-- **Build is dormant** — «ЗБУДУВАТИ» closes only; the ДІЇ/ЕФЕКТ model is unbuilt.
+- **Confirm now hands off to Actions** — «ЗБУДУВАТИ» raises `DistrictBuildConfirmedEvent`, which the Actions
+  domain uses to promote the draft build entity (`BUILD_DISTRICT_ACTION.md`); the ДІЇ/ЕФЕКТ model itself
+  (cost spend, turn-ticking, outcome) is still unbuilt.
 - **Prefab authoring required** (the five section MonoBehaviours + templates above); the overlay spawn fails
   loud until the four section views are present.

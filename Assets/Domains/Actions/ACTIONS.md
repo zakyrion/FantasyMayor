@@ -57,12 +57,12 @@ PARTIAL. The domain is organized into per-feature **sub-domains** (folder = name
 - **`BuildDistrictAction/`** → [BUILD_DISTRICT_ACTION.md](BuildDistrictAction/BUILD_DISTRICT_ACTION.md) — the
   owner-scoped build **verb**. The earlier draft→snapshot→commit implementation (plus the `ResourceSpend/`
   resource-spend mechanic it called) was judged badly-done and rolled back to a bare scaffold — it is being
-  rebuilt in small ECS steps, one mechanic at a time, instead of all at once. See that doc's Current State
-  for what remains.
+  rebuilt in small ECS steps, one mechanic at a time, instead of all at once; the first step (draft-entity
+  spawn → confirm/promote → cancel) has landed. See that doc's Current State for what remains.
 - **Shared Actions identity** — `Components/` holds `ActionIdComponent` (PK) + `ActionIdAllocatorComponent`
   (world-singleton allocator), the generic action-identity scaffold meant for any action verb, not owned by
-  `BuildDistrictAction`. Kept through the rollback as the one useful piece of that code; currently dormant —
-  nothing writes or reads them yet.
+  any one of them. `BuildDistrictAction` is its first consumer — `BuildDistrictActionSystem` seeds and
+  increments the allocator on promote (`BUILD_DISTRICT_ACTION.md`).
 - **Turn phases** → [TURN_PHASES.md](TURN_PHASES.md) — the Mayor AP-restore phase (`MayorAPRestoreSubSystem`,
   still in `Systems/`; not promoted to its own sub-domain until a second related phase lands).
 

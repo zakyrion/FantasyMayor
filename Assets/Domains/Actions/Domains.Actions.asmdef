@@ -5,6 +5,7 @@
         "Domains.Economy",
         "Domains.Actors",
         "Domains.Map",
+        "AxialSystem",
         "Turn",
         "DefaultECS.Extensions",
         "Boot.Core",

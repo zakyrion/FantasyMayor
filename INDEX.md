@@ -55,7 +55,7 @@ Per-module navigation docs. `status` mirrors each module's `## Current State`.
 | Doc | Cat | Status | What it is |
 |---|---|---|---|
 | [Actions](Assets/Domains/Actions/ACTIONS.md) | A | partial | The application / orchestration layer: actor verbs and cross-domain turn processing. Depends on both |
-| [Build District Action](Assets/Domains/Actions/BuildDistrictAction/BUILD_DISTRICT_ACTION.md) | A | scaffold | The owner-scoped **build verb** — eventually turns an owner's confirmed choice into a live, multi-turn |
+| [Build District Action](Assets/Domains/Actions/BuildDistrictAction/BUILD_DISTRICT_ACTION.md) | A | partial | The owner-scoped **build verb** — eventually turns an owner's confirmed choice into a live, multi-turn |
 | [Turn Phases](Assets/Domains/Actions/TURN_PHASES.md) | A | partial | The Actions domain's turn-phase subsystems: phase **content** that plugs into the `Turn` engine. |
 | [Actors](Assets/Domains/Actors/ACTORS.md) | A | partial | Game-rule domain owning actor identities **and their startup composition**. First domain under |
 | [District Build Cost](Assets/Domains/Economy/DistrictBuildCost/BUILD_DISTRICT_COST.md) | A | partial | The district-build **cost** catalogue: the per-district AP + resource price for building a district type. |
