@@ -38,7 +38,7 @@ BASH_WRITE_EXES = {"sed", "tee", "cp", "mv", "rm", "truncate"}  # write-capable 
 FROZEN_ASK = ("ARCHITECTURE.md is FROZEN policy (see its header banner) — agents do not edit it. "
               "If the user explicitly ordered this policy change, they can approve this prompt; "
               "otherwise flag the needed change back to the user instead of editing.")
-# wrappers to skip when finding a pipeline segment's real executable (mirrors search-gate.py)
+# wrappers to skip when finding a pipeline segment's real executable
 WRAPPERS = {"python", "python3", "uv", "run", "time", "nice", "env", "sudo", "command", "exec", "xargs"}
 # di-graph STEP-2 checklist — reading it is the curator's job. (ecs-patterns.md is now IMPLEMENTED in
 # build_graph.py curate(), so it is a plain readable spec, no longer gated.)
