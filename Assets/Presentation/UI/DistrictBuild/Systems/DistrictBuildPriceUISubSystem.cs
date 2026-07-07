@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using DefaultEcs;
 using Domains.Actors.City.Components;
 using Domains.Actors.Components;
@@ -9,18 +9,21 @@ using Domains.Economy.Resource.Data;
 using Domains.Economy.Resource.Tags;
 using JetBrains.Annotations;
 using Presentation.UI.DistrictBuild.Components;
-using Presentation.UI.DistrictBuild.Data;
 using Presentation.UI.DistrictBuild.Views;
 using UnityEngine;
 using Domains.Economy.DistrictBuildCost.Configs;
 using Domains.Economy.DistrictBuildCost.Components;
+using Domains.Economy.DistrictBuild.Configs;
+using Domains.Economy.DistrictBuild.Components;
+using Domains.Kernel.Data;
 
 namespace Presentation.UI.DistrictBuild.Systems
 {
     // БУДІВНИЦТВО populator: reconciles the price section to the current DistrictBuildSelectionComponent — the
-    // selected district's AP cost (vs the Mayor's pool; AP is always Mayor-paid) + one cost row per resource
-    // price (vs the current payer's stockpile, short-marked). Owns the payer toggle state LOCALLY (not in ECS):
-    // it listens to the view's PayerChanged and re-renders the cost column. Reads ECS directly (no read-model).
+    // selected district's AP cost (vs the Mayor's pool; AP is always Mayor-paid) + one payer segment per allowed
+    // owner + one cost row per resource price (vs the selected payer's stockpile, short-marked). Payer selection
+    // lives in the view (not ECS): this reads view.SelectedOwner and re-renders on the view's PayerChanged.
+    // Reads ECS directly (no read-model).
     [UsedImplicitly]
     public sealed class DistrictBuildPriceUISubSystem : DistrictBuildUISubSystem
     {
@@ -32,7 +35,6 @@ namespace Presentation.UI.DistrictBuild.Systems
         private readonly EntityMultiMap<MayorIdComponent> _mayorResources;
         private readonly EntityMultiMap<CityIdComponent> _cityResources;
 
-        private Payer _payer = Payer.Mayor;
         private bool _hooked;
 
         public override int Priority => ExecutionPriority;
@@ -51,7 +53,7 @@ namespace Presentation.UI.DistrictBuild.Systems
         {
             var view = World.Get<DistrictBuildPriceUIViewComponent>().View;
 
-            // The view outlives the subsystem; subscribe once to the local payer toggle.
+            // The view outlives the subsystem; subscribe once to the payer selection.
             if (!_hooked)
             {
                 view.PayerChanged += OnPayerChanged;
@@ -61,28 +63,36 @@ namespace Presentation.UI.DistrictBuild.Systems
             Render(view);
         }
 
-        private void OnPayerChanged(Payer payer)
+        private void OnPayerChanged(ActorType owner)
         {
-            if (payer == _payer)
-                return;
-
-            _payer = payer;
             Render(World.Get<DistrictBuildPriceUIViewComponent>().View);
         }
 
         private void Render(DistrictBuildPriceUIView view)
         {
             var selected = World.Get<DistrictBuildSelectionComponent>().Selected;
-            if (!TryGetCost(selected, out var cost))
+            if (!TryGetCost(selected, out var cost) || !TryGetDistrict(selected, out var district))
             {
                 view.SetAp(0, 0);
                 view.ClearCosts();
-                view.SetPayer(_payer);
+                view.ClearPayers();
                 return;
             }
 
+            var allowed = district.AllowedOwners;
+            var payer = view.SelectedOwner;
+            if (payer == ActorType.Unknown || !allowed.HasFlag(payer))
+                payer = DefaultOwner(selected, allowed);
+
             var ap = _mayorActor.GetEntities()[0].Get<MayorIdComponent>().Value;
             view.SetAp(cost.ApPrice, ap);
+
+            view.ClearPayers();
+            if (allowed.HasFlag(ActorType.Mayor))
+                view.AddPayer(ActorType.Mayor, DistrictBuildLabels.OwnerIcon(ActorType.Mayor), DistrictBuildLabels.OwnerLabel(ActorType.Mayor));
+            if (allowed.HasFlag(ActorType.City))
+                view.AddPayer(ActorType.City, DistrictBuildLabels.OwnerIcon(ActorType.City), DistrictBuildLabels.OwnerLabel(ActorType.City));
+            view.SetSelectedPayer(payer);
 
             view.ClearCosts();
             var prices = cost.DistrictPrices;
@@ -92,9 +102,7 @@ namespace Presentation.UI.DistrictBuild.Systems
                         DistrictBuildLabels.ResourceIcon(price.Type),
                         DistrictBuildLabels.ResourceLabel(price.Type),
                         price.Amount,
-                        AmountOf(_payer, price.Type));
-
-            view.SetPayer(_payer);
+                        AmountOf(payer, price.Type));
         }
 
         private bool TryGetCost(DistrictType type, out DistrictBuildCostConfig cost)
@@ -123,9 +131,48 @@ namespace Presentation.UI.DistrictBuild.Systems
             return false;
         }
 
-        private int AmountOf(Payer payer, ResourceType type)
+        private bool TryGetDistrict(DistrictType type, out DistrictBuildConfig district)
         {
-            if (payer == Payer.Mayor)
+            district = null;
+            if (type == DistrictType.Unknown)
+                throw new InvalidOperationException(
+                    $"{nameof(DistrictBuildSelectionComponent)}.{nameof(DistrictBuildSelectionComponent.Selected)} " +
+                    $"is {DistrictType.Unknown} — the selection must be a real district or {nameof(DistrictType.None)}, " +
+                    "never the error marker.");
+
+            if (type == DistrictType.None || !World.Has<DistrictBuildsConfigComponent>())
+                return false;
+
+            var entries = World.Get<DistrictBuildsConfigComponent>().Value?.Districts;
+            if (entries == null)
+                return false;
+
+            for (var i = 0; i < entries.Length; i++)
+                if (entries[i] != null && entries[i].DistrictType == type)
+                {
+                    district = entries[i];
+                    return true;
+                }
+
+            return false;
+        }
+
+        // Default payer when the view has no valid selection yet: first allowed owner in canonical order
+        // (Mayor before City). A district that allows no owner is an authoring error — fail loud.
+        private static ActorType DefaultOwner(DistrictType type, ActorType allowed)
+        {
+            if (allowed.HasFlag(ActorType.Mayor))
+                return ActorType.Mayor;
+            if (allowed.HasFlag(ActorType.City))
+                return ActorType.City;
+
+            throw new InvalidOperationException(
+                $"DistrictBuildConfig ({type}): AllowedOwners is {allowed} — a district must allow at least one owner.");
+        }
+
+        private int AmountOf(ActorType payer, ResourceType type)
+        {
+            if (payer == ActorType.Mayor)
             {
                 if (_mayorActor.Count > 0
                     && _mayorResources.TryGetEntities(_mayorActor.GetEntities()[0].Get<MayorIdComponent>(), out var stacks))

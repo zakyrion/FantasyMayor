@@ -140,10 +140,11 @@ MonoBehaviour:
   _renderer: {fileID: 120019418656823439}
   _costRowTemplate: {fileID: 9197481963319205126, guid: 83a2c49b1de614743816b28543a6d113,
     type: 3}
+  _payerRowTemplate: {fileID: 9197481963319205126, guid: 91ef336e453cc4f57b609f2bdd5007d9,
+    type: 3}
   _apRowName: ApRow
   _costRowsName: CostRows
-  _payerMayorName: PayerMayor
-  _payerCityName: PayerCity
+  _payerRowsName: PayerRows
 --- !u!114 &-5127511241653855992
 MonoBehaviour:
   m_ObjectHideFlags: 0
