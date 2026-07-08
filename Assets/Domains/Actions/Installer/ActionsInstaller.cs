@@ -9,8 +9,9 @@ namespace Domains.Actions.Installer
     // Registers the Actions domain's runtime systems:
     //  - turn phases — each registered as TurnPhaseSubSystem so VContainer collects them into the
     //    IReadOnlyList<TurnPhaseSubSystem> that TurnProcessorSystem runs (same pattern as HexResourcesViewInstaller).
-    //  - BuildDistrictActionSystem — the build-district reactive-orchestrator, registered concrete so Boot injects
-    //    it into the Gameplay state by hand (per-frame/reactive systems are wired in Boot.Construct, not by role).
+    //  - BuildDistrictActionSystem — the build-district reactive system that creates the committed build entity on
+    //    confirm, registered concrete so Boot injects it into the Gameplay state by hand (per-frame/reactive systems
+    //    are wired in Boot.Construct, not by role).
     public sealed class ActionsInstaller : IInstaller
     {
         public void Install(IContainerBuilder builder)
@@ -20,13 +21,6 @@ namespace Domains.Actions.Installer
 
             builder.Register<BuildDistrictActionSystem>(Lifetime.Singleton)
                 .As<BuildDistrictActionSystem>();
-
-            // Build-district draft lifecycle, all reactive systems wired into Gameplay by Boot: spawn (open) and
-            // discard (cancel); promote-on-confirm is BuildDistrictActionSystem itself (registered above).
-            builder.Register<BuildDistrictTemplateSpawnSystem>(Lifetime.Singleton)
-                .As<BuildDistrictTemplateSpawnSystem>();
-            builder.Register<BuildDistrictTemplateCancelSystem>(Lifetime.Singleton)
-                .As<BuildDistrictTemplateCancelSystem>();
         }
     }
 }

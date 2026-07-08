@@ -48,8 +48,6 @@ namespace DefaultECSExtensions
             public const int HexInfoPanelDistrict = 564;
             public const int ResourceBar = 565;
             public const int DistrictBuildUi = 566;
-            public const int BuildDistrictTemplateSpawn = 590;
-            public const int BuildDistrictTemplateCancel = 592;
             public const int BuildDistrictAction = 600;
             public const int ForestSpawn = 601;
             public const int DistrictViewSpawn = 602;

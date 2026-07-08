@@ -1,28 +1,28 @@
-using System;
 using DefaultEcs;
 using DefaultECSExtensions;
 using Domains.Actions.BuildDistrictAction.Components;
 using Domains.Actions.BuildDistrictAction.Events;
 using Domains.Actions.Components;
 using Domains.Economy.District.Components;
+using Domains.Economy.District.Data;
 using Domains.Map.Hex.Components;
 using JetBrains.Annotations;
-using UnityEngine;
+using Modules.AxialSystem;
 
 namespace Domains.Actions.BuildDistrictAction.Systems
 {
     /// <summary>
-    ///     Reactive: on the <see cref="DistrictBuildConfirmedEvent" /> pulse promotes the draft build entity into a
-    ///     committed one — stamps a unique <c>ActionIdComponent</c> (handed out by the shared
-    ///     <c>ActionIdAllocatorComponent</c> counter, seeded here) and swaps <c>BuildDistrictActionTemplateTag</c> →
-    ///     <c>BuildDistrictActionTag</c>. The pulse entity is ignored — the target is the entity carrying the template
-    ///     tag (exactly one while the overlay is open). See <c>Patterns/PATTERN_REACTIVE_SYSTEM.md</c>.
+    ///     Reactive: on the <see cref="DistrictBuildConfirmedEvent" /> pulse creates the committed build entity —
+    ///     stamps <c>HexIdComponent</c> + <c>DistrictTypeComponent</c> from the pulse payload, a unique
+    ///     <c>ActionIdComponent</c> (handed out by the shared <c>ActionIdAllocatorComponent</c> counter, seeded here),
+    ///     and <c>BuildDistrictActionTag</c>. There is no draft: the district is built directly on confirm. Hex and
+    ///     district come from the pulse (the Actions assembly can't read the Presentation selection). See
+    ///     <c>Patterns/PATTERN_REACTIVE_SYSTEM.md</c>.
     /// </summary>
     [UsedImplicitly]
     public sealed class BuildDistrictActionSystem : UpdatedSystem
     {
         private readonly World _world;
-        private readonly EntitySet _templates;
 
         public override int Priority => SystemPriorities.RuntimeTick.BuildDistrictAction;
 
@@ -30,7 +30,6 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             : base(world.GetEntities().With<DistrictBuildConfirmedEvent>().AsSet())
         {
             _world = world;
-            _templates = world.GetEntities().With<BuildDistrictActionTemplateTag>().AsSet();
 
             // Seed the shared action-id counter once; ids start at 1 (0 = unset).
             if (!world.Has<ActionIdAllocatorComponent>())
@@ -39,37 +38,25 @@ namespace Domains.Actions.BuildDistrictAction.Systems
 
         protected override void Update(GameState state, in Entity pulse)
         {
-            var templates = _templates.GetEntities();
+            var confirmed = pulse.Get<DistrictBuildConfirmedEvent>();
 
-            // Confirm can only fire while the overlay is open, which means the draft was spawned — its absence is a
-            // broken invariant, not a benign no-op.
-            if (templates.Length == 0)
-                throw new InvalidOperationException(
-                    "BuildDistrictActionSystem: confirm pulse with no BuildDistrictActionTemplateTag entity — " +
-                    "the draft build entity must exist while the overlay is open.");
+            var entity = _world.CreateEntity();
+            entity.Set(new HexIdComponent { Coords = confirmed.Coords });
+            entity.Set(new DistrictTypeComponent { Value = confirmed.Type });
+            entity.Set(new ActionIdComponent { Value = AllocateId() });
+            entity.Set(new BuildDistrictActionTag());
 
-            // Exactly one draft at a time; dropping the template tag ends this single-element iteration.
-            foreach (var entity in templates)
-            {
-                var hexId = entity.Get<HexIdComponent>();
-                var districtType = entity.Get<DistrictTypeComponent>();
-
-                entity.Set(new ActionIdComponent { Value = AllocateId() });
-                entity.Remove<BuildDistrictActionTemplateTag>();
-                entity.Set(new BuildDistrictActionTag());
-
-                RaiseDistrictBuilt(hexId, districtType);
-            }
+            RaiseDistrictBuilt(confirmed.Coords, confirmed.Type);
         }
 
-        // One-frame built pulse on its own entity; carries the hex + district (copied from the draft) as sibling
+        // One-frame built pulse on its own entity; carries the hex + district (copied from the payload) as sibling
         // components. Signals DistrictViewSpawnSystem to spawn the district view. Cleared by EventCleanupSystem.
-        private void RaiseDistrictBuilt(HexIdComponent hexId, DistrictTypeComponent districtType)
+        private void RaiseDistrictBuilt(HexCoord coords, DistrictType type)
         {
             var entity = _world.CreateEntity();
             entity.Set(new DistrictBuiltEvent());
-            entity.Set(hexId);
-            entity.Set(districtType);
+            entity.Set(new HexIdComponent { Coords = coords });
+            entity.Set(new DistrictTypeComponent { Value = type });
             entity.Set(new EventTag());
         }
 
@@ -79,12 +66,6 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             var id = _world.Get<ActionIdAllocatorComponent>().Next;
             _world.Set(new ActionIdAllocatorComponent { Next = id + 1 });
             return id;
-        }
-
-        public override void Dispose()
-        {
-            _templates.Dispose();
-            base.Dispose();
         }
     }
 }

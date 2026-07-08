@@ -2,7 +2,13 @@ using System;
 using DefaultEcs;
 using DefaultECSExtensions;
 using Domains.Actions.BuildDistrictAction.Events;
+using Domains.Economy.District.Data;
+using Modules.AxialSystem;
+using Presentation.Terrain.Components;
+using Presentation.Terrain.Tags;
+using Presentation.UI.DistrictBuild.Components;
 using Presentation.UI.DistrictBuild.Events;
+using Presentation.UI.DistrictBuild.Tags;
 using UnityEngine;
 using UnityEngine.UIElements;
 using VContainer;
@@ -13,10 +19,10 @@ namespace Presentation.UI.DistrictBuild.Views
     ///     Chrome + visibility shell for the district-build overlay (a separate UIDocument from the HUD). It is the
     ///     MonoBehaviour DI resolves; it owns ONLY the overlay show/hide and the chrome (close / scrim / confirm).
     ///     All section content (list / requirements / price / actions) lives in its own section MonoBehaviour view
-    ///     driven by its own subsystem — this view holds no section data or read-model. Confirm raises
-    ///     DistrictBuildConfirmedEvent + DistrictBuildClosedEvent (promote + hide); dismiss (close / scrim) raises
-    ///     DistrictBuildCancelledEvent + DistrictBuildClosedEvent (discard draft + hide) — cancel and close are
-    ///     separate so a confirmed build is not discarded. PanelRenderer builds its tree asynchronously, so chrome is
+    ///     driven by its own subsystem — this view holds no section data or read-model. Confirm reads the selected
+    ///     hex + district from ECS and raises DistrictBuildConfirmedEvent (payload) + DistrictBuildUIClosedEvent
+    ///     (build + hide); dismiss (close / scrim) raises only DistrictBuildUIClosedEvent (hide). There is no draft,
+    ///     so a dismiss has nothing to discard. PanelRenderer builds its tree asynchronously, so chrome is
     ///     (re)hooked in the reload callback.
     /// </summary>
     public sealed class DistrictBuildUIView : MonoBehaviour
@@ -94,33 +100,39 @@ namespace Presentation.UI.DistrictBuild.Views
             RaiseClose();
         }
 
-        // Dismiss (X / scrim): discard the draft build entity AND hide the window — two separate events. Confirm
-        // never raises cancel, so a confirmed build survives the close.
-        private void OnCloseClicked() => Dismiss();
-        private void OnScrimClicked(ClickEvent evt) => Dismiss();
+        // Dismiss (X / scrim): hide the window. There is no draft to discard, so dismiss is close-only.
+        private void OnCloseClicked() => RaiseClose();
+        private void OnScrimClicked(ClickEvent evt) => RaiseClose();
 
-        private void Dismiss()
-        {
-            RaiseCancel();
-            RaiseClose();
-        }
-
-        // One-frame confirm pulse on its own entity; the BuildDistrictAction reactive-orchestrator promotes the
-        // draft. Kept separate from cancel/close — confirm commits, it does not discard.
+        // One-frame confirm pulse on its own entity, carrying the selected hex + district read from ECS: the
+        // BuildDistrictActionSystem creates the committed build entity directly from the payload (the Actions
+        // assembly can't read the Presentation selection). Kept separate from close — confirm builds, close hides.
         private void RaiseConfirm()
         {
+            var (coords, type) = ReadSelection();
+
             var entity = _world.CreateEntity();
-            entity.Set(new DistrictBuildConfirmedEvent());
+            entity.Set(new DistrictBuildConfirmedEvent { Coords = coords, Type = type });
             entity.Set(new EventTag());
         }
 
-        // One-frame cancel pulse on its own entity; BuildDistrictTemplateCancelSystem discards the draft build
-        // entity. Distinct from the close pulse — cancel is the Actions-domain discard, close only hides.
-        private void RaiseCancel()
+        // The overlay is modal, so the selected hex + district cannot change while it is open. Read them once at
+        // confirm via one-shot sets. Missing either is a broken invariant (the overlay only opens with a selected
+        // hex and default-selects a district) — fail loud rather than build an Unknown district.
+        private (HexCoord coords, DistrictType type) ReadSelection()
         {
-            var entity = _world.CreateEntity();
-            entity.Set(new DistrictBuildCancelledEvent());
-            entity.Set(new EventTag());
+            using var hexSet = _world.GetEntities().With<HexSelectedComponent>().With<HexSelectionTag>().AsSet();
+            using var selectionSet = _world.GetEntities()
+                .With<DistrictBuildSelectionComponent>().With<DistrictBuildSelectionTag>().AsSet();
+
+            if (hexSet.Count == 0)
+                throw new InvalidOperationException("DistrictBuildUIView: confirm with no selected hex.");
+            if (selectionSet.Count == 0)
+                throw new InvalidOperationException("DistrictBuildUIView: confirm with no selected district.");
+
+            var coords = hexSet.GetEntities()[0].Get<HexSelectedComponent>().Coords;
+            var type = selectionSet.GetEntities()[0].Get<DistrictBuildSelectionComponent>().Selected;
+            return (coords, type);
         }
 
         // One-frame close pulse; DistrictBuildUISystem hides the window.

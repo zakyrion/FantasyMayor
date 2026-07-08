@@ -15,19 +15,19 @@ related:
   - "[PATTERN_EVENT](../../../../Patterns/PATTERN_EVENT.md)"
 status: partial
 code_refs:
-  systems:          [BuildDistrictTemplateSpawnSystem, BuildDistrictActionSystem, BuildDistrictTemplateCancelSystem]
+  systems:          [BuildDistrictActionSystem]
   components:       [ActionIdComponent]
   world_components: [ActionIdAllocatorComponent]
-  tags:             [BuildDistrictActionTemplateTag, BuildDistrictActionTag]
-  events:           [DistrictBuildStartedEvent, DistrictBuildConfirmedEvent, DistrictBuildCancelledEvent]
+  tags:             [BuildDistrictActionTag]
+  events:           [DistrictBuildConfirmedEvent]
 ---
 
 # Build District Action
 
 The owner-scoped **build verb** — eventually turns an owner's confirmed choice into a live, multi-turn
 construction that ticks each turn, completes, and applies the district's outcome. The current slice only
-lands the draft→confirm→promote entity lifecycle below; tick/complete/outcome do not exist yet (see
-Current State).
+creates the committed build entity directly on confirm (see below); tick/complete/outcome do not exist yet
+(see Current State).
 
 ## Purpose
 `Economy` owns the owner-agnostic district vocabulary (placement, unlock, cost, outcome — all keyed by
@@ -36,60 +36,47 @@ it: reads the cost, spends a specific owner's resources, ticks turns down, and j
 catalogue on completion. Orchestration, not vocabulary — the standing `Actions` rule (`ACTIONS.md`).
 
 ## Trigger
-Three reactive systems, one per pulse of the draft lifecycle (full producer→consumer flow: the ecs-graph,
-`/ecs-graph`):
+One reactive system (full producer→consumer flow: the ecs-graph, `/ecs-graph`):
 
 ```clojure
 (def triggers  ;; {system {:on pulse :do effect}}
-  {BuildDistrictTemplateSpawnSystem  {:on DistrictBuildStartedEvent   :do "spawn draft entity"}
-   BuildDistrictActionSystem         {:on DistrictBuildConfirmedEvent :do "promote draft → committed"}
-   BuildDistrictTemplateCancelSystem {:on DistrictBuildCancelledEvent :do "discard draft entity"}})
+  {BuildDistrictActionSystem {:on DistrictBuildConfirmedEvent :do "create committed build entity directly"}})
 ```
 
 ## Non-Obvious Invariants
 ```clojure
 (def invariants
-  {:draft-entity-while-overlay-open  "exactly one BuildDistrictActionTemplateTag entity"  ;; spawn open → discard cancel → promote confirm
-   BuildDistrictActionSystem         {:confirm-no-draft :THROW}   ;; broken invariant, not a benign no-op
-   BuildDistrictTemplateCancelSystem {:cancel-no-draft  :no-op}   ;; sanctioned quiet return
-   DistrictBuildStartedEvent         "carries HexCoord + DistrictType"  ;; payload event — why: Design Decisions
-   DistrictBuildCancelledEvent       :payload-less                ;; targets whichever entity carries the template tag
-   :confirm<->cancel                 "DECOUPLED, never both"      ;; why: Design Decisions
-   ActionIdAllocatorComponent        "world component, seeded Next=1 in BuildDistrictActionSystem ctor"})  ;; ids start at 1, 0 = unset
+  {DistrictBuildConfirmedEvent "carries HexCoord + DistrictType"  ;; payload event — why: Design Decisions
+   ActionIdAllocatorComponent  "world component, seeded Next=1 in BuildDistrictActionSystem ctor"})  ;; ids start at 1, 0 = unset
 ```
 
 ## Design Decisions
-- **Payload event across an asmdef boundary.** `DistrictBuildStartedEvent` carries `HexCoord` +
+- **No draft entity.** An earlier slice spawned a draft on overlay-open and promoted/discarded it on
+  confirm/cancel. With no cost/AP-spend and no on-map preview, the draft owned nothing worth
+  pre-spawning — it only added a stale `DistrictTypeComponent` (stamped at open, re-stamped at confirm)
+  and a cancel-discard path. `BuildDistrictActionSystem` now creates the committed entity directly on
+  confirm; building directly is simpler and equivalent.
+- **Payload event across an asmdef boundary.** `DistrictBuildConfirmedEvent` carries `HexCoord` +
   `DistrictType` because `Domains.Actions` cannot read Presentation state (`HexSelectedComponent` /
   `DistrictBuildSelectionComponent`): `Presentation.UI → Domains.Actions` already exists, so the reverse
-  read would be a circular asmdef reference. `DistrictBuildCancelledEvent` stays payload-less — the
-  Actions domain only needs to know the one draft goes away, not which one.
-- **Confirm and cancel are deliberately decoupled pulses**, not two branches of one "close" event.
-  `DistrictBuildUIView.OnConfirmClicked` raises confirm+close but never cancel, so the close pulse cannot
-  discard the entity `BuildDistrictActionSystem` just promoted. `DistrictBuildClosedEvent`
-  (Presentation-only) stays a pure "hide the window" concern — it never reaches the draft lifecycle.
+  read would be a circular asmdef reference. `DistrictBuildUIView` composes the payload by reading both
+  components via one-shot `EntitySet`s at confirm.
+- **Confirm and close are separate pulses**, not two branches of one event.
+  `DistrictBuildUIView.OnConfirmClicked` raises `DistrictBuildConfirmedEvent` then
+  `DistrictBuildUIClosedEvent`; `BuildDistrictActionSystem` reacts only to the former — the latter is a
+  pure Presentation hide, never routed through Actions.
 - **Incremental rebuild, one mechanic at a time.** The prior big-bang verb tried to land cost + AP +
-  owner + lifecycle + resource-spend together and was rolled back for it. This slice adds only
-  draft-spawn + promote + cancel; cost, AP spend, turn-ticking, owner attribution, and outcome
+  owner + lifecycle + resource-spend together and was rolled back for it. This slice creates the
+  committed entity directly on confirm; cost, AP spend, turn-ticking, owner attribution, and outcome
   application remain separate future steps.
 
 ## Current State
-PARTIAL. The draft→confirm→promote entity lifecycle is implemented:
-- `BuildDistrictTemplateSpawnSystem` spawns the draft (`HexIdComponent` + `DistrictTypeComponent` +
-  `BuildDistrictActionTemplateTag`) on `DistrictBuildStartedEvent`.
-- `BuildDistrictActionSystem` promotes it on `DistrictBuildConfirmedEvent`: stamps a unique
-  `ActionIdComponent` (via `ActionIdAllocatorComponent`, now live — no longer dormant), swaps
-  `BuildDistrictActionTemplateTag` → `BuildDistrictActionTag`.
-- `BuildDistrictTemplateCancelSystem` discards the draft on `DistrictBuildCancelledEvent`.
+PARTIAL. `BuildDistrictActionSystem` creates the committed build entity directly on
+`DistrictBuildConfirmedEvent`: stamps `HexIdComponent` + `DistrictTypeComponent` from the payload, a
+unique `ActionIdComponent` (via `ActionIdAllocatorComponent`), and `BuildDistrictActionTag`. There is no
+draft — no spawn, no promote, no cancel/discard path.
 
 The earlier `BuildDistrictActionConfig` stub `ScriptableObject` is removed — no config-driven behavior
 exists yet.
-
-Known gap, now closed at confirm time: the draft's `DistrictTypeComponent` is stamped from the current
-selection AT OPEN time — usually `Unknown`, since the district is picked from the list AFTER the overlay
-opens. `BuildDistrictActionSystem` re-stamps it from the live `DistrictBuildSelectionComponent` at
-CONFIRM time, so the promoted entity always carries the district actually chosen; the open-time value is
-scratch. Selection still lives off the draft (Economy's `DistrictBuildSelectionComponent`) — moving it
-onto the draft itself is `FLOW_DISTRICT_BUILD.md` gap 1.
 
 Not built: tick, complete, apply-outcome, any resource or AP spend, any owner attribution.
