@@ -143,6 +143,16 @@ world write stays on the main thread; the pool only computes.
 ```
 Point-of-code form (tables, key spaces, materializations): `ECS_CONVENTIONS.md` → Table Rule.
 
+## Cross-domain behavior (transactions)
+```clojure
+(def cross-domain-behavior  ;; 2026-07-08 — the unit above single-domain systems
+  {:transaction   "ONE entity in the verb domain"       ;; PATTERN_TRANSACTION_ENTITY — all session state rides on it; commands mutate it; stage = tag swap
+   :ui            :projection                           ;; reads the entity, raises command pulses, owns no transaction state
+   :completion    "fact entity in the substrate domain" ;; views render facts, never verbs
+   :flow-contract "Flows/FLOW_<NAME>.md"                ;; one behavior = one contract doc (events, ownership, ordering, gap list); module MDs link to it, never retell it
+   :why "a behavior with no single owner degrades into state copies + stale prose at every seam"})
+```
+
 ## Boot flow (invariants)
 ```clojure
 (def boot-flow
@@ -171,6 +181,7 @@ implementation. Each is a Category B doc in `Patterns/` (also in `INDEX.md`). Th
 | a per-frame system (continuous logic; `PreUpdate` + `FrameBox`) | `Patterns/PATTERN_PERFRAME_SYSTEM.md` |
 | a reactive system (event-driven — the DEFAULT for runtime logic) | `Patterns/PATTERN_REACTIVE_SYSTEM.md` |
 | a reactive system whose event handling has several independently-ordered parts (reactive trigger + subsystem fan-out) | `Patterns/PATTERN_REACTIVE_ORCHESTRATOR_SYSTEM.md` |
+| a multi-step behavior spanning more than one subdomain (transaction entity + flow contract) | `Patterns/PATTERN_TRANSACTION_ENTITY.md` |
 | one-frame event cleanup (and why you almost never write one) | `Patterns/PATTERN_CLEANUP_SYSTEM.md` |
 
 ## Known deviations
