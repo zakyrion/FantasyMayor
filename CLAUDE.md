@@ -105,7 +105,7 @@ gate — this names the discipline, it adds no new rule:
 - Show this template to the user when they are defining an engineering task so they can see and reuse it.
 - Expect engineering task requests to follow this format unless the user explicitly tells you to ignore it for the current request.
 - If one or more blocks are missing in an engineering task request, do not silently invent them. Ask the user for each missing block separately and keep the discussion focused on filling those gaps.
-- Blocks may be short, but every block should be present for engineering tasks unless the user explicitly opts out.
+- Blocks may be short, but every block should be present for engineering tasks unless the user explicitly opts out — **except «Роби за шаблоном», which is OPTIONAL.** Its absence is never a reason to ask and never a missing block; pick a pattern yourself only when one clearly fits, and never block, plan, or gate on it.
 
 ```text
 Задача:
@@ -119,7 +119,7 @@ gate — this names the discipline, it adds no new rule:
 - [що поза scope]
 - [що не треба аналізувати]
 
-Роби за шаблоном:
+Роби за шаблоном (ОПЦІОНАЛЬНО — можна взагалі не вказувати):
 - [Patterns/PATTERN_*.md — picker з описами: ARCHITECTURE.md → Pattern Recipes]
 - [опціонально другий шаблон]
 
@@ -157,7 +157,9 @@ Field ↔ template-block mapping: `:where` = «Працюй тільки в», `
 «Не потрібно» + «Результат».
 
 - The HARD GATE and the missing-block rules apply UNCHANGED: an absent key means "ask about
-  that block, aiming the question at the specific map" — never "no constraints".
+  that block, aiming the question at the specific map" — never "no constraints". The ONE
+  exception is `:pattern` («Роби за шаблоном»): it is optional, so an absent `:pattern` is
+  never an ask — never gate on it.
 - The notation is defined ONCE — do not re-explain it here or anywhere else. The canonical
   glossary (all forms/literals, with examples): `~/.claude/CLAUDE.md` → "Clojure instruction
   notation", already in every agent's context; authoring spec for Clojure rules inside
