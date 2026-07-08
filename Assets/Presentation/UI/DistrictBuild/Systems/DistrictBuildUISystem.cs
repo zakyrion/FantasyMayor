@@ -4,13 +4,13 @@ using Core;
 using DefaultEcs;
 using DefaultECSExtensions;
 using Domains.Actions.BuildDistrictAction.Events;
-using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
 using Domains.Map.Hex.Components;
 using JetBrains.Annotations;
 using Presentation.Terrain.Components;
 using Presentation.UI.DistrictBuild.Components;
 using Presentation.UI.DistrictBuild.Events;
+using Presentation.UI.DistrictBuild.Tags;
 using Presentation.UI.DistrictBuild.Views;
 using Presentation.Terrain.Tags;
 using Presentation.UI.Tags;
@@ -20,8 +20,8 @@ namespace Presentation.UI.DistrictBuild.Systems
     /// <summary>
     ///     Drives the district-build overlay: visibility + section dispatch. Anchored on the
     ///     DistrictBuildUIViewComponent singleton (ticks once per frame). Coalesces the window pulses —
-    ///     <see cref="DistrictBuildRequestedEvent" /> (open), <see cref="DistrictBuildClosedEvent" /> (hide),
-    ///     <see cref="DistrictBuildSelectionRequestedEvent" /> (re-populate after a selection change). On open it
+    ///     <see cref="DistrictBuildRequestedEvent" /> (open), <see cref="DistrictBuildUIClosedEvent" /> (hide),
+    ///     <see cref="DistrictBuildSelectedDistrictEvent" /> (re-populate after a selection change). On open it
     ///     also emits <see cref="DistrictBuildStartedEvent" /> — the Actions-layer pulse carrying the selected hex +
     ///     district that spawns the draft build entity. It owns NO domain logic and never touches — it only sequences
     ///     pulses into the section populators, each of which reconciles its own view from ECS (orchestrator +
@@ -39,8 +39,9 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         private readonly EntitySet _requestedSet;
         private readonly EntitySet _closedSet;
-        private readonly EntitySet _selectionRequestedSet;
+        private readonly EntitySet _selectedDistrictEventSet;
         private readonly EntitySet _selectedHexSet;
+        private readonly EntitySet _selectionSet;
 
         public override int Priority => SystemPriorities.RuntimeTick.DistrictBuildUi;
 
@@ -51,10 +52,11 @@ namespace Presentation.UI.DistrictBuild.Systems
             _subSystems = subSystems
                 .OrderBy(system => system.Priority)
                 .ToArray();
-            _requestedSet = world.GetEntities().With<DistrictBuildRequestedEvent>().AsSet();
-            _closedSet = world.GetEntities().With<DistrictBuildClosedEvent>().AsSet();
-            _selectionRequestedSet = world.GetEntities().With<DistrictBuildSelectionRequestedEvent>().AsSet();
+            _requestedSet = world.GetEntities().With<DistrictBuildRequestedEvent>().With<EventTag>().AsSet();
+            _closedSet = world.GetEntities().With<DistrictBuildUIClosedEvent>().With<EventTag>().AsSet();
+            _selectedDistrictEventSet = world.GetEntities().With<DistrictBuildSelectedDistrictEvent>().With<EventTag>().AsSet();
             _selectedHexSet = world.GetEntities().With<HexSelectedComponent>().With<HexSelectionTag>().AsSet();
+            _selectionSet = world.GetEntities().With<DistrictBuildSelectionTag>().AsSet();
         }
 
         protected override void Update(GameState state, in Entity entity)
@@ -64,11 +66,14 @@ namespace Presentation.UI.DistrictBuild.Systems
                 return;
 
             if (_closedSet.Count > 0)
+            {
                 view.Hide();
+                DestroySelection();
+            }
 
             if (_requestedSet.Count > 0)
                 Open(view);
-            else if (_selectionRequestedSet.Count > 0)
+            else if (_selectedDistrictEventSet.Count > 0)
                 PopulateSections();
         }
 
@@ -78,9 +83,27 @@ namespace Presentation.UI.DistrictBuild.Systems
             if (_selectedHexSet.Count == 0)
                 return;
 
+            CreateSelection();
             RaiseStarted();
             PopulateSections();
             view.Show();
+        }
+
+        // The selection lives on a single local entity for the lifetime of the open overlay: created here on open
+        // (the section subsystems write/read DistrictBuildSelectionComponent onto it), destroyed on close.
+        private void CreateSelection()
+        {
+            if (_selectionSet.Count > 0)
+                return;
+
+            var entity = _world.CreateEntity();
+            entity.Set(new DistrictBuildSelectionTag());
+        }
+
+        private void DestroySelection()
+        {
+            foreach (var entity in _selectionSet.GetEntities())
+                entity.Dispose();
         }
 
         // Hands the selected hex + district to the Actions layer as a pulse payload so it can spawn the draft build
@@ -89,8 +112,8 @@ namespace Presentation.UI.DistrictBuild.Systems
         private void RaiseStarted()
         {
             var coords = _selectedHexSet.GetEntities()[0].Get<HexSelectedComponent>().Coords;
-            var type = _world.Has<DistrictBuildSelectionComponent>()
-                ? _world.Get<DistrictBuildSelectionComponent>().Selected
+            var type = _selectionSet.Count > 0 && _selectionSet.GetEntities()[0].Has<DistrictBuildSelectionComponent>()
+                ? _selectionSet.GetEntities()[0].Get<DistrictBuildSelectionComponent>().Selected
                 : DistrictType.Unknown;
 
             var entity = _world.CreateEntity();
@@ -113,8 +136,9 @@ namespace Presentation.UI.DistrictBuild.Systems
         {
             _requestedSet.Dispose();
             _closedSet.Dispose();
-            _selectionRequestedSet.Dispose();
+            _selectedDistrictEventSet.Dispose();
             _selectedHexSet.Dispose();
+            _selectionSet.Dispose();
             base.Dispose();
         }
     }

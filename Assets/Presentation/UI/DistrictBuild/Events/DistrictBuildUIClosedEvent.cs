@@ -6,7 +6,7 @@ namespace Presentation.UI.DistrictBuild.Events
     ///     button (build is a dormant later slice — for now «Збудувати» only closes). Payload-less;
     ///     <c>DistrictBuildActionSystem</c> hides the window on this pulse. Cleared by <c>EventCleanupSystem</c>.
     /// </summary>
-    public struct DistrictBuildClosedEvent
+    public struct DistrictBuildUIClosedEvent
     {
     }
 }

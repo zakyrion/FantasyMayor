@@ -6,6 +6,7 @@ using Domains.Economy.DistrictOpenCondition.Tags;
 using JetBrains.Annotations;
 using Presentation.UI.DistrictBuild.Components;
 using Presentation.UI.DistrictBuild.Events;
+using Presentation.UI.DistrictBuild.Tags;
 using UnityEngine;
 
 namespace Presentation.UI.DistrictBuild.Systems
@@ -21,6 +22,7 @@ namespace Presentation.UI.DistrictBuild.Systems
     {
         private readonly EntitySet _buildable;
         private readonly EntitySet _requestedSet;
+        private readonly EntitySet _selectionSet;
         private bool _hooked;
 
         public override int Priority => SystemPriorities.SubSystems.DistrictBuildUi.List;
@@ -32,6 +34,7 @@ namespace Presentation.UI.DistrictBuild.Systems
                 .With<DistrictCanBeBuildTag>()
                 .AsSet();
             _requestedSet = world.GetEntities().With<DistrictBuildRequestedEvent>().AsSet();
+            _selectionSet = world.GetEntities().With<DistrictBuildSelectionTag>().AsSet();
         }
 
         public override void Populate(GameObject root)
@@ -53,12 +56,12 @@ namespace Presentation.UI.DistrictBuild.Systems
                     ? _buildable.GetEntities()[0].Get<DistrictTypeComponent>().Value
                     : DistrictType.None;
 
-                World.Set(new DistrictBuildSelectionComponent { Selected = defaultSelection });
+                _selectionSet.GetEntities()[0].Set(new DistrictBuildSelectionComponent { Selected = defaultSelection });
             }
 
             // Always set by this point (default-selected above on open, or already present from a prior
-            // open/click) — a missing component here is a bug, so let World.Get throw rather than fall back.
-            var selected = World.Get<DistrictBuildSelectionComponent>().Selected;
+            // open/click) — a missing component here is a bug, so let Get throw rather than fall back.
+            var selected = _selectionSet.GetEntities()[0].Get<DistrictBuildSelectionComponent>().Selected;
 
             view.Clear();
             foreach (var entity in _buildable.GetEntities())
@@ -70,10 +73,10 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         private void OnSelected(DistrictType district)
         {
-            World.Set(new DistrictBuildSelectionComponent { Selected = district });
+            _selectionSet.GetEntities()[0].Set(new DistrictBuildSelectionComponent { Selected = district });
 
             var entity = World.CreateEntity();
-            entity.Set(new DistrictBuildSelectionRequestedEvent());
+            entity.Set(new DistrictBuildSelectedDistrictEvent());
             entity.Set(new EventTag());
         }
 
@@ -88,6 +91,7 @@ namespace Presentation.UI.DistrictBuild.Systems
 
             _buildable.Dispose();
             _requestedSet.Dispose();
+            _selectionSet.Dispose();
             base.Dispose();
         }
     }

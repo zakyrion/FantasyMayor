@@ -3,12 +3,12 @@ using DefaultEcs;
 using Domains.Actors.City.Components;
 using Domains.Actors.Components;
 using Domains.Actors.Mayor.Components;
-using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
 using Domains.Economy.Resource.Components;
 using Domains.Economy.Resource.Data;
 using JetBrains.Annotations;
 using Presentation.UI.DistrictBuild.Components;
+using Presentation.UI.DistrictBuild.Tags;
 using Presentation.UI.DistrictBuild.Views;
 using UnityEngine;
 using Domains.Economy.DistrictBuildCost.Configs;
@@ -30,6 +30,8 @@ namespace Presentation.UI.DistrictBuild.Systems
     [UsedImplicitly]
     public sealed class DistrictBuildPriceUISubSystem : DistrictBuildUISubSystem
     {
+        private readonly EntitySet _selectionSet;
+
         // Actor rows (Table Rule): id PK + ActorTypeComponent discriminator — never a bare key.
         private readonly EntitySet _mayorActor;
         private readonly EntitySet _cityActor;
@@ -42,6 +44,7 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public DistrictBuildPriceUISubSystem(World world) : base(world)
         {
+            _selectionSet = world.GetEntities().With<DistrictBuildSelectionTag>().AsSet();
             _mayorActor = world.GetEntities().With<MayorIdComponent>().With<MayorTag>().With<MayorAPComponent>().With<ActorTypeComponent>().AsSet();
             _cityActor = world.GetEntities().With<CityIdComponent>().With<CityTag>().With<ActorTypeComponent>().AsSet();
             _mayorResources = world.GetEntities()
@@ -71,7 +74,7 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         private void Render(DistrictBuildPriceUIView view)
         {
-            var selected = World.Get<DistrictBuildSelectionComponent>().Selected;
+            var selected = _selectionSet.GetEntities()[0].Get<DistrictBuildSelectionComponent>().Selected;
             if (!TryGetCost(selected, out var cost) || !TryGetDistrict(selected, out var district))
             {
                 view.SetAp(0, 0);
@@ -210,6 +213,7 @@ namespace Presentation.UI.DistrictBuild.Systems
                     view.PayerChanged -= OnPayerChanged;
             }
 
+            _selectionSet.Dispose();
             _mayorActor.Dispose();
             _cityActor.Dispose();
             _mayorResources.Dispose();

@@ -127,7 +127,7 @@ namespace Presentation.UI.DistrictBuild.Views
         private void RaiseClose()
         {
             var entity = _world.CreateEntity();
-            entity.Set(new DistrictBuildClosedEvent());
+            entity.Set(new DistrictBuildUIClosedEvent());
             entity.Set(new EventTag());
         }
 

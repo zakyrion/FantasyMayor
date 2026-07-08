@@ -48,18 +48,12 @@ namespace Domains.Actions.BuildDistrictAction.Systems
                     "BuildDistrictActionSystem: confirm pulse with no BuildDistrictActionTemplateTag entity — " +
                     "the draft build entity must exist while the overlay is open.");
 
-            // The district being built is the LIVE UI selection at confirm — read from the world component, not the
-            // draft's DistrictTypeComponent (stamped once at open, never re-synced on later picks). Re-stamp the
-            // entity so the promoted build carries the confirmed district. Get throws if the selection is missing —
-            // a broken invariant while the overlay is open, not a benign no-op.
-            var districtType = new DistrictTypeComponent { Value = _world.Get<DistrictBuildSelectionComponent>().Selected };
-
             // Exactly one draft at a time; dropping the template tag ends this single-element iteration.
             foreach (var entity in templates)
             {
                 var hexId = entity.Get<HexIdComponent>();
+                var districtType = entity.Get<DistrictTypeComponent>();
 
-                entity.Set(districtType);
                 entity.Set(new ActionIdComponent { Value = AllocateId() });
                 entity.Remove<BuildDistrictActionTemplateTag>();
                 entity.Set(new BuildDistrictActionTag());

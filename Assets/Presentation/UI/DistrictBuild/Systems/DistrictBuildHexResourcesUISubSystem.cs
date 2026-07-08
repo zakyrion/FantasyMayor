@@ -1,6 +1,5 @@
 using System;
 using DefaultEcs;
-using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
 using Domains.Economy.DistrictBuild.Components;
 using Domains.Economy.DistrictBuild.Configs;
@@ -13,6 +12,7 @@ using JetBrains.Annotations;
 using Modules.AxialSystem;
 using Presentation.Terrain.Components;
 using Presentation.UI.DistrictBuild.Components;
+using Presentation.UI.DistrictBuild.Tags;
 using Presentation.UI.DistrictBuild.Views;
 using UnityEngine;
 using DefaultECSExtensions;
@@ -28,6 +28,7 @@ namespace Presentation.UI.DistrictBuild.Systems
     [UsedImplicitly]
     public sealed class DistrictBuildHexResourcesUISubSystem : DistrictBuildUISubSystem
     {
+        private readonly EntitySet _selectionSet;
         private readonly EntitySet _selectedHexSet;
         private readonly EntitySet _hexSet;
         private readonly EntityMultiMap<HexIdComponent> _hexResources;
@@ -36,6 +37,7 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public DistrictBuildHexResourcesUISubSystem(World world) : base(world)
         {
+            _selectionSet = world.GetEntities().With<DistrictBuildSelectionTag>().AsSet();
             _selectedHexSet = world.GetEntities().With<HexSelectedComponent>().With<HexSelectionTag>().AsSet();
             _hexSet = world.GetEntities().With<HexTag>().With<HexIdComponent>().AsSet();
             _hexResources = world.GetEntities()
@@ -46,7 +48,7 @@ namespace Presentation.UI.DistrictBuild.Systems
         {
             var view = World.Get<DistrictBuildHexResourcesUIViewComponent>().View;
 
-            var selected = World.Get<DistrictBuildSelectionComponent>().Selected;
+            var selected = _selectionSet.GetEntities()[0].Get<DistrictBuildSelectionComponent>().Selected;
             if (!TryGetDistrict(selected, out var district))
             {
                 view.SetDistrictName(string.Empty);
@@ -137,6 +139,7 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public override void Dispose()
         {
+            _selectionSet.Dispose();
             _selectedHexSet.Dispose();
             _hexSet.Dispose();
             _hexResources.Dispose();
