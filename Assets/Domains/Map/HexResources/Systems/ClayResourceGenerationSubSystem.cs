@@ -33,7 +33,7 @@ namespace Domains.Map.HexResources.Systems
             _world = world;
             _hexSet = world.GetEntities()
                 .With<HexIdComponent>()
-                .With<HexLevelComponent>()
+                .With<HexLevelComponent>().With<HexTag>()
                 .AsSet();
             _hexesByType = world.GetEntities()
                 .With<HexTag>()

@@ -5,6 +5,7 @@ using Presentation.UI.ContextTabs.Components;
 using Presentation.UI.ContextTabs.Data;
 using Presentation.Terrain.Components;
 using Presentation.Terrain.Events;
+using Presentation.Terrain.Tags;
 
 namespace Presentation.UI.ContextTabs.Systems
 {
@@ -29,7 +30,7 @@ namespace Presentation.UI.ContextTabs.Systems
             : base(world.GetEntities().With<SelectedHexChangedEvent>().AsSet())
         {
             _world = world;
-            _selectedHexSet = world.GetEntities().With<HexSelectedComponent>().AsSet();
+            _selectedHexSet = world.GetEntities().With<HexSelectedComponent>().With<HexSelectionTag>().AsSet();
         }
 
         protected override void Update(GameState state, in Entity entity)

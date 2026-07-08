@@ -16,6 +16,8 @@ using Presentation.UI.DistrictBuild.Components;
 using Presentation.UI.DistrictBuild.Views;
 using UnityEngine;
 using DefaultECSExtensions;
+using Presentation.Terrain.Tags;
+using Domains.Map.HexResources.Tags;
 
 namespace Presentation.UI.DistrictBuild.Systems
 {
@@ -34,10 +36,10 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public DistrictBuildHexResourcesUISubSystem(World world) : base(world)
         {
-            _selectedHexSet = world.GetEntities().With<HexSelectedComponent>().AsSet();
+            _selectedHexSet = world.GetEntities().With<HexSelectedComponent>().With<HexSelectionTag>().AsSet();
             _hexSet = world.GetEntities().With<HexTag>().With<HexIdComponent>().AsSet();
             _hexResources = world.GetEntities()
-                .With<HexResourceComponent>().With<HexIdComponent>().AsMultiMap<HexIdComponent>();
+                .With<HexResourceComponent>().With<HexResourceTag>().With<HexIdComponent>().AsMultiMap<HexIdComponent>();
         }
 
         public override void Populate(GameObject root)

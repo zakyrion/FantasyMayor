@@ -8,6 +8,7 @@ using Modules.Addressable.Core;
 using Modules.Boot.Core;
 using Presentation.Terrain.Components;
 using Presentation.Terrain.Views;
+using Presentation.Terrain.Tags;
 
 namespace Presentation.Terrain.Systems
 {
@@ -88,6 +89,7 @@ namespace Presentation.Terrain.Systems
 
             var entity = _world.CreateEntity();
             entity.Set(new HexSelectionViewComponent { ObjectRef = view });
+            entity.Set(new HexSelectionViewTag());
             _hexSelectionViewEntity = entity;
         }
     }

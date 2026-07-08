@@ -23,6 +23,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using VContainer;
 using VContainer.Unity;
+using Modules.UserInput.Tags;
 
 namespace Installers.World
 {
@@ -55,6 +56,7 @@ namespace Installers.World
 
             var playerInputEntity = world.CreateEntity();
             playerInputEntity.Set(new PlayerInputComponent { PlayerInput = _playerInput });
+            playerInputEntity.Set(new PlayerInputTag());
 
             // Per-frame systems are registered as concrete singletons; Boot wires them into game states by hand.
             builder.Register<EventCleanupSystem>(Lifetime.Singleton).As<EventCleanupSystem>();

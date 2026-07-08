@@ -12,6 +12,8 @@ using Domains.Map.HexResources.Components;
 using Domains.Map.HexResources.Data;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Presentation.HexIcons.Tags;
+using Domains.Map.HexResources.Tags;
 
 namespace Presentation.HexIcons.Systems
 {
@@ -40,11 +42,11 @@ namespace Presentation.HexIcons.Systems
             _world = world;
             _containerSet = world.GetEntities()
                 .With<HexIdComponent>()
-                .With<HexIconContainerComponent>()
+                .With<HexIconContainerComponent>().With<HexIconContainerTag>()
                 .AsSet();
             _resourceSet = world.GetEntities()
                 .With<HexIdComponent>()
-                .With<HexResourceComponent>()
+                .With<HexResourceComponent>().With<HexResourceTag>()
                 .AsSet();
         }
 

@@ -6,6 +6,7 @@ using JetBrains.Annotations;
 using Modules.Turn.Data;
 using Modules.Turn.Systems;
 using DefaultECSExtensions;
+using Domains.Actors.Mayor.Tags;
 
 namespace Domains.Actions.Systems
 {
@@ -24,7 +25,7 @@ namespace Domains.Actions.Systems
 
         public MayorAPRestoreSubSystem(World world)
         {
-            _mayors = world.GetEntities().With<MayorIdComponent>().With<MayorAPRestoreComponent>().With<MayorAPComponent>().AsSet();
+            _mayors = world.GetEntities().With<MayorIdComponent>().With<MayorTag>().With<MayorAPRestoreComponent>().With<MayorAPComponent>().AsSet();
         }
 
         public override async UniTask Update(TurnPhaseStep state, CancellationToken cancellationToken)

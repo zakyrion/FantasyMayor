@@ -6,7 +6,6 @@ using Domains.Actors.Mayor.Components;
 using Domains.Economy.District.Data;
 using Domains.Economy.Resource.Components;
 using Domains.Economy.Resource.Data;
-using Domains.Economy.Resource.Tags;
 using JetBrains.Annotations;
 using Presentation.UI.DistrictBuild.Components;
 using Presentation.UI.DistrictBuild.Views;
@@ -17,6 +16,8 @@ using Domains.Economy.DistrictBuild.Configs;
 using Domains.Economy.DistrictBuild.Components;
 using Domains.Kernel.Data;
 using DefaultECSExtensions;
+using Domains.Actors.City.Tags;
+using Domains.Actors.Mayor.Tags;
 
 namespace Presentation.UI.DistrictBuild.Systems
 {
@@ -40,12 +41,12 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public DistrictBuildPriceUISubSystem(World world) : base(world)
         {
-            _mayorActor = world.GetEntities().With<MayorIdComponent>().With<MayorAPComponent>().With<ActorTypeComponent>().AsSet();
-            _cityActor = world.GetEntities().With<CityIdComponent>().With<ActorTypeComponent>().AsSet();
+            _mayorActor = world.GetEntities().With<MayorIdComponent>().With<MayorTag>().With<MayorAPComponent>().With<ActorTypeComponent>().AsSet();
+            _cityActor = world.GetEntities().With<CityIdComponent>().With<CityTag>().With<ActorTypeComponent>().AsSet();
             _mayorResources = world.GetEntities()
-                .With<MayorIdComponent>().With<ResourceTag>().AsMultiMap<MayorIdComponent>();
+                .With<MayorIdComponent>().With<MayorTag>().With<MayorResourceTag>().AsMultiMap<MayorIdComponent>();
             _cityResources = world.GetEntities()
-                .With<CityIdComponent>().With<ResourceTag>().AsMultiMap<CityIdComponent>();
+                .With<CityIdComponent>().With<CityTag>().With<CityResourceTag>().AsMultiMap<CityIdComponent>();
         }
 
         public override void Populate(GameObject root)

@@ -133,6 +133,16 @@ pipeline. The phase base is `TurnPhaseSubSystem`; the launcher is the per-frame 
 (it polls the in-flight run each frame, so it is justified as a Per-frame System, not reactive). Every
 world write stays on the main thread; the pool only computes.
 
+## Tag Law (entity identity)
+```clojure
+(def tag-law  ;; 2026-07-08 — universal, machine-checkable
+  {:entity {:requires "≥1 tag — its table discriminator"}  ;; an entity without a tag does not exist
+   :filter {:requires "≥1 tag in every With<> chain"}      ;; a filter without a tag does not exist
+   :category-tag UITag                                     ;; a shared kind-marker satisfies the law (identity rides on the *ViewComponent)
+   :why "tag = archetype identity → deterministic archetype attribution in the ecs-graph"})
+```
+Point-of-code form (tables, key spaces, materializations): `ECS_CONVENTIONS.md` → Table Rule.
+
 ## Boot flow (invariants)
 ```clojure
 (def boot-flow

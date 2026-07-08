@@ -12,6 +12,7 @@ using Presentation.HexIcons.Views;
 using Unity.Mathematics;
 using UnityEngine.UIElements;
 using Object = UnityEngine.Object;
+using Presentation.HexIcons.Tags;
 
 namespace Presentation.HexIcons.Systems
 {
@@ -82,6 +83,7 @@ namespace Presentation.HexIcons.Systems
                 var containerEntity = _world.CreateEntity();
                 containerEntity.Set(hexId);
                 containerEntity.Set(new HexIconContainerComponent(container));
+                containerEntity.Set(new HexIconContainerTag());
             }
         }
 

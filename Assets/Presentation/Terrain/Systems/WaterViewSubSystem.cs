@@ -13,6 +13,7 @@ using Presentation.Terrain.Components;
 using Presentation.Terrain.Views;
 using Unity.Collections;
 using UnityEngine;
+using Presentation.Terrain.Tags;
 
 namespace Presentation.Terrain.Systems
 {
@@ -104,6 +105,7 @@ namespace Presentation.Terrain.Systems
             DestroyWaterViewEntity();
             var entity = _world.CreateEntity();
             entity.Set(new WaterViewComponent { ObjectRef = component });
+            entity.Set(new WaterViewTag());
             _waterViewEntity = entity;
         }
 

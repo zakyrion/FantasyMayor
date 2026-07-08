@@ -3,11 +3,12 @@ using DefaultEcs;
 using DefaultECSExtensions;
 using Domains.Actors.Mayor.Components;
 using Domains.Economy.Resource.Components;
-using Domains.Economy.Resource.Tags;
 using JetBrains.Annotations;
 using Modules.Turn.Components;
 using Presentation.UI.EndTurn.Components;
 using Presentation.UI.EndTurn.Views;
+using Domains.Actors.Mayor.Tags;
+using Presentation.UI.Tags;
 
 namespace Presentation.UI.EndTurn.Systems
 {
@@ -35,12 +36,12 @@ namespace Presentation.UI.EndTurn.Systems
         public override int Priority => SystemPriorities.RuntimeTick.EndTurnView;
 
         public EndTurnViewSystem(World world)
-            : base(world.GetEntities().With<EndTurnViewComponent>().AsSet())
+            : base(world.GetEntities().With<EndTurnViewComponent>().With<UITag>().AsSet())
         {
             _world = world;
-            _mayors = world.GetEntities().With<MayorIdComponent>().With<MayorAPRestoreComponent>().AsSet();
+            _mayors = world.GetEntities().With<MayorIdComponent>().With<MayorTag>().With<MayorAPRestoreComponent>().AsSet();
             _mayorResources = world.GetEntities()
-                .With<MayorIdComponent>().With<ResourceTag>().AsMultiMap<MayorIdComponent>();
+                .With<MayorIdComponent>().With<MayorResourceTag>().AsMultiMap<MayorIdComponent>();
         }
 
         protected override void Update(GameState state, in Entity entity)

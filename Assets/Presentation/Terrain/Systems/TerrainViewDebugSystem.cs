@@ -8,6 +8,7 @@ using Modules.Boot.Core;
 using Domains.Map.Hex.Components;
 using Presentation.Terrain.Components;
 using UnityEngine;
+using Domains.Map.Hex.Tags;
 
 namespace Presentation.Terrain.Systems
 {
@@ -32,7 +33,7 @@ namespace Presentation.Terrain.Systems
             _world = world;
             _hexSet = world.GetEntities()
                 .With<HexIdComponent>()
-                .With<HexLevelComponent>()
+                .With<HexLevelComponent>().With<HexTag>()
                 .AsSet();
         }
 

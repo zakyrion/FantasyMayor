@@ -9,7 +9,7 @@ status: partial
 code_refs:
   systems:    [ResourceBarSystem, ResourceBarSpawnSubSystem]
   components: [InventoryResourceIconConfigComponent, ResourceBarViewComponent, CityIdComponent, MayorIdComponent, ResourceComponent, ActorTypeComponent]
-  tags:       [ResourceTag, UITag]
+  tags:       [CityResourceTag, MayorResourceTag, UITag]
   enums:      [ActorType]
 ---
 

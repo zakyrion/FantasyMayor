@@ -4,10 +4,12 @@ using Domains.Actors.City.Components;
 using Domains.Actors.Components;
 using Domains.Actors.Mayor.Components;
 using Domains.Economy.Resource.Components;
-using Domains.Economy.Resource.Tags;
 using JetBrains.Annotations;
 using Presentation.UI.ResourceBar.Components;
 using Presentation.UI.ResourceBar.Views;
+using Domains.Actors.City.Tags;
+using Domains.Actors.Mayor.Tags;
+using Presentation.UI.Tags;
 
 namespace Presentation.UI.ResourceBar.Systems
 {
@@ -32,14 +34,14 @@ namespace Presentation.UI.ResourceBar.Systems
         public override int Priority => SystemPriorities.RuntimeTick.ResourceBar;
 
         public ResourceBarSystem(World world)
-            : base(world.GetEntities().With<ResourceBarViewComponent>().AsSet())
+            : base(world.GetEntities().With<ResourceBarViewComponent>().With<UITag>().AsSet())
         {
-            _mayorActor = world.GetEntities().With<MayorIdComponent>().With<ActorTypeComponent>().AsSet();
-            _cityActor = world.GetEntities().With<CityIdComponent>().With<ActorTypeComponent>().AsSet();
+            _mayorActor = world.GetEntities().With<MayorIdComponent>().With<MayorTag>().With<ActorTypeComponent>().AsSet();
+            _cityActor = world.GetEntities().With<CityIdComponent>().With<CityTag>().With<ActorTypeComponent>().AsSet();
             _cityResources = world.GetEntities()
-                .With<CityIdComponent>().With<ResourceTag>().AsMultiMap<CityIdComponent>();
+                .With<CityIdComponent>().With<CityTag>().With<CityResourceTag>().AsMultiMap<CityIdComponent>();
             _mayorResources = world.GetEntities()
-                .With<MayorIdComponent>().With<ResourceTag>().AsMultiMap<MayorIdComponent>();
+                .With<MayorIdComponent>().With<MayorTag>().With<MayorResourceTag>().AsMultiMap<MayorIdComponent>();
         }
 
         protected override void Update(GameState state, in Entity entity)

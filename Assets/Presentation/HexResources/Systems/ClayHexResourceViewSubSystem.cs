@@ -10,6 +10,7 @@ using Presentation.HexResources.Helpers;
 using Presentation.Terrain.Components;
 using Unity.Collections;
 using UnityEngine;
+using Presentation.Terrain.Tags;
 
 namespace Presentation.HexResources.Systems
 {
@@ -38,7 +39,7 @@ namespace Presentation.HexResources.Systems
             : base(world)
         {
             _world = world;
-            _terrainViewSet = world.GetEntities().With<TerrainViewComponent>().AsSet();
+            _terrainViewSet = world.GetEntities().With<TerrainViewComponent>().With<TerrainViewTag>().AsSet();
             _hexSet = world.GetEntities().With<HexIdComponent>().With<HexTag>().AsSet();
         }
 

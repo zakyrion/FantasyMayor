@@ -8,6 +8,7 @@ using Presentation.Terrain.Components;
 using Modules.UserInput.Components;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Modules.UserInput.Tags;
 
 namespace Modules.UserInput.Systems
 {
@@ -48,11 +49,11 @@ namespace Modules.UserInput.Systems
         public CameraMovementSystem(World world)
             // Anchored on the single PlayerInputComponent entity so Update ticks once per frame;
             // the camera itself is a world component (CameraComponent), read via world.Get below.
-            : base(world.GetEntities().With<PlayerInputComponent>().AsSet())
+            : base(world.GetEntities().With<PlayerInputComponent>().With<PlayerInputTag>().AsSet())
         {
             _world = world;
             _playerInputSet = world.GetEntities()
-                .With<PlayerInputComponent>()
+                .With<PlayerInputComponent>().With<PlayerInputTag>()
                 .AsSet();
             _hexIdSet = world.GetEntities()
                 .With<HexIdComponent>()

@@ -9,6 +9,7 @@ using Domains.Actors.Mayor.Components;
 using Domains.Economy.Resource.Helpers;
 using JetBrains.Annotations;
 using Modules.Boot.Core;
+using Domains.Actors.Mayor.Tags;
 
 namespace Domains.Actors.Mayor.Systems
 {
@@ -54,11 +55,12 @@ namespace Domains.Actors.Mayor.Systems
             var mayorIdComponent = new MayorIdComponent { Value = mayorId };
             var mayor = _world.CreateEntity();
             mayor.Set(mayorIdComponent);
+            mayor.Set(new MayorTag());
             mayor.Set(new ActorTypeComponent { Type = ActorType.Mayor });
             mayor.Set(new MayorAPRestoreComponent { Value = config.StartActionPoints });
             mayor.Set(new MayorAPComponent { Value = config.StartActionPoints });
 
-            ResourceLoadoutSpawner.SpawnLoadout(_world, mayorIdComponent, config.Resources);
+            ResourceLoadoutSpawner.SpawnLoadout<MayorIdComponent, MayorResourceTag>(_world, mayorIdComponent, config.Resources);
 
             return UniTask.CompletedTask;
         }

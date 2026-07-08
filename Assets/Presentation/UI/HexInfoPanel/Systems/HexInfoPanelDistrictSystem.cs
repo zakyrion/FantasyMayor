@@ -7,6 +7,8 @@ using Modules.AxialSystem;
 using Presentation.Terrain.Components;
 using Presentation.Terrain.Events;
 using Presentation.UI.HexInfoPanel.Components;
+using Presentation.Terrain.Tags;
+using Presentation.UI.Tags;
 
 namespace Presentation.UI.HexInfoPanel.Systems
 {
@@ -30,8 +32,8 @@ namespace Presentation.UI.HexInfoPanel.Systems
         public HexInfoPanelDistrictSystem(World world)
             : base(world.GetEntities().With<SelectedHexChangedEvent>().AsSet())
         {
-            _viewSet = world.GetEntities().With<HexInfoPanelViewComponent>().AsSet();
-            _selectedHexSet = world.GetEntities().With<HexSelectedComponent>().AsSet();
+            _viewSet = world.GetEntities().With<HexInfoPanelViewComponent>().With<UITag>().AsSet();
+            _selectedHexSet = world.GetEntities().With<HexSelectedComponent>().With<HexSelectionTag>().AsSet();
             _districtSet = world.GetEntities()
                 .With<HexIdComponent>()
                 .With<DistrictTag>()

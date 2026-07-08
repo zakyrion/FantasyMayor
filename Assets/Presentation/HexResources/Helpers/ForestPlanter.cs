@@ -12,6 +12,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using Object = UnityEngine.Object;
 using Random = UnityEngine.Random;
+using Presentation.HexResources.Tags;
 
 namespace Presentation.HexResources.Helpers
 {
@@ -77,6 +78,7 @@ namespace Presentation.HexResources.Helpers
                 var viewEntity = world.CreateEntity();
                 viewEntity.Set(new HexIdComponent { Coords = hex });
                 viewEntity.Set(new ForestViewComponent { Type = HexResourceType.Forest, View = view });
+                viewEntity.Set(new ForestViewTag());
 
                 if (entry.GroundTint.a > 0f)
                     splats.Add(new ForestGroundPainter.Splat(worldPos, entry.Radius, entry.GroundTint));

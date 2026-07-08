@@ -9,6 +9,7 @@ using Domains.Kernel.Data;
 using Domains.Economy.Resource.Helpers;
 using JetBrains.Annotations;
 using Modules.Boot.Core;
+using Domains.Actors.City.Tags;
 
 namespace Domains.Actors.City.Systems
 {
@@ -52,9 +53,10 @@ namespace Domains.Actors.City.Systems
             var cityIdComponent = new CityIdComponent { Value = cityId };
             var city = _world.CreateEntity();
             city.Set(cityIdComponent);
+            city.Set(new CityTag());
             city.Set(new ActorTypeComponent { Type = ActorType.City });
 
-            ResourceLoadoutSpawner.SpawnLoadout(_world, cityIdComponent, config.Resources);
+            ResourceLoadoutSpawner.SpawnLoadout<CityIdComponent, CityResourceTag>(_world, cityIdComponent, config.Resources);
 
             return UniTask.CompletedTask;
         }

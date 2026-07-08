@@ -15,6 +15,7 @@ using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Tags;
 using Unity.Collections;
 using UnityEngine;
+using Presentation.Terrain.Tags;
 
 namespace Presentation.Terrain.Systems
 {
@@ -165,6 +166,7 @@ namespace Presentation.Terrain.Systems
             DestroyTerrainViewEntity();
             var entity = _world.CreateEntity();
             entity.Set(new TerrainViewComponent { ObjectRef = _terrainViewBox.Value });
+            entity.Set(new TerrainViewTag());
             _terrainViewEntity = entity;
         }
 

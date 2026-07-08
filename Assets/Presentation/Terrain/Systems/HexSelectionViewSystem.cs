@@ -8,6 +8,7 @@ using Presentation.Terrain.Components;
 using Presentation.Terrain.Views;
 using Unity.Collections;
 using Unity.Mathematics;
+using Presentation.Terrain.Tags;
 
 namespace Presentation.Terrain.Systems
 {
@@ -33,12 +34,12 @@ namespace Presentation.Terrain.Systems
 
         public HexSelectionViewSystem(World world)
             : base(world.GetEntities()
-                .With<HexSelectionViewComponent>()
+                .With<HexSelectionViewComponent>().With<HexSelectionViewTag>()
                 .AsSet())
         {
             _world = world;
             _selectedHexSet = world.GetEntities()
-                .With<HexSelectedComponent>()
+                .With<HexSelectedComponent>().With<HexSelectionTag>()
                 .AsSet();
         }
 

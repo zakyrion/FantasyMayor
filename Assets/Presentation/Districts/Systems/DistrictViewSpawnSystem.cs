@@ -13,6 +13,7 @@ using Presentation.Districts.Views;
 using Presentation.Terrain.Components;
 using UnityEngine;
 using Object = UnityEngine.Object;
+using Presentation.Districts.Tags;
 
 namespace Presentation.Districts.Systems
 {
@@ -53,7 +54,7 @@ namespace Presentation.Districts.Systems
 
             _viewsByHex = world.GetEntities()
                 .With<HexIdComponent>()
-                .With<DistrictViewComponent>()
+                .With<DistrictViewComponent>().With<DistrictViewTag>()
                 .AsMultiMap<HexIdComponent>();
         }
 
@@ -97,6 +98,7 @@ namespace Presentation.Districts.Systems
                 var viewEntity = _world.CreateEntity();
                 viewEntity.Set(new HexIdComponent { Coords = hexId.Coords });
                 viewEntity.Set(new DistrictViewComponent { Type = districtType, View = view });
+                viewEntity.Set(new DistrictViewTag());
             }
         }
 

@@ -14,6 +14,9 @@ using Domains.Map.HexResources.Data;
 using Presentation.Terrain.Components;
 using Presentation.Terrain.Events;
 using UnityEngine;
+using Presentation.Terrain.Tags;
+using Domains.Map.HexResources.Tags;
+using Presentation.UI.Tags;
 
 namespace Presentation.UI.HexInfoPanel.Systems
 {
@@ -41,11 +44,11 @@ namespace Presentation.UI.HexInfoPanel.Systems
             : base(world.GetEntities().With<SelectedHexChangedEvent>().AsSet())
         {
             _world = world;
-            _viewSet = world.GetEntities().With<HexInfoPanelViewComponent>().AsSet();
-            _selectedHexSet = world.GetEntities().With<HexSelectedComponent>().AsSet();
+            _viewSet = world.GetEntities().With<HexInfoPanelViewComponent>().With<UITag>().AsSet();
+            _selectedHexSet = world.GetEntities().With<HexSelectedComponent>().With<HexSelectionTag>().AsSet();
             _resourceSet = world.GetEntities()
                 .With<HexIdComponent>()
-                .With<HexResourceComponent>()
+                .With<HexResourceComponent>().With<HexResourceTag>()
                 .AsSet();
         }
 

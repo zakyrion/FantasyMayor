@@ -11,6 +11,8 @@ using Presentation.Terrain.Components;
 using Presentation.UI.DistrictBuild.Components;
 using Presentation.UI.DistrictBuild.Events;
 using Presentation.UI.DistrictBuild.Views;
+using Presentation.Terrain.Tags;
+using Presentation.UI.Tags;
 
 namespace Presentation.UI.DistrictBuild.Systems
 {
@@ -42,7 +44,7 @@ namespace Presentation.UI.DistrictBuild.Systems
         public override int Priority => SystemPriorities.RuntimeTick.DistrictBuildUi;
 
         public DistrictBuildUISystem(World world, IReadOnlyList<DistrictBuildUISubSystem> subSystems)
-            : base(world.GetEntities().With<DistrictBuildUIViewComponent>().AsSet())
+            : base(world.GetEntities().With<DistrictBuildUIViewComponent>().With<UITag>().AsSet())
         {
             _world = world;
             _subSystems = subSystems
@@ -51,7 +53,7 @@ namespace Presentation.UI.DistrictBuild.Systems
             _requestedSet = world.GetEntities().With<DistrictBuildRequestedEvent>().AsSet();
             _closedSet = world.GetEntities().With<DistrictBuildClosedEvent>().AsSet();
             _selectionRequestedSet = world.GetEntities().With<DistrictBuildSelectionRequestedEvent>().AsSet();
-            _selectedHexSet = world.GetEntities().With<HexSelectedComponent>().AsSet();
+            _selectedHexSet = world.GetEntities().With<HexSelectedComponent>().With<HexSelectionTag>().AsSet();
         }
 
         protected override void Update(GameState state, in Entity entity)

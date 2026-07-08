@@ -10,6 +10,8 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using Unity.Mathematics;
+using Presentation.Terrain.Tags;
+using Modules.UserInput.Tags;
 
 namespace Modules.UserInput.Systems
 {
@@ -36,14 +38,14 @@ namespace Modules.UserInput.Systems
         public HexSelectionSystem(World world)
             // Anchored on the single PlayerInputComponent entity so Update ticks once per frame;
             // the camera itself is a world component (CameraComponent), read via world.Get below.
-            : base(world.GetEntities().With<PlayerInputComponent>().AsSet())
+            : base(world.GetEntities().With<PlayerInputComponent>().With<PlayerInputTag>().AsSet())
         {
             _world = world;
             _playerInputSet = world.GetEntities()
-                .With<PlayerInputComponent>()
+                .With<PlayerInputComponent>().With<PlayerInputTag>()
                 .AsSet();
             _selectedHexSet = world.GetEntities()
-                .With<HexSelectedComponent>()
+                .With<HexSelectedComponent>().With<HexSelectionTag>()
                 .AsSet();
 
             TryBindInputActions();
@@ -123,6 +125,7 @@ namespace Modules.UserInput.Systems
 
             // Write through Set (publishing path), never in-place ref-mutation — see ARCHITECTURE.md.
             selectedEntity.Set(new HexSelectedComponent { Coords = coord });
+            selectedEntity.Set(new HexSelectionTag());
             RaiseSelectionChanged();
         }
 

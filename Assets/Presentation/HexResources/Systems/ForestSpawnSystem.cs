@@ -12,6 +12,8 @@ using Presentation.HexResources.Helpers;
 using Presentation.Terrain.Components;
 using Unity.Collections;
 using UnityEngine;
+using Presentation.HexResources.Tags;
+using Domains.Map.HexResources.Tags;
 
 namespace Presentation.HexResources.Systems
 {
@@ -48,12 +50,12 @@ namespace Presentation.HexResources.Systems
             _world = world;
             _resourcesByType = world.GetEntities()
                 .With<HexIdComponent>()
-                .With<HexResourceComponent>()
+                .With<HexResourceComponent>().With<HexResourceTag>()
                 .AsMultiMap<HexResourceComponent>();
 
             _forestViewsByHex = world.GetEntities()
                 .With<HexIdComponent>()
-                .With<ForestViewComponent>()
+                .With<ForestViewComponent>().With<ForestViewTag>()
                 .AsMultiMap<HexIdComponent>();
 
             _hexSet = world.GetEntities().With<HexTag>().With<HexIdComponent>().AsSet();

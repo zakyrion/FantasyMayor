@@ -10,6 +10,7 @@ using Presentation.HexIcons.Components;
 using Presentation.Terrain.Components;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Presentation.HexIcons.Tags;
 
 namespace Presentation.HexIcons.Systems
 {
@@ -43,7 +44,7 @@ namespace Presentation.HexIcons.Systems
         public HexIconsContainerPositionSystem(World world)
             : base(world.GetEntities()
                 .With<HexIdComponent>()
-                .With<HexIconContainerComponent>()
+                .With<HexIconContainerComponent>().With<HexIconContainerTag>()
                 .AsSet())
         {
             _world = world;

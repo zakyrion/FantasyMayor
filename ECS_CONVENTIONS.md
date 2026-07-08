@@ -42,7 +42,8 @@ World component contract:
   per-frame ticks on them or query them: `TerrainViewComponent`, `HexSelectedComponent`,
   `WaterViewComponent`, `HexSelectionViewComponent`, `HexInfoPanelViewComponent`,
   `PlayerInputComponent`. When adding new single-instance state, default to a world component;
-  create a singleton entity only when an entity-query consumer exists from day one.
+  create a singleton entity only when an entity-query consumer exists from day one. A singleton
+  entity is still an entity — the Tag Law applies (it carries its tag, its queries filter on it).
 
 ## Decomposition Rules
 
@@ -198,15 +199,25 @@ An entity "table" is defined by its query, and a query MUST name the table, not 
 
 - **Table = key component + discriminator component.** A bare `With<KeyComponent>` query is
   **forbidden** — it is a UNION of every table sharing that key space, not a table.
+- **Tag Law (2026-07-08) — universal and machine-checkable:**
+
+  ```clojure
+  (def tag-law
+    {:entity {:requires "≥1 tag — its table discriminator"}  ;; an entity without a tag does not exist
+     :filter {:requires "≥1 tag in every With<> chain"}      ;; a filter without a tag does not exist
+     :category-tag UITag                                     ;; a shared kind-marker satisfies the law (identity then rides on the *ViewComponent)
+     :why "tag = archetype identity → the ecs-graph attributes every Set/Dispose to its table deterministically"})
+  ```
 - The same key component is the **primary key** on the owner table and a **foreign key** on the
   parallel tables. The hex key space (key: `HexIdComponent`) currently holds four tables:
 
   | Table | Discriminator | Key role |
   |---|---|---|
   | Hex | `HexTag` | PK — one entity per coordinate |
-  | HexResource | `HexResourcesComponent` | FK — N per coordinate (one per `ResourceType`) |
-  | ResourceView | `ForestViewComponent` / `FishViewComponent` | FK — N per coordinate |
-  | HexIconContainer | `HexIconContainerComponent` | FK — one per coordinate |
+  | HexResource | `HexResourceTag` | FK — N per coordinate (one per `ResourceType`) |
+  | ResourceView | `ForestViewTag` | FK — N per coordinate |
+  | HexIconContainer | `HexIconContainerTag` | FK — one per coordinate |
+  | DistrictView | `DistrictViewTag` | FK — one per built hex |
 
 - One query definition has three materializations — pick by access pattern:
 
@@ -217,11 +228,11 @@ An entity "table" is defined by its query, and a query MUST name the table, not 
 
   // FK 1:N table → non-unique index. TryGetEntities(key, out ReadOnlySpan<Entity>).
   EntityMultiMap<HexIdComponent> resourcesByCoord =
-      world.GetEntities().With<HexResourcesComponent>().AsMultiMap<HexIdComponent>();
+      world.GetEntities().With<HexResourceTag>().AsMultiMap<HexIdComponent>();
 
   // The same table as a sweep set.
   EntitySet resources =
-      world.GetEntities().With<HexIdComponent>().With<HexResourcesComponent>().AsSet();
+      world.GetEntities().With<HexIdComponent>().With<HexResourceComponent>().With<HexResourceTag>().AsSet();
   ```
 
 - `EntityMap` / `EntityMultiMap` are self-maintaining: they update on `Set` / `Remove`. This works
