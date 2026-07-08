@@ -15,6 +15,7 @@ using Presentation.Terrain.Components;
 using Presentation.UI.DistrictBuild.Components;
 using Presentation.UI.DistrictBuild.Views;
 using UnityEngine;
+using DefaultECSExtensions;
 
 namespace Presentation.UI.DistrictBuild.Systems
 {
@@ -25,13 +26,11 @@ namespace Presentation.UI.DistrictBuild.Systems
     [UsedImplicitly]
     public sealed class DistrictBuildHexResourcesUISubSystem : DistrictBuildUISubSystem
     {
-        private const int ExecutionPriority = 200;
-
         private readonly EntitySet _selectedHexSet;
         private readonly EntitySet _hexSet;
         private readonly EntityMultiMap<HexIdComponent> _hexResources;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.DistrictBuildUi.HexResources;
 
         public DistrictBuildHexResourcesUISubSystem(World world) : base(world)
         {

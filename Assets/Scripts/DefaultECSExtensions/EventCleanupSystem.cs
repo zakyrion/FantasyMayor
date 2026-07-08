@@ -11,10 +11,8 @@ namespace DefaultECSExtensions
     [UsedImplicitly]
     public sealed class EventCleanupSystem : UpdatedSystem
     {
-        private const int ExecutionPriority = int.MaxValue;
-
         /// <inheritdoc />
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.RuntimeTick.EventCleanup;
 
         /// <param name="world">The ECS world to query for one-frame event entities.</param>
         public EventCleanupSystem(World world)

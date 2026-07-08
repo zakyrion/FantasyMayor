@@ -5,6 +5,7 @@ using Domains.Actors.Mayor.Components;
 using JetBrains.Annotations;
 using Modules.Turn.Data;
 using Modules.Turn.Systems;
+using DefaultECSExtensions;
 
 namespace Domains.Actions.Systems
 {
@@ -15,14 +16,11 @@ namespace Domains.Actions.Systems
     [UsedImplicitly]
     internal sealed class MayorAPRestoreSubSystem : TurnPhaseSubSystem
     {
-        // Upkeep band. Only phase today; relative value, easy to retune when the other phases land.
-        private const int ExecutionPriority = 500;
-
         // Declarative query caches (self-maintaining views, not system state): the Mayor rows that carry a
         // restore rule, and the Mayor-owned resource stacks indexed by the owner FK (Table Rule).
         private readonly EntitySet _mayors;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.TurnPhase.MayorApRestore;
 
         public MayorAPRestoreSubSystem(World world)
         {

@@ -20,14 +20,12 @@ namespace Domains.Economy.DistrictBuildOutcome.Systems{
     [UsedImplicitly]
     internal sealed class DistrictBuildOutcomeSpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        private const int ExecutionPriority = 930;
-
         private readonly World _world;
 
         [StateAllowed]
         private readonly IReadOnlyList<DistrictBuildOutcomeSpawnSubSystem> _subSystems;
 
-        public int Priority => ExecutionPriority;
+        public int Priority => SystemPriorities.WorldInit.DistrictBuildOutcomeSpawn;
 
         public DistrictBuildOutcomeSpawnSystem(
             World world, IReadOnlyList<DistrictBuildOutcomeSpawnSubSystem> subSystems)

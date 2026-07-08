@@ -17,11 +17,9 @@ namespace Presentation.UI.ContextTabs.Systems
     [UsedImplicitly]
     public sealed class ContextTabSelectionSystem : UpdatedSystem
     {
-        private const int ExecutionPriority = 560;
-
         private readonly World _world;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.RuntimeTick.ContextTabSelection;
 
         public ContextTabSelectionSystem(World world)
             : base(world.GetEntities().With<ContextTabChangedEvent>().AsSet())

@@ -3,6 +3,7 @@ using Domains.Economy.District.Components;
 using Domains.Economy.District.Tags;
 using Domains.Economy.DistrictOpenCondition.Tags;
 using JetBrains.Annotations;
+using DefaultECSExtensions;
 
 namespace Domains.Economy.DistrictOpenCondition.Systems
 {
@@ -14,14 +15,12 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
     [UsedImplicitly]
     internal sealed class DistrictSingleOpenConditionEvaluatorSubSystem : DistrictOpenConditionEvaluatorSubSystem
     {
-        private const int ExecutionPriority = 100;
-
         // Declarative query caches (Table Rule): the Single-kind condition rows, and the built-district rows
         // indexed by their FK (DistrictTypeComponent) — 1:N, self-maintaining, never a bare-key scan.
         private readonly EntitySet _singleConditions;
         private readonly EntityMultiMap<DistrictTypeComponent> _builtDistrictsByType;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.DistrictOpenConditionEvaluator.Single;
 
         public DistrictSingleOpenConditionEvaluatorSubSystem(World world) : base(world)
         {

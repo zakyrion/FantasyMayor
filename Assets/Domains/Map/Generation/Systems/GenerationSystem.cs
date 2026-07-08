@@ -22,7 +22,6 @@ namespace Domains.Map.Generation.Systems
     [UsedImplicitly]
     internal sealed class GenerationSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        private const int ExecutionPriority = 100;
         private const int FoothillLevel = 1;
         private const int MountainLevel = 2;
         private const int PlainLevel = 0;
@@ -33,7 +32,7 @@ namespace Domains.Map.Generation.Systems
         private readonly World _world;
 
         /// <inheritdoc />
-        public int Priority => ExecutionPriority;
+        public int Priority => SystemPriorities.WorldInit.Generation;
 
         /// <param name="world">The ECS world to query and populate.</param>
         /// <param name="generationSubSystems">Generation subsystems executed in priority order.</param>

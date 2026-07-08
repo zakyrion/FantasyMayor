@@ -18,12 +18,9 @@ namespace Domains.Actors.City.Systems
     [UsedImplicitly]
     internal sealed class CitySpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        // After the terrain stages (100..800); actors are terrain-independent, so the exact value is cosmetic.
-        private const int ExecutionPriority = 900;
-
         private readonly World _world;
 
-        public int Priority => ExecutionPriority;
+        public int Priority => SystemPriorities.WorldInit.CitySpawn;
 
         public CitySpawnSystem(World world)
         {

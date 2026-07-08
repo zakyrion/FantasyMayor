@@ -6,6 +6,7 @@ using Cysharp.Threading.Tasks;
 using JetBrains.Annotations;
 using Modules.Turn.Data;
 using Modules.Turn.Systems;
+using DefaultECSExtensions;
 
 namespace Domains.Economy.DistrictOpenCondition.Systems
 {
@@ -16,14 +17,10 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
     [UsedImplicitly]
     internal sealed class DistrictOpenConditionEvaluatorSystem : TurnPhaseSubSystem
     {
-        // Tail of the turn pipeline, well above the Upkeep band (MayorActionPointsRestoreSubSystem = 500) —
-        // must run after anything that could change built-district counts within the same turn.
-        private const int ExecutionPriority = 1000;
-
         [StateAllowed]
         private readonly IReadOnlyList<DistrictOpenConditionEvaluatorSubSystem> _subSystems;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.TurnPhase.DistrictOpenConditionEvaluator;
 
         public DistrictOpenConditionEvaluatorSystem(IReadOnlyList<DistrictOpenConditionEvaluatorSubSystem> subSystems)
         {

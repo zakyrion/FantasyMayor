@@ -6,6 +6,7 @@ using Presentation.UI.EndTurn.Views;
 using Presentation.UI.Systems;
 using Presentation.UI.Tags;
 using UnityEngine;
+using DefaultECSExtensions;
 
 namespace Presentation.UI.EndTurn.Systems
 {
@@ -17,11 +18,9 @@ namespace Presentation.UI.EndTurn.Systems
     [UsedImplicitly]
     internal sealed class EndTurnSpawnSubSystem : MainUISpawnSubSystem
     {
-        private const int ExecutionPriority = 10;
-
         private readonly World _world;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.MainUiSpawn.EndTurn;
 
         public EndTurnSpawnSubSystem(World world)
         {

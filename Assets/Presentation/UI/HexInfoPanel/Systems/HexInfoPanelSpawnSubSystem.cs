@@ -6,6 +6,7 @@ using Presentation.UI.HexInfoPanel.Views;
 using Presentation.UI.Systems;
 using Presentation.UI.Tags;
 using UnityEngine;
+using DefaultECSExtensions;
 
 namespace Presentation.UI.HexInfoPanel.Systems
 {
@@ -18,11 +19,9 @@ namespace Presentation.UI.HexInfoPanel.Systems
     [UsedImplicitly]
     internal sealed class HexInfoPanelSpawnSubSystem : MainUISpawnSubSystem
     {
-        private const int ExecutionPriority = 0;
-
         private readonly World _world;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.MainUiSpawn.HexInfoPanel;
 
         public HexInfoPanelSpawnSubSystem(World world)
         {

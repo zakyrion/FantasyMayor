@@ -25,7 +25,6 @@ namespace Presentation.Terrain.Systems
     [UsedImplicitly]
     internal sealed class WaterViewSubSystem : ViewSubSystem
     {
-        private const int ExecutionPriority = 300;
         private const string WATER_VIEW_ADDRESS = "WaterView";
 
         private readonly IAddressable _addressable;
@@ -37,7 +36,7 @@ namespace Presentation.Terrain.Systems
         private Entity? _waterViewEntity;
 
         /// <inheritdoc />
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.TerrainView.Water;
 
         /// <param name="world">ECS world used for entity queries and result entity creation.</param>
         /// <param name="addressable">Used to load and instantiate the WaterView prefab.</param>

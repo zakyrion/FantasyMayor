@@ -24,8 +24,6 @@ namespace Presentation.HexResources.Systems
     [UsedImplicitly]
     internal sealed class ClayHexResourceViewSubSystem : HexResourcesViewSubSystem
     {
-        private const int ExecutionPriority = 200;
-
         private readonly World _world;
         private readonly EntitySet _hexSet;
         private readonly ClayGroundPainter _painter = new();
@@ -33,7 +31,7 @@ namespace Presentation.HexResources.Systems
         private readonly ClayDepressionShaper _shaper = new();
         private readonly EntitySet _terrainViewSet;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.HexResourceView.Clay;
         protected override HexResourceType TargetHexResourceType => HexResourceType.Clay;
 
         public ClayHexResourceViewSubSystem(World world)

@@ -16,12 +16,9 @@ namespace Domains.Actions.BuildDistrictAction.Systems
     [UsedImplicitly]
     public sealed class BuildDistrictTemplateCancelSystem : UpdatedSystem
     {
-        // Reactive: must run before the cleanup pass so the cancel pulse is consumed the tick it is raised.
-        private const int ExecutionPriority = 592;
-
         private readonly EntitySet _templates;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.RuntimeTick.BuildDistrictTemplateCancel;
 
         public BuildDistrictTemplateCancelSystem(World world)
             : base(world.GetEntities().With<DistrictBuildCancelledEvent>().AsSet())

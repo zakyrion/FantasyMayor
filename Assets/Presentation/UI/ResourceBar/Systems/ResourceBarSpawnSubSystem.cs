@@ -6,6 +6,7 @@ using Presentation.UI.ResourceBar.Views;
 using Presentation.UI.Systems;
 using Presentation.UI.Tags;
 using UnityEngine;
+using DefaultECSExtensions;
 
 namespace Presentation.UI.ResourceBar.Systems
 {
@@ -17,12 +18,9 @@ namespace Presentation.UI.ResourceBar.Systems
     [UsedImplicitly]
     internal sealed class ResourceBarSpawnSubSystem : MainUISpawnSubSystem
     {
-        // After HexInfoPanel (0), EndTurn (10), ContextTabs (20). Independent of them — value is cosmetic.
-        private const int ExecutionPriority = 30;
-
         private readonly World _world;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.MainUiSpawn.ResourceBar;
 
         public ResourceBarSpawnSubSystem(World world)
         {

@@ -30,7 +30,7 @@ namespace Modules.UserInput.Systems
         private InputAction _pointAction;
 
         /// <inheritdoc />
-        public override int Priority => 0;
+        public override int Priority => SystemPriorities.RuntimeTick.HexSelection;
 
         /// <param name="world">The ECS world used to query camera, config, and selection state.</param>
         public HexSelectionSystem(World world)

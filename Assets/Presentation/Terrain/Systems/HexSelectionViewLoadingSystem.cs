@@ -19,7 +19,6 @@ namespace Presentation.Terrain.Systems
     [UsedImplicitly]
     internal sealed class HexSelectionViewLoadingSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        public const int ExecutionPriority = 500;
         private const string HEX_SELECTION_VIEW_ADDRESS = "HexSelectionView";
 
         private readonly IAddressable _addressable;
@@ -29,7 +28,7 @@ namespace Presentation.Terrain.Systems
         private Entity? _hexSelectionViewEntity;
 
         /// <inheritdoc />
-        public int Priority => ExecutionPriority;
+        public int Priority => SystemPriorities.WorldInit.HexSelectionViewLoading;
 
         public HexSelectionViewLoadingSystem(World world, IAddressable addressable)
         {

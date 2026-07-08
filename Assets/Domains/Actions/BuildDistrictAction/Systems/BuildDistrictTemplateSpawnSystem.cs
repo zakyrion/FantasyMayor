@@ -18,12 +18,9 @@ namespace Domains.Actions.BuildDistrictAction.Systems
     [UsedImplicitly]
     public sealed class BuildDistrictTemplateSpawnSystem : UpdatedSystem
     {
-        // Reactive: must run before the cleanup pass so the start pulse is consumed the tick it is raised.
-        private const int ExecutionPriority = 590;
-
         private readonly World _world;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.RuntimeTick.BuildDistrictTemplateSpawn;
 
         public BuildDistrictTemplateSpawnSystem(World world)
             : base(world.GetEntities().With<DistrictBuildStartedEvent>().AsSet())

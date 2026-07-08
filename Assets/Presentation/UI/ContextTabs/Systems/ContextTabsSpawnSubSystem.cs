@@ -6,6 +6,7 @@ using Presentation.UI.ContextTabs.Data;
 using Presentation.UI.ContextTabs.Views;
 using Presentation.UI.Systems;
 using UnityEngine;
+using DefaultECSExtensions;
 
 namespace Presentation.UI.ContextTabs.Systems
 {
@@ -18,12 +19,11 @@ namespace Presentation.UI.ContextTabs.Systems
     [UsedImplicitly]
     internal sealed class ContextTabsSpawnSubSystem : MainUISpawnSubSystem
     {
-        private const int ExecutionPriority = 20;
         private const ContextTab DefaultTab = ContextTab.Overview;
 
         private readonly World _world;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.MainUiSpawn.ContextTabs;
 
         public ContextTabsSpawnSubSystem(World world)
         {

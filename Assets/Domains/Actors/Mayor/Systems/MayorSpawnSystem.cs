@@ -20,11 +20,9 @@ namespace Domains.Actors.Mayor.Systems
     [UsedImplicitly]
     internal sealed class MayorSpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        private const int ExecutionPriority = 910;
-
         private readonly World _world;
 
-        public int Priority => ExecutionPriority;
+        public int Priority => SystemPriorities.WorldInit.MayorSpawn;
 
         public MayorSpawnSystem(World world)
         {

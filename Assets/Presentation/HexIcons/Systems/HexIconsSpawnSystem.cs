@@ -18,14 +18,12 @@ namespace Presentation.HexIcons.Systems
     [UsedImplicitly]
     internal sealed class HexIconsSpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        private const int ExecutionPriority = 700;
-
         private readonly World _world;
 
         // Cached at spawn for the container builders.
         private HexIconsView _view;
 
-        public int Priority => ExecutionPriority;
+        public int Priority => SystemPriorities.WorldInit.HexIconsSpawn;
 
         public HexIconsSpawnSystem(World world)
         {

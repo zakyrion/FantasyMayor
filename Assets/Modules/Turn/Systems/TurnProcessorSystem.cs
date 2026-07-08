@@ -23,7 +23,6 @@ namespace Modules.Turn.Systems
     [UsedImplicitly]
     public sealed class TurnProcessorSystem : IUpdatedSystem
     {
-        private const int ExecutionPriority = 1000;
         private readonly EntitySet _nextTurnPulses;
         private readonly IReadOnlyList<TurnPhaseSubSystem> _phases;
         private readonly TurnPhaseRunner _runner = new();
@@ -31,7 +30,7 @@ namespace Modules.Turn.Systems
 
         public bool IsEnabled { get; set; } = true;
 
-        public int Priority => ExecutionPriority;
+        public int Priority => SystemPriorities.RuntimeTick.TurnProcessor;
 
         public TurnProcessorSystem(World world, IReadOnlyList<TurnPhaseSubSystem> phases)
         {

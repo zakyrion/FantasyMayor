@@ -23,7 +23,6 @@ namespace Presentation.UI.Systems
     [UsedImplicitly]
     internal sealed class MainUISpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        private const int ExecutionPriority = 800;
         private const string MainUIPath = "UI/MainUI";
 
         private readonly IAddressable _addressable;
@@ -31,7 +30,7 @@ namespace Presentation.UI.Systems
         private readonly IReadOnlyList<MainUISpawnSubSystem> _subSystems;
         private readonly World _world;
 
-        public int Priority => ExecutionPriority;
+        public int Priority => SystemPriorities.WorldInit.MainUiSpawn;
 
         public MainUISpawnSystem(World world,
             IAddressable addressable,

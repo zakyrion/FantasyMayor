@@ -19,7 +19,6 @@ namespace Domains.Map.Generation.Systems
     [UsedImplicitly]
     internal sealed class SeaGenerationSubSystem : GenerationSubSystem
     {
-        private const int ExecutionPriority = 220;
         private const int SeaLevel = -1;
         private const float EdgeWeight = 2f;
         private const float NeighbourWeight = 1f;
@@ -29,7 +28,7 @@ namespace Domains.Map.Generation.Systems
         private readonly EntitySet _hexSet;
 
         /// <inheritdoc />
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.Generation.Sea;
 
         /// <summary>
         ///     Creates a sea generation system bound to the shared ECS world.

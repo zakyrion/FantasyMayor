@@ -18,7 +18,6 @@ namespace Presentation.Terrain.Systems
     [UsedImplicitly]
     public sealed class HexSelectionViewSystem : UpdatedSystem
     {
-        private const int ExecutionPriority = HexSelectionViewLoadingSystem.ExecutionPriority + 1;
         private const int BorderBfsDepth = 3;
         private const float BorderLift = 0.08f;
 
@@ -30,7 +29,7 @@ namespace Presentation.Terrain.Systems
         private HexSelectionView _lastView;
 
         /// <inheritdoc />
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.RuntimeTick.HexSelectionView;
 
         public HexSelectionViewSystem(World world)
             : base(world.GetEntities()

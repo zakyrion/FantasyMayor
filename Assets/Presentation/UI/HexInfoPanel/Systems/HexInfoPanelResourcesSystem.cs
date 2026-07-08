@@ -27,8 +27,6 @@ namespace Presentation.UI.HexInfoPanel.Systems
     [UsedImplicitly]
     public sealed class HexInfoPanelResourcesSystem : UpdatedSystem
     {
-        private const int ExecutionPriority = 561;
-
         private readonly World _world;
         private readonly EntitySet _viewSet;
         private readonly EntitySet _selectedHexSet;
@@ -37,7 +35,7 @@ namespace Presentation.UI.HexInfoPanel.Systems
         // Managed UI payload → System.Collections.Generic. Reused buffer to avoid per-refresh allocation.
         private readonly List<HexInfoPanelView.ResourceChip> _chips = new();
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.RuntimeTick.HexInfoPanelResources;
 
         public HexInfoPanelResourcesSystem(World world)
             : base(world.GetEntities().With<SelectedHexChangedEvent>().AsSet())

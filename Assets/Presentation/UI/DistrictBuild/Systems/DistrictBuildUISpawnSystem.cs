@@ -24,14 +24,13 @@ namespace Presentation.UI.DistrictBuild.Systems
     [UsedImplicitly]
     internal sealed class DistrictBuildUISpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        private const int ExecutionPriority = 810;
         private const string DistrictBuildActionPath = "UI/DistrictBuildAction";
 
         private readonly IAddressable _addressable;
         private readonly IMainCanvasProvider _canvasProvider;
         private readonly World _world;
 
-        public int Priority => ExecutionPriority;
+        public int Priority => SystemPriorities.WorldInit.DistrictBuildUiSpawn;
 
         public DistrictBuildUISpawnSystem(World world,
             IAddressable addressable,

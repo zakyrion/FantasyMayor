@@ -27,8 +27,6 @@ namespace Presentation.UI.DistrictBuild.Systems
     [UsedImplicitly]
     public sealed class DistrictBuildUISystem : UpdatedSystem
     {
-        private const int ExecutionPriority = 565;
-
         private readonly World _world;
 
         // DI-collected section populators. Ordered once; fixed composition, not per-frame state — hence
@@ -41,7 +39,7 @@ namespace Presentation.UI.DistrictBuild.Systems
         private readonly EntitySet _selectionRequestedSet;
         private readonly EntitySet _selectedHexSet;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.RuntimeTick.DistrictBuildUi;
 
         public DistrictBuildUISystem(World world, IReadOnlyList<DistrictBuildUISubSystem> subSystems)
             : base(world.GetEntities().With<DistrictBuildUIViewComponent>().AsSet())

@@ -1,6 +1,7 @@
 using DefaultEcs;
 using JetBrains.Annotations;
 using UnityEngine;
+using DefaultECSExtensions;
 
 namespace Presentation.UI.DistrictBuild.Systems
 {
@@ -9,9 +10,7 @@ namespace Presentation.UI.DistrictBuild.Systems
     [UsedImplicitly]
     public sealed class DistrictBuildActionsUISubSystem : DistrictBuildUISubSystem
     {
-        private const int ExecutionPriority = 400;
-
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.DistrictBuildUi.Actions;
 
         public DistrictBuildActionsUISubSystem(World world) : base(world)
         {

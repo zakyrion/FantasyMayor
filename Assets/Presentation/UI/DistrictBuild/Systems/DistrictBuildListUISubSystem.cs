@@ -19,13 +19,11 @@ namespace Presentation.UI.DistrictBuild.Systems
     [UsedImplicitly]
     public sealed class DistrictBuildListUISubSystem : DistrictBuildUISubSystem
     {
-        private const int ExecutionPriority = 100;
-
         private readonly EntitySet _buildable;
         private readonly EntitySet _requestedSet;
         private bool _hooked;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.DistrictBuildUi.List;
 
         public DistrictBuildListUISubSystem(World world) : base(world)
         {

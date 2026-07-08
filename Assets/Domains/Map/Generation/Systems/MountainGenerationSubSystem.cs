@@ -19,7 +19,6 @@ namespace Domains.Map.Generation.Systems
     [UsedImplicitly]
     internal sealed class MountainGenerationSubSystem : GenerationSubSystem
     {
-        private const int ExecutionPriority = 300;
         private const int WaterLevel = -1;
         private const int FoothillLevel = 1;
         private const int MountainLevel = 2;
@@ -31,7 +30,7 @@ namespace Domains.Map.Generation.Systems
         private readonly EntitySet _hexSet;
 
         /// <inheritdoc />
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.Generation.Mountain;
 
         /// <summary>
         ///     Creates a mountain generation system bound to the shared ECS world.

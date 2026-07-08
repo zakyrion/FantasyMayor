@@ -25,16 +25,13 @@ namespace Presentation.HexResources.Systems
     [UsedImplicitly]
     public sealed class ForestDespawnSystem : UpdatedSystem
     {
-        // After the view systems, well before EventCleanupSystem (int.MaxValue) which disposes the pulse.
-        private const int ExecutionPriority = 601;
-
         // HexResource table indexed by its discriminator value -> the Forest bucket is the current truth.
         private readonly EntityMultiMap<HexResourceComponent> _resourcesByType;
 
         // ResourceView (forest) table indexed by the hex FK -> N tree entities per coordinate.
         private readonly EntityMultiMap<HexIdComponent> _forestViewsByHex;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.RuntimeTick.ForestDespawn;
 
         public ForestDespawnSystem(World world)
             : base(world.GetEntities()

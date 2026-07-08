@@ -26,13 +26,11 @@ namespace Presentation.HexIcons.Systems
     [UsedImplicitly]
     public sealed class HexIconsVisibilitySystem : UpdatedSystem
     {
-        private const int ExecutionPriority = 800;
-
         private readonly World _world;
         private readonly EntitySet _containerSet;
         private readonly EntitySet _resourceSet;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.RuntimeTick.HexIconsVisibility;
 
         public HexIconsVisibilitySystem(World world)
             : base(world.GetEntities()

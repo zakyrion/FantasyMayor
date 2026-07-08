@@ -20,7 +20,6 @@ namespace Domains.Map.Generation.Systems
     internal sealed class LakeGenerationSubSystem : GenerationSubSystem
     {
         private const float DistanceWeight = 2f;
-        private const int ExecutionPriority = 210;
         private const int LakeLevel = -1;
         private const float NeighbourWeight = 3f;
         private const float NoiseAmplitude = 0.35f;
@@ -29,7 +28,7 @@ namespace Domains.Map.Generation.Systems
         private readonly EntitySet _hexSet;
 
         /// <inheritdoc />
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.Generation.Lake;
 
         /// <summary>
         ///     Creates a lake generation system bound to the shared ECS world.

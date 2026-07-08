@@ -29,14 +29,12 @@ namespace Presentation.Terrain.Systems
     [UsedImplicitly]
     internal sealed class TerrainViewGenerationSubSystem : ViewSubSystem
     {
-        private const int ExecutionPriority = 100;
-
         private readonly EntitySet _hexSet;
         private readonly EntityMultiMap<HexTypeComponent> _hexesByType;
         private readonly World _world;
 
         /// <inheritdoc />
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.TerrainView.Generation;
 
         /// <summary>
         ///     Creates the generation subsystem bound to the shared ECS world.

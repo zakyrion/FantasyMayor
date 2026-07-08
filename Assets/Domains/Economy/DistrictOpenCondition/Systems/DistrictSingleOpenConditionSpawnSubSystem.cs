@@ -3,6 +3,7 @@ using Domains.Economy.District.Components;
 using Domains.Economy.DistrictOpenCondition.Configs;
 using Domains.Economy.DistrictOpenCondition.Tags;
 using JetBrains.Annotations;
+using DefaultECSExtensions;
 
 namespace Domains.Economy.DistrictOpenCondition.Systems
 {
@@ -11,9 +12,7 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
     [UsedImplicitly]
     internal sealed class DistrictSingleOpenConditionSpawnSubSystem : DistrictOpenConditionSpawnSubSystem
     {
-        private const int ExecutionPriority = 200;
-
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.DistrictOpenConditionSpawn.Single;
 
         public DistrictSingleOpenConditionSpawnSubSystem(World world) : base(world)
         {

@@ -20,12 +20,10 @@ namespace Presentation.UI.ContextTabs.Systems
     [UsedImplicitly]
     public sealed class ContextTabsAvailabilitySystem : UpdatedSystem
     {
-        private const int ExecutionPriority = 560;
-
         private readonly World _world;
         private readonly EntitySet _selectedHexSet;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.RuntimeTick.ContextTabsAvailability;
 
         public ContextTabsAvailabilitySystem(World world)
             : base(world.GetEntities().With<SelectedHexChangedEvent>().AsSet())

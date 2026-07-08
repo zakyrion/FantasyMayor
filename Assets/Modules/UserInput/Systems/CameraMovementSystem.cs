@@ -42,7 +42,7 @@ namespace Modules.UserInput.Systems
         private float _zoomTicks;
 
         /// <inheritdoc />
-        public override int Priority => 0;
+        public override int Priority => SystemPriorities.RuntimeTick.Camera;
 
         /// <param name="world">The ECS world used to build the entity set.</param>
         public CameraMovementSystem(World world)

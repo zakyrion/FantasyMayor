@@ -10,6 +10,7 @@ using Domains.Map.Generation.Data;
 using Unity.Collections;
 using UnityEngine;
 using Random = UnityEngine.Random;
+using DefaultECSExtensions;
 
 namespace Domains.Map.Generation.Systems
 {
@@ -19,7 +20,6 @@ namespace Domains.Map.Generation.Systems
     [UsedImplicitly]
     internal sealed class RiverGenerationSubSystem : GenerationSubSystem
     {
-        private const int ExecutionPriority = 200;
         private const int RiverLevel = -1;
         private const int SideCount = 6;
 
@@ -40,7 +40,7 @@ namespace Domains.Map.Generation.Systems
         private readonly EntitySet _hexSet;
         private readonly IHexPathfindingUtility _pathfindingUtility;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.Generation.River;
 
         public RiverGenerationSubSystem(World world, IHexPathfindingUtility pathfindingUtility)
         {

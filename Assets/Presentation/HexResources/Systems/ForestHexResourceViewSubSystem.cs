@@ -24,14 +24,12 @@ namespace Presentation.HexResources.Systems
     [UsedImplicitly]
     internal sealed class ForestHexResourceViewSubSystem : HexResourcesViewSubSystem
     {
-        private const int ExecutionPriority = 400;
-
         private readonly EntitySet _hexSet;
         private readonly World _world;
 
         private Transform _root;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.HexResourceView.Forest;
         protected override HexResourceType TargetHexResourceType => HexResourceType.Forest;
 
         public ForestHexResourceViewSubSystem(World world)

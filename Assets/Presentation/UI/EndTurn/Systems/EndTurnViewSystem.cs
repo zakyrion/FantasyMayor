@@ -24,7 +24,6 @@ namespace Presentation.UI.EndTurn.Systems
     [UsedImplicitly]
     public sealed class EndTurnViewSystem : UpdatedSystem
     {
-        private const int ExecutionPriority = 560;
         private readonly EntityMultiMap<MayorIdComponent> _mayorResources;
 
         // Declarative query caches (self-maintaining views, not system state): the single Mayor row carrying a
@@ -33,7 +32,7 @@ namespace Presentation.UI.EndTurn.Systems
 
         private readonly World _world;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.RuntimeTick.EndTurnView;
 
         public EndTurnViewSystem(World world)
             : base(world.GetEntities().With<EndTurnViewComponent>().AsSet())

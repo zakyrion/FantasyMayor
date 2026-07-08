@@ -16,6 +16,7 @@ using Domains.Economy.DistrictBuildCost.Components;
 using Domains.Economy.DistrictBuild.Configs;
 using Domains.Economy.DistrictBuild.Components;
 using Domains.Kernel.Data;
+using DefaultECSExtensions;
 
 namespace Presentation.UI.DistrictBuild.Systems
 {
@@ -27,8 +28,6 @@ namespace Presentation.UI.DistrictBuild.Systems
     [UsedImplicitly]
     public sealed class DistrictBuildPriceUISubSystem : DistrictBuildUISubSystem
     {
-        private const int ExecutionPriority = 300;
-
         // Actor rows (Table Rule): id PK + ActorTypeComponent discriminator — never a bare key.
         private readonly EntitySet _mayorActor;
         private readonly EntitySet _cityActor;
@@ -37,7 +36,7 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         private bool _hooked;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.DistrictBuildUi.Price;
 
         public DistrictBuildPriceUISubSystem(World world) : base(world)
         {

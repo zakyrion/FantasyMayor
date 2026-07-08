@@ -18,13 +18,10 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
     [UsedImplicitly]
     internal sealed class DistrictOpenConditionEvaluatorBootstrapSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        // Right after DistrictOpenConditionSpawnSystem (920) — condition entities must exist first.
-        private const int ExecutionPriority = 925;
-
         [StateAllowed]
         private readonly IReadOnlyList<DistrictOpenConditionEvaluatorSubSystem> _subSystems;
 
-        public int Priority => ExecutionPriority;
+        public int Priority => SystemPriorities.WorldInit.DistrictOpenConditionEvaluatorBootstrap;
 
         public DistrictOpenConditionEvaluatorBootstrapSystem(
             IReadOnlyList<DistrictOpenConditionEvaluatorSubSystem> subSystems)

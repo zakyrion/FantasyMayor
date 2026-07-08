@@ -22,8 +22,6 @@ namespace Presentation.UI.ResourceBar.Systems
     [UsedImplicitly]
     public sealed class ResourceBarSystem : UpdatedSystem
     {
-        private const int ExecutionPriority = 562;
-
         // Actor rows (Table Rule): id PK + ActorTypeComponent discriminator — never a bare key.
         private readonly EntitySet _mayorActor;
         private readonly EntitySet _cityActor;
@@ -31,7 +29,7 @@ namespace Presentation.UI.ResourceBar.Systems
         private readonly EntityMultiMap<CityIdComponent> _cityResources;
         private readonly EntityMultiMap<MayorIdComponent> _mayorResources;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.RuntimeTick.ResourceBar;
 
         public ResourceBarSystem(World world)
             : base(world.GetEntities().With<ResourceBarViewComponent>().AsSet())

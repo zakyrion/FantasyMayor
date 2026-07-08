@@ -20,14 +20,12 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
     [UsedImplicitly]
     internal sealed class DistrictOpenConditionSpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        private const int ExecutionPriority = 920;
-
         private readonly World _world;
 
         [StateAllowed]
         private readonly IReadOnlyList<DistrictOpenConditionSpawnSubSystem> _subSystems;
 
-        public int Priority => ExecutionPriority;
+        public int Priority => SystemPriorities.WorldInit.DistrictOpenConditionSpawn;
 
         public DistrictOpenConditionSpawnSystem(
             World world, IReadOnlyList<DistrictOpenConditionSpawnSubSystem> subSystems)

@@ -28,13 +28,11 @@ namespace Presentation.Terrain.Systems
     [UsedImplicitly]
     internal sealed class TerrainViewTextureSubSystem : ViewSubSystem
     {
-        private const int ExecutionPriority = 200;
-
         private readonly EntitySet _hexSet;
         private readonly World _world;
 
         /// <inheritdoc />
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.TerrainView.Texture;
 
         /// <param name="world">ECS world used for entity queries and texture component creation.</param>
         public TerrainViewTextureSubSystem(World world)

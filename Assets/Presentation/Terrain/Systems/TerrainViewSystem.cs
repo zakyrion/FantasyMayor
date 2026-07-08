@@ -28,7 +28,6 @@ namespace Presentation.Terrain.Systems
     [UsedImplicitly]
     internal sealed class TerrainViewSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        private const int ExecutionPriority = 300;
         private const string TERRAIN_VIEW_ADDRESS = "TerrainView";
 
         private readonly IAddressable _addressable;
@@ -40,7 +39,7 @@ namespace Presentation.Terrain.Systems
         private Entity? _terrainViewEntity;
 
         /// <inheritdoc />
-        public int Priority => ExecutionPriority;
+        public int Priority => SystemPriorities.WorldInit.TerrainView;
 
         /// <param name="world">The ECS world used for entity creation.</param>
         /// <param name="addressable">Addressable loader used to load and instantiate the TerrainView prefab.</param>

@@ -23,14 +23,12 @@ namespace Presentation.UI.HexInfoPanel.Systems
     [UsedImplicitly]
     public sealed class HexInfoPanelHeaderSystem : UpdatedSystem
     {
-        private const int ExecutionPriority = 560;
-
         private readonly World _world;
         private readonly EntitySet _viewSet;
         private readonly EntitySet _selectedHexSet;
         private readonly EntitySet _hexSet;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.RuntimeTick.HexInfoPanelHeader;
 
         public HexInfoPanelHeaderSystem(World world)
             : base(world.GetEntities().With<SelectedHexChangedEvent>().AsSet())

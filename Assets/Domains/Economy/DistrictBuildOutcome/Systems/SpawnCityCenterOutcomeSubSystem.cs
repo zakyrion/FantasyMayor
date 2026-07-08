@@ -3,6 +3,7 @@ using Domains.Economy.District.Components;
 using JetBrains.Annotations;
 using Domains.Economy.DistrictBuildOutcome.Configs;
 using Domains.Economy.DistrictBuildOutcome.Tags;
+using DefaultECSExtensions;
 
 namespace Domains.Economy.DistrictBuildOutcome.Systems{
     // Handles SpawnCityCenterOutcomeConfig: creates the City Center outcome row — the gated district type (FK),
@@ -11,9 +12,7 @@ namespace Domains.Economy.DistrictBuildOutcome.Systems{
     [UsedImplicitly]
     internal sealed class SpawnCityCenterOutcomeSubSystem : DistrictBuildOutcomeSpawnSubSystem
     {
-        private const int ExecutionPriority = 200;
-
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.DistrictBuildOutcomeSpawn.CityCenter;
 
         public SpawnCityCenterOutcomeSubSystem(World world) : base(world)
         {
