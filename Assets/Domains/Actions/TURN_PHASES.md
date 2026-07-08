@@ -8,6 +8,7 @@ related:
 status: partial
 code_refs:
   systems: [MayorAPRestoreSubSystem, TurnProcessorSystem]
+  components: [MayorAPComponent, MayorAPRestoreComponent]
 ---
 
 # Turn Phases
@@ -22,12 +23,16 @@ and how they are collected: `dig.py installer ActionsInstaller`.)
 
 ## Public Contract & Gotchas
 - **AP restore is a SET, not an accumulate.** `MayorAPRestoreSubSystem` resets every Mayor's
-  live `ActionPoint` resource stack to the Mayor's per-turn restore value at the start of each new turn.
-  Action Points do **not** carry over between turns, so the phase overwrites the stack to full — it does
+  `MayorAPComponent.Value` to `MayorAPRestoreComponent.Value` at the start of each new turn.
+  Action Points do **not** carry over between turns, so the phase overwrites the value to full — it does
   not add to it.
-- **Off-thread compute, main-thread write.** The phase runs on the turn thread pool but switches to the
-  main thread before any world write — the `Turn` engine invariant (`TURN.md`). It reads the Mayor row
-  and re-Sets the matching `ActionPoint` stack via the Mayor-id index.
+- **Both AP components live on the same Mayor row.** `MayorAPRestoreComponent` (the restore rule) and
+  `MayorAPComponent` (the live value) sit on the one Mayor entity — the phase reads and re-Sets them
+  directly, no cross-entity FK join or Table Rule lookup involved.
+- **Off-thread compute, main-thread write — FLAGGED.** The doc comment states the phase switches to the
+  main thread before any world write (the `Turn` engine invariant, `TURN.md`), but the actual
+  `UniTask.SwitchToMainThread` call in `MayorAPRestoreSubSystem.Update` is commented out in code. Doc
+  intent vs current code disagree here — human review needed, not silently reconciled.
 - **Phase ordering is the Upkeep band.** It runs in the Upkeep portion of the turn so AP is full before
   any player-action phase would spend it (spending phases are not built yet).
 

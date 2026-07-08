@@ -12,7 +12,6 @@ code_refs:
   systems:    [EndTurnViewSystem, EndTurnSpawnSubSystem]
   components: [EndTurnViewComponent, TurnProcessorComponent, TurnCountComponent, MayorAPRestoreComponent]
   events:     [NextTurnEvent]
-  enums:      [ResourceType]
 ---
 
 # Turn Corner (End Turn) — Turn Sub-Panel
@@ -80,7 +79,7 @@ Mirrors the HexInfoPanel pattern; the click-emit mirrors the generator UI (`Hexe
   and feeds the **two AP tiles**: «ДІЇ ЗАРАЗ» = the Mayor's live `ActionPoint` resource stack `Amount`,
   «НАСТ. ХІД» = `MayorAPRestoreComponent.Value`. AP is read from the single Mayor via an
   `EntityMultiMap<MayorIdComponent>` over the resource stacks (mirrors `ResourceBarSystem` /
-  `MayorActionPointsRestoreSubSystem`); fail-loud if the Mayor or its AP stack is unseeded. The turn counter
+  `MayorAPRestoreSubSystem`); fail-loud if the Mayor or its AP stack is unseeded. The turn counter
   itself lives in module `Turn` (`TurnCountComponent` / `TurnCompletedEvent` / `TurnCountSystem`) — see
   `TURN.md`; this window only displays it. **Renamed from `EndTurnSystem`** — that name is reserved for future
   turn-flow logic.

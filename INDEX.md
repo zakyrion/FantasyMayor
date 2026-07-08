@@ -13,7 +13,7 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 56 docs — 2 always · 20 trigger · 34 reference · 3 canvas.
+Totals: 57 docs — 2 always · 20 trigger · 35 reference · 3 canvas.
 
 ## Read at start (always)
 
@@ -77,6 +77,7 @@ Per-module navigation docs. `status` mirrors each module's `## Current State`.
 | [MainCanvas](Assets/Modules/MainCanvas/MAIN_CANVAS.md) | A | implemented | Singleton provider for the main UI canvas root, behind an interface for DI. |
 | [Turn](Assets/Modules/Turn/TURN.md) | A | partial | Engine that runs a game turn: on a pulse it fires ordered phase subsystems off-thread, gating other systems. |
 | [UserInput](Assets/Modules/UserInput/USER_INPUT.md) | A | implemented | Bridges Unity InputSystem to ECS: camera pan/drag/zoom and hex selection. |
+| [Districts (Presentation)](Assets/Presentation/Districts/DISTRICTS.md) | A | partial | World view for districts: spawns the district prefab for every built district. |
 | [HexIcons](Assets/Presentation/HexIcons/HEXICONS.md) | A | partial | Manages per-hex UI icon badges using a UI Toolkit Screen-Space overlay. |
 | [HexResourcesView](Assets/Presentation/HexResources/HEXRESOURCESVIEW.md) | A | partial | Visualizes resource entities from `HexResources` by instantiating prefabs on terrain. |
 | [Presentation](Assets/Presentation/PRESENTATION.md) | A | implemented | The consolidated render/view layer: terrain mesh + water, resource visuals, and the screen-space hex-icon overlay. |

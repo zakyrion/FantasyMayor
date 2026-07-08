@@ -22,7 +22,8 @@ namespace Presentation.Districts.Systems
     ///     pulse: on its presence it reconciles state — every committed district entity
     ///     (<see cref="BuildDistrictActionTag" />) that has no view yet gets its prefab instantiated on the hex
     ///     centre. Works with current world state, not the pulse payload, so it is idempotent: a second pulse in
-    ///     the same frame finds nothing missing and no-ops. No emitter raises this pulse yet (future gameplay).
+    ///     the same frame finds nothing missing and no-ops. The pulse is raised by
+    ///     <c>BuildDistrictActionSystem</c> when a build is committed.
     /// </summary>
     [UsedImplicitly]
     public sealed class DistrictViewSpawnSystem : UpdatedSystem

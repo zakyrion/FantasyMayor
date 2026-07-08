@@ -85,8 +85,11 @@ PARTIAL. The draft→confirm→promote entity lifecycle is implemented:
 The earlier `BuildDistrictActionConfig` stub `ScriptableObject` is removed — no config-driven behavior
 exists yet.
 
-Known gap: the draft's `DistrictTypeComponent` is stamped from the current selection AT OPEN time —
-usually `Unknown`, since the district is picked from the list AFTER the overlay opens. It is not
-resynced when the player later changes the selection; that is a separate next step.
+Known gap, now closed at confirm time: the draft's `DistrictTypeComponent` is stamped from the current
+selection AT OPEN time — usually `Unknown`, since the district is picked from the list AFTER the overlay
+opens. `BuildDistrictActionSystem` re-stamps it from the live `DistrictBuildSelectionComponent` at
+CONFIRM time, so the promoted entity always carries the district actually chosen; the open-time value is
+scratch. Selection still lives off the draft (Economy's `DistrictBuildSelectionComponent`) — moving it
+onto the draft itself is `FLOW_DISTRICT_BUILD.md` gap 1.
 
 Not built: tick, complete, apply-outcome, any resource or AP spend, any owner attribution.

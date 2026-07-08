@@ -5,6 +5,7 @@ tags: [hex, ui, icons, ecs]
 related:
   - "[HEXRESOURCES](../../Domains/Map/HexResources/HEXRESOURCES.md)"
   - "[ADDRESSABLE_PATTERNS](../../Modules/Addressable/ADDRESSABLE_PATTERNS.md)"
+  - "[HEX_INFO_PANEL](../UI/HexInfoPanel/HEX_INFO_PANEL.md)"
 status: partial
 code_refs:
   systems:          [HexIconsConfigLoaderSystem, HexIconsSpawnSystem, HexIconsVisibilitySystem, HexIconsContainerPositionSystem]
@@ -32,8 +33,8 @@ roles/priorities: the ecs-graph (`/ecs-graph`).
   ADDRESSABLE_PATTERNS.md rule ("loader retains Box"); acceptable since a singleton config lives for the
   app lifetime, with no explicit disposal path at world teardown.
 - **`HexResourceIconConfig`/`HexResourceIconConfigComponent` are a read-only cross-module contract.**
-  `HexInfoPanelResourcesSystem` (HexesUI) reads the same world component to render its resource chips —
-  changing their shape affects that module too.
+  `HexInfoPanelResourcesSystem` (`Presentation.UI.HexInfoPanel`, see `HEX_INFO_PANEL.md`) reads the same
+  world component to render its resource chips — changing their shape affects that module too.
 - One loader (`HexIconsConfigLoaderSystem`) loads **both** configs inside a single try/finally: both
   boxes stay owned until every `World.Set` has run. A failure/cancel on the second load rolls back the
   first via the shared `finally` (`DisposeBox`) — no half-committed state, no leak.

@@ -9,7 +9,7 @@ status: partial
 code_refs:
   systems:    [ResourceBarSystem, ResourceBarSpawnSubSystem]
   components: [InventoryResourceIconConfigComponent, ResourceBarViewComponent, CityIdComponent, MayorIdComponent, ResourceComponent, ActorTypeComponent]
-  tags:       [CityResourceTag, MayorResourceTag, UITag]
+  tags:       [CityResourceTag, MayorResourceTag, CityTag, MayorTag, UITag]
   enums:      [ActorType]
 ---
 
@@ -48,8 +48,9 @@ pulse exists yet, so the list reads the City/Mayor `Resource` stacks directly ev
   of the row icon.
 - **Owner amounts are read via the Table Rule**, never a bare key: `With<CityIdComponent> + With<ResourceTag>
   → AsMultiMap<CityIdComponent>` (and the Mayor equivalent). The owner id is a PK on the actor row and the FK
-  on each resource stack. The actor id itself comes from the actor table (`With<CityIdComponent>` +
-  `ActorTypeComponent` as the discriminator — the former `CityTag`/`MayorTag` tags were superseded).
+  on each resource stack. The actor row itself is `With<CityIdComponent>().With<CityTag>().With<ActorTypeComponent>()`
+  (and the Mayor equivalent) — `CityTag`/`MayorTag` still gate the actor row alongside `ActorTypeComponent`,
+  which is read as the row's discriminator, not a replacement for the tags.
 - **Lives on the shared `UI/MainUI` document.** `ResourceBarView` queries only its own `ResourcePanel`
   (left panel) + `TopBar` (thin strip) subtrees and toggles only those — never the document root (that blanks
   the whole Main UI). Neither is `raycast-transparent`, so the left panel blocks map clicks over itself and the

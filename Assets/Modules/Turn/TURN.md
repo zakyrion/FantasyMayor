@@ -10,7 +10,7 @@ related:
   - "[END_TURN](../../Presentation/UI/EndTurn/END_TURN.md)"
 status: partial
 code_refs:
-  systems:    [TurnProcessorSystem, TurnCountSystem, EventCleanupSystem, MayorActionPointsRestoreSubSystem]
+  systems:    [TurnProcessorSystem, TurnCountSystem, EventCleanupSystem, MayorAPRestoreSubSystem, DistrictOpenConditionEvaluatorSystem, DistrictOpenConditionEvaluatorBootstrapSystem]
   components: [TurnProcessorComponent, TurnCountComponent]
   events:     [NextTurnEvent, TurnCompletedEvent]
   interfaces: [TurnPhaseSubSystem]
@@ -27,7 +27,7 @@ Infrastructure the gameplay domains consume. The turn phases of `GAMEPLAY_FOUNDA
 (Start Preview → Mayor → Citizen → Resolution → Upkeep → Consequences) plug in here later as
 phase subsystems; this module is only the runner + lifecycle, no phase logic.
 
-## Phase Order (planned — only the Upkeep AP-restore phase is live so far)
+## Phase Order (planned — Upkeep AP-restore and a Preview-band phase are live so far)
 The engine runs phases on a `NextTurnEvent` pulse, i.e. AFTER the player has finished acting. So the
 runtime order is NOT the presentation order in `GAMEPLAY_FOUNDATION.md`. By ascending `Priority`:
 
@@ -79,7 +79,7 @@ a `NextTurnEvent` + `EventTag` entity. Full producer→consumer flow: the ecs-gr
 ## Non-Obvious Invariants
 - **Nesting is by reuse, not a recursive base.** A phase that needs children is itself an orchestrator
   over its own `TurnPhaseSubSystem` list, reusing `TurnPhaseRunner`. There is no separate composite
-  type. Concrete phases carry intent names (`MayorActionPointsRestoreSubSystem`, …) so the tree stays
+  type. Concrete phases carry intent names (`MayorAPRestoreSubSystem`, …) so the tree stays
   explicit and readable.
 
 ## Design Decisions
@@ -91,11 +91,16 @@ a `NextTurnEvent` + `EventTag` entity. Full producer→consumer flow: the ecs-gr
   signal are all `TurnProcessorComponent` (a world component). The system stays stateless.
 
 ## Current State
-- **FIRST PHASE LIVE.** `TurnPhaseSubSystem` has one concrete descendant:
-  `MayorActionPointsRestoreSubSystem` (domain `Actions`), which resets the Mayor's `ActionPoint` resource
-  stack each turn. The empty-list `RegisterInstance` was removed from `TurnInstaller`; phases are now
-  collected by VContainer from the `.As<…, TurnPhaseSubSystem>()` registrations (the phase's owning domain
-  registers it — here `ActionsInstaller`).
+- **TWO PHASES LIVE.** `TurnPhaseSubSystem` has two concrete descendants, both registered by their
+  owning domain's installer via `.As<…, TurnPhaseSubSystem>()` (no empty-list `RegisterInstance` in
+  `TurnInstaller`):
+  - `MayorAPRestoreSubSystem` (domain `Actions`, via `ActionsInstaller`) — Upkeep band; resets the
+    Mayor's `ActionPoint` resource stack each turn.
+  - `DistrictOpenConditionEvaluatorSystem` (domain `Economy`, via `EconomyInstaller`) — Preview-band
+    tail; re-runs the district-open condition-evaluator subsystem family each turn so
+    `DistrictCanBeBuildTag` stays correct for the next Mayor Phase. Turn 1 is covered separately by
+    the sibling `DistrictOpenConditionEvaluatorBootstrapSystem` (a `MapGenerationStep` pipeline stage)
+    sharing the same DI-collected subsystem family.
 - Two `Debug.Log` lines (turn started / completed) still exist to make the pipeline observable in Play
   mode — remove once the phase set is mature.
 - The `NextTurnEvent` emitter now exists: the MainUI End Turn button (`EndTurnView`). The button also

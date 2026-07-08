@@ -107,12 +107,11 @@ renders facts, never verbs. `DistrictBuiltEvent` fires when the fact is written 
 3. **Catalogue-lookup dedup.** One owner for "find config by DistrictType": today `TryGetDistrict`
    is verbatim ×2 (Price / HexResources subsystems), `TryGetCost` is the same shape,
    `ResolvePrefab` a third variant. Stateless helper in Economy District `Helpers/`.
-4. **Seam doc/comment reconciliation** (docs-curator brief; the user schedules it):
-   `BUILD_DISTRICT_ACTION.md` known-gap paragraph (the confirm re-stamp EXISTS — doc behind code);
-   `DistrictViewSpawnSystem` "no emitter raises this pulse yet" (the emitter exists);
-   `DistrictBuildRequestedEvent` xml-doc names a wrong consumer; `DISTRICT_BUILD.md`
-   "orchestrator maintains the ECS selection" (the List subsystem owns it) + payer described as
-   subsystem-local (it is view-local).
+4. ~~**Seam doc/comment reconciliation.**~~ DONE (2026-07-08): `BUILD_DISTRICT_ACTION.md` known-gap
+   paragraph corrected (the confirm re-stamp is now documented); `DistrictViewSpawnSystem` code comment
+   now names the emitter (`BuildDistrictActionSystem.RaiseDistrictBuilt`); `DistrictBuildRequestedEvent`
+   xml-doc consumer corrected to `DistrictBuildUISystem`; `DISTRICT_BUILD.md` selection-ownership (the
+   List subsystem owns `DistrictBuildSelectionComponent`) and payer (view-local) both corrected.
 5. **Future (needs turn-ticking):** `DistrictBuiltEvent` fires at construction completion; payer
    moves from the view onto the draft when resource-spend lands.
 

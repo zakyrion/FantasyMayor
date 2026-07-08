@@ -8,20 +8,17 @@ tags:
   - ecs
 related:
   - "[ECONOMY](../ECONOMY.md)"
-  - "[DISTRICT_OPEN_CONDITION](../DistrictOpenCondition/DISTRICT_OPEN_CONDITION\
-    .md)"
+  - "[DISTRICT_OPEN_CONDITION](../DistrictOpenCondition/DISTRICT_OPEN_CONDITION.md)"
   - "[BUILD_DISTRICT_OUTCOME](../DistrictBuildOutcome/BUILD_DISTRICT_OUTCOME.md)"
   - "[DISTRICT_BUILD](../../../Presentation/UI/DistrictBuild/DISTRICT_BUILD.md)"
   - "[PATTERN_CONFIG](../../../../Patterns/PATTERN_CONFIG.md)"
   - "[PATTERN_CONFIG_LOADER](../../../../Patterns/PATTERN_CONFIG_LOADER.md)"
 status: partial
-code_refs: >-
-  {
-    "world_components": ["DistrictBuildCostsConfigComponent", "DistrictsBuildConfigComponent", "DistrictBuildCostResourcePriceComponent"],
-    "systems": ["DistrictBuildCostsConfigLoaderSystem"],
-    "configs": ["DistrictBuildCostConfig", "DistrictBuildCostsConfig", "DistrictsBuildConfig"],
-    "types": ["ResourceCost"]
-  }
+code_refs:
+  world_components: [DistrictBuildCostsConfigComponent, DistrictBuildsConfigComponent, DistrictBuildCostResourcePriceComponent]
+  systems:    [DistrictBuildCostsConfigLoaderSystem]
+  configs:    [DistrictBuildCostConfig, DistrictBuildCostsConfig, DistrictBuildsConfig]
+  types:      [ResourceCost]
 ---
 
 # District Build Cost
@@ -44,7 +41,7 @@ never touches Actions, and the verb never owns the price table.
 
 ## Public Contract & Gotchas
 - **Two catalogues, joined by `DistrictType`.** The Economy placement/gating catalogue
-  (`DistrictsBuildConfigComponent`) and this cost catalogue (`DistrictBuildCostsConfigComponent`) are parallel
+  (`DistrictBuildsConfigComponent`) and this cost catalogue (`DistrictBuildCostsConfigComponent`) are parallel
   lists keyed on `DistrictType`. A consumer reads placement from one and cost from the other and joins per
   district — there is no single merged config. `DistrictType` is the join key; an entry in one catalogue with
   no match in the other is a config authoring error (the build UI fails loud on it).
@@ -60,14 +57,10 @@ never touches Actions, and the verb never owns the price table.
 - **The price value type is `ResourceCost`, not `ResourceAmount`.** `DistrictBuildCostConfig._districtPrices`
   and `DistrictBuildCostResourcePriceComponent`'s price fields/indexer hold `ResourceCost`
   (`Domains.Economy.DistrictBuildCost.Data`) — a distinct value-alias struct for the build-price role,
-  structurally identical to `ResourceAmount` but never interchangeable with it. The build-commit boundary
-  (`BuildDistrictActionCommitSystem`) maps each `ResourceCost` to a `ResourceAmount` by **explicit field
-  assignment** before handing prices to the spend pipeline — there is no conversion operator or helper.
-
-## Non-Obvious Invariants
-- **The class now lives in Economy but still loads from the legacy addressable key `"ActionsDistrictsBuildConfig"`.**
-  The authored `.asset` binds to that address; the type moved to Economy and renamed district-first, the address
-  did not. Do not change the key string in code — align it Unity-side later.
+  structurally identical to `ResourceAmount` but never interchangeable with it. Mapping each `ResourceCost`
+  to a `ResourceAmount` by **explicit field assignment** (no conversion operator or helper) is the rule for
+  whichever future system reads this catalogue to spend — that system does not exist yet (see Current State
+  and `BUILD_DISTRICT_ACTION.md`).
 
 ## Current State
 PARTIAL. The cost catalogue is loaded and **read by the district-build UI** (`Presentation.UI`) for the AP

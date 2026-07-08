@@ -6,10 +6,12 @@ related:
   - "[AXIAL_SYSTEM](../../../Modules/AxialSystem/AXIAL_SYSTEM.md)"
 status: implemented
 code_refs:
-  components: [HexTypeComponent, HexIdComponent]
-  types:      [VertexGrid, HexVertex, HexData, HexCoord]
-  enums:      [HexType]
-  tags:       [HexTag]
+  components:      [HexTypeComponent, HexIdComponent]
+  world_components: [VertexGridComponent]
+  types:            [VertexGrid, HexVertex, HexData, HexCoord]
+  enums:            [HexType]
+  tags:             [HexTag]
+  systems:          [TerrainViewConfigLoaderSystem]
 ---
 
 # HexCore
@@ -38,7 +40,10 @@ Holds the runtime data the rest of the game builds on: the fine `VertexGrid` (me
 
 ### VertexGrid
 - It is the **fine** grid (flat-top), one `HexVertex` per subdivided vertex — distinct from the
-  coarse tile grid. Registered as a `Lifetime.Singleton`; treat it as shared mutable state.
+  coarse tile grid. Built once by `TerrainViewConfigLoaderSystem` (`Presentation.Terrain`) and
+  exposed as a world-singleton via `VertexGridComponent.Grid` — **not** a VContainer-registered
+  service (`dig.py explain VertexGrid` shows zero registrations). Treat it as shared mutable
+  reference state.
 - `BuildVertices` expands each coarse hex outward by `subdivisions` BFS waves. Vertices on a hex
   boundary end up **owned by several hexes** — this is intended, not a bug.
 
@@ -53,8 +58,10 @@ The owner count is the meaning, not just a number:
 
 ### Terrain type (`HexTypeComponent`)
 Each hex carries exactly one `HexTypeComponent { HexType Type }` column (it replaced the 4 data-less
-terrain tags). `HexType` values: `Plain` / `Mount` / `Bedhill` / `Water`. The component is IEquatable on
-the enum, so "all hexes of type X" is a `With<HexTag>().AsMultiMap<HexTypeComponent>()` group-by lookup;
+terrain tags). `HexType` values: `Plain` / `Mount` / `Bedhill` / `Water` (plus an `Unknown = 0`
+sentinel, never assigned in code — every hex that carries the component already has a real type).
+The component is IEquatable on the enum, so "all hexes of type X" is a
+`With<HexTag>().AsMultiMap<HexTypeComponent>()` group-by lookup;
 per-entity reads use `Get<HexTypeComponent>().Type`. Coastline is a presentation-derived paint class
 (`Presentation/Terrain`), NOT a `HexType`.
 

@@ -60,8 +60,8 @@ handing off to `Gameplay`. Safe — those systems are idempotent, so extra ticks
 `Boot.Construct` injects every per-frame system as a **concrete singleton** and composes the states by hand
 — Boot explicitly knows which system belongs to which mode. This is a conscious move away from
 auto-collected `IReadOnlyList<IUpdatedSystem>` toward an explicit composition root. Consequence:
-`Boot.Implementation` references the module assemblies whose systems it wires (`Hexes.UI`, `UserInput`,
-`Terrain.View`, `HexResourcesView`, `HexIcons`).
+`Boot.Implementation` references every module assembly whose systems it wires (a growing set as
+`Gameplay`'s roster grows — check with `Tools/asmdef_reach.py`, not this doc).
 
 Module installers register these systems with their **concrete** type (`.As<TheSystem>()`), not as
 `IUpdatedSystem`/`ILateUpdatedSystem`. Systems stay DI-constructed singletons; only their grouping is manual.
@@ -75,18 +75,17 @@ A system may belong to several states — it is simply referenced from each. Cur
 `EventCleanupSystem` lives in `DefaultECS.Extensions` (not the installer assembly) so Boot can wire it
 without an assembly cycle (`Installers.World` already references `Boot.Implementation`).
 
-### Starting per-state composition
-| State | Update systems | LateUpdate systems |
-|---|---|---|
-| MainMenu | — (waits for the Generate event) | — |
-| MapCreation | generation pipeline (async entry) + EventCleanup (settle frames) | — |
-| Gameplay | HexSelection, HexSelectionView, ForestSpawn, ForestDespawn, HexIconsVisibility, HexInfoPanel, HexInfoPanelHeader, HexInfoPanelResources, HexInfoPanelDistrict, EventCleanup | CameraMovement, HexIconsContainerPosition |
-| MapLoading | — (stub) | — |
+### Per-state composition
+`MainMenu` waits for the Generate event; its only system reference is `ShowHexesUISystem`, invoked
+at `EnterAsync`/`Exit` only (no per-frame Tick roster). `MapCreation` runs the generation pipeline
+through its async entry plus `EventCleanupSystem` for the settle frames; `MapLoading` is a stub
+(no systems). `Gameplay` carries the growing steady-state roster (input, camera, turn engine,
+MainUI panels, district-build flow, cleanup). The roster per state is a Boot composition detail,
+not doc content — current membership: `dig.py state <GameMode>` (di-graph).
 
 Role mix (per `ARCHITECTURE.md` "System Taxonomy"): `MapCreation` drives one-shot **Pipeline
-Stages** (100–800) through its async entry; `Gameplay` ticks **Per-frame Systems** (HexSelection,
-HexSelectionView, HexInfoPanel, CameraMovement, HexIconsContainerPosition) and **Reactive Systems**
-(ForestSpawn/Despawn, HexIconsVisibility, the three HexInfoPanel block systems) plus the Cleanup.
+Stages** through its async entry; `Gameplay` ticks a mix of **Per-frame Systems** and **Reactive
+Systems** plus the Cleanup — see `dig.py state Gameplay` for the current roster.
 
 ## Non-Obvious Invariants
 - Boot phase markers are empty structs used only as generic type tags. `ConfigLoadStep` is driven by Boot;

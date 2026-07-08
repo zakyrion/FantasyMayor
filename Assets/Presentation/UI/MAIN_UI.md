@@ -9,7 +9,7 @@ related:
   - "[GENERAL_UI_STYLE](../../../GENERAL_UI_STYLE.md)"
 status: partial
 code_refs:
-  systems: [MainUISpawnSystem, ShowHexesUISystem, HexInfoPanelSpawnSubSystem, EndTurnSpawnSubSystem, ContextTabsSpawnSubSystem]
+  systems: [MainUISpawnSystem, ShowHexesUISystem, HexInfoPanelSpawnSubSystem, EndTurnSpawnSubSystem, ContextTabsSpawnSubSystem, ResourceBarSpawnSubSystem]
   events:  [SelectedHexChangedEvent]
 ---
 
@@ -95,12 +95,15 @@ window's doc carries the detail):
   `TerrainGenerationGenerateEventComponent + EventTag`.
 - `MainUISpawnSystem` (orchestrator; order: `ecsg.py explain <System>`) instantiates the single `UI/MainUI`
   prefab under the main canvas (owns the one addressable handle), then runs its **spawn subsystems**
-  (`MainUISpawnSubSystem`): `HexInfoPanelSpawnSubSystem`, `EndTurnSpawnSubSystem`, `ContextTabsSpawnSubSystem`.
+  (`MainUISpawnSubSystem`): `HexInfoPanelSpawnSubSystem`, `EndTurnSpawnSubSystem`, `ContextTabsSpawnSubSystem`,
+  `ResourceBarSpawnSubSystem`.
   Each subsystem instantiates nothing — it `GetComponentInChildren`s its view off the shared instance and
   publishes the view singleton. `HexInfoPanelSpawnSubSystem` sets the context to its empty state;
   `EndTurnSpawnSubSystem` leaves the whole bottom-panel shell hidden — `EndTurnViewSystem` reveals it on
   entering Gameplay; `ContextTabsSpawnSubSystem` seeds the view + active tab (Overview) as **world
-  singletons** (no entity) + applies the initial highlight.
+  singletons** (no entity) + applies the initial highlight; `ResourceBarSpawnSubSystem` publishes the
+  `ResourceBarViewComponent` singleton and leaves both the left panel and the thin top strip hidden —
+  `ResourceBarSystem` reveals them (`ResourceBar/RESOURCE_BAR.md`).
 
 ## Current State
 - Generator screen: three buttons (Generate, Second Step, Generate Mesh). **Only Generate is wired to
@@ -140,4 +143,4 @@ window's doc carries the detail):
   the config-defines-rows rule, the per-frame justification, the Table-Rule resource reads, prefab prereqs.
 - `DistrictBuild/DISTRICT_BUILD.md` — the district-build modal overlay (separate UIDocument): the master-detail
   picker, the spawn + reactive systems, the open/close pulses, the real-vs-placeholder (Hybrid) split, the
-  flattened `DistrictsBuildConfigComponent` data path, prefab/config prereqs.
+  flattened `DistrictBuildsConfigComponent` data path, prefab/config prereqs.

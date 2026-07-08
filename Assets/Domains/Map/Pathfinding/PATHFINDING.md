@@ -24,8 +24,5 @@ Hex-grid BFS pathfinding over ECS entities using native Unity collections.
 - `HexPathfindingUtility` is **stateless** — safe to reuse across calls; it holds no per-search state
   between invocations. (Registered as a singleton: `dig.py explain HexPathfindingUtility`.)
 
-- Layout deviation: DI registration lives in a **separate installer assembly** exposing the module's
-  `IInstaller` — not a module-local `Installer/` folder inside the runtime assembly.
-
 ## Current State
 Stable. Plain BFS (no weighting / diagonal cost).

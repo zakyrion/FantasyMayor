@@ -66,7 +66,9 @@ spawn — the join-and-apply happens once, at action completion (FUTURE, see Cur
 - The orchestrator (`DistrictBuildOutcomeSpawnSystem`) runs **per map** at `MapGenerationStep`, **priority 930**
   (in the domain-spawn cluster, after `DistrictOpenCondition` spawn 920 / bootstrap 925); the container is loaded
   **once** at `ConfigLoadStep`. Re-entering map creation re-spawns the outcome entities into the fresh world.
-- Addressable key is `"DistrictBuildOutcomesConfig"` — distinct from the cost catalogue's legacy key.
+- Addressable key is `"BuildDistrictOutcomesConfig"` — word order swapped from the class name
+  `DistrictBuildOutcomesConfig` (Build-District vs District-Build); same class/key naming lag as the
+  cost catalogue's loader.
 
 ## Current State
 PARTIAL — **spawn half only**. Container config + abstract base + first concrete kind

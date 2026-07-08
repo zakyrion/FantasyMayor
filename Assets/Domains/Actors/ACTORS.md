@@ -5,13 +5,11 @@ tags:
   - actors
   - ecs
   - domain
-related: |-
-  [
-    "[ARCHITECTURE](../../../ARCHITECTURE.md)",
-    "[KERNEL](../Kernel/KERNEL.md)",
-    "[ECONOMY](../Economy/ECONOMY.md)",
-    "[ACTIONS](../Actions/ACTIONS.md)"
-  ]
+related:
+  - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
+  - "[KERNEL](../Kernel/KERNEL.md)"
+  - "[ECONOMY](../Economy/ECONOMY.md)"
+  - "[ACTIONS](../Actions/ACTIONS.md)"
 status: partial
 code_refs:
   systems:
@@ -22,12 +20,13 @@ code_refs:
   components:
     - CityIdComponent
     - MayorIdComponent
-    - CityConfigComponent
-    - MayorConfigComponent
     - MayorAPRestoreComponent
+    - MayorAPComponent
   world_components:
     - CityIdAllocatorComponent
     - MayorIdAllocatorComponent
+    - CityConfigComponent
+    - MayorConfigComponent
   installers:
     - ActorsInstaller
   helpers:
@@ -61,8 +60,10 @@ loadouts it depends on `Economy` (`Actors → Economy`); see Design Decisions.
   only for symmetry with City and the save/load contract; it yields a constant.
 - Querying an actor table or resolving an OwnerFK obeys the Table Rule — `With<CityIdComponent>` +
   a per-actor **discriminator** (never a bare key). See `ECS_CONVENTIONS.md` → "Relational Modeling — Table Rule".
-  *(The discriminator is `ActorTypeComponent` carrying the `ActorType` enum — it superseded the earlier
-  planned `CityTag` / `MayorTag` tags.)*
+  *(Two discriminators coexist by design, not as leftover duplication: the per-actor tag
+  (`CityTag` / `MayorTag`) is the Table Rule archetype discriminator most consumers filter on;
+  `ActorTypeComponent` is a separate queryable actor-kind value for systems that need the `ActorType`
+  enum itself. Neither supersedes the other.)*
 - `Actors → Economy`, never the reverse. Actors depends on Economy's owner-agnostic substrate
   (`ResourceAmount`, `ResourceType`, the generic `ResourceLoadoutSpawner`) to attach loadouts —
   `ResourceAmount` is the authored/value alias (config loadout entries); the entity-state component
@@ -80,14 +81,14 @@ loadouts it depends on `Economy` (`Actors → Economy`); see Design Decisions.
 - Per-type ids (not one shared `ActorId`): in SoA the distinguishing fact "owned by a city vs a mayor"
   IS which id component is attached, so a single polymorphic owner key would be a step backwards.
 - **Per-actor spawn, not one shared `ActorsSpawnSystem`.** Each actor has its own one-shot **Pipeline
-  Stage** (`IPrioritizedUniTaskSystem<MapGenerationStep>`): `CitySpawnSystem` (900), `MayorSpawnSystem`
-  (910). Each creates its identity row AND attaches its starting state in one place. This is Open-Closed:
+  Stage** (`IPrioritizedUniTaskSystem<MapGenerationStep>`): `CitySpawnSystem`, `MayorSpawnSystem`.
+  Each creates its identity row AND attaches its starting state in one place. This is Open-Closed:
   a new actor kind adds a new stage, no shared system is edited. Stages are auto-collected by DI as the
   interface and run by `MapCreation` — `Boot` stays the init engine, no `Boot` wiring change.
 - **Mayor startup state is seeded from `MayorConfig` at spawn.** `MayorConfigLoaderSystem` (Config
   Loader, `ConfigLoadStep`) loads + validates the SO and publishes `MayorConfigComponent`;
   `MayorSpawnSystem` reads it to seed the Mayor's resource loadout, the per-turn `MayorAPRestoreComponent`,
-  and the Mayor's initial `ActionPoint` resource stack — all from `StartActionPoints`. Config + loader live
+  and the Mayor's initial `MayorAPComponent.Value` — all from `StartActionPoints`. Config + loader live
   with the Mayor because that state is actor-intrinsic.
 - Allocator save/load is a **contract only** for now — the counter is shaped to persist, but Easy Save 3
   wiring is deferred to a later slice.
@@ -99,9 +100,9 @@ components, both actor config flows (`MayorConfig` + `MayorConfigLoaderSystem` �
 `CitySpawnSystem` creates the City and seeds its resource loadout from `CityConfigComponent` (resources
 only — the City has no Action Points). `MayorSpawnSystem` creates the Mayor, seeds the per-turn
 `MayorAPRestoreComponent` from `StartActionPoints`, attaches the inventory loadout, and seeds the Mayor's
-initial `ActionPoint` resource stack (= `StartActionPoints`) — the **live AP pool is now a resource stack**,
-not a component value. Both actors call Economy's generic `ResourceLoadoutSpawner` (which now excludes
-`ActionPoint` from the generic loadout). AP is **restored each turn** by the Actions-domain phase
-`MayorActionPointsRestoreSubSystem`; AP **spending** mechanics are NOT built yet. Noble and Population are NOT built; the
-Noble loadout spawn is deferred (reactive, on a `NobleSpawnEvent`). Archetypes: see the ecs-graph (`/ecs-graph`)
-(`City`, `Mayor`, `Resource`).
+live AP pool — `MayorAPComponent.Value` (= `StartActionPoints`), a plain component directly on the Mayor
+row, not a `ResourceType` entry. AP never passes through `ResourceLoadoutSpawner` — that helper only
+seeds `config.Resources`, and `ResourceType` has no `ActionPoint` case. AP is **restored each turn** by
+the Actions-domain phase `MayorAPRestoreSubSystem`; AP **spending** mechanics are NOT built yet. Noble
+and Population are NOT built; the Noble loadout spawn is deferred (reactive, on a `NobleSpawnEvent`).
+Archetypes: see the ecs-graph (`/ecs-graph`) (`City`, `Mayor`, `CityResource`, `MayorResource`).

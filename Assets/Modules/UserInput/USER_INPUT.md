@@ -22,9 +22,9 @@ Bridges Unity InputSystem to ECS: camera pan/drag/zoom and hex selection.
   runs in Update, `CameraMovementSystem` in **LateUpdate** (priority 0 — before the icon projection).
   Each is anchored on the single `PlayerInputComponent` entity as its per-frame tick anchor.
 - `HexSelectedComponent` is a singleton and **its absence means "nothing selected"** — systems
-  must handle the no-entity case, not a null/sentinel value. Cross-module consumers:
-  `HexSelectionViewSystem` (TerrainView, highlight — per-frame poll) and the MainUI reactors
-  `HexInfoPanelSystem` + `ContextTabsAvailabilitySystem` (driven by the pulse below).
+  must handle the no-entity case, not a null/sentinel value. Multiple cross-module reactors read
+  it (highlight view, MainUI info/district panels, context-tab availability, district-build UI) —
+  current consumer list: the ecs-graph (`/ecs-graph`).
 - `HexSelectionSystem` raises a payload-less **`SelectedHexChangedEvent`** (module `TerrainView`, beside
   `HexSelectedComponent`) on **every** selection mutation — create, deselect (dispose), re-select to another
   coord. It is the canonical "selection changed" pulse; reactive consumers reconcile against the current

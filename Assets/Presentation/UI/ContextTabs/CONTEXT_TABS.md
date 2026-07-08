@@ -98,8 +98,8 @@ Mirrors the EndTurn pattern; the click-emit mirrors `EndTurnView` / the generato
   highlight. Creates no entity, instantiates nothing.
 - **`ContextTabSelectionSystem`** (reactive `UpdatedSystem` on `ContextTabChangedEvent`, reads world state) /
   **`ContextTabsAvailabilitySystem`** (reactive `UpdatedSystem` on `SelectedHexChangedEvent`) — registered in
-  `UIInstaller`, wired into GameplayState by `Boot` (after `endTurn`, before `eventCleanup` so the pulses are
-  consumed before cleanup).
+  `UIInstaller`, wired into GameplayState by `Boot`; `GameplayState` sorts all systems by `Priority` before
+  `eventCleanup` (`SystemPriorities.RuntimeTick`) so the pulses are consumed before cleanup.
 
 ## Scaffold / not done
 - **Prefab wiring (Unity-side)** — add the `ContextTabsView` MonoBehaviour to the `UI/MainUI` prefab + assign its

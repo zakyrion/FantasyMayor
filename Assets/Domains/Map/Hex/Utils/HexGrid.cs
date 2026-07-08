@@ -11,7 +11,7 @@ namespace Domains.Map.Hex.Utils
     ///     Fine vertex grid singleton — one cell per subdivided vertex.
     ///     Uses flat-top axial orientation: the dual of pointy-top tiles, so that BFS expansion
     ///     produces a pointy-top shaped region matching the actual coarse hex tiles.
-    ///     Registered in VContainer as Lifetime.Singleton.
+    ///     Constructed at terrain load and published as the VertexGridComponent world component.
     /// </summary>
     public class VertexGrid : AxialGrid<VertexCoord, HexVertex>
     {

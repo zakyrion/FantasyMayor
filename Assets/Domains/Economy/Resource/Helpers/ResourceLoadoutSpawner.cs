@@ -21,8 +21,7 @@ namespace Domains.Economy.Resource.Helpers
         {
             foreach (ResourceType type in Enum.GetValues(typeof(ResourceType)))
             {
-                // ActionPoint is NOT part of the generic inventory loadout: only AP owners (Mayor, later
-                // Important Citizens) hold an AP stack, seeded explicitly via SpawnResource. The City has none.
+                // Unknown is the zero sentinel, never a real stack.
                 if (type == ResourceType.Unknown)
                     continue;
 
@@ -31,7 +30,6 @@ namespace Domains.Economy.Resource.Helpers
         }
 
         // Creates a single SoA resource stack (owner FK + ResourceComponent + owner-scoped resource tag).
-        // Use for owner-specific stacks excluded from the generic loadout (e.g. the Mayor's ActionPoint pool).
         public static void SpawnResource<TOwnerId, TResourceTag>(World world, in TOwnerId owner,
             ResourceType type, int amount)
             where TOwnerId : struct

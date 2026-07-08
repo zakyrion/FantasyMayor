@@ -5,28 +5,24 @@ tags:
   - economy
   - ecs
   - domain
-related: >-
-  [
-    "[ARCHITECTURE](../../../ARCHITECTURE.md)",
-    "[KERNEL](../Kernel/KERNEL.md)",
-    "[ACTORS](../Actors/ACTORS.md)",
-    "[DISTRICT_OPEN_CONDITION](DistrictOpenCondition/DISTRICT_OPEN_CONDITION.md)",
-    "[BUILD_DISTRICT_COST](DistrictBuildCost/BUILD_DISTRICT_COST.md)",
-    "[BUILD_DISTRICT_OUTCOME](DistrictBuildOutcome/BUILD_DISTRICT_OUTCOME.md)"
-  ]
+related:
+  - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
+  - "[KERNEL](../Kernel/KERNEL.md)"
+  - "[ACTORS](../Actors/ACTORS.md)"
+  - "[DISTRICT_OPEN_CONDITION](DistrictOpenCondition/DISTRICT_OPEN_CONDITION.md)"
+  - "[BUILD_DISTRICT_COST](DistrictBuildCost/BUILD_DISTRICT_COST.md)"
+  - "[BUILD_DISTRICT_OUTCOME](DistrictBuildOutcome/BUILD_DISTRICT_OUTCOME.md)"
 status: partial
-code_refs: >-
-  {
-    "components": ["ResourceComponent", "DistrictIdComponent"],
-    "types": ["ResourceAmount"],
-    "tags": ["ResourceTag", "DistrictTag"],
-    "world_components": ["DistrictBuildsConfigComponent", "DistrictIdAllocatorComponent"],
-    "systems": ["DistrictsBuildConfigLoaderSystem"],
-    "configs": ["DistrictBuildsConfig", "DistrictBuildConfig"],
-    "enums": ["ResourceType", "ActorType"],
-    "installers": ["EconomyInstaller"],
-    "helpers": ["ResourceLoadoutSpawner", "ResourceLedger"]
-  }
+code_refs:
+  components: [ResourceComponent, DistrictIdComponent]
+  types:      [ResourceAmount]
+  tags:       [CityResourceTag, MayorResourceTag, DistrictTag]
+  world_components: [DistrictBuildsConfigComponent, DistrictIdAllocatorComponent]
+  systems:    [DistrictsBuildConfigLoaderSystem]
+  configs:    [DistrictBuildsConfig, DistrictBuildConfig]
+  enums:      [ResourceType, ActorType]
+  installers: [EconomyInstaller]
+  helpers:    [ResourceLoadoutSpawner, ResourceLedger]
 ---
 
 # Economy
@@ -62,13 +58,15 @@ The owner-scoped build **verb** that reads cost/outcome lives in `Actions.BuildD
   therefore SKIPS `ActionPoint`; AP owners (Mayor; later Important Citizens) seed it explicitly via
   `ResourceLoadoutSpawner.SpawnResource`. The City has no AP stack.
 - Ownership is SoA: a resource entity carries the **owner's id component** (`CityIdComponent` |
-  `MayorIdComponent`) as its foreign key, plus `ResourceTag` as the table discriminator. There is no
-  polymorphic owner field. Economy never NAMES an owner id type — `ResourceLoadoutSpawner<TOwnerId>`
-  attaches it generically and the concrete owner is supplied by the caller (`Actors`). That is what
-  keeps Economy owner-agnostic.
+  `MayorIdComponent`) as its foreign key, plus an **owner-scoped tag** (`CityResourceTag` |
+  `MayorResourceTag`) as the table discriminator — there is no single shared `ResourceTag`. There is no
+  polymorphic owner field. Economy never NAMES an owner id type or tag type — `ResourceLoadoutSpawner`'s
+  `SpawnLoadout<TOwnerId, TResourceTag>` / `SpawnResource<TOwnerId, TResourceTag>` attach both generically
+  as method type parameters, and the concrete owner id + tag are supplied by the caller (`Actors`). That
+  is what keeps Economy owner-agnostic.
 - Identity is the **composite key `(owner FK + ResourceType)`** — there is deliberately **no surrogate
   `ResourceId`**. One stack per (owner, type).
-- A given owner's stacks are read with `With<OwnerFK>` + `With<ResourceTag>` → `AsMultiMap<OwnerFK>`,
+- A given owner's stacks are read with `With<OwnerFK>` + `With<OwnerResourceTag>` → `AsMultiMap<OwnerFK>`,
   never a bare key (the owner id is a PK on the actor AND a FK here). See `ECS_CONVENTIONS.md` → Table Rule.
 
 - **`ResourceComponent` is entity-state ONLY — never an authored/config/value role.** It is the SoA
