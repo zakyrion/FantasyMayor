@@ -4,6 +4,7 @@ using Core;
 using DefaultEcs;
 using DefaultECSExtensions;
 using Domains.Actions.BuildDistrictAction.Events;
+using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
 using Domains.Map.Hex.Components;
 using JetBrains.Annotations;

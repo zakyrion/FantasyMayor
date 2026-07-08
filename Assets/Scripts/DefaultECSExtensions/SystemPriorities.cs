@@ -31,32 +31,34 @@ namespace DefaultECSExtensions
 
         /// <summary>
         ///     Gameplay per-frame + reactive tick order. Reactive systems must sit below <see cref="EventCleanup" />
-        ///     so their pulse is consumed the tick it is raised. Ties (systems on the same value) are order-agnostic.
+        ///     so their pulse is consumed the tick it is raised. Every system gets a distinct value — even two
+        ///     systems with no known dependency today — so ordering stays explicit and a later dependency between
+        ///     them is never silently order-agnostic.
         /// </summary>
         public static class RuntimeTick
         {
             public const int Camera = 0;
-            public const int HexSelection = 0;
+            public const int HexSelection = 1;
             public const int HexSelectionView = 501; // historically HexSelectionViewLoading + 1
             public const int HexInfoPanel = 550;
             public const int HexInfoPanelHeader = 560;
-            public const int EndTurnView = 560;
-            public const int ContextTabSelection = 560;
-            public const int ContextTabsAvailability = 560;
-            public const int HexInfoPanelResources = 561;
-            public const int HexInfoPanelDistrict = 562;
-            public const int ResourceBar = 562;
-            public const int DistrictBuildUi = 565;
+            public const int ContextTabSelection = 561;
+            public const int ContextTabsAvailability = 562;
+            public const int HexInfoPanelResources = 563;
+            public const int HexInfoPanelDistrict = 564;
+            public const int ResourceBar = 565;
+            public const int DistrictBuildUi = 566;
             public const int BuildDistrictTemplateSpawn = 590;
             public const int BuildDistrictTemplateCancel = 592;
             public const int BuildDistrictAction = 600;
-            public const int ForestSpawn = 600;
-            public const int DistrictViewSpawn = 601;
-            public const int ForestDespawn = 601;
+            public const int ForestSpawn = 601;
+            public const int DistrictViewSpawn = 602;
+            public const int ForestDespawn = 603;
             public const int HexIconsContainerPosition = 700; // > Camera (0): re-project after the camera moves this frame
             public const int HexIconsVisibility = 800;
             public const int TurnProcessor = 1000;
             public const int TurnCount = 1010;
+            public const int EndTurnView = 1020; // > TurnCount (1010): reads TurnProcessorComponent/TurnCountComponent every frame — must run after both write
             public const int EventCleanup = int.MaxValue; // always last: disposes the frame's event entities
         }
 

@@ -12,4 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2fd788e9bd9004554a5a6774a2ae730d, type: 3}
   m_Name: DistrictViewsConfig
   m_EditorClassIdentifier: Presentation::Presentation.Districts.Configs.DistrictViewsConfig
-  _views: []
+  _views:
+  - {fileID: 11400000, guid: ea9805c58ac2244139952b657046705e, type: 2}

@@ -5,10 +5,12 @@ using JetBrains.Annotations;
 using Modules.AxialSystem;
 using Domains.Map.Hex.Utils;
 using Presentation.Terrain.Components;
+using Presentation.Terrain.Events;
 using Presentation.Terrain.Views;
 using Unity.Collections;
 using Unity.Mathematics;
 using Presentation.Terrain.Tags;
+using UnityEngine;
 
 namespace Presentation.Terrain.Systems
 {
@@ -23,6 +25,7 @@ namespace Presentation.Terrain.Systems
         private const float BorderLift = 0.08f;
 
         private readonly EntitySet _selectedHexSet;
+        private readonly EntitySet _viewSet;
         private readonly World _world;
 
         private bool _hadSelection;
@@ -34,10 +37,12 @@ namespace Presentation.Terrain.Systems
 
         public HexSelectionViewSystem(World world)
             : base(world.GetEntities()
-                .With<HexSelectionViewComponent>().With<HexSelectionViewTag>()
-                .AsSet())
+                .With<SelectedHexChangedEvent>().With<EventTag>().AsSet())
         {
             _world = world;
+            _viewSet = world.GetEntities()
+                .With<HexSelectionViewComponent>().With<HexSelectionViewTag>()
+                .AsSet();
             _selectedHexSet = world.GetEntities()
                 .With<HexSelectedComponent>().With<HexSelectionTag>()
                 .AsSet();
@@ -46,7 +51,8 @@ namespace Presentation.Terrain.Systems
         /// <inheritdoc />
         protected override void Update(GameState state, in Entity entity)
         {
-            var view = entity.Get<HexSelectionViewComponent>().ObjectRef;
+            var view = _viewSet.GetEntities()[0].Get<HexSelectionViewComponent>().ObjectRef;
+
             if (view == null)
                 return;
 
@@ -67,7 +73,9 @@ namespace Presentation.Terrain.Systems
 
             var selected = _selectedHexSet.GetEntities()[0].Get<HexSelectedComponent>();
             if (!viewChanged && _hadSelection && _lastSelection.Coords == selected.Coords)
+            {
                 return;
+            }
 
             VertexGrid vertexGrid = _world.Get<VertexGridComponent>().Grid;
             ComputeSelectionRings(selected.Coords, vertexGrid, out var outerRing, out var innerRing);

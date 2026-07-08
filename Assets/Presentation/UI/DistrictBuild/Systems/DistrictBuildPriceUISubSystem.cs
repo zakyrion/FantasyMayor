@@ -3,6 +3,7 @@ using DefaultEcs;
 using Domains.Actors.City.Components;
 using Domains.Actors.Components;
 using Domains.Actors.Mayor.Components;
+using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
 using Domains.Economy.Resource.Components;
 using Domains.Economy.Resource.Data;

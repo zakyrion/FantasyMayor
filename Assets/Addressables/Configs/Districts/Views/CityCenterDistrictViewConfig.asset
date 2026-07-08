@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5102b8c9507084328bbd24d7e8b63a05, type: 3}
-  m_Name: DistrictViewConfig
+  m_Name: CityCenterDistrictViewConfig
   m_EditorClassIdentifier: Presentation::Presentation.Districts.Configs.DistrictViewConfig
   _districtType: 1
   _prefab: {fileID: 3425909843882002774, guid: fb2c850f5a04e4bf09c66d0ace52e39b, type: 3}

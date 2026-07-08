@@ -17,7 +17,6 @@ namespace Presentation.HexResources.Installer
             builder.Register<ClayViewConfigLoaderSystem>(Lifetime.Singleton)
                 .As<ClayViewConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
 
-            Debug.Log($"[skh] install {nameof(HexResourcesViewInstaller)}");
             builder.Register<HexResourcesViewSystem>(Lifetime.Singleton)
                 .As<HexResourcesViewSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
 

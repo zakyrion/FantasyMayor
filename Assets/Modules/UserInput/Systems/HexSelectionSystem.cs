@@ -107,7 +107,10 @@ namespace Modules.UserInput.Systems
             var selectedEntities = _selectedHexSet.GetEntities();
             if (selectedEntities.Length == 0)
             {
-                _world.CreateEntity().Set(new HexSelectedComponent { Coords = coord });
+                var entity = _world.CreateEntity();
+                entity.Set(new HexSelectedComponent { Coords = coord });
+                entity.Set(new HexSelectionTag());
+
                 RaiseSelectionChanged();
                 return;
             }

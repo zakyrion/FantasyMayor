@@ -61,7 +61,6 @@ namespace Presentation.Districts.Systems
         // The pulse entity itself is ignored — reconciliation is global over current state.
         protected override void Update(GameState state, in Entity pulse)
         {
-            Debug.Log($"[skh] handle DistrictBuiltEvent");
             if (!_world.Has<DistrictViewsConfigComponent>())
                 throw new InvalidOperationException(
                     "DistrictViewSpawnSystem: DistrictViewsConfigComponent world component is missing.");
