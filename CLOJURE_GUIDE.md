@@ -222,6 +222,35 @@ Rules-блоки `ARCHITECTURE.md`, `Patterns/*`, module MDs — ті самі �
 
 Живі приклади правил для читання: `ARCHITECTURE.md`, будь-який `Patterns/PATTERN_*.md`
 → Rules.
+```clojure
+[{:task :relocate-selection-command
+  :goal "команда вибору стає доменною подією"
+  :where #{Assets/Domains/Actions/BuildDistrictAction/Events
+           Assets/Presentation/UI/DistrictBuild}
+  :do "DistrictBuildSelectionRequestedEvent переїжджає в Domains.Actions.BuildDistrictAction.Events + identifying payload DistrictType"
+  :decided "Actions НЕ МОЖЕ споживати подію з Presentation.UI (asmdef-напрямок) — тому дім команди мусить бути verb-домен, як у Started/Confirmed/Cancelled"}
+
+ {:task :draft-updater
+  :listen :relocate-selection-command
+  :pattern PATTERN_REACTIVE_SYSTEM
+  :name :by-naming-policy                       ;; пропозиція: BuildDistrictTemplateSelectSystem
+  :do "маленька реактивна система в Actions: Set() DistrictTypeComponent на draft-сутності"
+  :result "draft = єдине джерело правди вибору (PATTERN_TRANSACTION_ENTITY :state)"}
+
+ {:task :ui-reads-draft
+  :where Assets/Presentation/UI/DistrictBuild/Systems
+  :do "секції читають draft (With<BuildDistrictActionTemplateTag> + DistrictTypeComponent) замість world component"
+  :decided "draft від народження = DistrictType.None, ніколи Unknown (Unknown лишається error-маркером)"}
+
+ {:task :purge-old-home
+  :do "видалити DistrictBuildSelectionComponent з Economy; прибрати re-stamp на confirm у BuildDistrictActionSystem; DistrictBuildStartedEvent втрачає Type (лишається HexCoord)"
+  :result "grep DistrictBuildSelectionComponent == 0; :started-before-populate інваріант мертвий"}
+
+ {:task :sync-flow-contract
+  :where #{Flows/FLOW_DISTRICT_BUILD.md .ecs-graph}
+  :do "закрити gap 1 у FLOW-доку (state-ownership :now, event-таблиця, інваріанти) + build_graph.py"
+  :skip "модульні MD — куратору за milestone-каденцією"}]
+```
 
 ## 10. Канон і полиця
 
