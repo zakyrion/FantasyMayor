@@ -4,7 +4,10 @@ using DefaultECSExtensions;
 using Domains.Actions.BuildDistrictAction.Components;
 using Domains.Actions.BuildDistrictAction.Events;
 using Domains.Actions.Components;
+using Domains.Economy.District.Components;
+using Domains.Map.Hex.Components;
 using JetBrains.Annotations;
+using UnityEngine;
 
 namespace Domains.Actions.BuildDistrictAction.Systems
 {
@@ -18,13 +21,10 @@ namespace Domains.Actions.BuildDistrictAction.Systems
     [UsedImplicitly]
     public sealed class BuildDistrictActionSystem : UpdatedSystem
     {
-        // Reactive: must run before the cleanup pass so the confirm pulse is consumed the tick it is raised.
-        private const int ExecutionPriority = 600;
-
         private readonly World _world;
         private readonly EntitySet _templates;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.RuntimeTick.BuildDistrictAction;
 
         public BuildDistrictActionSystem(World world)
             : base(world.GetEntities().With<DistrictBuildConfirmedEvent>().AsSet())
@@ -51,10 +51,28 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             // Exactly one draft at a time; dropping the template tag ends this single-element iteration.
             foreach (var entity in templates)
             {
+                // Hex + district carried over from the draft entity; the built pulse hands them to the view spawner.
+                var hexId = entity.Get<HexIdComponent>();
+                var districtType = entity.Get<DistrictTypeComponent>();
+
                 entity.Set(new ActionIdComponent { Value = AllocateId() });
                 entity.Remove<BuildDistrictActionTemplateTag>();
                 entity.Set(new BuildDistrictActionTag());
+
+                RaiseDistrictBuilt(hexId, districtType);
             }
+        }
+
+        // One-frame built pulse on its own entity; carries the hex + district (copied from the draft) as sibling
+        // components. Signals DistrictViewSpawnSystem to spawn the district view. Cleared by EventCleanupSystem.
+        private void RaiseDistrictBuilt(HexIdComponent hexId, DistrictTypeComponent districtType)
+        {
+            var entity = _world.CreateEntity();
+            entity.Set(new DistrictBuiltEvent());
+            entity.Set(hexId);
+            entity.Set(districtType);
+            entity.Set(new EventTag());
+            Debug.Log("[skh] test rise");
         }
 
         // Hands out the next unique action id and advances the shared counter (write via Set).

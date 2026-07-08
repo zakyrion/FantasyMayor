@@ -26,9 +26,6 @@ namespace Presentation.Districts.Systems
     [UsedImplicitly]
     public sealed class DistrictViewSpawnSystem : UpdatedSystem
     {
-        // After the UI/action systems, well before EventCleanupSystem (int.MaxValue) which disposes the pulse.
-        private const int ExecutionPriority = 600;
-
         // Committed district entities: one per built hex, carrying the hex FK and its district type.
         private readonly EntitySet _districts;
 
@@ -39,7 +36,7 @@ namespace Presentation.Districts.Systems
 
         private Transform _root;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.RuntimeTick.DistrictViewSpawn;
 
         public DistrictViewSpawnSystem(World world)
             : base(world.GetEntities()
@@ -63,6 +60,7 @@ namespace Presentation.Districts.Systems
         // The pulse entity itself is ignored — reconciliation is global over current state.
         protected override void Update(GameState state, in Entity pulse)
         {
+            Debug.Log($"[skh] handle DistrictBuiltEvent");
             if (!_world.Has<DistrictViewsConfigComponent>())
                 throw new InvalidOperationException(
                     "DistrictViewSpawnSystem: DistrictViewsConfigComponent world component is missing.");
