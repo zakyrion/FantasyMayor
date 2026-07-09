@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using DefaultEcs;
 using DefaultECSExtensions;
-using Presentation.UI.DistrictBuild.Events;
+using Flows.DistrictBuild.Events;
 using UnityEngine;
 using UnityEngine.UIElements;
 using VContainer;
@@ -211,7 +211,7 @@ namespace Presentation.UI.HexInfoPanel.Views
         private void OnBuildClicked(ClickEvent evt)
         {
             var entity = _world.CreateEntity();
-            entity.Set(new DistrictBuildRequestedEvent());
+            entity.Set(new DistrictBuildUIRequestedEvent());
             entity.Set(new EventTag());
         }
 

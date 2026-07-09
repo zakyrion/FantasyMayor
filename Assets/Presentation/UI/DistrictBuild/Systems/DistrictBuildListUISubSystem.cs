@@ -3,9 +3,9 @@ using DefaultECSExtensions;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
 using Domains.Economy.DistrictOpenCondition.Tags;
+using Flows.DistrictBuild.Events;
 using JetBrains.Annotations;
 using Presentation.UI.DistrictBuild.Components;
-using Presentation.UI.DistrictBuild.Events;
 using Presentation.UI.DistrictBuild.Tags;
 using UnityEngine;
 
@@ -14,9 +14,9 @@ namespace Presentation.UI.DistrictBuild.Systems
     // Projects the open-condition table into the build list: every entity carrying DistrictCanBeBuildTag is a
     // district the player may build. Read-only on the table — a future evaluator owns the tag. Sole owner of
     // DistrictBuildSelectionComponent: default-selects the first buildable district on the window-open pulse,
-    // writes the selection directly on row-click, and marks the current selection as active. Translates the
-    // view's row-click (local C# event) into the (payload-less) DistrictBuildSelectedDistrictEvent pulse so the
-    // orchestrator re-runs the other section subsystems (the view stays World-free).
+    // writes the selection directly on row-click, and marks the current selection as active. On the view's row-click
+    // (local C# event) it writes the selection, then calls the orchestrator-provided Repopulate to re-run the other
+    // section subsystems (the view stays World-free).
     [UsedImplicitly]
     public sealed class DistrictBuildListUISubSystem : DistrictBuildUISubSystem
     {
@@ -33,7 +33,7 @@ namespace Presentation.UI.DistrictBuild.Systems
                 .With<DistrictTypeComponent>()
                 .With<DistrictCanBeBuildTag>()
                 .AsSet();
-            _requestedSet = world.GetEntities().With<DistrictBuildRequestedEvent>().AsSet();
+            _requestedSet = world.GetEntities().With<DistrictBuildUIRequestedEvent>().AsSet();
             _selectionSet = world.GetEntities().With<DistrictBuildSelectionTag>().AsSet();
         }
 
@@ -75,9 +75,9 @@ namespace Presentation.UI.DistrictBuild.Systems
         {
             _selectionSet.GetEntities()[0].Set(new DistrictBuildSelectionComponent { Selected = district });
 
-            var entity = World.CreateEntity();
-            entity.Set(new DistrictBuildSelectedDistrictEvent());
-            entity.Set(new EventTag());
+            // Selection written — re-run every section populator (including this one, to re-mark the active row)
+            // against the new selection. Direct C# call into the orchestrator, ordered after the write.
+            Repopulate?.Invoke();
         }
 
         public override void Dispose()

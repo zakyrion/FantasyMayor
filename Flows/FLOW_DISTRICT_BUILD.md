@@ -9,7 +9,7 @@ related:
 status: partial
 code_refs:
   systems:          [DistrictBuildUISystem, DistrictBuildUISpawnSystem, BuildDistrictActionSystem, DistrictViewSpawnSystem]
-  events:           [DistrictBuildRequestedEvent, DistrictBuildUIClosedEvent, DistrictBuildSelectedDistrictEvent, DistrictBuildConfirmedEvent, DistrictBuiltEvent]
+  events:           [DistrictBuildUIRequestedEvent, DistrictBuildConfirmedEvent, DistrictBuiltEvent]
   components:       [DistrictBuildSelectionComponent]
   tags:             [BuildDistrictActionTag]
 ---
@@ -17,8 +17,9 @@ code_refs:
 # FLOW — District Build
 
 The cross-domain contract of the district-build transaction: one player gesture (open → pick →
-confirm / dismiss) spanning `Presentation.UI.DistrictBuild`, `Domains.Actions.BuildDistrictAction`,
-`Domains.Economy`, `Presentation.Districts`.
+confirm / dismiss) spanning `Presentation.UI.HexInfoPanel` (the open request), `Presentation.UI.DistrictBuild`,
+`Flows.DistrictBuild` (the event home), `Domains.Actions.BuildDistrictAction`, `Domains.Economy`,
+`Presentation.Districts`.
 
 ## Purpose
 
@@ -30,7 +31,9 @@ drift to fix or a deliberate contract change.
 
 ```clojure
 (def participants  ;; {assembly role-in-this-flow}
-  {Presentation.UI.DistrictBuild       "projection + commands: renders the transaction, raises request pulses, owns NO transaction state"
+  {Presentation.UI.HexInfoPanel        "emits the open request (DistrictBuildUIRequestedEvent) from the selected-hex context panel"
+   Presentation.UI.DistrictBuild       "projection + commands: renders the transaction, raises the confirm pulse, owns NO transaction state"
+   Flows.DistrictBuild                 "flow event-vocabulary home: owns the cross-subfeature UI-navigation event; leaf assembly the UI references"
    Domains.Actions.BuildDistrictAction "verb owner: creates the committed build entity directly on confirm — no draft"
    Domains.Economy                     "vocabulary (build configs, costs, open conditions) + TARGET home of the built-district fact"
    Presentation.Districts              "world view: spawns the district prefab for every built district"})
@@ -40,11 +43,15 @@ drift to fix or a deliberate contract change.
 
 | Event | Home | Payload | Producer → Consumer | Semantics |
 |---|---|---|---|---|
-| `DistrictBuildRequestedEvent` | Presentation.UI | — | `HexInfoPanelView` → `DistrictBuildUISystem`, `DistrictBuildListUISubSystem` | player asked to open the overlay for the selected hex |
-| `DistrictBuildUIClosedEvent` | Presentation.UI | — | `DistrictBuildUIView` → `DistrictBuildUISystem` | hide the overlay; PURE presentation |
-| `DistrictBuildSelectedDistrictEvent` | Presentation.UI | — (payload-less) | `DistrictBuildListUISubSystem` → `DistrictBuildUISystem` | player picked a district row; sections re-reconcile |
-| `DistrictBuildConfirmedEvent` | Domains.Actions | `HexCoord` + `DistrictType` | `DistrictBuildUIView` → `BuildDistrictActionSystem` | player committed: create the committed build entity directly (no draft) |
+| `DistrictBuildUIRequestedEvent` | Flows.DistrictBuild | — | `HexInfoPanelView` → `DistrictBuildUISystem`, `DistrictBuildListUISubSystem` | player asked to open the overlay for the selected hex |
+| `DistrictBuildConfirmedEvent` | Domains.Actions | `HexCoord` + `DistrictType` | `DistrictBuildUISystem` → `BuildDistrictActionSystem` | player committed: create the committed build entity directly (no draft) |
 | `DistrictBuiltEvent` | Domains.Actions | `HexIdComponent` + `DistrictTypeComponent` siblings (target: payload-less) | `BuildDistrictActionSystem` → `DistrictViewSpawnSystem` | a district EXISTS; today raised at confirm (no ticking yet) |
+
+> **Not ECS — local C# events.** Close/dismiss and district-selection are **view→system C# events** now, not
+> ECS pulses: the chrome `DistrictBuildUIView` raises `Closed`/`Confirmed` (the orchestrator subscribes),
+> `DistrictBuildListUIView` raises `SelectionChanged` and `DistrictBuildPriceUIView` raises `PayerChanged`
+> (each section subsystem subscribes to its own view). Only the three events above cross a frame/assembly
+> boundary as ECS pulses. Traceability = the direct C# subscriptions, all visible at the subscriber.
 
 ```clojure
 (def payload-verdicts  ;; deviations from PATTERN_EVENT that the contract removes
@@ -57,7 +64,7 @@ drift to fix or a deliberate contract change.
 (def state-ownership  ;; {state {:now … :target …}} — the split below is the flow's core defect
   {:selected-hex    {:now "Presentation `HexSelectedComponent` — pre-confirm only; read into the committed entity's `HexIdComponent` at confirm, never owned by Actions before that"
                      :target :same}
-   :chosen-district {:now    DistrictBuildSelectionComponent  ;; component in Presentation.UI.DistrictBuild.Components (own entity, tagged DistrictBuildSelectionTag); written by DistrictBuildListUISubSystem, read by the UI subsystems + DistrictBuildUIView (confirm payload)
+   :chosen-district {:now    DistrictBuildSelectionComponent  ;; component in Presentation.UI.DistrictBuild.Components (own entity, tagged DistrictBuildSelectionTag); written by DistrictBuildListUISubSystem, read by the UI subsystems + DistrictBuildUISystem (confirm payload)
                      :target :same}  ;; no draft to migrate onto — selection staying in Presentation IS the target (gap 1 retired, see Gap list)
    :payer           {:now    "view-local (DistrictBuildPriceUIView.SelectedOwner)"  ;; render-only today
                      :target "committed-entity component once resource-spend lands (gap 5)"}
@@ -69,7 +76,7 @@ drift to fix or a deliberate contract change.
 
 ```clojure
 (def ordering-invariants
-  {:confirm-vs-dismiss  "OnConfirmClicked raises Confirmed then Close, in one click; OnCloseClicked/OnScrimClicked raise Close only"  ;; no draft, so dismiss never has anything to discard
+  {:confirm-vs-dismiss  "view.OnConfirmClicked raises the C# Confirmed event → DistrictBuildUISystem builds then hides; OnCloseClicked/OnScrimClicked raise the C# Closed event → hide only"  ;; no draft, so dismiss never has anything to discard
    :list-before-others  "DistrictBuildListUISubSystem populates FIRST (Priority order)"})  ;; it default-writes the selection the other sections read — reorder = throw on a missing selection
 ```
 
@@ -87,7 +94,7 @@ once turn-ticking exists; today completion == confirm.
 1. ~~**Selection moves onto the draft.**~~ MOOT (2026-07-08): the draft/template lifecycle was
    removed entirely. Selection stays in Presentation (`DistrictBuildSelectionComponent`); the
    chosen district reaches Actions via the `DistrictBuildConfirmedEvent` payload that
-   `DistrictBuildUIView` composes at confirm. No entity-level migration needed.
+   `DistrictBuildUISystem` composes at confirm. No entity-level migration needed.
 2. **The built-district fact.** New Economy archetype (`DistrictTag` + `HexIdComponent` +
    `DistrictTypeComponent`); promotion (interim: == completion) writes the fact;
    `DistrictViewSpawnSystem` reconciles off the fact, not `BuildDistrictActionTag`;
@@ -97,7 +104,7 @@ once turn-ticking exists; today completion == confirm.
    `ResolvePrefab` a third variant. Stateless helper in Economy District `Helpers/`.
 4. ~~**Seam doc/comment reconciliation.**~~ DONE (2026-07-08): `BUILD_DISTRICT_ACTION.md` known-gap
    paragraph corrected (the confirm re-stamp is now documented); `DistrictViewSpawnSystem` code comment
-   now names the emitter (`BuildDistrictActionSystem.RaiseDistrictBuilt`); `DistrictBuildRequestedEvent`
+   now names the emitter (`BuildDistrictActionSystem.RaiseDistrictBuilt`); `DistrictBuildUIRequestedEvent`
    xml-doc consumer corrected to `DistrictBuildUISystem`; `DISTRICT_BUILD.md` selection-ownership (the
    List subsystem owns `DistrictBuildSelectionComponent`) and payer (view-local) both corrected.
 5. **Future (needs turn-ticking):** `DistrictBuiltEvent` fires at construction completion; payer

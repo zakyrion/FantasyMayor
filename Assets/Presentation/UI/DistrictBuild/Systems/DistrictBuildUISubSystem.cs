@@ -19,6 +19,11 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public bool IsEnabled { get; set; } = true;
 
+        // Set by the orchestrator at composition: a subsystem that changes the shared selection (List) calls this to
+        // re-run every section populator against the new state — the direct C# replacement for the old re-populate
+        // ECS pulse. Null-safe: subsystems that never mutate selection leave it unused.
+        public Action Repopulate { get; set; }
+
         public abstract int Priority { get; }
 
         public abstract void Populate(GameObject root);

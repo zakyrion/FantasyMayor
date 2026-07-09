@@ -1,13 +1,17 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Core;
 using DefaultEcs;
 using DefaultECSExtensions;
+using Domains.Actions.BuildDistrictAction.Events;
+using Domains.Economy.District.Data;
 using Domains.Map.Hex.Components;
+using Flows.DistrictBuild.Events;
 using JetBrains.Annotations;
+using Modules.AxialSystem;
 using Presentation.Terrain.Components;
 using Presentation.UI.DistrictBuild.Components;
-using Presentation.UI.DistrictBuild.Events;
 using Presentation.UI.DistrictBuild.Tags;
 using Presentation.UI.DistrictBuild.Views;
 using Presentation.Terrain.Tags;
@@ -17,11 +21,13 @@ namespace Presentation.UI.DistrictBuild.Systems
 {
     /// <summary>
     ///     Drives the district-build overlay: visibility + section dispatch. Anchored on the
-    ///     DistrictBuildUIViewComponent singleton (ticks once per frame). Coalesces the window pulses —
-    ///     <see cref="DistrictBuildRequestedEvent" /> (open), <see cref="DistrictBuildUIClosedEvent" /> (hide),
-    ///     <see cref="DistrictBuildSelectedDistrictEvent" /> (re-populate after a selection change). It owns NO
-    ///     domain logic — it only sequences pulses into the section populators, each of which reconciles its own view
-    ///     from ECS (orchestrator + subsystem family, like DistrictOpenConditionSpawnSystem).
+    ///     DistrictBuildUIViewComponent singleton (ticks once per frame). Opens on the external
+    ///     <see cref="DistrictBuildUIRequestedEvent" /> pulse (raised by HexInfoPanel). Chrome is C#-event driven: it
+    ///     subscribes to the view's Confirmed (read the ECS selection → raise the cross-domain
+    ///     <see cref="DistrictBuildConfirmedEvent" /> → hide) and Closed (hide) events. Re-populate on a section
+    ///     selection change is a direct call from the section subsystem via the Repopulate callback this system hands
+    ///     each of them. It owns NO domain logic — it only sequences into the section populators, each of which
+    ///     reconciles its own view from ECS (orchestrator + subsystem family, like DistrictOpenConditionSpawnSystem).
     /// </summary>
     [UsedImplicitly]
     public sealed class DistrictBuildUISystem : UpdatedSystem
@@ -34,10 +40,11 @@ namespace Presentation.UI.DistrictBuild.Systems
         private readonly IReadOnlyList<DistrictBuildUISubSystem> _subSystems;
 
         private readonly EntitySet _requestedSet;
-        private readonly EntitySet _closedSet;
-        private readonly EntitySet _selectedDistrictEventSet;
         private readonly EntitySet _selectedHexSet;
         private readonly EntitySet _selectionSet;
+
+        private DistrictBuildUIView _view;
+        private bool _chromeHooked;
 
         public override int Priority => SystemPriorities.RuntimeTick.DistrictBuildUi;
 
@@ -48,9 +55,13 @@ namespace Presentation.UI.DistrictBuild.Systems
             _subSystems = subSystems
                 .OrderBy(system => system.Priority)
                 .ToArray();
-            _requestedSet = world.GetEntities().With<DistrictBuildRequestedEvent>().With<EventTag>().AsSet();
-            _closedSet = world.GetEntities().With<DistrictBuildUIClosedEvent>().With<EventTag>().AsSet();
-            _selectedDistrictEventSet = world.GetEntities().With<DistrictBuildSelectedDistrictEvent>().With<EventTag>().AsSet();
+
+            // Hand each populator the re-populate callback: a section that changes the shared selection (List) calls
+            // it to re-run every section against the new state — the direct C# replacement for the re-populate pulse.
+            for (var i = 0; i < _subSystems.Count; i++)
+                _subSystems[i].Repopulate = PopulateSections;
+
+            _requestedSet = world.GetEntities().With<DistrictBuildUIRequestedEvent>().With<EventTag>().AsSet();
             _selectedHexSet = world.GetEntities().With<HexSelectedComponent>().With<HexSelectionTag>().AsSet();
             _selectionSet = world.GetEntities().With<DistrictBuildSelectionTag>().AsSet();
         }
@@ -61,16 +72,59 @@ namespace Presentation.UI.DistrictBuild.Systems
             if (view == null)
                 return;
 
-            if (_closedSet.Count > 0)
-            {
-                view.Hide();
-                DestroySelection();
-            }
+            HookChrome(view);
 
             if (_requestedSet.Count > 0)
                 Open(view);
-            else if (_selectedDistrictEventSet.Count > 0)
-                PopulateSections();
+        }
+
+        // The view outlives this system; subscribe once to its chrome C# events. Handled synchronously in the click
+        // callback (main thread), mirroring the section subsystems' own view hooks.
+        private void HookChrome(DistrictBuildUIView view)
+        {
+            if (_chromeHooked)
+                return;
+
+            _view = view;
+            view.Confirmed += OnConfirmed;
+            view.Closed += OnClosed;
+            _chromeHooked = true;
+        }
+
+        // Confirm: read the selected hex + district from ECS, raise the cross-domain build pulse the Actions assembly
+        // consumes (it can't read the Presentation selection), then hide. Confirm builds AND closes.
+        private void OnConfirmed()
+        {
+            var (coords, type) = ReadSelection();
+
+            var buildEntity = _world.CreateEntity();
+            buildEntity.Set(new DistrictBuildConfirmedEvent { Coords = coords, Type = type });
+            buildEntity.Set(new EventTag());
+
+            _view.Hide();
+            DestroySelection();
+        }
+
+        // Dismiss (X / scrim): hide only. There is no draft, so nothing to discard.
+        private void OnClosed()
+        {
+            _view.Hide();
+            DestroySelection();
+        }
+
+        // The overlay is modal, so the selected hex + district cannot change while it is open. Missing either is a
+        // broken invariant (the overlay only opens with a selected hex and default-selects a district) — fail loud
+        // rather than build an Unknown district.
+        private (HexCoord coords, DistrictType type) ReadSelection()
+        {
+            if (_selectedHexSet.Count == 0)
+                throw new InvalidOperationException("DistrictBuildUISystem: confirm with no selected hex.");
+            if (_selectionSet.Count == 0)
+                throw new InvalidOperationException("DistrictBuildUISystem: confirm with no selected district.");
+
+            var coords = _selectedHexSet.GetEntities()[0].Get<HexSelectedComponent>().Coords;
+            var type = _selectionSet.GetEntities()[0].Get<DistrictBuildSelectionComponent>().Selected;
+            return (coords, type);
         }
 
         private void Open(DistrictBuildUIView view)
@@ -114,9 +168,13 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public override void Dispose()
         {
+            if (_chromeHooked && _view != null)
+            {
+                _view.Confirmed -= OnConfirmed;
+                _view.Closed -= OnClosed;
+            }
+
             _requestedSet.Dispose();
-            _closedSet.Dispose();
-            _selectedDistrictEventSet.Dispose();
             _selectedHexSet.Dispose();
             _selectionSet.Dispose();
             base.Dispose();
