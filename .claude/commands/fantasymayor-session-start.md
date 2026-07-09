@@ -42,6 +42,14 @@ say so in the status summary and offer the fix (`build_graph.py --force` / `buil
 after a rename, else the auto-`--update` already ran, then the STEP-2 re-curation) — do not run it
 unprompted.
 
+### 1b. Doc-lint check
+
+Run `python3 Tools/doc_lint.py --quiet` from the project root (1 cheap CLI call). It reports how many
+ghost symbol claims the .md docs carry against the actual C# declarations. Note the one summary line
+in the status report; if the count grew since the last session, say so. Do not fix ghosts unprompted —
+the full list (`python3 Tools/doc_lint.py`) is on-demand ammunition for a doc-cleanup task, and a doc
+that doc-lint flags is proof its claims must be re-verified against code before trusting them.
+
 ### 2. Reconstruct the current state
 
 From the `always` docs and any root status notes INDEX points to, extract only the facts that help
