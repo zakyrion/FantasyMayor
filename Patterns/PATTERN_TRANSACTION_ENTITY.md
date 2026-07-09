@@ -8,6 +8,7 @@ related:
   - "[PATTERN_EVENT](PATTERN_EVENT.md)"
   - "[PATTERN_REACTIVE_SYSTEM](PATTERN_REACTIVE_SYSTEM.md)"
   - "[PATTERN_TAG](PATTERN_TAG.md)"
+  - "[PATTERN_VIEW_SYSTEM](PATTERN_VIEW_SYSTEM.md)"
   - "[FLOW_DISTRICT_BUILD](../Flows/FLOW_DISTRICT_BUILD.md)"
 ---
 
@@ -85,7 +86,7 @@ becomes command pulses, never writes.
   {:home          "verb domain (Actions)"                     ;; the verb owns its session — never the substrate, never Presentation
    :state         "ALL transaction state on the ONE entity"   ;; no world-component copies, no second home; state you can't place = a design question, not a new component
    :reachability  {:never "place state in a substrate domain so another layer can read it"}  ;; the entity IS the reachable home; pure UI selection state stays in Presentation
-   :ui            :projection                                 ;; reads the entity, raises command pulses, owns zero transaction state (pure render state stays in the view)
+   :ui            :projection                                 ;; the UI SYSTEM reads the entity and raises the command pulses across the boundary; the view feeds it via a local C# event and never raises the pulse itself (PATTERN_VIEW_SYSTEM); owns zero transaction state (pure render state stays in the view)
    :command       "one-frame pulse, tiny identifying payload" ;; PATTERN_EVENT tolerance; consumed ONLY by a verb-domain reactive system that Set()s the entity
    :lifecycle     "stage = tag swap"                          ;; …DraftTag → …ActionTag → …; filters stay tag-anchored (Tag Law); draft stage OPTIONAL (see Degenerate case)
    :completion    "FACT entity in the substrate domain + payload-less pulse"  ;; the transaction produces a noun; the pulse only says "re-read"

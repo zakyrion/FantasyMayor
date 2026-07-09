@@ -7,6 +7,7 @@ related:
   - "[ARCHITECTURE](../ARCHITECTURE.md)"
   - "[PATTERN_REACTIVE_SYSTEM](PATTERN_REACTIVE_SYSTEM.md)"
   - "[PATTERN_CLEANUP_SYSTEM](PATTERN_CLEANUP_SYSTEM.md)"
+  - "[PATTERN_VIEW_SYSTEM](PATTERN_VIEW_SYSTEM.md)"
 ---
 
 # Pattern — One-Frame Event (Pulse)
@@ -27,13 +28,17 @@ namespace Domains.[Domain].[Feature].Events
 }
 ```
 
-## Raising it (from a system, a game state, or a MonoBehaviour view)
+## Raising it (from a system or a game state)
 
 ```csharp
 var pulse = world.CreateEntity();
 pulse.Set(new [Name]Event());
 pulse.Set(new EventTag());   // marks it one-frame; the cleanup pass disposes it at end of tick
 ```
+
+A MonoBehaviour view does NOT raise a pulse to its own driving system — it raises a local C# event the
+system subscribes to (PATTERN_VIEW_SYSTEM). A view/UI-system may raise an ECS pulse ONLY to cross a
+frame or an asmdef boundary the C# call can't reach, and then a SYSTEM raises it, not the view.
 
 ## Rules
 
@@ -42,6 +47,8 @@ pulse.Set(new EventTag());   // marks it one-frame; the cleanup pass disposes it
   {:payload            :none                                          ;; no coords/lists/ids — the consumer reconciles from world state (PATTERN_REACTIVE_SYSTEM); persistent truth lives in a world component / on an entity, the event only says "re-read it"
    :payload-tolerated  "tiny IDENTIFYING value"                       ;; only when the target cannot be derived from state; prefer target→world-component + payload-less pulse; NEVER bulk or derived data
    :raise              "pulse.Set(event) + pulse.Set(new EventTag())" ;; EventTag opts it into end-of-tick disposal (PATTERN_CLEANUP_SYSTEM)
+   :view-source        {:never "a view raising a pulse to its OWN system"       ;; use a local C# event → the system subscribes (PATTERN_VIEW_SYSTEM); an ECS pulse is only for crossing a frame/asmdef boundary, raised by a SYSTEM
+                        :only  "cross a frame/asmdef boundary the C# call can't reach"}
    :startup-bulk-work  pipeline-stage                                 ;; never an event — one-frame events do NOT survive the async map-creation pipeline (PATTERN_PIPELINE_STAGE)
    :naming             {:suffix "…Event" :in "Events/"}               ;; no domain prefix — namespace carries it (ECS_CONVENTIONS → Naming & Construction)
    :in-tick-visibility "consumer.Priority > emitter.Priority"         ;; the pulse dies at the SAME tick's EventCleanupSystem (MaxValue) — only later-priority systems see it that tick; lower-priority consumers see it NEVER
