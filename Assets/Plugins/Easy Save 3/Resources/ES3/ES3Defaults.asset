@@ -53,6 +53,7 @@ MonoBehaviour:
     - Domains.Map
     - Dreamteck.Splines
     - Dreamteck.Utilities
+    - Flows.DistrictBuild
     - Installers
     - Installers.World
     - MainCanvas.Core
