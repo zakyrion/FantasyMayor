@@ -5,7 +5,6 @@ trigger: "ONLY when the user explicitly asks to open this file — never on sess
 tags: [gameplay, design]
 related:
   - "[ARCHITECTURE](ARCHITECTURE.md)"
-  - "[TURN](Assets/Modules/Turn/TURN.md)"
 ---
 
 # FantasyMayor - Gameplay Foundation

@@ -33,7 +33,9 @@ namespace Domains.Actions.Systems
             if (cancellationToken.IsCancellationRequested)
                 return;
 
-            // Phases compute off the main thread; every world write goes back on the main thread (TURN.md).
+            // Phases compute off the main thread; every world write goes back on the main thread (the Turn
+            // engine's hard invariant). NOTE: the hop below is commented out while the phase runs sync —
+            // re-enable it before any real off-thread compute lands here.
             //await UniTask.SwitchToMainThread(cancellationToken);
 
             // The ReadOnlySpan<Entity> reads below cannot live in an async method (CS4012), so the world work

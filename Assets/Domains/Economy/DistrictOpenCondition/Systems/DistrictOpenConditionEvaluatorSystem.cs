@@ -34,7 +34,8 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
             if (cancellationToken.IsCancellationRequested)
                 return;
 
-            // Phases compute off the main thread; every world write goes back on the main thread (TURN.md).
+            // Phases compute off the main thread; every world write goes back on the main thread (the Turn
+            // engine's hard invariant: the pool computes, the main thread writes).
             //await UniTask.SwitchToMainThread(cancellationToken);
 
             for (var i = 0; i < _subSystems.Count; i++)

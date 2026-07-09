@@ -4,8 +4,7 @@ read: trigger
 trigger: "before creating or changing UI (UI Toolkit, panels, tokens, USS)"
 tags: [ui, style, reference]
 related:
-  - "[MAIN_UI](Assets/Presentation/UI/MAIN_UI.md)"
-  - "[HEX_INFO_PANEL](Assets/Presentation/UI/HexInfoPanel/HEX_INFO_PANEL.md)"
+  - "[ARCHITECTURE](ARCHITECTURE.md)"
 ---
 
 # GENERAL_UI_STYLE.md

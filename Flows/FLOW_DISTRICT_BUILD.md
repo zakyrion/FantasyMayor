@@ -4,9 +4,6 @@ read: trigger
 trigger: "before changing any district-build event, system, transaction state — or any doc that retells this flow"
 tags: [flow, district, cross-domain, ecs]
 related:
-  - "[BUILD_DISTRICT_ACTION](../Assets/Domains/Actions/BuildDistrictAction/BUILD_DISTRICT_ACTION.md)"
-  - "[DISTRICT_BUILD](../Assets/Presentation/UI/DistrictBuild/DISTRICT_BUILD.md)"
-  - "[DISTRICT_OPEN_CONDITION](../Assets/Domains/Economy/DistrictOpenCondition/DISTRICT_OPEN_CONDITION.md)"
   - "[PATTERN_TRANSACTION_ENTITY](../Patterns/PATTERN_TRANSACTION_ENTITY.md)"
   - "[PATTERN_EVENT](../Patterns/PATTERN_EVENT.md)"
 status: partial
@@ -85,7 +82,7 @@ built-district FACT into `Domains.Economy`; `Presentation.Districts` renders fac
 `DistrictBuiltEvent` fires when the fact is written — which becomes "at construction completion"
 once turn-ticking exists; today completion == confirm.
 
-## Gap list — ordered backlog (one session each)
+## Gap list — ordered backlog
 
 1. ~~**Selection moves onto the draft.**~~ MOOT (2026-07-08): the draft/template lifecycle was
    removed entirely. Selection stays in Presentation (`DistrictBuildSelectionComponent`); the

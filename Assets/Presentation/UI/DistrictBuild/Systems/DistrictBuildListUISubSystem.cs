@@ -15,7 +15,7 @@ namespace Presentation.UI.DistrictBuild.Systems
     // district the player may build. Read-only on the table — a future evaluator owns the tag. Sole owner of
     // DistrictBuildSelectionComponent: default-selects the first buildable district on the window-open pulse,
     // writes the selection directly on row-click, and marks the current selection as active. Translates the
-    // view's row-click (local C# event) into the (payload-less) DistrictBuildSelectionRequestedEvent pulse so the
+    // view's row-click (local C# event) into the (payload-less) DistrictBuildSelectedDistrictEvent pulse so the
     // orchestrator re-runs the other section subsystems (the view stays World-free).
     [UsedImplicitly]
     public sealed class DistrictBuildListUISubSystem : DistrictBuildUISubSystem

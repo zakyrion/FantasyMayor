@@ -4,8 +4,8 @@ read: trigger
 trigger: "before writing/editing/reviewing Addressables, IAddressable, Box<T> or Result<T> code"
 tags: [addressables, patterns, ecs]
 related:
-  - "[CONFIGS](../Configs/CONFIGS.md)"
-  - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
+  - "[ARCHITECTURE](../ARCHITECTURE.md)"
+  - "[PATTERN_CONFIG_LOADER](PATTERN_CONFIG_LOADER.md)"
 ---
 
 # IAddressable Contract

@@ -15,7 +15,7 @@ namespace Domains.Actors.Mayor.Systems
 {
     // Config Loader (ConfigLoadStep, one-shot): loads the MayorConfig SO from Addressables, validates it,
     // and publishes the flattened MayorConfigComponent world component. MayorSpawnSystem reads it at map
-    // creation to seed the Mayor's starting resources + Action Points. See CONFIGTEMPLATE.md / ACTORS.md.
+    // creation to seed the Mayor's starting resources + Action Points (Patterns/PATTERN_CONFIG_LOADER.md).
     [UsedImplicitly]
     internal sealed class MayorConfigLoaderSystem : ConfigLoaderSystem
     {

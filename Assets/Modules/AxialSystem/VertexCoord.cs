@@ -3,6 +3,8 @@ using Unity.Mathematics;
 
 namespace Modules.AxialSystem
 {
+    // Addresses a FINE MESH VERTEX (flat-top VertexGrid). Structurally identical to HexCoord but
+    // semantically distinct — one is a tile address, this is a subdivided-mesh vertex address; never mix.
     public readonly struct VertexCoord : IAxialCoord<VertexCoord>
     {
         public int2 Value { get; }

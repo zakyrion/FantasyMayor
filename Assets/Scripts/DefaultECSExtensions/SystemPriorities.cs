@@ -61,12 +61,21 @@ namespace DefaultECSExtensions
         }
 
         /// <summary>
-        ///     Turn-phase order (<c>TurnPhaseSubSystem</c>), run per turn on a <c>NextTurnEvent</c> pulse.
+        ///     Turn-phase order (<c>TurnPhaseSubSystem</c>), run per turn on a <c>NextTurnEvent</c> pulse —
+        ///     i.e. AFTER the player finished acting, so the runtime order is NOT the presentation order.
+        ///     Planned bands (ascending): Citizen → Resolution → Upkeep → Consequences → Preview at the TAIL —
+        ///     Preview computes the snapshot the player reads at the start of the NEXT Mayor Phase.
+        ///     The Mayor Phase itself is NOT a phase subsystem: it is the interactive player↔game layer running
+        ///     as ordinary Gameplay systems; its "end turn" action is what raises the pulse. Everything here is
+        ///     non-interactive computation — that is exactly WHY it may run off the main thread; a phase needing
+        ///     player input mid-run would break the model and must be designed separately. The FIRST turn starts
+        ///     on an EMPTY snapshot by design: Preview only ever runs as the pipeline tail — do NOT add a
+        ///     bootstrap/startup preview pass.
         /// </summary>
         public static class TurnPhase
         {
             public const int MayorApRestore = 500; // Upkeep band
-            public const int DistrictOpenConditionEvaluator = 1000; // tail of the turn pipeline, above the Upkeep band
+            public const int DistrictOpenConditionEvaluator = 1000; // tail of the turn pipeline (Preview band)
         }
 
         /// <summary>

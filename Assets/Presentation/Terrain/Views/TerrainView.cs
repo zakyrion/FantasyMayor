@@ -35,6 +35,10 @@ namespace Presentation.Terrain.Views
             AddDisposable(() => Object.Destroy(texture));
         }
 
+        // Safe to call again after the initial bake: re-reads the whole mesh and rewrites each vertex y from
+        // the grid (matched by XZ only — WorldToAxial(x, 0, z)), then recalculates normals/bounds. Nothing
+        // later in the pipeline re-applies heights, so a post-bake grid edit (e.g. clay depressions) persists
+        // by calling this once more; editing HexVertex.Position.y alone is enough.
         public void ApplyHeightsFromVertexGrid(VertexGrid vertexGrid)
         {
             var mesh = _meshFilter.mesh;

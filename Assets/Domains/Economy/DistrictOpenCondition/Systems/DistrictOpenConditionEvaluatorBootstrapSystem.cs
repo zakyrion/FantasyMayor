@@ -11,7 +11,7 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
 {
     // Pipeline stage (MapGenerationStep, one-shot): runs the condition-evaluator subsystem family once, right
     // after DistrictOpenConditionSpawnSystem, so DistrictCanBeBuildTag is already correct before the player's
-    // very first Mayor Phase. TURN.md: the turn pipeline never runs a bootstrap pass before turn 1 (no startup
+    // very first Mayor Phase. The turn pipeline never runs a bootstrap pass before turn 1 (no startup
     // Preview), so this world-init hook is what covers it. Every subsequent turn is covered by the sibling
     // TurnPhaseSubSystem host (DistrictOpenConditionEvaluatorSystem) — both share the same DI-collected
     // subsystem family, no evaluation logic is duplicated here. No domain logic of its own.

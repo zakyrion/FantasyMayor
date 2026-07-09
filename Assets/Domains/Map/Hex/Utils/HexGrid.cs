@@ -112,6 +112,9 @@ namespace Domains.Map.Hex.Utils
             return WorldToAxial(AxialMath.AxialToWorldPointTop(hexCoord.Value, _cellSize));
         }
 
+        // Returns the LIVE owner-cache set, not a copy. Set() re-runs the cache bookkeeping (remove+re-add),
+        // so calling Set inside a foreach over this throws "Collection was modified" — snapshot the coords
+        // first (e.g. into a NativeList) and iterate the snapshot (see ClayDepressionShaper / forest spawn).
         public IEnumerable<VertexCoord> GetOwnedVertexCoords(HexCoord hexCoord)
         {
             return _ownerVertexCoords.TryGetValue(hexCoord, out var coords)
