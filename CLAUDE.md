@@ -84,14 +84,15 @@ gate — this names the discipline, it adds no new rule:
   `.claude/agents/*.md` — always set `subagent_type` explicitly).
 - Default discovery path is the main agent's own: roslyn / graph CLIs → targeted code reads (grep as needed).
 
-## Doc Curation (narrowed 2026-07-09 — module MDs are gone)
-- **docs-curator** (Sonnet, `.claude/agents/docs-curator.md`) now covers **di-graph STEP-2
-  AI-curation ONLY** (ecs-graph curation is deterministic in build_graph.py — run it directly).
-  Its former Category A MD-sync charter died with the module MDs. Cadence: per milestone, with the
-  user's approval, as before.
-- Category C policy and Category B patterns stay with the main agent / user.
-  `ARCHITECTURE.md` is additionally **FROZEN**: NO agent edits it — the graph-gate hook turns an
-  attempt into a user-approval ask; propose the change to the user instead.
+## Doc ownership (no curator agent)
+- The surviving doc genres (Flows, Patterns, root policy docs) are the **main agent's** to author with the
+  user's approval — there is no curator agent. Category C policy and Category B patterns stay with the main
+  agent / user.
+- The `ecs-graph` / `di-graph` knowledge graphs are **derived, not authored**: refresh them by running
+  their build scripts directly (both deterministic, one pass, no LLM — see Code Knowledge Policy); never
+  hand-edit the `.ecs-graph/` / `.di-graph/` artifacts (the graph-gate hook enforces this).
+- `ARCHITECTURE.md` is **FROZEN**: NO agent edits it — the graph-gate hook turns an attempt into a
+  user-approval ask; propose the change to the user instead.
 
 ## Engineering Task Template
 - **HARD GATE — no actions before a confirmed task statement. For any engineering task you MUST first restate the task using the template below AND, if you have any doubt that you understood the task correctly, ask me your own clarifying questions in the same message. Then STOP and wait for my explicit confirmation. Only AFTER I confirm the statement may you create a plan or do any work. Forming a plan, entering plan mode, reading-for-implementation, or editing anything before that confirmation is a process violation. The duty to ask is yours: when in doubt, ask me — do not assume, and do not wait for me to question you. This overrides any default "just start planning" behavior.**
@@ -173,7 +174,9 @@ Field ↔ template-block mapping: `:where` = «Працюй тільки в», `
      contracts are dated FLOW docs (`Flows/FLOW_<NAME>.md`).
   4. **Decreed rules** — `ARCHITECTURE.md` (policy), `ECS_CONVENTIONS.md` (point-of-code rules),
      `Patterns/` (recipes). They change only by the user's decision, never by code drift.
-- If you add or change an ECS entity archetype, refresh the ecs-graph (`/ecs-graph`) — the sole archetype/event registry.
+- If you add or change an ECS entity archetype, refresh the ecs-graph (`build_graph.py` / `/ecs-graph`) —
+  the sole archetype/event registry. Likewise refresh the di-graph (`build_di_graph.py` / `/di-graph`) after
+  changing DI wiring (registrations, `[Inject]`, Boot composition). Both builds are deterministic — run them yourself.
 - `DOC_STANDARD.md` governs the surviving doc genres (Flows, Patterns, root policy docs).
 
 ## Unity Build Policy

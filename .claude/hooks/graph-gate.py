@@ -1,37 +1,28 @@
 #!/usr/bin/env python3
-"""PreToolUse gate — forbids the MAIN agent from BUILDING/CURATING the DI graph and from reaching into
-either graph dir ad-hoc, and turns any main-agent edit of a FROZEN policy doc (ARCHITECTURE.md) into a
-user-approval ASK.
+"""PreToolUse gate — keeps the MAIN agent OUT of the graph artifact dirs (ad-hoc read/write) and turns
+any main-agent edit of a FROZEN policy doc (ARCHITECTURE.md) into a user-approval ASK.
 
-The ecs-graph is DETERMINISTIC now: `build_graph.py` extracts AND curates (`curate()`) in one call, so the
-main agent MAY run it directly. The di-graph build (`build_di_graph.py`) + its STEP-2 AI curation still
-belong to the **docs-curator** subagent (CLAUDE.md → Doc Curation). Writing/reading the `.ecs-graph/` /
-`.di-graph/` artifacts ad-hoc stays denied — query through the read-only CLIs `ecsg.py` / `dig.py`.
+Both graphs are DETERMINISTIC now: `build_graph.py` (ecs) and `build_di_graph.py` (di) each extract AND
+curate in ONE call (no LLM STEP-2 for either graph anymore), so the main agent MAY run either directly.
+What stays denied is ad-hoc reaching into the `.ecs-graph/` / `.di-graph/` artifacts — query through the
+read-only CLIs `ecsg.py` / `dig.py`, rebuild through the two build scripts, and never poke the JSON by hand.
 
 This closes the Bash bypass that a Write/Edit-only ban misses: a redirect, an inline
 `python3 -c "... json.dump(open('.ecs-graph/graph.json','w'))"`, `tee`, `sed -i`, `cp`/`mv`,
-or `cat`/`jq` reaching into the graph dirs. It also denies the main agent the STEP-2 curation
-checklists (`references/ecs-patterns.md` / `di-patterns.md`) — the curator's charter.
+or `cat`/`jq` reaching into the graph dirs.
 
-Applies ONLY to the main agent; subagents (docs-curator, scouts) are exempt — they ARE the
-build/curation path. Reads the hook JSON from stdin; prints a deny decision (or nothing =
-allow) and exits 0. Fail-open: any internal error → allow, so the gate can never wedge the
-main loop.
-
-Known limit (honest): a hook sees the command string, not the contents of an external script
-it runs. `python3 /some/where/curate.py` whose write logic is hidden inside the file and never
-names a graph dir on the command line is NOT caught here — that residual is covered by the
-checklist-read ban above and the standing behavioral rule (delegate graph STEP-2 to docs-curator).
+Applies ONLY to the main agent; subagents are exempt. Reads the hook JSON from stdin; prints a deny/ask
+decision (or nothing = allow) and exits 0. Fail-open: any internal error → allow, so the gate can never
+wedge the main loop.
 """
 import json
 import re
 import sys
 
 GRAPH_DIR_RE = re.compile(r"\.(?:ecs|di)-graph\b")   # matches .ecs-graph / .di-graph anywhere in a path/command
-BUILD_EXES = {"build_di_graph.py"}                    # di-graph build+STEP-2 is still the docs-curator's LLM job
-# ecs-graph is DETERMINISTIC now (build_graph.py = extract + curate() in one call), so the MAIN agent may run
-# it directly, alongside the read-only query CLIs.
-QUERY_EXES = {"ecsg.py", "dig.py", "build_graph.py"}
+# Both graph builders are deterministic (extract + curate in one call), alongside the read-only query CLIs —
+# the MAIN agent may run all of them directly, including the writes they make into their own graph dir.
+GRAPH_EXES = {"ecsg.py", "dig.py", "build_graph.py", "build_di_graph.py"}
 # Policy-frozen docs (status: frozen): an agent edit becomes a user-approval ASK, not a silent write.
 FROZEN_DOCS = ("ARCHITECTURE.md",)
 BASH_WRITE_EXES = {"sed", "tee", "cp", "mv", "rm", "truncate"}  # write-capable bash vectors onto a frozen doc
@@ -40,13 +31,10 @@ FROZEN_ASK = ("ARCHITECTURE.md is FROZEN policy (see its header banner) — agen
               "otherwise flag the needed change back to the user instead of editing.")
 # wrappers to skip when finding a pipeline segment's real executable
 WRAPPERS = {"python", "python3", "uv", "run", "time", "nice", "env", "sudo", "command", "exec", "xargs"}
-# di-graph STEP-2 checklist — reading it is the curator's job. (ecs-patterns.md is now IMPLEMENTED in
-# build_graph.py curate(), so it is a plain readable spec, no longer gated.)
-CHECKLISTS = ("skills/di-graph/references/di-patterns.md",)
 
-DELEGATE = ("Graph build + STEP-2 curation is the docs-curator's job (CLAUDE.md → Doc Curation): "
-            "delegate to @agent-docs-curator, scoped to a graph STEP-2 run. The main agent may only "
-            "QUERY the graphs via ecsg.py / dig.py (queries + stats).")
+GRAPH_DIR_DENY = ("Direct Bash access to .ecs-graph/ / .di-graph/ (writing or reading the graph "
+                  "artifacts ad-hoc) is denied in the main session. Query via ecsg.py / dig.py; "
+                  "rebuild via build_graph.py / build_di_graph.py — both are deterministic one-pass builds.")
 
 
 def deny(reason: str):
@@ -92,18 +80,13 @@ def _segment_exe(segment: str) -> str:
 
 
 def bash_is_gated(cmd: str):
-    """Deny a Bash command that builds or reaches into the graph dirs, unless it is a
-    read-only ecsg.py / dig.py query. Gate per pipeline segment by its EXECUTABLE, so a
-    mere mention of 'ecsg' as an argument is not what triggers the query allowance."""
+    """Deny a Bash command that reaches into the graph dirs, unless its executable is one of the sanctioned
+    graph tools (the two deterministic builders + the read-only query CLIs). Gate per pipeline segment by its
+    EXECUTABLE, so a mere mention of a graph dir as an argument to `cat`/`jq`/`sed` is what triggers the ban."""
     for seg in re.split(r"\|\||&&|;|\||\n", cmd):
         exe = _segment_exe(seg)
-        if exe in BUILD_EXES:
-            return ("Running the di-graph build script (build_di_graph.py) in the main session is denied — "
-                    "its STEP-2 curation is the docs-curator's LLM job. " + DELEGATE)
-        if GRAPH_DIR_RE.search(seg) and exe not in QUERY_EXES:
-            return ("Direct Bash access to .ecs-graph/ / .di-graph/ (writing or reading the graph "
-                    "artifacts ad-hoc) is denied in the main session. Query via ecsg.py / dig.py; "
-                    "to build or curate, " + DELEGATE)
+        if GRAPH_DIR_RE.search(seg) and exe not in GRAPH_EXES:
+            return GRAPH_DIR_DENY
         if exe in BASH_WRITE_EXES and any(d in seg for d in FROZEN_DOCS):
             return "FROZEN_ASK"
     return None
@@ -114,7 +97,7 @@ def main():
         data = json.load(sys.stdin)
     except Exception:
         return  # no/garbled input → allow
-    # Subagents (docs-curator, scouts) are exempt — they ARE the build/curation path.
+    # Subagents (scouts, etc.) are exempt.
     if data.get("agent_id") or data.get("agent_type"):
         return
 
@@ -124,8 +107,8 @@ def main():
     if tool in ("Write", "Edit"):
         fp = (ti.get("file_path", "") or "").replace("\\", "/")
         if GRAPH_DIR_RE.search(fp):
-            deny("Writing the graph artifacts (.ecs-graph/ / .di-graph/) in the main session is denied. "
-                 + DELEGATE)
+            deny("Writing the graph artifacts (.ecs-graph/ / .di-graph/) by hand is denied — they are "
+                 "generated. Rebuild via build_graph.py / build_di_graph.py.")
         if _is_frozen(fp):
             ask(FROZEN_ASK)
         return
@@ -136,13 +119,6 @@ def main():
             ask(FROZEN_ASK)
         elif reason:
             deny(reason)
-        return
-
-    if tool == "Read":
-        fp = (ti.get("file_path", "") or "").replace("\\", "/")
-        if any(fp.endswith(c) for c in CHECKLISTS):
-            deny("The graph STEP-2 curation checklist is the docs-curator's charter, not a main-agent read. "
-                 + DELEGATE)
         return
     # everything else → allow.
 

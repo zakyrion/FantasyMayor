@@ -22,8 +22,8 @@ a one-line description.
 Then follow INDEX's read-priority:
 - Read every `read: always` doc next (currently `ARCHITECTURE.md`, `CLAUDE.md`).
   Execute the instructions inside `CLAUDE.md` — do not just summarize them.
-  (`DOC_STANDARD.md` is `read: trigger`, not always — the `docs-curator` agent owns it; load it only
-  when you author or review a doc yourself.)
+  (`DOC_STANDARD.md` is `read: trigger`, not always — load it only when you author or review a doc
+  yourself.)
 - Open `trigger` docs only when their condition holds, and `reference` docs on demand —
   never preload them.
 
@@ -34,13 +34,12 @@ rules, read-on-demand references such as Addressables patterns).
 
 Run `python3 ~/.claude/skills/ecs-graph/scripts/ecsg.py stats` and
 `python3 ~/.claude/skills/di-graph/scripts/dig.py stats` from the project root (2 cheap CLI calls —
-status maintenance, not discovery; allowed for the main agent). Each auto-refreshes stale mechanical
-facts before printing and emits a stderr banner reporting curated-vs-stale state. From each report,
-note in one line per graph: `curated` (false = curation debt — the STEP-2 pass is pending), stale
-files (code changed since the last build), and warnings count. If either graph is stale or uncurated,
-say so in the status summary and offer the fix (`build_graph.py --force` / `build_di_graph.py --force`
-after a rename, else the auto-`--update` already ran, then the STEP-2 re-curation) — do not run it
-unprompted.
+status maintenance, not discovery; allowed for the main agent). Both graphs curate deterministically in
+their build scripts (no LLM step), and each query auto-refreshes stale facts before printing, so a stale
+graph self-heals to `curated: true` on the spot. From each report, note in one line per graph: `curated`,
+stale files (code changed since the last build), and warnings count. If a graph reports warnings or you
+suspect a rename left ghost nodes, offer the fix (`build_graph.py --force` / `build_di_graph.py --force`)
+— do not run it unprompted.
 
 ### 1b. Doc-lint check
 
