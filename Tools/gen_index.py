@@ -303,7 +303,7 @@ def main():
 
     L.append("## Reference map (on demand)")
     L.append("")
-    L.append("Per-module navigation docs. `status` mirrors each module's `## Current State`.")
+    L.append("Reference docs read on demand.")
     L.append("")
     L.append("| Doc | Cat | Status | What it is |")
     L.append("|---|---|---|---|")

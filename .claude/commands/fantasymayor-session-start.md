@@ -24,7 +24,7 @@ Then follow INDEX's read-priority:
   Execute the instructions inside `CLAUDE.md` — do not just summarize them.
   (`DOC_STANDARD.md` is `read: trigger`, not always — the `docs-curator` agent owns it; load it only
   when you author or review a doc yourself.)
-- Open `trigger` docs only when their condition holds, and `reference` (per-module) docs on demand —
+- Open `trigger` docs only when their condition holds, and `reference` docs on demand —
   never preload them.
 
 Respect the repository constraints you find (startup order, Unity build restrictions, module-folder

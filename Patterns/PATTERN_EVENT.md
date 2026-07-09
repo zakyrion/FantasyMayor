@@ -44,5 +44,7 @@ pulse.Set(new EventTag());   // marks it one-frame; the cleanup pass disposes it
    :raise              "pulse.Set(event) + pulse.Set(new EventTag())" ;; EventTag opts it into end-of-tick disposal (PATTERN_CLEANUP_SYSTEM)
    :startup-bulk-work  pipeline-stage                                 ;; never an event — one-frame events do NOT survive the async map-creation pipeline (PATTERN_PIPELINE_STAGE)
    :naming             {:suffix "…Event" :in "Events/"}               ;; no domain prefix — namespace carries it (ECS_CONVENTIONS → Naming & Construction)
+   :in-tick-visibility "consumer.Priority > emitter.Priority"         ;; the pulse dies at the SAME tick's EventCleanupSystem (MaxValue) — only later-priority systems see it that tick; lower-priority consumers see it NEVER
+   :feedback-loop      {:never "populate→command→populate on one-frame events"}  ;; impossible at ANY priorities (proven 2026-07-08 on the district-build draft attempt) — restructure so data flows DOWN the priority order once
    :producer->consumer ecs-graph})
 ```

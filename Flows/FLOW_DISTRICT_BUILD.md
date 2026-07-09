@@ -24,7 +24,7 @@ confirm / dismiss) spanning `Presentation.UI.DistrictBuild`, `Domains.Actions.Bu
 
 A FLOW doc owns ONE cross-domain behavior end-to-end: its event vocabulary, state ownership, and
 ordering invariants, stated as a CONTRACT — including target rules the code does not meet yet.
-Module MDs link here and never retell the other side's half (retold halves are what rots). Live
+Code comments link here and never retell the other side's half (retold halves are what rots). Live
 wiring is the ecs-graph (`/ecs-graph`); this doc is diffable against it — a mismatch is either
 drift to fix or a deliberate contract change.
 

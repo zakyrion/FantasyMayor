@@ -52,7 +52,7 @@ Do **not** preload. Read only when the trigger condition holds.
 
 ## Reference map (on demand)
 
-Per-module navigation docs. `status` mirrors each module's `## Current State`.
+Reference docs read on demand.
 
 | Doc | Cat | Status | What it is |
 |---|---|---|---|

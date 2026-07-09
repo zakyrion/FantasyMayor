@@ -37,7 +37,11 @@ ecs-graph / di-graph / roslyn / код дають ті самі факти за�
 | 1 | `:doc-lint` | `Tools/doc_lint.py`: детермінований детектор привидів — code_refs + Pascal-символи в MD проти оголошень у .cs; + рядок у session-start | ✅ 2026-07-09 |
 | 2 | `:kill-module-mds` | triage → salvage «why» у код-коменти → видалено ВСІ 32 module/domain/presentation MD (+ `.meta`); `ADDRESSABLE_PATTERNS.md` → `Patterns/`; INDEX перебудовано; поглинув старі фази `:why-to-code` і `:md-fate`-щодо-module-MD | ✅ 2026-07-09 |
 | 3 | `:root-docs-purge` | doc-first правила вирізано: `CLAUDE.md` (Research tool-first, «Module MD Files» → «Code Knowledge Policy», curator звужено до di-graph STEP-2), `ARCHITECTURE.md` (3 правки, approve), `DOC_STANDARD.md` переписано (жанри: Flow/Recipe/Policy; Category A = FLOW), `GENERAL_UI_STYLE.md` §13 (per-window docs скасовано), `ECS_CONVENTIONS.md` якорі, `PATTERN_TRANSACTION_ENTITY.md` (плейсхолдери + degenerate-case), `CLOJURE_GUIDE.md` (історичний приклад + doc-lint: off/on регіони), INDEX agent-zone. **doc-lint = 0 привидів** | ✅ 2026-07-09 |
-| 4 | `:workflow-flip` | чистка agent-memory (`feedback_read_md_files`, `feedback_docs_always_synced`, `feedback_md_behavioral_contract`, `feedback_docs_sync_needs_permission`, …) + `.claude/agents/docs-curator.md` переписати під нову роль (di-graph STEP-2 only) або retire + перевірити hooks/graph-gate.py | ⬜ |
+| 4 | `:workflow-flip` | agent-memory вичищено: 3 doc-first файли видалено (`feedback_read_md_files`, `feedback_md_behavioral_contract`, `feedback_docs_always_synced` → нагет `feedback_prefabs_user_side`), 8 переформульовано (dead wikilinks, districtbuild-focus переписано начисто); `.claude/agents/docs-curator.md` переписано під di-graph STEP-2 only; `graph-gate.py` перевірено — коректний без змін; in-tick event invariant врятовано в `PATTERN_EVENT.md` (`:in-tick-visibility`); `gen_index.py` reference-map заголовок | ✅ 2026-07-09 |
+| 5 | `:md-fate` | вирішено достроково фазою 2: module-MD видалені як клас, не відтворювати | ✅ 2026-07-09 |
+
+**ПРОГРАМУ ЗАВЕРШЕНО 2026-07-09 (фази 0–5).** Постійний режим декретовано в `CLAUDE.md`
+(«Code Knowledge Policy» + tool-first Research); цей файл далі — датований запис програми, не живий док.
 
 ## Контекст для відновлення сесії
 
