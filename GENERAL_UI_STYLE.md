@@ -516,34 +516,27 @@ How to assemble any panel. This is the default; deviate only with a stated reaso
 - **A root/controller system owns the shared instance.** It loads the panel (addressables), owns the instance
   and handle (dispose per `ADDRESSABLE_PATTERNS.md`), and shows/hides the whole panel. Block systems own only
   their own block. (Current idiom: `MainUISpawnSystem` instantiates one `UI/MainUI` prefab; spawn subsystems
-  resolve their view off it — see `Assets/Presentation/UI/MAIN_UI.md`.)
+  resolve their view off it — see that system's header comment.)
 - **One shared panel instance, not per-entity.** Selection is singular, so the context panel is reused.
 - **Absence is not an error; a missing prerequisite is.** An optional block with no data → hide it (normal). A
   required prerequisite that must always exist → throw, per `ECS_CONVENTIONS.md` fail-loud.
 - **Placeholder / SCAFFOLD blocks.** A block whose backing ECS components do not exist yet is driven by a
   **placeholder system** that supplies stub data or keeps the block hidden, until the real components land.
-  Mark such blocks `SCAFFOLD` in the window's own doc (current SCAFFOLD: the District block and the
-  production table — both wait on the District-economy data).
+  Mark such blocks `SCAFFOLD` in the placeholder system's header comment.
 
 ---
 
-## 13. Per-Window Docs
+## 13. Per-Window Knowledge (docs abolished)
 
-This file is the **general** language. Every concrete window/panel gets its **own** MD doc that:
+This file is the **general** design language and the TARGET. Per-window MD docs were abolished with the
+module MDs (2026-07-09) — do not create one for a new window. A window's specifics live at distance zero:
 
-- **references this file** for tokens, components, layout regions, principles, and construction;
-- specifies **only** that window's own concerns: its content model, its progressive-disclosure states, and its
-  data bindings (which entity components feed which rows);
-- does **not** restate tokens, the component catalog, or principles.
+- **content model, states, ECS bindings** — the window's view/system header comments;
+- **design reference** — the `design-mockups/*.html` file the window was built from (name it in the
+  spawn system's or view's header comment);
+- **cross-domain behavior** (a window driving a domain transaction) — the behavior's `Flows/FLOW_*.md`.
 
-**Rule:** every **new** UI window gets its own design doc. The current TerrainGenerator / generation overlay is
-**temporary UI** — do not write a design doc for it and do not treat it as a style reference.
-
-Current per-window docs live under `Assets/Presentation/UI/*` (e.g. `HexInfoPanel/HEX_INFO_PANEL.md`,
-`EndTurn/END_TURN.md`). NOTE: these docs describe the CURRENT implementation, which predates the §4 layout
-model above (the End Turn cluster and hex panel are not yet merged into one bottom panel). They are updated
-when the new layout is actually built — this file describes the TARGET, the per-window docs describe what
-exists today.
+The current TerrainGenerator / generation overlay is **temporary UI** — do not treat it as a style reference.
 
 ---
 
@@ -564,7 +557,7 @@ exists today.
 | Recolor the same role across panels | Breaks the role-color language | city=blue, owner=gold, operator=green everywhere |
 | Cold / steel palette | Wrong tone for a `cozy` game | Warm dark + gold |
 | Two floating boxes faking one bottom panel | Breaks the unified shell | One shell, vertical divider, two sub-panels |
-| Restate a window's content here | This doc is GENERAL | Put it in that window's own doc |
+| Restate a window's content here | This doc is GENERAL | Put it in the window's view/system header comments (§13) |
 | Translate `box-shadow` / `::before` / blur straight to USS | USS does not support them | Use the §11 gotcha workarounds |
 | Insert each block dynamically per subsystem | Loses authored order; churns GC | Author the skeleton; toggle `display: none` (§12) |
 | Rebuild an overlay / list / menu / dropdown from raw elements when App UI has it | Reinvents a maintained, themed, accessible control | Use the App UI control (§15), reskinned via `appui--cozy` |

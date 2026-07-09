@@ -60,7 +60,7 @@ when designing or reviewing any system.
 - holds **more than two unrelated query families** (it serves several masters);
 - runs in **multiple game states** for different reasons.
 
-**The split recipe** (worked example: `ForestViewSyncSystem` → 3 systems):
+**The split recipe** (worked example: the retired per-frame `ForestViewSyncSystem`, split → 3 systems):
 1. The startup bulk becomes a **Pipeline SubSystem** (one-shot, runs once inside `MapCreation`):
    `ForestHexResourceViewSubSystem` plants every forest hex and paints ground once.
 2. Each runtime responsibility becomes its own **Reactive System** in `Gameplay`:
@@ -215,7 +215,7 @@ An entity "table" is defined by its query, and a query MUST name the table, not 
   |---|---|---|
   | Hex | `HexTag` | PK — one entity per coordinate |
   | HexResource | `HexResourceTag` | FK — N per coordinate (one per `ResourceType`) |
-  | ResourceView | `ForestViewTag` | FK — N per coordinate |
+  | ForestView | `ForestViewTag` | FK — N per coordinate |
   | HexIconContainer | `HexIconContainerTag` | FK — one per coordinate |
   | DistrictView | `DistrictViewTag` | FK — one per built hex |
 
@@ -244,7 +244,7 @@ An entity "table" is defined by its query, and a query MUST name the table, not 
   convention above. Branch on the `bool`.
 - **Key equality:** a key component MUST implement `IEquatable<T>` + `GetHashCode`, or an
   `IEqualityComparer<T>` MUST be passed to the `AsMap` / `AsMultiMap` overload.
-  `HexIdComponent` (delegates to `HexCoord`) and `HexResourcesComponent` (keys on its `Type` enum)
+  `HexIdComponent` (delegates to `HexCoord`) and `HexTypeComponent` (keys on its enum)
   implement this — follow their shape for new key components.
 - **Join = a lookup by key value at the point of use.** Never store an `Entity` reference from one
   table's row to another table's row.

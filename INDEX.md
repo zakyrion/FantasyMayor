@@ -28,7 +28,7 @@ Do **not** preload. Read only when the trigger condition holds.
 
 | Doc | Read it… | What it is |
 |---|---|---|
-| [DOC_STANDARD.md](DOC_STANDARD.md) | before authoring or reviewing any .md for DOC_STANDARD compliance (the docs-curator's charter; the main agent reads it only when it authors a doc itself) | Single source of truth for how to write Markdown docs in this project. |
+| [DOC_STANDARD.md](DOC_STANDARD.md) | before authoring or reviewing any .md (Flows / Patterns / policy) for standard compliance | Single source of truth for how to write Markdown docs in this project. |
 | [FantasyMayor — ECS & Runtime Conventions](ECS_CONVENTIONS.md) | before writing or editing any ECS system, component, event, config, or query | The ECS/runtime rulebook: where state lives, how systems are decomposed, and the write / collection / |
 | [FLOW — District Build](Flows/FLOW_DISTRICT_BUILD.md) | before changing any district-build event, system, transaction state — or any doc that retells this flow | The cross-domain contract of the district-build transaction: one player gesture (open → pick → |
 | [FantasyMayor - Gameplay Foundation](GAMEPLAY_FOUNDATION.md) | ONLY when the user explicitly asks to open this file — never on session-start, never by topic/keyword | `FantasyMayor` is a turn-based game about governing a city through a scarcity of `Action Points`, limited resources, population as a productive and political force, and an unstable balance of power between the mayor and the local elites. |
@@ -74,6 +74,9 @@ Visual maps (Obsidian Canvas). Read/edit via Obsidian MCP; not preloaded.
 
 Curate what the script can't derive: current focus, stale docs, cross-doc orientation. Keep it short. Preserved across `gen_index.py` runs.
 
+- **Module/domain/presentation MDs are ABOLISHED (2026-07-09, tool-first flip)** — never recreate one.
+  Module knowledge = code header comments + `roslyn` / `ecsg.py` / `dig.py`; doc symbol claims are
+  checked by `Tools/doc_lint.py`; the program log is `PLAN_TOOL_FIRST.md`.
 - **Pattern recipes (`Patterns/PATTERN_*.md`)** are the granular, one-approach-per-file skeletons for the ECS
   building blocks (component / tag / event / config / config-loader / pipeline-stage / orchestrator+subsystem /
   per-frame / reactive / cleanup). **Read the matching recipe instead of opening a live system as a reference.**

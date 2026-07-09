@@ -222,6 +222,12 @@ Rules-блоки `ARCHITECTURE.md`, `Patterns/*`, module MDs — ті самі �
 
 Живі приклади правил для читання: `ARCHITECTURE.md`, будь-який `Patterns/PATTERN_*.md`
 → Rules.
+
+> **Історичний приклад.** Батч нижче — реальна постановка з 2026-07, яку згодом скасував півот
+> (draft-механіку видалено з кодової бази; згадані типи більше не існують). Читай його як
+> ілюстрацію НОТАЦІЇ, не як актуальні якорі коду.
+
+<!-- doc-lint: off — історичний приклад, якорі навмисно мертві -->
 ```clojure
 [{:task :relocate-selection-command
   :goal "команда вибору стає доменною подією"
@@ -249,8 +255,9 @@ Rules-блоки `ARCHITECTURE.md`, `Patterns/*`, module MDs — ті самі �
  {:task :sync-flow-contract
   :where #{Flows/FLOW_DISTRICT_BUILD.md .ecs-graph}
   :do "закрити gap 1 у FLOW-доку (state-ownership :now, event-таблиця, інваріанти) + build_graph.py"
-  :skip "модульні MD — куратору за milestone-каденцією"}]
+  :skip "модульні MD — куратору за milestone-каденцією"}]   ;; NB: module-MD і цей каденс скасовано 2026-07-09 (tool-first)
 ```
+<!-- doc-lint: on -->
 
 ## 10. Канон і полиця
 

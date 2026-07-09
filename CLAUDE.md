@@ -15,12 +15,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Working Contract: Research → Plan → Execute
 Every engineering task runs in three phases. Each is already backed by an existing
 gate — this names the discipline, it adds no new rule:
-1. **Research** — gather facts, do not accumulate source. Module MDs first; structure
+1. **Research** — gather facts, do not accumulate source. **Tool-first + code**: structure
    via the bounded `mcp__roslyn__*` tools and the ECS/DI graph CLIs (`ecsg.py` / `dig.py`);
-   grep/read directly as needed — read the files you will edit yourself, once. For haystack
-   questions (who-consumes / where-wired across many files) optionally delegate to
-   **discovery-scout** (Haiku, pointer-contract — see Discovery Scouts). In = distilled
-   findings, not raw dumps.
+   targeted code reads (a file's header comment is its contract) — read the files you will
+   edit yourself, once. For haystack questions (who-consumes / where-wired across many files)
+   optionally delegate to **discovery-scout** (Haiku, pointer-contract — see Discovery
+   Scouts). In = distilled findings, not raw dumps. Any surviving doc's claim about code is a
+   HYPOTHESIS — verify names via `Tools/doc_lint.py` / roslyn before relying on it.
 2. **Plan** — restate the task via the Engineering Task Template, ask clarifying
    questions, and **wait for explicit confirmation** before any edit (the HARD GATE
    below). Surface ALL open decisions in ONE consolidated pass and BATCH the questions —
@@ -37,7 +38,7 @@ gate — this names the discipline, it adds no new rule:
 
 ## Start Working
 - **Read `INDEX.md` first — and by default ONLY `INDEX.md`** (plain `Read`). It is the generated doc map and the single key to every doc and canvas: it carries each file's read-priority (`always` / `trigger` / `reference`) plus a one-line description. Let INDEX drive all navigation — do **not** preload anything it does not send you to.
-- Follow INDEX's read-priority: read the docs it marks `read: always` next; open `trigger` docs only when their condition holds, and `reference` (per-module) docs on demand.
+- Follow INDEX's read-priority: read the docs it marks `read: always` next; open `trigger` docs only when their condition holds, and `reference` docs on demand.
 - `INDEX.md` is built in **2 passes**: (1) `python3 Tools/gen_index.py` rebuilds the structural skeleton between its `BEGIN/END GENERATED` markers from each doc's frontmatter + first line; (2) the agent curates descriptions / statuses / context. Re-run pass 1 after any frontmatter change; never edit between the markers, and keep the agent zone below the END marker short and informative.
 
 ## Documentation Access
@@ -81,26 +82,20 @@ gate — this names the discipline, it adds no new rule:
   open files named as edit-targets (the main agent reads those itself, once); ONE round per task.
 - **arch-scout** and **asset-scout** cover arch-check and the asset graph (details in each
   `.claude/agents/*.md` — always set `subagent_type` explicitly).
-- Default discovery path is the main agent's own: module MDs → roslyn / graph CLIs → direct grep/reads.
+- Default discovery path is the main agent's own: roslyn / graph CLIs → targeted code reads (grep as needed).
 
-## Doc Curation (the write path)
-- **docs-curator** (Sonnet, `.claude/agents/docs-curator.md`) is the ONLY write-capable agent and owns
-  `DOC_STANDARD.md`. It VALIDATES briefs — drop tool-derivable, verify against tools, **never invent**
-  — so every brief must carry the "why": (1) what changed, (2) intent/decisions only you hold,
-  (3) affected docs, (4) what NOT to touch. A brief without the "why" yields a flagged gap, not a doc.
-- **Cadence: ONE batched run per milestone / before merge, covering the branch delta** — never
-  per-task unless the user asks (graphs auto-`--update` in the interim; days of semantic lag are safe).
-  The gate stands: finish code, STOP, get the user's approval, then delegate — scoped (an MD-sync run
-  OR a di-graph STEP-2 run, never both). Accumulate per-task "why" bullets for the milestone brief.
-- It authors Category A MDs + the INDEX pass-2 zone + di-graph STEP-2 only (ecs-graph curation is
-  deterministic in build_graph.py — run it directly). Category C policy and
-  Category B patterns stay with the main agent / user — the curator flags, never edits them.
+## Doc Curation (narrowed 2026-07-09 — module MDs are gone)
+- **docs-curator** (Sonnet, `.claude/agents/docs-curator.md`) now covers **di-graph STEP-2
+  AI-curation ONLY** (ecs-graph curation is deterministic in build_graph.py — run it directly).
+  Its former Category A MD-sync charter died with the module MDs. Cadence: per milestone, with the
+  user's approval, as before.
+- Category C policy and Category B patterns stay with the main agent / user.
   `ARCHITECTURE.md` is additionally **FROZEN**: NO agent edits it — the graph-gate hook turns an
   attempt into a user-approval ask; propose the change to the user instead.
 
 ## Engineering Task Template
 - **HARD GATE — no actions before a confirmed task statement. For any engineering task you MUST first restate the task using the template below AND, if you have any doubt that you understood the task correctly, ask me your own clarifying questions in the same message. Then STOP and wait for my explicit confirmation. Only AFTER I confirm the statement may you create a plan or do any work. Forming a plan, entering plan mode, reading-for-implementation, or editing anything before that confirmation is a process violation. The duty to ask is yours: when in doubt, ask me — do not assume, and do not wait for me to question you. This overrides any default "just start planning" behavior.**
-- Use the following template for engineering tasks by default. Engineering tasks include coding, architecture changes, refactors, module documentation, config-flow work, and other repository changes.
+- Use the following template for engineering tasks by default. Engineering tasks include coding, architecture changes, refactors, documentation, config-flow work, and other repository changes.
 - Do not require this template for casual conversation or pure Q&A that does not ask for repository changes.
 - Show this template to the user when they are defining an engineering task so they can see and reuse it.
 - Expect engineering task requests to follow this format unless the user explicitly tells you to ignore it for the current request.
@@ -165,17 +160,21 @@ Field ↔ template-block mapping: `:where` = «Працюй тільки в», `
   notation", already in every agent's context; authoring spec for Clojure rules inside
   docs: `DOC_STANDARD.md` → Rule Style.
 
-## Module MD Files
-- Every module has an MD reference file in its root folder.
-- **`DOC_STANDARD.md` (repo root) is the single source of truth for how every MD file is written.** It is
-  `read: trigger` and owned by the **docs-curator** agent (see Doc Curation). The main agent reads it only
-  when it authors/reviews a doc itself; the default path is to delegate doc authoring to the curator.
-- **Before reading any source file in a module, read its MD file first.**
-- Division of labor: **`roslyn-mcp`** (LSP) is the reference for code STRUCTURE — types, signatures, references, call/type hierarchy; **`ecs-graph`/`di-graph`** for ECS/DI relationships. Module MD files cover ONLY what those tools cannot extract: intent, non-obvious invariants, design decisions, how-to-use-correctly, and current state.
-- Read source files only when both the MD and the tools (`roslyn-mcp` / `ecs-graph` / `di-graph`) lack the specific detail needed.
-- If you change a module's invariants, public-usage rules, or current state, its MD file needs updating — do it via the **docs-curator** (brief it with the delta + the "why"); the curator applies it per `DOC_STANDARD.md`.
+## Code Knowledge Policy (tool-first — module MDs abolished 2026-07-09)
+- **Module/domain/presentation MD files do not exist and must NEVER be recreated.** They rotted faster
+  than curation could keep up; a stale doc poisons context worse than no doc.
+- Knowledge lives in four non-rotting forms:
+  1. **Derived** — code STRUCTURE via `roslyn-mcp`; ECS/DI relationships via `ecs-graph`/`di-graph`;
+     doc symbol claims are lint-checked by `Tools/doc_lint.py`.
+  2. **Code comments at distance zero** — intent, non-obvious invariants, and contracts live in a short
+     comment ON the thing itself (class header / method), updated in the same diff. A comment about
+     ANOTHER file is a rot seed — link by name only, or move the fact to its owner.
+  3. **Dated records** — the "why" of a change belongs in the commit message; cross-domain target
+     contracts are dated FLOW docs (`Flows/FLOW_<NAME>.md`).
+  4. **Decreed rules** — `ARCHITECTURE.md` (policy), `ECS_CONVENTIONS.md` (point-of-code rules),
+     `Patterns/` (recipes). They change only by the user's decision, never by code drift.
 - If you add or change an ECS entity archetype, refresh the ecs-graph (`/ecs-graph`) — the sole archetype/event registry.
-- Architecture policy and stack live in `ARCHITECTURE.md` (FROZEN — see Doc Curation); the living module/domain roster is `INDEX.md` → "Reference map"; point-of-code ECS/runtime conventions live in `ECS_CONVENTIONS.md`. Do not duplicate or override any of them in module MD files.
+- `DOC_STANDARD.md` governs the surviving doc genres (Flows, Patterns, root policy docs).
 
 ## Unity Build Policy
 - This is a Unity project.

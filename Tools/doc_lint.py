@@ -37,7 +37,7 @@ PLACEHOLDER_PREFIXES = ("My", "Foo", "Some", "The", "Bar", "Baz", "Example", "Fa
 GENERIC_VOCAB = {
     "ConfigComponent", "ViewComponent", "EventComponent", "KeyComponent",
     "SpawnSystem", "DespawnSystem", "ReactiveSystem", "WorldInitSystem", "MapGenerationSystem",
-    "TemplateTag", "TargetTag", "OutputTag", "ActionTag",
+    "TemplateTag", "TargetTag", "OutputTag", "ActionTag", "DraftTag", "FactTag",
     "ItemConfig", "CostConfig", "OutcomeConfig",
 }
 
@@ -150,10 +150,19 @@ def lint_file(md: Path, decls: set, idents: set):
     # Body: every role-suffixed Pascal token (prose, backticks, and code fences alike) must
     # exist as an identifier somewhere in real code.
     seen_on_line = set()
+    suppressed = False  # region toggle: <!-- doc-lint: off --> … <!-- doc-lint: on -->
     for i in range(fm_end, len(lines)):
         line = lines[i]
         low = line.lower()
-        if any(m in low for m in HISTORY_MARKERS):
+        if "doc-lint: off" in low:
+            suppressed = True
+            continue
+        if "doc-lint: on" in low:
+            suppressed = False
+            continue
+        if suppressed or any(m in low for m in HISTORY_MARKERS):
+            continue
+        if ".canvas" in low:  # canvas-map rows carry user-intake labels, not code claims
             continue
         for raw in TOKEN_RE.findall(line):
             token = base_name(raw)
