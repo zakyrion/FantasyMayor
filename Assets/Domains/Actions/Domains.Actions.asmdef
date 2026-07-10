@@ -4,6 +4,7 @@
     "references": [
         "Domains.Economy",
         "Domains.Actors",
+        "Domains.Kernel",
         "Domains.Map",
         "AxialSystem",
         "Turn",

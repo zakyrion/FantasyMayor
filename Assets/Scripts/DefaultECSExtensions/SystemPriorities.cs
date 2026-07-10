@@ -49,7 +49,8 @@ namespace DefaultECSExtensions
             public const int ResourceBar = 565;
             public const int DistrictBuildUi = 566;
             public const int BuildDistrictAction = 600;
-            public const int ForestSpawn = 601;
+            public const int BuildDistrictCompletion = 601; // > BuildDistrictAction (600), < DistrictViewSpawn (602): consume the completed pulse, write the District fact + raise DistrictBuiltEvent in the SAME frame the view reconciles
+            public const int ForestSpawn = 599; // moved off 601 to free that slot for BuildDistrictCompletion; forest ordering is independent of the district-build chain
             public const int DistrictViewSpawn = 602;
             public const int ForestDespawn = 603;
             public const int HexIconsContainerPosition = 700; // > Camera (0): re-project after the camera moves this frame
@@ -75,6 +76,7 @@ namespace DefaultECSExtensions
         public static class TurnPhase
         {
             public const int MayorApRestore = 500; // Upkeep band
+            public const int BuildDistrictTurnTick = 510; // Upkeep band: count down in-progress build countdowns each turn
             public const int DistrictOpenConditionEvaluator = 1000; // tail of the turn pipeline (Preview band)
         }
 

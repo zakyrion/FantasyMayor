@@ -6,6 +6,7 @@ using DefaultEcs;
 using DefaultECSExtensions;
 using Domains.Actions.BuildDistrictAction.Events;
 using Domains.Economy.District.Data;
+using Domains.Kernel.Data;
 using Domains.Map.Hex.Components;
 using Flows.DistrictBuild.Events;
 using JetBrains.Annotations;
@@ -96,9 +97,10 @@ namespace Presentation.UI.DistrictBuild.Systems
         private void OnConfirmed()
         {
             var (coords, type) = ReadSelection();
+            var payer = ReadPayer();
 
             var buildEntity = _world.CreateEntity();
-            buildEntity.Set(new DistrictBuildConfirmedEvent { Coords = coords, Type = type });
+            buildEntity.Set(new DistrictBuildConfirmedEvent { Coords = coords, Type = type, Payer = payer });
             buildEntity.Set(new EventTag());
 
             _view.Hide();
@@ -125,6 +127,21 @@ namespace Presentation.UI.DistrictBuild.Systems
             var coords = _selectedHexSet.GetEntities()[0].Get<HexSelectedComponent>().Coords;
             var type = _selectionSet.GetEntities()[0].Get<DistrictBuildSelectionComponent>().Selected;
             return (coords, type);
+        }
+
+        // The chosen payer lives view-local in the price section (its owner, per DistrictBuildPriceUIView). That
+        // section always resolves a valid default on populate, so Unknown here means it never populated — a broken
+        // invariant, fail loud (mirrors ReadSelection). Captured into the confirmed pulse; not yet spent (R2).
+        private ActorType ReadPayer()
+        {
+            if (!_world.Has<DistrictBuildPriceUIViewComponent>())
+                throw new InvalidOperationException("DistrictBuildUISystem: confirm with no price section view.");
+
+            var payer = _world.Get<DistrictBuildPriceUIViewComponent>().View.SelectedOwner;
+            if (payer == ActorType.Unknown)
+                throw new InvalidOperationException("DistrictBuildUISystem: confirm with no selected payer.");
+
+            return payer;
         }
 
         private void Open(DistrictBuildUIView view)

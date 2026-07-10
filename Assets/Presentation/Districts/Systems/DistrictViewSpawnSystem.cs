@@ -1,10 +1,10 @@
 using System;
 using DefaultEcs;
 using DefaultECSExtensions;
-using Domains.Actions.BuildDistrictAction.Components;
 using Domains.Actions.BuildDistrictAction.Events;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
+using Domains.Economy.District.Tags;
 using Domains.Map.Hex.Components;
 using JetBrains.Annotations;
 using Presentation.Districts.Components;
@@ -19,16 +19,16 @@ namespace Presentation.Districts.Systems
 {
     /// <summary>
     ///     Reactive runtime district-view spawner. Anchored on the one-frame <see cref="DistrictBuiltEvent" />
-    ///     pulse: on its presence it reconciles state — every committed district entity
-    ///     (<see cref="BuildDistrictActionTag" />) that has no view yet gets its prefab instantiated on the hex
-    ///     centre. Works with current world state, not the pulse payload, so it is idempotent: a second pulse in
-    ///     the same frame finds nothing missing and no-ops. The pulse is raised by
-    ///     <c>BuildDistrictActionSystem</c> when a build is committed.
+    ///     pulse: on its presence it reconciles state — every built District fact entity
+    ///     (<c>DistrictTag</c>) that has no view yet gets its prefab instantiated on the hex centre. Works with
+    ///     current world state, not the pulse payload, so it is idempotent: a second pulse in the same frame finds
+    ///     nothing missing and no-ops. The pulse is raised by <c>BuildDistrictCompletionSystem</c> at build
+    ///     completion.
     /// </summary>
     [UsedImplicitly]
     public sealed class DistrictViewSpawnSystem : UpdatedSystem
     {
-        // Committed district entities: one per built hex, carrying the hex FK and its district type.
+        // Built District fact entities: one per built hex, carrying the hex FK and its district type.
         private readonly EntitySet _districts;
 
         // District view entities indexed by the hex FK -> lets the reconcile skip hexes already viewed.
@@ -48,7 +48,7 @@ namespace Presentation.Districts.Systems
             _world = world;
 
             _districts = world.GetEntities()
-                .With<BuildDistrictActionTag>()
+                .With<DistrictTag>()
                 .With<HexIdComponent>()
                 .With<DistrictTypeComponent>()
                 .AsSet();

@@ -1,23 +1,29 @@
+using System;
 using DefaultEcs;
 using DefaultECSExtensions;
 using Domains.Actions.BuildDistrictAction.Components;
 using Domains.Actions.BuildDistrictAction.Events;
 using Domains.Actions.Components;
+using Domains.Actors.Components;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
+using Domains.Economy.DistrictBuildCost.Components;
 using Domains.Map.Hex.Components;
 using JetBrains.Annotations;
-using Modules.AxialSystem;
 
 namespace Domains.Actions.BuildDistrictAction.Systems
 {
     /// <summary>
-    ///     Reactive: on the <see cref="DistrictBuildConfirmedEvent" /> pulse creates the committed build entity —
+    ///     Reactive: on the <see cref="DistrictBuildConfirmedEvent" /> pulse creates the IN-PROGRESS build entity —
     ///     stamps <c>HexIdComponent</c> + <c>DistrictTypeComponent</c> from the pulse payload, a unique
     ///     <c>ActionIdComponent</c> (handed out by the shared <c>ActionIdAllocatorComponent</c> counter, seeded here),
-    ///     and <c>BuildDistrictActionTag</c>. There is no draft: the district is built directly on confirm. Hex and
-    ///     district come from the pulse (the Actions assembly can't read the Presentation selection). See
-    ///     <c>Patterns/PATTERN_REACTIVE_SYSTEM.md</c>.
+    ///     the turn countdown (<c>BuildDistrictTurnsLeftComponent</c> = the district's <c>TurnsToBuild</c>), the
+    ///     chosen payer (<c>ActorTypeComponent</c>, captured now but not yet spent — resource spend is R2), and
+    ///     <c>BuildDistrictInProgressTag</c>. There is no draft: the build is committed directly on confirm. Hex,
+    ///     district, and payer come from the pulse (the Actions assembly can't read the Presentation selection).
+    ///     <c>BuildDistrictTurnTickSystem</c> counts the entity down each turn and <c>BuildDistrictCompletionSystem</c>
+    ///     materialises the District fact at zero (a <c>TurnsToBuild</c> of 0 completes on the next frame). See
+    ///     <c>Patterns/PATTERN_REACTIVE_SYSTEM.md</c> and <c>Flows/FLOW_DISTRICT_BUILD.md</c>.
     /// </summary>
     [UsedImplicitly]
     public sealed class BuildDistrictActionSystem : UpdatedSystem
@@ -44,20 +50,32 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             entity.Set(new HexIdComponent { Coords = confirmed.Coords });
             entity.Set(new DistrictTypeComponent { Value = confirmed.Type });
             entity.Set(new ActionIdComponent { Value = AllocateId() });
-            entity.Set(new BuildDistrictActionTag());
-
-            RaiseDistrictBuilt(confirmed.Coords, confirmed.Type);
+            entity.Set(new BuildDistrictTurnsLeftComponent { Value = ResolveTurnsToBuild(confirmed.Type) });
+            entity.Set(new ActorTypeComponent { Type = confirmed.Payer });
+            entity.Set(new BuildDistrictInProgressTag());
         }
 
-        // One-frame built pulse on its own entity; carries the hex + district (copied from the payload) as sibling
-        // components. Signals DistrictViewSpawnSystem to spawn the district view. Cleared by EventCleanupSystem.
-        private void RaiseDistrictBuilt(HexCoord coords, DistrictType type)
+        // Turns this district needs, from its DistrictBuildCostConfig. Fail loud: a confirmed build with no cost
+        // config is a broken invariant (the UI only offers configured districts), not a benign default.
+        // NOTE: this "find DistrictBuildCostConfig by DistrictType" scan is duplicated in the price / hex-resources
+        // UI subsystems — consolidating into one Economy helper is tracked as dedup-debt in Flows/FLOW_DISTRICT_BUILD.md.
+        private int ResolveTurnsToBuild(DistrictType type)
         {
-            var entity = _world.CreateEntity();
-            entity.Set(new DistrictBuiltEvent());
-            entity.Set(new HexIdComponent { Coords = coords });
-            entity.Set(new DistrictTypeComponent { Value = type });
-            entity.Set(new EventTag());
+            if (!_world.Has<DistrictBuildCostsConfigComponent>())
+                throw new InvalidOperationException(
+                    "BuildDistrictActionSystem: DistrictBuildCostsConfigComponent world component is missing.");
+
+            var districts = _world.Get<DistrictBuildCostsConfigComponent>().Value?.Districts;
+            if (districts == null)
+                throw new InvalidOperationException(
+                    "BuildDistrictActionSystem: DistrictBuildCostsConfig carries no districts.");
+
+            for (var i = 0; i < districts.Length; i++)
+                if (districts[i] != null && districts[i].DistrictType == type)
+                    return districts[i].TurnsToBuild;
+
+            throw new InvalidOperationException(
+                $"BuildDistrictActionSystem: no DistrictBuildCostConfig for district type '{type}'.");
         }
 
         // Hands out the next unique action id and advances the shared counter (write via Set).
