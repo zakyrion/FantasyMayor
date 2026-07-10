@@ -53,5 +53,7 @@ frame or an asmdef boundary the C# call can't reach, and then a SYSTEM raises it
    :naming             {:suffix "…Event" :in "Events/"}               ;; no domain prefix — namespace carries it (ECS_CONVENTIONS → Naming & Construction)
    :in-tick-visibility "consumer.Priority > emitter.Priority"         ;; the pulse dies at the SAME tick's EventCleanupSystem (MaxValue) — only later-priority systems see it that tick; lower-priority consumers see it NEVER
    :feedback-loop      {:never "populate→command→populate on one-frame events"}  ;; impossible at ANY priorities (proven 2026-07-08 on the district-build draft attempt) — restructure so data flows DOWN the priority order once
+   :raise-thread       "main thread ONLY"                             ;; a pulse is a structural write (CreateEntity + Set) — an off-thread producer (TurnPhaseSubSystem on RunOnThreadPool) hops SwitchToMainThread first; law: ECS_CONVENTIONS → Threading And Native Memory; зразок BuildDistrictTurnTickSystem
+   :lossy-producer     "level-triggered doorbell"                     ;; producer that can't control its frame window (turn phase, async): RE-RAISE every turn/tick while the condition holds + consumer reconciles state, never trusts one delivery — a lost pulse costs latency, never correctness (decreed: FLOW_DISTRICT_BUILD → ordering-invariants :completion-pulse)
    :producer->consumer ecs-graph})
 ```

@@ -60,5 +60,8 @@ internal sealed class [Name]System : IPrioritizedUniTaskSystem<MapGenerationStep
    :singleton-view      "publish a …ViewComponent for consumers"
    :singleton-non-queried :world-component
    :wiring              ".As<IPrioritizedUniTaskSystem<MapGenerationStep>>" ;; pipeline auto-collects — no Boot.Construct edit
+   :native-scratch      {:never "Allocator.Temp across an await"}       ;; Temp is a per-thread stack rewound under you at frame/job end — scratch that spans an await = Allocator.Persistent + explicit Dispose (law: ECS_CONVENTIONS → Threading And Native Memory)
+   :thread-hops         {:off-thread "value read/write of EXISTING components only"  ;; code on RunOnThreadPool: no CreateEntity / component-add / Dispose / pulses, and NO Allocator.Temp (its TLS block never rewinds there)
+                         :structural "only behind await UniTask.SwitchToMainThread()"}
    :family-of-parts     PATTERN_ORCHESTRATOR_SUBSYSTEM})                ;; several independently ordered parts / one-base-many-impls
 ```

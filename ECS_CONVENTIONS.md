@@ -148,7 +148,8 @@ the launching `TurnProcessorSystem` keeps zero mutable fields.
 **Ban 2 — no `System.Collections.Generic` in systems.** Use `Unity.Collections`
 (`NativeList`, `NativeHashSet`, `NativeParallelHashMap`, …) and dispose explicitly.
 - `Allocator.Temp` for within-frame scratch; `Allocator.Persistent` (explicit dispose) when a
-  container must outlive an `await` or cross a `RunOnThreadPool` boundary.
+  container must outlive an `await` or cross a `RunOnThreadPool` boundary. Why Temp cannot do
+  either: Threading And Native Memory below (Law 2).
 - **Exception — managed elements:** a collection whose elements are managed types (`GameObject`,
   view references, `Entity`-wrapping records) stays `System.Collections.Generic`, because a
   `NativeContainer` only holds `unmanaged` types. Mark such cases with a short comment.
@@ -174,6 +175,44 @@ This is mandatory: any component can gain a reactive consumer without auditing e
   uses `WhenAdded` / `WhenRemoved`, not `WhenChanged`. The project's chosen alternative for view upkeep
   is the pulse + reconcile pattern (Decomposition Rules above) — prefer it over `WhenAdded`/`WhenRemoved`
   buffers for new code.
+
+## Threading And Native Memory (UniTask × DefaultEcs)
+
+The Turn pipeline (`TurnPhaseSubSystem` chain) and any `UniTask` code may run off the main thread
+(`RunOnThreadPool`). Two laws govern what such code may touch. Decided 2026-07-10 on the district
+build-over-turns mechanic; worked producer example: `BuildDistrictTurnTickSystem`.
+
+**Law 1 — DefaultEcs world access by thread.** The line is STRUCTURAL vs VALUE: anything that
+changes which entities match which `EntitySet` (create, first-write of a component type, dispose,
+pulse) synchronously rewrites set buffers the main thread iterates every frame — main thread only.
+Rewriting the bytes of an already-present component touches no set membership.
+
+```clojure
+(def defaultecs-thread-law
+  {:off-thread-allowed {:value-read  "entity.Get<T>() / world.Get<T>()"
+                        :value-write "entity.Set<T>() of an EXISTING component — presence unchanged, no EntitySet buffer mutation"}
+   :value-write-caveat "safe ONLY while the component has no WhenChanged<T> / SubscribeComponentChanged consumer — those buffer every Set call on the consumer's thread"
+   :main-thread-only   ["world.CreateEntity()"
+                        "entity.Set<T>() that ADDS a component (first write of that type — structural)"
+                        "entity.Dispose() / Remove<T>()"
+                        "raising event pulses (EventTag entities)"]
+   :bridge             "await UniTask.SwitchToMainThread() before structural ops, back via SwitchToThreadPool"})
+```
+
+**Law 2 — `Allocator.Temp` is thread-bound.** Temp is a per-thread TLS stack: allocation is a
+pointer bump (≈ cost of a local variable), reclamation is a WHOLESALE rewind of the thread's stack.
+The rewind is driven by whoever owns the thread's lifecycle — and nobody owns a `ThreadPool` thread's.
+
+```clojure
+(def temp-allocator-law
+  {:cost      "TLS stack bump; free = frame rewind (main) / job-end rewind (worker) — wholesale, not per-allocation"
+   :dispose   "call Dispose() anyway — it clears the safety handle, costs nothing; project convention"
+   :where     #{:main-thread :inside-a-job}   ;; only threads whose lifecycle Unity drives
+   :never     "ThreadPool / any thread Unity does not manage — its TLS block is NEVER rewound (no frame, no job boundary) → silent leak"
+   :lifetime  "does not survive the frame (main) / the job (worker) — never hold across an await"
+   :overflow  "block exhausted (4 MB player / 16 MB editor main thread) is NOT a crash: block may grow 2×, then falls back to the slower linear allocator; visible as Overflow counters in the memory report"
+   :off-thread-scratch "need a native buffer on ThreadPool? Allocator.Persistent + explicit Dispose, or move the work behind SwitchToMainThread"})
+```
 
 ## Collector And Output Methods
 
