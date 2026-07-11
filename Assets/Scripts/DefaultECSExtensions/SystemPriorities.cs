@@ -20,7 +20,7 @@ namespace DefaultECSExtensions
             public const int HexSelectionViewLoading = 500;
             public const int TerrainViewDebug = 600;
             public const int HexIconsSpawn = 700;
-            public const int MainUiSpawn = 800;
+            public const int MainHudSpawn = 800;
             public const int DistrictBuildUiSpawn = 810;
             public const int CitySpawn = 900;
             public const int MayorSpawn = 910;
@@ -115,7 +115,7 @@ namespace DefaultECSExtensions
                 public const int Forest = 400;
             }
 
-            public static class MainUiSpawn
+            public static class MainHudSpawn
             {
                 public const int HexInfoPanel = 0;
                 public const int EndTurn = 10;

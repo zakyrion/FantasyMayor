@@ -515,7 +515,7 @@ How to assemble any panel. This is the default; deviate only with a stated reaso
   children from a small item template and **pool** them to avoid per-update GC.
 - **A root/controller system owns the shared instance.** It loads the panel (addressables), owns the instance
   and handle (dispose per `ADDRESSABLE_PATTERNS.md`), and shows/hides the whole panel. Block systems own only
-  their own block. (Current idiom: `MainUISpawnSystem` instantiates one `UI/MainUI` prefab; spawn subsystems
+  their own block. (Current idiom: `MainHudSpawnSystem` instantiates one `UI/MainUI` prefab; spawn subsystems
   resolve their view off it — see that system's header comment.)
 - **One shared panel instance, not per-entity.** Selection is singular, so the context panel is reused.
 - **Absence is not an error; a missing prerequisite is.** An optional block with no data → hide it (normal). A

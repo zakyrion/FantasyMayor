@@ -1,12 +1,12 @@
 using DefaultECSExtensions;
 using Modules.Boot.Core;
-using Presentation.UI.ContextTabs.Systems;
+using Presentation.UI.MainHud.ContextTabs.Systems;
 using Presentation.UI.DistrictBuild.Systems;
-using Presentation.UI.EndTurn.Systems;
+using Presentation.UI.MainHud.EndTurn.Systems;
 using Presentation.UI.GeneratorMenu.Systems;
-using Presentation.UI.HexInfoPanel.Systems;
-using Presentation.UI.ResourceBar.Systems;
-using Presentation.UI.Systems;
+using Presentation.UI.MainHud.HexInfoPanel.Systems;
+using Presentation.UI.MainHud.ResourceBar.Systems;
+using Presentation.UI.MainHud.Systems;
 using VContainer;
 using VContainer.Unity;
 
@@ -31,17 +31,17 @@ namespace Presentation.UI.Installer
                 .As<InventoryResourceIconConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
 
             // Main UI spawn — orchestrator (generation pipeline, collected by interface) instantiates the
-            // Main UI root and runs the window spawn subsystems (collected as MainUISpawnSubSystem).
-            builder.Register<MainUISpawnSystem>(Lifetime.Singleton)
-                .As<MainUISpawnSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
+            // Main UI root and runs the window spawn subsystems (collected as MainHudSpawnSubSystem).
+            builder.Register<MainHudSpawnSystem>(Lifetime.Singleton)
+                .As<MainHudSpawnSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
             builder.Register<HexInfoPanelSpawnSubSystem>(Lifetime.Singleton)
-                .As<HexInfoPanelSpawnSubSystem, MainUISpawnSubSystem>();
+                .As<HexInfoPanelSpawnSubSystem, MainHudSpawnSubSystem>();
             builder.Register<EndTurnSpawnSubSystem>(Lifetime.Singleton)
-                .As<EndTurnSpawnSubSystem, MainUISpawnSubSystem>();
+                .As<EndTurnSpawnSubSystem, MainHudSpawnSubSystem>();
             builder.Register<ContextTabsSpawnSubSystem>(Lifetime.Singleton)
-                .As<ContextTabsSpawnSubSystem, MainUISpawnSubSystem>();
+                .As<ContextTabsSpawnSubSystem, MainHudSpawnSubSystem>();
             builder.Register<ResourceBarSpawnSubSystem>(Lifetime.Singleton)
-                .As<ResourceBarSpawnSubSystem, MainUISpawnSubSystem>();
+                .As<ResourceBarSpawnSubSystem, MainHudSpawnSubSystem>();
 
             // District-build overlay — its OWN UIDocument (separate from the shared Main UI), so it has its own
             // spawn orchestrator in the generation pipeline rather than a Main UI spawn subsystem.

@@ -18,7 +18,7 @@ code_refs:
 # FLOW — District Build
 
 The cross-domain contract of the district-build transaction: one player gesture (open → pick →
-confirm / dismiss) spanning `Presentation.UI.HexInfoPanel` (the open request), `Presentation.UI.DistrictBuild`,
+confirm / dismiss) spanning `Presentation.UI.MainHud.HexInfoPanel` (the open request), `Presentation.UI.DistrictBuild`,
 `Flows.DistrictBuild` (the event home), `Domains.Actions.BuildDistrictAction`, `Domains.Economy`,
 `Presentation.Districts`.
 
@@ -33,12 +33,12 @@ today does NOT live here (that rots — the tools own it); the Roadmap below sta
 
 ```clojure
 (def participants  ;; {assembly role-in-this-flow}
-  {Presentation.UI.HexInfoPanel        "emits the open request (DistrictBuildUIRequestedEvent) from the selected-hex context panel"
-   Presentation.UI.DistrictBuild       "projection + commands: renders the transaction, raises the confirm pulse, owns NO transaction state"
-   Flows.DistrictBuild                 "flow event-vocabulary home: owns the cross-subfeature UI-navigation event; leaf assembly the UI references"
-   Domains.Actions.BuildDistrictAction "verb owner: creates the in-progress build entity on confirm (no draft); a completion consumer writes the Economy District fact"
-   Domains.Economy                     "vocabulary (build configs, costs, open conditions) + TARGET home of the built-district fact"
-   Presentation.Districts              "world view: spawns the district prefab for every built district"})
+  {Presentation.UI.MainHud.HexInfoPanel "emits the open request (DistrictBuildUIRequestedEvent) from the selected-hex context panel"
+   Presentation.UI.DistrictBuild        "projection + commands: renders the transaction, raises the confirm pulse, owns NO transaction state"
+   Flows.DistrictBuild                  "flow event-vocabulary home: owns the cross-subfeature UI-navigation event; leaf assembly the UI references"
+   Domains.Actions.BuildDistrictAction  "verb owner: creates the in-progress build entity on confirm (no draft); a completion consumer writes the Economy District fact"
+   Domains.Economy                      "vocabulary (build configs, costs, open conditions) + TARGET home of the built-district fact"
+   Presentation.Districts               "world view: spawns the district prefab for every built district"})
 ```
 
 ## Event vocabulary (the contract)
@@ -286,7 +286,7 @@ of the DistrictBuild UI.
 
 ```clojure
 (def R4-contract  ;; цільові рядки, що R4 додає до контракту
-  {:participants {Presentation.UI.HexInfoPanel "district-блок = проєкція in-progress-білду (тип + turns-left + cancel), не лише кнопка build"}
+  {:participants {Presentation.UI.MainHud.HexInfoPanel "district-блок = проєкція in-progress-білду (тип + turns-left + cancel), не лише кнопка build"}
    :ownership    {:in-progress-block {:now "лише build-дія на порожньому гексі" :target "^:new ViewSystem push-to-view: тип + turns-left + cancel для вибраного гексу"}}
    :ordering     {:reconcile "на зміні вибору (HexSelectedComponent) + на декременті ходів (R1) → push-to-view"}
    :event        {:cancel "C# event view→система (не ECS), як решта DistrictBuild UI → R5"}})

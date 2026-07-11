@@ -1,0 +1,141 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <Style src="project://database/Assets/Presentation/UI/MainHud/Prefabs/MainHUD.uss?fileID=7433441132597879392&amp;guid=062379e5232dc4d6382c111aa8df2146&amp;type=3#MainHUD"/>
+    <ui:VisualElement name="Root" class="raycast-transparent" style="flex-grow: 1;">
+        <ui:VisualElement name="TopBar" class="top-bar"/>
+        <ui:VisualElement name="ResourcePanel" class="left-panel">
+            <ui:VisualElement class="res-head">
+                <ui:VisualElement class="res-head-spacer"/>
+                <ui:Label text="Місто" class="res-head-lbl res-head-lbl--city"/>
+                <ui:Label text="Мер" class="res-head-lbl res-head-lbl--mayor"/>
+            </ui:VisualElement>
+            <ui:ScrollView name="ResourcePool" mode="Vertical" class="res-list">
+                <ui:VisualElement class="res-row">
+                    <ui:VisualElement class="res-row-icon"/>
+                    <ui:Label text="—" class="res-val res-val--city"/>
+                    <ui:Label text="—" class="res-val res-val--mayor"/>
+                </ui:VisualElement>
+                <ui:VisualElement class="res-row">
+                    <ui:VisualElement class="res-row-icon"/>
+                    <ui:Label text="—" class="res-val res-val--city"/>
+                    <ui:Label text="—" class="res-val res-val--mayor"/>
+                </ui:VisualElement>
+            </ui:ScrollView>
+        </ui:VisualElement>
+        <ui:VisualElement name="BottomPanel" class="bottom-panel">
+            <ui:VisualElement name="AccentLine" class="accent-line"/>
+            <ui:VisualElement name="BottomRow" class="bp-row">
+                <ui:VisualElement name="TurnPanel" class="bp-turn">
+                    <ui:Label name="TurnNumber" text="Хід 1" class="turn-number"/>
+                    <ui:VisualElement name="TurnActions" class="turn-ap">
+                        <ui:VisualElement class="turn-ap-tile turn-ap-tile--cur">
+                            <ui:Label text="⚡ ДІЇ ЗАРАЗ" class="turn-ap-tile-cap"/>
+                            <ui:Label name="TurnApCurrent" text="—" class="turn-ap-tile-num turn-ap-tile-num--cur"/>
+                        </ui:VisualElement>
+                        <ui:VisualElement class="turn-ap-tile turn-ap-tile--nxt">
+                            <ui:Label text="НАСТ. ХІД" class="turn-ap-tile-cap"/>
+                            <ui:Label name="TurnApNext" text="—" class="turn-ap-tile-num turn-ap-tile-num--nxt"/>
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:Button name="EndTurnButton" text="ЗАВЕРШИТИ ХІД" class="end-turn-button"/>
+                </ui:VisualElement>
+                <ui:VisualElement name="ContextPanel" class="bp-ctx">
+                    <ui:VisualElement name="ContextTabs" class="ctx-tabs">
+                        <ui:Toggle name="TabOverview" text="Огляд" value="true" class="ctx-tab"/>
+                        <ui:Toggle name="TabBuildings" text="Будівлі" class="ctx-tab"/>
+                        <ui:Toggle name="TabActions" text="Дії" class="ctx-tab"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement name="ContextFilled" class="ctx-filled">
+                        <ui:VisualElement name="OverviewPane" class="ctx-pane ctx-pane--row">
+                            <ui:VisualElement class="block block--hex">
+                                <ui:Label text="ГЕКС" class="block-h"/>
+                                <ui:VisualElement name="HexHead" class="hexhead">
+                                    <ui:VisualElement name="HeaderIcon" class="terrain-icon"/>
+                                    <ui:Label name="HeaderTitle" text="Лісисті пагорби" class="ctx-title"/>
+                                </ui:VisualElement>
+                                <ui:VisualElement name="ResourcesSection">
+                                    <ui:Label text="Ресурси" class="minilbl"/>
+                                    <ui:VisualElement name="ResourcesContainer" class="chips">
+                                        <ui:VisualElement class="chip"/>
+                                        <ui:VisualElement class="chip"/>
+                                    </ui:VisualElement>
+                                </ui:VisualElement>
+                            </ui:VisualElement>
+                            <ui:VisualElement name="DistrictBuildSection" class="block block--district-build">
+                                <ui:Label text="РАЙОН" class="block-h"/>
+                                <ui:VisualElement name="DistrictBuildButton" class="buildslot">
+                                    <ui:VisualElement class="buildslot-plus">
+                                        <ui:Label text="+" class="buildslot-plus-glyph"/>
+                                    </ui:VisualElement>
+                                    <ui:Label text="Збудувати район" class="buildslot-lab"/>
+                                    <ui:Label text="обрати спеціалізацію для гекса" class="buildslot-hint"/>
+                                </ui:VisualElement>
+                            </ui:VisualElement>
+                            <ui:VisualElement name="DistrictSection" class="block block--district" style="display: none;">
+                                <ui:VisualElement class="block-h-row">
+                                    <ui:Label text="РАЙОН" class="block-h-cap"/>
+                                    <ui:Label text="рів. 2" class="block-h-lvl"/>
+                                </ui:VisualElement>
+                                <ui:Label text="Лісозаготівля" class="dname"/>
+                                <ui:VisualElement class="kv">
+                                    <ui:VisualElement class="kv-row">
+                                        <ui:Label text="Власник" class="kv-k"/>
+                                        <ui:VisualElement class="kv-role">
+                                            <ui:VisualElement class="kv-role-sw kv-role-sw--owner"/>
+                                            <ui:Label text="Мер" class="kv-v kv-v--owner"/>
+                                        </ui:VisualElement>
+                                    </ui:VisualElement>
+                                    <ui:VisualElement class="kv-row">
+                                        <ui:Label text="Оператор" class="kv-k"/>
+                                        <ui:VisualElement class="kv-role">
+                                            <ui:VisualElement class="kv-role-sw kv-role-sw--oper"/>
+                                            <ui:Label text="Громада" class="kv-v kv-v--oper"/>
+                                        </ui:VisualElement>
+                                    </ui:VisualElement>
+                                    <ui:VisualElement class="kv-row">
+                                        <ui:Label text="Будівлі" class="kv-k"/>
+                                        <ui:Label text="2 / 3" class="kv-v"/>
+                                    </ui:VisualElement>
+                                    <ui:VisualElement class="kv-row">
+                                        <ui:Label text="Спеціалізація" class="kv-k"/>
+                                        <ui:Label text="Деревина" class="kv-v"/>
+                                    </ui:VisualElement>
+                                </ui:VisualElement>
+                            </ui:VisualElement>
+                            <ui:VisualElement name="ProductionSection" class="block block--prod" style="display: none;">
+                                <ui:Label text="ПРАЦЯ ТА ВИРОБНИЦТВО" class="block-h"/>
+                                <ui:VisualElement class="laborline">
+                                    <ui:Label text="ПРАЦЯ" class="laborline-k"/>
+                                    <ui:Label text="3 / 4 групи · 75% · виробництво обмежено" class="laborline-v"/>
+                                </ui:VisualElement>
+                                <ui:VisualElement class="prodtable">
+                                    <ui:VisualElement class="prod-row prod-row--head">
+                                        <ui:Label text="ВИРОБНИЦТВО" class="prod-name prod-h"/>
+                                        <ui:Label text="Місто" class="prod-c prod-h"/>
+                                        <ui:Label text="Власн." class="prod-c prod-h"/>
+                                        <ui:Label text="Опер." class="prod-c prod-h"/>
+                                    </ui:VisualElement>
+                                    <ui:VisualElement class="prod-row">
+                                        <ui:Label text="Колоди" class="prod-name"/>
+                                        <ui:Label text="+3" class="prod-c prod-c--city"/>
+                                        <ui:Label text="+2" class="prod-c prod-c--owner"/>
+                                        <ui:Label text="+1" class="prod-c prod-c--oper"/>
+                                    </ui:VisualElement>
+                                    <ui:VisualElement class="prod-row">
+                                        <ui:Label text="Дошки" class="prod-name"/>
+                                        <ui:Label text="+1" class="prod-c prod-c--city"/>
+                                        <ui:Label text="+1" class="prod-c prod-c--owner"/>
+                                        <ui:Label text="—" class="prod-c prod-c--oper"/>
+                                    </ui:VisualElement>
+                                </ui:VisualElement>
+                                <ui:Label text="SCAFFOLD — зʼявиться з District-економікою" class="scaffold-tag"/>
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement name="BuildingsPane" class="ctx-pane" style="display: none;"/>
+                        <ui:VisualElement name="ActionsPane" class="ctx-pane" style="display: none;"/>
+                    </ui:VisualElement>
+                    <ui:VisualElement name="ContextEmpty" class="ctx-empty-wrap" style="display: none;"/>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

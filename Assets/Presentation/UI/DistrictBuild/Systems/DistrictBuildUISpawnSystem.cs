@@ -19,7 +19,7 @@ namespace Presentation.UI.DistrictBuild.Systems
     ///     UIDocument from the shared Main UI, authored with a higher sort order so it renders above the HUD and
     ///     its full-screen scrim blocks input below — under the main canvas, resolves its view, publishes the
     ///     view singleton, and leaves it hidden. DistrictBuildUISystem reveals it on the build request.
-    ///     Owns the single addressable handle for the overlay (mirrors the loading half of MainUISpawnSystem).
+    ///     Owns the single addressable handle for the overlay (mirrors the loading half of MainHudSpawnSystem).
     /// </summary>
     [UsedImplicitly]
     internal sealed class DistrictBuildUISpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>

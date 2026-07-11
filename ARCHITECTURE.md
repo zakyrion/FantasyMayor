@@ -40,7 +40,7 @@ Three top-level code layers; boundaries are enforced by asmdef references (`Tool
   {:domain->domain       "substrate → agents → verbs DAG only" ;; Map/Economy (leaves) → Actors → Actions; owner-keyed logic lives in Actors/Actions, NEVER in the owner-agnostic Economy substrate
    :presentation->domain "one-way, onto what it renders"       ;; domains never depend on presentation
    :domain->module       "shared kernels only"                 ;; e.g. AxialSystem, CurveBuilders
-   :namespaces           "follow folders"})                    ;; Domains.Map.Hex.*, Presentation.Terrain.*, Presentation.UI.ResourceBar.*
+   :namespaces           "follow folders"})                    ;; Domains.Map.Hex.*, Presentation.Terrain.*, Presentation.UI.MainHud.ResourceBar.*
 ```
 
 **Why this shape.** This is **DDD-strategic bounded contexts + a layered presentation tier**, on top of a
