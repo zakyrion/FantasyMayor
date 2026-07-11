@@ -57,7 +57,7 @@ namespace DefaultECSExtensions
             public const int HexIconsVisibility = 800;
             public const int TurnProcessor = 1000;
             public const int TurnCount = 1010;
-            public const int EndTurnView = 1020; // > TurnCount (1010): reads TurnProcessorComponent/TurnCountComponent every frame — must run after both write
+            public const int TurnPanelView = 1020; // > TurnCount (1010): reads TurnProcessorComponent/TurnCountComponent every frame — must run after both write
             public const int EventCleanup = int.MaxValue; // always last: disposes the frame's event entities
         }
 
@@ -118,7 +118,7 @@ namespace DefaultECSExtensions
             public static class MainHudSpawn
             {
                 public const int HexInfoPanel = 0;
-                public const int EndTurn = 10;
+                public const int TurnPanel = 10;
                 public const int ContextTabs = 20;
                 public const int ResourceBar = 30;
             }

@@ -11,7 +11,7 @@ namespace Presentation.UI.MainHud.ResourceBar.Views
     ///     scroll list — one row per authored resource (icon + City value + Mayor value). The owner header
     ///     (Місто / Мер) is authored statically in UXML above the ScrollView; this view only builds the rows.
     ///     Owns its VisualElements and exposes a build-once + per-frame value API for ResourceBarSystem. Holds
-    ///     no game logic. Lives on the shared Main UI PanelRenderer (like HexInfoPanelView / EndTurnView) and
+    ///     no game logic. Lives on the shared Main UI PanelRenderer (like HexInfoPanelView / TurnPanelView) and
     ///     toggles only its own ResourcePanel (the left panel) + the thin TopBar strip — never the document root
     ///     (that would blank the whole Main UI). Those two elements are not raycast-transparent, so they block
     ///     clicks over themselves. PanelRenderer builds its tree asynchronously, so the view binds elements in

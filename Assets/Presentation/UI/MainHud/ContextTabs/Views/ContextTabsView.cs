@@ -15,7 +15,7 @@ namespace Presentation.UI.MainHud.ContextTabs.Views
     ///     View for the context sub-panel's tab row (Огляд / Будівлі / Дії). A dumb view over the shared Main
     ///     UI PanelRenderer. The three tabs are a single-select toggle group whose active tab is owned by ECS
     ///     (ActiveContextTabComponent): on the "on" edge of a tab the view raises a one-frame
-    ///     ContextTabChangedEvent (mirrors EndTurnView's click-emit) and holds no game state. The active tab
+    ///     ContextTabChangedEvent (mirrors TurnPanelView's click-emit) and holds no game state. The active tab
     ///     cannot be turned off (there is always exactly one). The systems push state in via SetActive (the
     ///     checked tab + the shown content pane) and SetTabEnabled (per-tab availability). Tabs bind by name
     ///     constant — the markup authors ui:Toggle elements named TabOverview / TabBuildings / TabActions (the

@@ -11,7 +11,7 @@ using Presentation.HexIcons.Systems;
 using Presentation.HexResources.Systems;
 using Presentation.UI.MainHud.ContextTabs.Systems;
 using Presentation.UI.DistrictBuild.Systems;
-using Presentation.UI.MainHud.EndTurn.Systems;
+using Presentation.UI.MainHud.TurnPanel.Systems;
 using Presentation.UI.GeneratorMenu.Systems;
 using Presentation.UI.MainHud.HexInfoPanel.Systems;
 using Presentation.UI.MainHud.ResourceBar.Systems;
@@ -92,7 +92,7 @@ namespace Modules.Boot.Implementation
             BuildDistrictActionSystem buildDistrictAction,
             BuildDistrictCompletionSystem buildDistrictCompletion,
             ResourceBarSystem resourceBar,
-            EndTurnViewSystem endTurnViewSystem,
+            TurnPanelViewSystem turnPanelViewSystem,
             ContextTabSelectionSystem contextTabSelection,
             ContextTabsAvailabilitySystem contextTabsAvailability,
             TurnProcessorSystem turnProcessor,
@@ -116,7 +116,7 @@ namespace Modules.Boot.Implementation
                     hexSelection, hexSelectionView, forestSpawn, forestDespawn, districtViewSpawn, hexIconsVisibility,
                     hexInfoPanel, hexInfoPanelHeader, hexInfoPanelResources, hexInfoPanelDistrict,
                     districtBuildUI, buildDistrictAction, buildDistrictCompletion,
-                    resourceBar, endTurnViewSystem, contextTabSelection,
+                    resourceBar, turnPanelViewSystem, contextTabSelection,
                     contextTabsAvailability, turnProcessor, turnCount, eventCleanup
                 },
                 new ILateUpdatedSystem[] { cameraMovement, hexIconsContainerPosition });

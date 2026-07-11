@@ -14,7 +14,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
     ///     Main UI spawn subsystem: resolves the hex info panel view from the shared Main UI instance and
     ///     publishes HexInfoPanelViewComponent. Instantiates nothing — the orchestrator owns the Main UI
     ///     handle. Sets the context sub-panel to its empty state; HexInfoPanelSystem fills it on selection.
-    ///     The bottom-panel shell stays hidden (EndTurnSpawnSubSystem) until Gameplay.
+    ///     The bottom-panel shell stays hidden (TurnPanelSpawnSubSystem) until Gameplay.
     /// </summary>
     [UsedImplicitly]
     internal sealed class HexInfoPanelSpawnSubSystem : MainHudSpawnSubSystem

@@ -18,7 +18,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
     ///     real hex is selected, back to the empty placeholder on deselection or a coordinate with no hex.
     ///     Stateless reconcile (idempotent). The block CONTENT is filled by the per-block systems, which react to
     ///     the same pulse and read HexSelectedComponent; the initial empty state is seeded by
-    ///     HexInfoPanelSpawnSubSystem. Does NOT show/hide the bottom-panel shell (EndTurnViewSystem owns that).
+    ///     HexInfoPanelSpawnSubSystem. Does NOT show/hide the bottom-panel shell (TurnPanelViewSystem owns that).
     /// </summary>
     [UsedImplicitly]
     public sealed class HexInfoPanelSystem : UpdatedSystem

@@ -18,7 +18,8 @@ namespace Domains.Actors.Mayor.Components
         {
             return new MayorConfigComponent
             {
-                Resources = (ResourceAmount[])config.Resources.Clone()
+                Resources = (ResourceAmount[])config.Resources.Clone(),
+                StartActionPoints = config.StartActionPoints
             };
         }
     }

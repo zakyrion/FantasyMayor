@@ -12,7 +12,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Views
     /// <summary>
     ///     View layer for the CONTEXT sub-panel of the shared bottom panel. Owns its VisualElements and exposes
     ///     a per-block populate API for the panel systems. Holds no game logic. It does NOT own the bottom-panel
-    ///     shell (EndTurnView reveals/hides that) — it only swaps the context content between the filled blocks
+    ///     shell (TurnPanelView reveals/hides that) — it only swaps the context content between the filled blocks
     ///     (a hex is selected) and the empty placeholder (nothing selected). The full-screen layers stay
     ///     click-through so empty-area clicks reach the map, but the bottom panel itself blocks clicks. Lives on
     ///     the shared Main UI PanelRenderer; because PanelRenderer builds its tree asynchronously, the view binds

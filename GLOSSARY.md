@@ -31,7 +31,7 @@ Format: one map — key = `"alias | alias | …"` (the human terms), value = `{:
    "district open condition | умова відкриття району" {:domain Economy/DistrictOpenCondition  :anchors [DistrictExistConditionComponent DistrictOpenConditionEvaluatorSystem]}
    "district build UI | вікно будівництва"            {:domain Presentation.UI/DistrictBuild  :anchors [DistrictBuildUIViewComponent]}
    "turn | хід"                                       {:domain Modules/Turn                   :anchors [NextTurnEvent TurnCompletedEvent TurnPhaseStep]}
-   "end turn button | кнопка кінця ходу"              {:domain Presentation.UI/EndTurn        :anchors [EndTurnViewComponent]}
+   "end turn button | кнопка кінця ходу"              {:domain Presentation.UI/TurnPanel      :anchors [TurnPanelViewComponent]}
    "resource (inventory) | ресурс"                    {:domain Economy/Resource               :anchors [ResourceComponent]}
    "resource bar | панель ресурсів"                   {:domain Presentation.UI/ResourceBar    :anchors [ResourceBarViewComponent]}
    "hex resource (natural) | природний ресурс"        {:domain Map/HexResources               :anchors [HexResourceComponent]}

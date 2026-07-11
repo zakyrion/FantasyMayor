@@ -6,7 +6,7 @@ using UnityEngine.UIElements;
 using VContainer;
 using static Unity.AppUI.UI.VisualElementExtensions;
 
-namespace Presentation.UI.MainHud.EndTurn.Views
+namespace Presentation.UI.MainHud.TurnPanel.Views
 {
     /// <summary>
     ///     View for the End Turn button AND the owner of the shared bottom-panel shell reveal. Owns the
@@ -14,12 +14,12 @@ namespace Presentation.UI.MainHud.EndTurn.Views
     ///     and Processing looks. The turn corner is the always-present part of the bottom panel, so this view
     ///     toggles the whole BottomPanel shell (Show/Hide) — never the panel root (that would blank the whole
     ///     Main UI). The CONTEXT sub-panel content is swapped independently by HexInfoPanelView. Holds no game
-    ///     logic beyond raising the one-frame event — the Processing state is driven by EndTurnViewSystem. The
+    ///     logic beyond raising the one-frame event — the Processing state is driven by TurnPanelViewSystem. The
     ///     full-screen root stays click-through; only the button blocks clicks (mirrors the generator UI rules).
     ///     PanelRenderer builds its tree asynchronously, so the button is hooked and state replayed in the reload
     ///     callback (re-hooked on every reload, since a reload recreates the button).
     /// </summary>
-    public sealed class EndTurnView : MonoBehaviour
+    public sealed class TurnPanelView : MonoBehaviour
     {
         private const string PanelName = "BottomPanel";
         private const string ButtonName = "EndTurnButton";
@@ -44,7 +44,7 @@ namespace Presentation.UI.MainHud.EndTurn.Views
         private bool _cached;
 
         // Logical state replayed on (re)bind. Default hidden so the shell does not flash during MapCreation;
-        // EndTurnViewSystem re-pushes visibility / turn / processing every frame in Gameplay.
+        // TurnPanelViewSystem re-pushes visibility / turn / processing every frame in Gameplay.
         private bool _visible;
         private bool _processing;
         private bool _turnValueSet;
@@ -110,7 +110,7 @@ namespace Presentation.UI.MainHud.EndTurn.Views
                 _panel.style.display = DisplayStyle.None;
         }
 
-        /// <summary>Sets the turn-number label ("Хід N"). Driven by EndTurnViewSystem from TurnCountComponent.</summary>
+        /// <summary>Sets the turn-number label ("Хід N"). Driven by TurnPanelViewSystem from TurnCountComponent.</summary>
         public void SetTurnNumber(int turnNumber)
         {
             _turnValueSet = true;
@@ -121,7 +121,7 @@ namespace Presentation.UI.MainHud.EndTurn.Views
 
         /// <summary>
         ///     «ДІЇ ЗАРАЗ» tile — the Mayor's live AP. Stateful guard: skips the UI write when the value is
-        ///     unchanged, so the per-frame push from EndTurnViewSystem does not redraw the label every frame.
+        ///     unchanged, so the per-frame push from TurnPanelViewSystem does not redraw the label every frame.
         /// </summary>
         public void SetActionPointsCurrent(int value)
         {

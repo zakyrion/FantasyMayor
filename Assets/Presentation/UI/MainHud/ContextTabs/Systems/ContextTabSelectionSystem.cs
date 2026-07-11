@@ -11,7 +11,7 @@ namespace Presentation.UI.MainHud.ContextTabs.Systems
     /// <summary>
     ///     Reactive on the payload-less ContextTabChangedEvent pulse: reconciles the view against the current
     ///     ActiveContextTabComponent (both the view and the active tab are world singletons the view wrote on
-    ///     click). Keeping the restyle in a system (not the MonoBehaviour) mirrors the EndTurnView/EndTurnViewSystem
+    ///     click). Keeping the restyle in a system (not the MonoBehaviour) mirrors the TurnPanelView/TurnPanelViewSystem
     ///     split. Idempotent. Anchored on the event set, mirroring the HexInfoPanel block systems.
     /// </summary>
     [UsedImplicitly]

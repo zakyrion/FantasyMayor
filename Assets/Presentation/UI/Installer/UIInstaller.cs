@@ -2,7 +2,7 @@ using DefaultECSExtensions;
 using Modules.Boot.Core;
 using Presentation.UI.MainHud.ContextTabs.Systems;
 using Presentation.UI.DistrictBuild.Systems;
-using Presentation.UI.MainHud.EndTurn.Systems;
+using Presentation.UI.MainHud.TurnPanel.Systems;
 using Presentation.UI.GeneratorMenu.Systems;
 using Presentation.UI.MainHud.HexInfoPanel.Systems;
 using Presentation.UI.MainHud.ResourceBar.Systems;
@@ -36,8 +36,8 @@ namespace Presentation.UI.Installer
                 .As<MainHudSpawnSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
             builder.Register<HexInfoPanelSpawnSubSystem>(Lifetime.Singleton)
                 .As<HexInfoPanelSpawnSubSystem, MainHudSpawnSubSystem>();
-            builder.Register<EndTurnSpawnSubSystem>(Lifetime.Singleton)
-                .As<EndTurnSpawnSubSystem, MainHudSpawnSubSystem>();
+            builder.Register<TurnPanelSpawnSubSystem>(Lifetime.Singleton)
+                .As<TurnPanelSpawnSubSystem, MainHudSpawnSubSystem>();
             builder.Register<ContextTabsSpawnSubSystem>(Lifetime.Singleton)
                 .As<ContextTabsSpawnSubSystem, MainHudSpawnSubSystem>();
             builder.Register<ResourceBarSpawnSubSystem>(Lifetime.Singleton)
@@ -70,8 +70,8 @@ namespace Presentation.UI.Installer
                 .As<DistrictBuildPriceUISubSystem, DistrictBuildUISubSystem>();
             builder.Register<DistrictBuildActionsUISubSystem>(Lifetime.Singleton)
                 .As<DistrictBuildActionsUISubSystem, DistrictBuildUISubSystem>();
-            builder.Register<EndTurnViewSystem>(Lifetime.Singleton)
-                .As<EndTurnViewSystem>();
+            builder.Register<TurnPanelViewSystem>(Lifetime.Singleton)
+                .As<TurnPanelViewSystem>();
             builder.Register<ContextTabSelectionSystem>(Lifetime.Singleton)
                 .As<ContextTabSelectionSystem>();
             builder.Register<ContextTabsAvailabilitySystem>(Lifetime.Singleton)
