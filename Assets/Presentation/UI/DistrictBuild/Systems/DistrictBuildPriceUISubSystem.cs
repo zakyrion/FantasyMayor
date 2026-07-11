@@ -19,6 +19,7 @@ using Domains.Kernel.Data;
 using DefaultECSExtensions;
 using Domains.Actors.City.Tags;
 using Domains.Actors.Mayor.Tags;
+using Presentation.UI.Tags;
 
 namespace Presentation.UI.DistrictBuild.Systems
 {
@@ -38,6 +39,9 @@ namespace Presentation.UI.DistrictBuild.Systems
         private readonly EntityMultiMap<MayorIdComponent> _mayorResources;
         private readonly EntityMultiMap<CityIdComponent> _cityResources;
 
+        // The chrome view lives on an ENTITY (UITag), not as a world component — resolve it the way the orchestrator does.
+        private readonly EntitySet _chrome;
+
         private bool _hooked;
 
         public override int Priority => SystemPriorities.SubSystems.DistrictBuildUi.Price;
@@ -51,6 +55,7 @@ namespace Presentation.UI.DistrictBuild.Systems
                 .With<MayorIdComponent>().With<MayorTag>().With<MayorResourceTag>().AsMultiMap<MayorIdComponent>();
             _cityResources = world.GetEntities()
                 .With<CityIdComponent>().With<CityTag>().With<CityResourceTag>().AsMultiMap<CityIdComponent>();
+            _chrome = world.GetEntities().With<DistrictBuildUIViewComponent>().With<UITag>().AsSet();
         }
 
         public override void Populate(GameObject root)
@@ -80,6 +85,7 @@ namespace Presentation.UI.DistrictBuild.Systems
                 view.SetAp(0, 0);
                 view.ClearCosts();
                 view.ClearPayers();
+                PushConfirmGate(false); // no real district selected → nothing to build
                 return;
             }
 
@@ -88,7 +94,7 @@ namespace Presentation.UI.DistrictBuild.Systems
             if (payer == ActorType.Unknown || !allowed.HasFlag(payer))
                 payer = DefaultOwner(selected, allowed);
 
-            var ap = _mayorActor.GetEntities()[0].Get<MayorIdComponent>().Value;
+            var ap = _mayorActor.GetEntities()[0].Get<MayorAPComponent>().Value;
             view.SetAp(cost.ApPrice, ap);
 
             view.ClearPayers();
@@ -98,15 +104,38 @@ namespace Presentation.UI.DistrictBuild.Systems
                 view.AddPayer(ActorType.City, DistrictBuildLabels.OwnerIcon(ActorType.City), DistrictBuildLabels.OwnerLabel(ActorType.City));
             view.SetSelectedPayer(payer);
 
+            // Affordability spans the WHOLE price (AP + every resource for the selected payer); it gates the chrome
+            // confirm so the BuildDistrictActionSystem spend-guard throw never fires on a normal click.
             view.ClearCosts();
+            var affordable = ap >= cost.ApPrice;
             var prices = cost.DistrictPrices;
             if (prices != null)
                 foreach (var price in prices)
+                {
+                    var have = AmountOf(payer, price.Type);
                     view.AddCost(
                         DistrictBuildLabels.ResourceIcon(price.Type),
                         DistrictBuildLabels.ResourceLabel(price.Type),
                         price.Amount,
-                        AmountOf(payer, price.Type));
+                        have);
+                    if (have < price.Amount)
+                        affordable = false;
+                }
+
+            PushConfirmGate(affordable);
+        }
+
+        // Drives the chrome confirm button (owned by DistrictBuildUIView, which lives on the UITag chrome entity — NOT a
+        // world component). Affordability is known only here, so the price section is the single source of truth for the
+        // gate — it stays in sync on both populate and payer switch because Render is the choke point for both.
+        private void PushConfirmGate(bool affordable)
+        {
+            if (_chrome.Count == 0)
+                return;
+
+            var chrome = _chrome.GetEntities()[0].Get<DistrictBuildUIViewComponent>().View;
+            if (chrome != null)
+                chrome.SetConfirmEnabled(affordable);
         }
 
         private bool TryGetCost(DistrictType type, out DistrictBuildCostConfig cost)
@@ -218,6 +247,7 @@ namespace Presentation.UI.DistrictBuild.Systems
             _cityActor.Dispose();
             _mayorResources.Dispose();
             _cityResources.Dispose();
+            _chrome.Dispose();
             base.Dispose();
         }
     }

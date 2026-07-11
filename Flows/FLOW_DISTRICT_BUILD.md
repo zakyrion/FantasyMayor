@@ -69,8 +69,8 @@ today does NOT live here (that rots — the tools own it); the Roadmap below sta
                      :target :same}
    :chosen-district {:now    DistrictBuildSelectionComponent  ;; component in Presentation.UI.DistrictBuild.Components (own entity, tagged DistrictBuildSelectionTag); written by DistrictBuildListUISubSystem, read by the UI subsystems + DistrictBuildUISystem (confirm payload)
                      :target :same}  ;; no draft to migrate onto — selection staying in Presentation IS the target
-   :payer           {:now    "view-local (DistrictBuildPriceUIView.SelectedOwner) → captured at confirm into ActorTypeComponent on the in-progress entity"  ;; captured, not spent
-                     :target "spent from that ActorTypeComponent once resource-spend lands (Roadmap R2)"}
+   :payer           {:now    "view-local (DistrictBuildPriceUIView.SelectedOwner) → carried in the confirm pulse; at confirm BuildDistrictActionSystem spends the payer's resource stacks (ResourceLedger) + the Mayor's AP pool (MayorAPComponent), then stamps ActorTypeComponent on the in-progress entity"  ;; R2 landed — resources + AP spent at confirm
+                     :target :same}
    :built-district  {:now    "Economy District fact (DistrictTag + DistrictId + HexId + DistrictType), written at completion by BuildDistrictCompletionSystem; the in-progress verb entity (BuildDistrictInProgressTag) is transient"  ;; Presentation.Districts renders the FACT
                      :target :same}})  ;; S1 landed the fact; turns (S2) only delay when the fact is written
 ```
@@ -96,8 +96,8 @@ built-district FACT into `Domains.Economy`; `Presentation.Districts` renders fac
 
 ## Roadmap — planned flows (backlog)
 
-TARGET extensions of THIS district-build behavior, ordered by build-flow dependency. **Nothing below
-is built.** Every `^:new` symbol does not exist in code yet; new names are proposals (naming policy:
+TARGET extensions of THIS district-build behavior, ordered by build-flow dependency. **R3–R5 below are
+not built** (R1 and R2 have landed — see their `LANDED` markers). Every `^:new` symbol does not exist in code yet; new names are proposals (naming policy:
 self-sufficient, repeat the feature name) pending the user's veto. doc-lint is suppressed for this
 section because its vocabulary is deliberately future. Кожен пункт несе `contract-delta` (цільові
 рядки, що задача додає до контракту вище) і `-open` мапу у формі `{:q … :resolve …}`. `:resolve` =
@@ -233,25 +233,35 @@ stacktrace») — and made safe by the two-sided discipline decreed in `ordering
    :archetype        {:a "fact DistrictTag+DistrictId(PK)+HexId+DistrictType в Economy.District"         :resolve :decided}})
 ```
 
-### R2 — spend resources
+### R2 — spend resources — LANDED 2026-07-12
 
-At confirm, `BuildDistrictActionSystem` resolves `DistrictBuildCostConfig` for the `DistrictType`,
-reads the payer's resource pool, and spends it. The confirm event gains an owner/payer FK in its
-payload. Spend must validate (fail-loud), not silently no-op on shortage.
+At confirm, `BuildDistrictActionSystem` resolves the whole `DistrictBuildCostConfig` for the
+`DistrictType`, then spends ALL-OR-NOTHING before creating the in-progress entity: the payer's
+resource stacks are charged `DistrictPrices` via `ResourceLedger`, and the Mayor's `MayorAPComponent`
+pool is charged `ApPrice` (AP is always Mayor-paid, whatever the resource payer). Affordability is
+checked across the WHOLE price first; a shortfall throws (fail-loud) — the confirm is UI-GATED, so the
+throw is an invariant net, never a normal path. The confirm pulse already carried the payer
+(`ActorType`, from R1/S3), so no payload change was needed.
 
 ```clojure
-(def R2-contract  ;; цільові рядки, що R2 додає до контракту
-  {:event     {DistrictBuildConfirmedEvent "payload += owner/payer FK (зараз лише HexCoord + DistrictType)"}
-   :ownership {:payer {:now "view-local (DistrictBuildPriceUIView.SelectedOwner)" :target "у payload події → списання в BuildDistrictActionSystem"}}
-   :ordering  {:spend-at-confirm "списання ресурсів на confirm, у BuildDistrictActionSystem, ДО стампу каунтдауна (R1)"
-               :fail-loud        "нестача ресурсів — throw, не silent no-op"}})
+(def R2-model  ;; механіка end-to-end (built)
+  {:spend    {:owner     BuildDistrictActionSystem   ;; on the DistrictBuildConfirmedEvent pulse, BEFORE CreateEntity
+              :resources "payer's stacks (Mayor→MayorResourceTag / City→CityResourceTag, keyed by owner FK) charged DistrictPrices via ResourceLedger.Deduct (its first consumer)"
+              :ap        "Mayor's MayorAPComponent -= ApPrice — always Mayor-paid, regardless of the resource payer"
+              :atomicity "CanAfford(all resources) && ap>=ApPrice checked FIRST → then Deduct + AP write; never a partial charge"
+              :fail-loud "shortfall → throw (InvalidOperationException); the UI gate prevents reaching it in normal play"}
+   :ui-gate  {:owner     DistrictBuildPriceUISubSystem  ;; computes affordability in Render — the choke point for populate AND payer switch
+              :verdict   "ap>=ApPrice && every resource have>=need for the selected payer"
+              :push      "chrome DistrictBuildUIView.SetConfirmEnabled(affordable) — disables «ЗБУДУВАТИ» when unaffordable"
+              :style     ".confirm:disabled (muted, no gold) in DistrictBuildAction.uss; SetEnabled(false) drives the pseudo-state"}
+   :fix      "DistrictBuildPriceUISubSystem read the AP pool from MayorIdComponent (the id) instead of MayorAPComponent — corrected so both the AP row and the gate use the real pool"})
 
-(def R2-open
-  {:payer-model    {:q "хто платить (Economy-actor) і де баланс ресурсів (компонент у Domains.Economy)?" :resolve :by-code}
-   :payload-change {:q "DistrictBuildConfirmedEvent += owner/payer FK"                                    :resolve :decided}   ;; contract-delta вище
-   :affordability  {:q "gate нестачі: UI вимикає confirm і/або система throw?"                            :resolve ?}          ;; UX-рішення
-   :ap-spend       {:q "чи витрачається AP на confirm і де AP-баланс?"                                    :resolve ?}          ;; залежить від AP-моделі
-   :hex-stamp      {:q "HexIdComponent на BuildDistrictActionTag — вже ставиться на confirm?"             :resolve :by-code}})
+(def R2-open  ;; усі закриті 2026-07-12
+  {:payer-model    {:a "payer = ActorType (Mayor|City); resource stacks resolved by owner tag + FK; ResourceLedger is the owner-blind spend channel" :resolve :by-code}
+   :payload-change {:a "no change needed — DistrictBuildConfirmedEvent already carries ActorType Payer (R1/S3)"                                       :resolve :by-code}
+   :affordability  {:a "UI-gate + throw-guard: price subsystem disables confirm when unaffordable; system throws as the invariant net"                :resolve :decided}   ;; user 2026-07-12
+   :ap-spend       {:a "AP spent at confirm too; balance = MayorAPComponent on the Mayor (ApPrice authored in DistrictBuildCostConfig)"               :resolve :decided}   ;; user 2026-07-12
+   :hex-stamp      {:a "HexIdComponent already stamped at confirm since R1 — unchanged"                                                               :resolve :by-code}})
 ```
 
 ### R3 — construction progress view

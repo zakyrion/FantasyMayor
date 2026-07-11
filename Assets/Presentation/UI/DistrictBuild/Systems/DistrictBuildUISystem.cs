@@ -131,7 +131,8 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         // The chosen payer lives view-local in the price section (its owner, per DistrictBuildPriceUIView). That
         // section always resolves a valid default on populate, so Unknown here means it never populated — a broken
-        // invariant, fail loud (mirrors ReadSelection). Captured into the confirmed pulse; not yet spent (R2).
+        // invariant, fail loud (mirrors ReadSelection). Captured into the confirmed pulse; BuildDistrictActionSystem
+        // spends the payer's stockpile from it (R2).
         private ActorType ReadPayer()
         {
             if (!_world.Has<DistrictBuildPriceUIViewComponent>())

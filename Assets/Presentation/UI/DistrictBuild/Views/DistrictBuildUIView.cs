@@ -50,6 +50,15 @@ namespace Presentation.UI.DistrictBuild.Views
                 _overlay.style.display = DisplayStyle.None;
         }
 
+        // Affordability gate (driven by DistrictBuildPriceUISubSystem): disable «Збудувати» when the selected payer
+        // cannot afford the district. SetEnabled gives the built-in :disabled state and blocks the click, so the
+        // BuildDistrictActionSystem spend-guard throw stays a pure invariant net, never a player-facing crash.
+        public void SetConfirmEnabled(bool enabled)
+        {
+            if (TryCache())
+                _confirmButton.SetEnabled(enabled);
+        }
+
         private void OnEnable()
         {
             // Fail loud at init (NOT in the reload callback — a throw there runs inside the global panel-update
