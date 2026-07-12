@@ -40,6 +40,11 @@ MonoBehaviour:
     m_ReadOnly: 0
     m_SerializedLabels: []
     FlaggedDuringContentUpdateRestriction: 0
+  - m_GUID: d8489acab0fbb4ff080f2e9bb792905f
+    m_Address: DistrictBuildProgressViewsConfig
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: f18f536305e9446e5b2374da8ca943f6
     m_Address: DistrictViewsConfig
     m_ReadOnly: 0

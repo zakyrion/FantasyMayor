@@ -9,10 +9,10 @@ related:
   - "[PATTERN_VIEW_SYSTEM](../Patterns/PATTERN_VIEW_SYSTEM.md)"
 status: partial
 code_refs:
-  systems:          [DistrictBuildUISystem, DistrictBuildUISpawnSystem, BuildDistrictActionSystem, BuildDistrictTurnTickSystem, BuildDistrictCompletionSystem, DistrictViewSpawnSystem]
+  systems:          [DistrictBuildUISystem, DistrictBuildUISpawnSystem, BuildDistrictActionSystem, BuildDistrictTurnTickSystem, BuildDistrictCompletionSystem, DistrictViewSpawnSystem, DistrictBuildProgressViewSpawnSystem, DistrictBuildProgressViewDespawnSystem, DistrictBuildProgressViewsConfigLoaderSystem]
   events:           [DistrictBuildUIRequestedEvent, DistrictBuildConfirmedEvent, BuildDistrictCompleteEvent, DistrictBuiltEvent]
-  components:       [DistrictBuildSelectionComponent, BuildDistrictTurnsLeftComponent, ActorTypeComponent]
-  tags:             [BuildDistrictInProgressTag]
+  components:       [DistrictBuildSelectionComponent, BuildDistrictTurnsLeftComponent, ActorTypeComponent, DistrictBuildProgressViewComponent]
+  tags:             [BuildDistrictInProgressTag, DistrictBuildProgressViewTag]
 ---
 
 # FLOW — District Build
@@ -38,7 +38,7 @@ today does NOT live here (that rots — the tools own it); the Roadmap below sta
    Flows.DistrictBuild                  "flow event-vocabulary home: owns the cross-subfeature UI-navigation event; leaf assembly the UI references"
    Domains.Actions.BuildDistrictAction  "verb owner: creates the in-progress build entity on confirm (no draft); a completion consumer writes the Economy District fact"
    Domains.Economy                      "vocabulary (build configs, costs, open conditions) + TARGET home of the built-district fact"
-   Presentation.Districts               "world view: spawns the district prefab for every built district"})
+   Presentation.Districts               "world view: construction-progress prefab while a district is in-progress (R3), the built district prefab once the fact exists"})
 ```
 
 ## Event vocabulary (the contract)
@@ -96,8 +96,8 @@ built-district FACT into `Domains.Economy`; `Presentation.Districts` renders fac
 
 ## Roadmap — planned flows (backlog)
 
-TARGET extensions of THIS district-build behavior, ordered by build-flow dependency. **R3–R5 below are
-not built** (R1 and R2 have landed — see their `LANDED` markers). Every `^:new` symbol does not exist in code yet; new names are proposals (naming policy:
+TARGET extensions of THIS district-build behavior, ordered by build-flow dependency. **R4–R5 below are
+not built** (R1, R2, and R3 have landed — see their `LANDED` markers). Every `^:new` symbol does not exist in code yet; new names are proposals (naming policy:
 self-sufficient, repeat the feature name) pending the user's veto. doc-lint is suppressed for this
 section because its vocabulary is deliberately future. Кожен пункт несе `contract-delta` (цільові
 рядки, що задача додає до контракту вище) і `-open` мапу у формі `{:q … :resolve …}`. `:resolve` =
@@ -264,31 +264,35 @@ throw is an invariant net, never a normal path. The confirm pulse already carrie
    :hex-stamp      {:a "HexIdComponent already stamped at confirm since R1 — unchanged"                                                               :resolve :by-code}})
 ```
 
-### R3 — construction progress view
+### R3 — construction progress view — LANDED 2026-07-12
 
-While a build is in progress, a world-space progress prefab sits on the hex. A reactive ViewSystem
-in `Presentation.Districts` reacts to the in-progress entity, resolves a per-DistrictType progress
-config, and instantiates the prefab at the hex; it is torn down at completion (R1) or cancel (R5),
-after which `DistrictViewSpawnSystem` spawns the real district off the fact.
+While a build is in progress, a world-space progress prefab sits on the hex. Two reactive
+ViewSystems in `Presentation.Districts` own it end-to-end: one spawns on the confirm pulse (the
+in-progress entity already exists by then), one despawns on the completion pulse. Per
+`PATTERN_REACTIVE_SYSTEM` §smell ("create+destroy same content → two reactive systems, one event
+each") — NOT a branch of `DistrictViewSpawnSystem`, whose contract is scoped to the built-district
+FACT. Cancel (R5) teardown is a future emitter of the SAME despawn reconcile, not built here.
 
 ```clojure
-(def R3-contract  ;; цільові рядки, що R3 додає до контракту
-  {:participants {Presentation.Districts "+ progress-view поки будується — не лише готовий район off факту"}
-   :ownership    {:progress-view {:now nil :target "^:new reactive ViewSystem тримає progress-prefab на гексі під час білду"}}
-   :ordering     {:spawn   "на створення in-progress-сутності (BuildDistrictActionTag), config per DistrictType"
-                  :despawn "на completion (R1) або cancel (R5) → далі DistrictViewSpawnSystem малює готовий район off факту"}})
+(def R3-model  ;; механіка end-to-end (built)
+  {:progress-view-entity   ;; Presentation.Districts, one per hex under construction
+     [DistrictBuildProgressViewTag HexIdComponent DistrictBuildProgressViewComponent]  ;; Component = {Type, View}
+   :systems  {DistrictBuildProgressViewSpawnSystem   "reacts to DistrictBuildConfirmedEvent (600<601, after BuildDistrictActionSystem stamps the in-progress entity); reconciles BuildDistrictInProgressTag rows missing a view -> resolves prefab by DistrictType, instantiates at hex centre"
+              DistrictBuildProgressViewDespawnSystem "reacts to DistrictBuiltEvent (603, after BuildDistrictCompletion 602 already disposed the in-progress entity); reconciles progress-view rows whose hex is no longer in-progress -> destroys the view, disposes the entity"
+              DistrictBuildProgressViewsConfigLoaderSystem "ConfigLoadStep loader: DistrictBuildProgressViewsConfig SO (DistrictType -> prefab), mirrors DistrictViewsConfigLoaderSystem"}
+   :ordering "BuildDistrictAction(600) -> ProgressViewSpawn(601) -> BuildDistrictCompletion(602, dispose in-progress + raise DistrictBuiltEvent) -> ProgressViewDespawn(603) -> DistrictViewSpawn(604, real district off the fact)"})
 
-(def R3-open
-  {:home    {:q "окрема система в Presentation.Districts чи гілка DistrictViewSpawnSystem?"       :resolve :by-policy}
-   :config  {:q "^:new DistrictBuildProgressViewConfig: prefab на DistrictType (PATTERN_CONFIG)" :resolve :decided}
-   :trigger {:q "реагує на BuildDistrictActionTag; reconcile за HexIdComponent"                  :resolve :decided}
-   :despawn {:q "хто прибирає progress-prefab на completion/cancel — ця ж система?"              :resolve :by-policy}})
+(def R3-open  ;; усі закриті 2026-07-12
+  {:home    {:a "окремі системи в Presentation.Districts — НЕ гілка DistrictViewSpawnSystem (policy: PATTERN_REACTIVE_SYSTEM §smell)" :resolve :by-policy}
+   :config  {:a "DistrictBuildProgressViewConfig: prefab на DistrictType (PATTERN_CONFIG), дзеркалить DistrictViewConfig" :resolve :decided}
+   :trigger {:a "spawn реагує на DistrictBuildConfirmedEvent (не окрема подія); reconcile за HexIdComponent проти BuildDistrictInProgressTag" :resolve :decided}
+   :despawn {:a "окрема система (policy), реагує на DistrictBuiltEvent; reconcile проти поточного BuildDistrictInProgressTag-набору, не проти payload" :resolve :by-policy}})
 ```
 
 ### R4 — HexInfoPanel in-progress block
 
 The district block in `HexInfoPanelView` today offers the build action on the selected hex. When the
-selected hex has an in-progress build (`BuildDistrictActionTag` whose `HexIdComponent` matches the
+selected hex has an in-progress build (`BuildDistrictInProgressTag` whose `HexIdComponent` matches the
 selection), the block instead shows the district being built, the turns-left (R1's countdown), and a
 cancel control. Likely `PATTERN_VIEW_SYSTEM`: a ViewSystem reads the in-progress entity for the
 selected hex and pushes to the view; the view raises a C# cancel event (not ECS), matching the rest
