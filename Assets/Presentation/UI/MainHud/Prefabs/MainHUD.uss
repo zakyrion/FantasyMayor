@@ -367,6 +367,46 @@
     color: rgb(125, 114, 100);
 }
 
+/* ---- District build-in-progress block ("building" state) ---- */
+.block--district-progress {
+    width: 290px;
+    flex-shrink: 0;
+}
+
+.dprog-cancel {
+    margin-top: 12px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-left: 16px;
+    padding-right: 16px;
+    align-self: stretch;
+    -unity-text-align: middle-center;
+    font-size: 12px;
+    color: rgb(168, 156, 138);
+    background-color: rgba(255, 255, 255, 0.02);
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgba(217, 164, 65, 0.20);
+    border-right-color: rgba(217, 164, 65, 0.20);
+    border-top-color: rgba(217, 164, 65, 0.20);
+    border-bottom-color: rgba(217, 164, 65, 0.20);
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+
+.dprog-cancel:hover {
+    color: rgb(241, 231, 214);
+    background-color: rgba(255, 255, 255, 0.05);
+    border-left-color: rgba(217, 164, 65, 0.40);
+    border-right-color: rgba(217, 164, 65, 0.40);
+    border-top-color: rgba(217, 164, 65, 0.40);
+    border-bottom-color: rgba(217, 164, 65, 0.40);
+}
+
 /* Block header caption (mockup .bh). */
 .block-h {
     font-size: 11px;

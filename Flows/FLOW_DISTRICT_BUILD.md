@@ -9,9 +9,9 @@ related:
   - "[PATTERN_VIEW_SYSTEM](../Patterns/PATTERN_VIEW_SYSTEM.md)"
 status: partial
 code_refs:
-  systems:          [DistrictBuildUISystem, DistrictBuildUISpawnSystem, BuildDistrictActionSystem, BuildDistrictTurnTickSystem, BuildDistrictCompletionSystem, DistrictViewSpawnSystem, DistrictBuildProgressViewSpawnSystem, DistrictBuildProgressViewDespawnSystem, DistrictBuildProgressViewsConfigLoaderSystem]
+  systems:          [DistrictBuildUISystem, DistrictBuildUISpawnSystem, BuildDistrictActionSystem, BuildDistrictTurnTickSystem, BuildDistrictCompletionSystem, DistrictViewSpawnSystem, DistrictBuildProgressViewSpawnSystem, DistrictBuildProgressViewDespawnSystem, DistrictBuildProgressViewsConfigLoaderSystem, HexInfoPanelDistrictSystem, DistrictIconConfigLoaderSystem]
   events:           [DistrictBuildUIRequestedEvent, DistrictBuildConfirmedEvent, BuildDistrictCompleteEvent, DistrictBuiltEvent]
-  components:       [DistrictBuildSelectionComponent, BuildDistrictTurnsLeftComponent, ActorTypeComponent, DistrictBuildProgressViewComponent]
+  components:       [DistrictBuildSelectionComponent, BuildDistrictTurnsLeftComponent, ActorTypeComponent, DistrictBuildProgressViewComponent, DistrictIconConfigComponent]
   tags:             [BuildDistrictInProgressTag, DistrictBuildProgressViewTag]
 ---
 
@@ -46,7 +46,7 @@ today does NOT live here (that rots — the tools own it); the Roadmap below sta
 | Event                           | Home                | Payload                                                                    | Producer → Consumer                                                          | Semantics                                                                  |
 | ------------------------------- | ------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
 | `DistrictBuildUIRequestedEvent` | Flows.DistrictBuild | —                                                                          | `HexInfoPanelView` → `DistrictBuildUISystem`, `DistrictBuildListUISubSystem` | player asked to open the overlay for the selected hex                      |
-| `DistrictBuildConfirmedEvent`   | Domains.Actions     | `HexCoord` + `DistrictType` + `ActorType` (payer)                          | `DistrictBuildUISystem` → `BuildDistrictActionSystem`                        | player committed: create the in-progress build entity directly (no draft)  |
+| `DistrictBuildConfirmedEvent`   | Domains.Actions     | `HexCoord` + `DistrictType` + `ActorType` (payer)                          | `DistrictBuildUISystem` → `BuildDistrictActionSystem`, `HexInfoPanelDistrictSystem` | player committed: create the in-progress build entity directly (no draft); the panel also reconciles its district block off the same pulse (R4) |
 | `BuildDistrictCompleteEvent`    | Domains.Actions     | payload-less (doorbell)                                                    | `BuildDistrictTurnTickSystem` → `BuildDistrictCompletionSystem`              | ≥1 build countdown sits at 0; LEVEL-TRIGGERED — re-raised every turn until consumed |
 | `DistrictBuiltEvent`            | Domains.Actions     | payload-less                                                               | `BuildDistrictCompletionSystem` → `DistrictViewSpawnSystem`                  | a district EXISTS as a fact (`DistrictTag`); raised at build completion     |
 
@@ -96,8 +96,8 @@ built-district FACT into `Domains.Economy`; `Presentation.Districts` renders fac
 
 ## Roadmap — planned flows (backlog)
 
-TARGET extensions of THIS district-build behavior, ordered by build-flow dependency. **R4–R5 below are
-not built** (R1, R2, and R3 have landed — see their `LANDED` markers). Every `^:new` symbol does not exist in code yet; new names are proposals (naming policy:
+TARGET extensions of THIS district-build behavior, ordered by build-flow dependency. **R5 below is
+not built** (R1, R2, R3, and R4 have landed — see their `LANDED` markers). Every `^:new` symbol does not exist in code yet; new names are proposals (naming policy:
 self-sufficient, repeat the feature name) pending the user's veto. doc-lint is suppressed for this
 section because its vocabulary is deliberately future. Кожен пункт несе `contract-delta` (цільові
 рядки, що задача додає до контракту вище) і `-open` мапу у формі `{:q … :resolve …}`. `:resolve` =
@@ -289,29 +289,46 @@ FACT. Cancel (R5) teardown is a future emitter of the SAME despawn reconcile, no
    :despawn {:a "окрема система (policy), реагує на DistrictBuiltEvent; reconcile проти поточного BuildDistrictInProgressTag-набору, не проти payload" :resolve :by-policy}})
 ```
 
-### R4 — HexInfoPanel in-progress block
+### R4 — HexInfoPanel in-progress block — LANDED 2026-07-12
 
-The district block in `HexInfoPanelView` today offers the build action on the selected hex. When the
-selected hex has an in-progress build (`BuildDistrictInProgressTag` whose `HexIdComponent` matches the
-selection), the block instead shows the district being built, the turns-left (R1's countdown), and a
-cancel control. Likely `PATTERN_VIEW_SYSTEM`: a ViewSystem reads the in-progress entity for the
-selected hex and pushes to the view; the view raises a C# cancel event (not ECS), matching the rest
-of the DistrictBuild UI.
+The district block in `HexInfoPanelView` gained a 4th mutually-exclusive state: when the selected hex
+has an in-progress build (`BuildDistrictInProgressTag` whose `HexIdComponent` matches the selection),
+the block shows the district type (icon + name), the turns-left (R1's countdown), and a cancel
+button — instead of the build-prompt block. Landed as an EXTENSION of the existing
+`HexInfoPanelDistrictSystem` (not a new ViewSystem — R4-contract's original proposal was superseded
+during build: the system already owned the block's mutual-exclusivity + selection trigger, so adding
+a 4th state there is simpler than a parallel reactive system over the same view). The system now
+reacts to a selection change, a turn boundary, OR the player confirming a build on the still-selected
+hex — DefaultEcs's `WithEither<A>().Or<B>().Or<C>()` either-group, the first use of that operator in
+the codebase (the ecs-graph analyzer was extended the same day to recognize it —
+`~/.claude/skills/ecs-graph/scripts/build_graph.py`).
 
 ```clojure
-(def R4-contract  ;; цільові рядки, що R4 додає до контракту
-  {:participants {Presentation.UI.MainHud.HexInfoPanel "district-блок = проєкція in-progress-білду (тип + turns-left + cancel), не лише кнопка build"}
-   :ownership    {:in-progress-block {:now "лише build-дія на порожньому гексі" :target "^:new ViewSystem push-to-view: тип + turns-left + cancel для вибраного гексу"}}
-   :ordering     {:reconcile "на зміні вибору (HexSelectedComponent) + на декременті ходів (R1) → push-to-view"}
-   :event        {:cancel "C# event view→система (не ECS), як решта DistrictBuild UI → R5"}})
+(def R4-model  ;; механіка end-to-end (built)
+  {:in-progress-block {:owner HexInfoPanelDistrictSystem  ;; розширено 4-м станом InProgress, НЕ нова ViewSystem
+                        :data  "reconcile BuildDistrictInProgressTag-набору за HexIdComponent проти вибраного гексу -> DistrictTypeComponent + BuildDistrictTurnsLeftComponent"
+                        :icon  "^:new DistrictIconConfig (Sprite на DistrictType, wrap-SO варіант PATTERN_CONFIG, мірор HexTerrainIconConfig) — DistrictBuildLabels (emoji) НЕ використано"}
+   :triple-trigger {:base     "WithEither<SelectedHexChangedEvent>().Or<TurnCompletedEvent>().Or<DistrictBuildConfirmedEvent>().AsSet()"
+                     :why      "той самий гекс лишається вибраним, поки декрементується turns-left (TurnCompletedEvent) АБО щойно підтверджено будівництво на ньому (DistrictBuildConfirmedEvent, інакше блок лишався б на build-prompt до реселекту/ходу) — обидва понад базовий SelectedHexChangedEvent"
+                     :priority "RuntimeTick.HexInfoPanelDistrict перенесено 564 -> 1030: мусить бути ВИЩЕ всіх трьох продюсерів (HexSelectionView@501, DistrictBuildUi@566 — джерело DistrictBuildConfirmedEvent, TurnProcessor@1000 — джерело TurnCompletedEvent), інакше pulse губиться у той самий кадр, не доживши до наступного"
+                     :correction "перша пропозиція (NextTurnEvent — стартовий pulse ходу, ДО decrement) виявилась хибною; TurnCompletedEvent (доворот, документований як 'for future turn-boundary reactors') — правильний doorbell. DistrictBuildConfirmedEvent доданий пізніше — без нього confirm на вибраному гексі не оновлював блок одразу"}
+   :cancel {:emit    "HexInfoPanelView.Cancelled — локальна C# подія (PATTERN_VIEW_SYSTEM), НЕ ECS pulse"
+            :handler "HexInfoPanelDistrictSystem підписується (guard+unhook у Dispose); handler НАВМИСНО порожній — ^:new BuildDistrictCancelEvent (R5) ще не існує, той самий dormant-emitter прецедент що OnBuildClicked"}
+   :systems {HexInfoPanelDistrictSystem     "розширено 4-м станом InProgress; triple-trigger; Priority 1030"
+             DistrictIconConfigLoaderSystem "ConfigLoadStep loader, мірор HexTerrainIconConfigLoaderSystem"}})
 
-(def R4-open
-  {:pattern        {:q "PATTERN_VIEW_SYSTEM — ViewSystem читає in-progress-сутність, push-to-view" :resolve :decided}
-   :block-now      {:q "що district-блок HexInfoPanelView показує зараз на порожньому/забудованому гексі?" :resolve :by-code}
-   :selection-link {:q "як блок дізнається вибраний гекс — HexSelectedComponent?"                  :resolve :by-code}
-   :turns-refresh  {:q "turns-left оновлюється щоходу (R1) → push при зміні"                        :resolve :decided}
-   :cancel-emit    {:q "кнопка cancel = C# event (не ECS)"                                          :resolve :decided}})
+(def R4-open  ;; усі закриті 2026-07-12
+  {:pattern        {:a "розширено HexInfoPanelDistrictSystem, не нова ViewSystem (супроти оригінального R4-contract) — той самий SelectedHexChangedEvent-trigger + view/selection EntitySet" :resolve :decided}   ;; user 2026-07-12
+   :block-now      {:a "3 стани до R4: None/Build/Details (Details — SCAFFOLD, недосяжний без Economy-компонентів)" :resolve :by-code}
+   :selection-link {:a "HexSelectedComponent через _selectedHexSet, той самий шлях що Header/Resources-сиблінги" :resolve :by-code}
+   :turns-refresh  {:a "TurnCompletedEvent + DistrictBuildConfirmedEvent — 2-й і 3-й член WithEither (NextTurnEvent був невірний вибір для першого, виправлено під час білду)" :resolve :decided}   ;; user 2026-07-12
+   :cancel-emit    {:a "HexInfoPanelView.Cancelled C# event; handler dormant до R5" :resolve :decided}
+   :icon-source    {:a "^:new DistrictIconConfig — Sprite (не emoji з DistrictBuildLabels)" :resolve :decided}})   ;; user 2026-07-12
 ```
+
+Asset authoring outstanding (user-side, Unity): create the `DistrictIconConfig` asset
+(`FantasyMayor/MainUI/DistrictIconConfig`), fill sprite + display name per `DistrictType`
+(`CityCenter`/`Farm`/`Forester`), register it as an addressable under the key `"DistrictIconConfig"`.
 
 ### R5 — cancel build (+ refund)
 

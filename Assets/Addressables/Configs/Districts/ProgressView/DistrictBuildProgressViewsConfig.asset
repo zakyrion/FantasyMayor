@@ -12,4 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cb659c43c7e2f459a8cabf06aa10580a, type: 3}
   m_Name: DistrictBuildProgressViewsConfig
   m_EditorClassIdentifier: Presentation::Presentation.Districts.Configs.DistrictBuildProgressViewsConfig
-  _views: []
+  _views:
+  - {fileID: 11400000, guid: 87e5aebbe2b6e4b5caad62de0ef7bf6c, type: 2}

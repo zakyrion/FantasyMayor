@@ -27,6 +27,9 @@ namespace Presentation.UI.Installer
             builder.Register<HexTerrainIconConfigLoaderSystem>(Lifetime.Singleton)
                 .As<HexTerrainIconConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
 
+            builder.Register<DistrictIconConfigLoaderSystem>(Lifetime.Singleton)
+                .As<DistrictIconConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
+
             builder.Register<InventoryResourceIconConfigLoaderSystem>(Lifetime.Singleton)
                 .As<InventoryResourceIconConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
 

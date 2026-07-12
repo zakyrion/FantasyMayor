@@ -45,7 +45,6 @@ namespace DefaultECSExtensions
             public const int ContextTabSelection = 561;
             public const int ContextTabsAvailability = 562;
             public const int HexInfoPanelResources = 563;
-            public const int HexInfoPanelDistrict = 564;
             public const int ResourceBar = 565;
             public const int DistrictBuildUi = 566;
             public const int BuildDistrictAction = 600;
@@ -60,6 +59,7 @@ namespace DefaultECSExtensions
             public const int TurnProcessor = 1000;
             public const int TurnCount = 1010;
             public const int TurnPanelView = 1020; // > TurnCount (1010): reads TurnProcessorComponent/TurnCountComponent every frame — must run after both write
+            public const int HexInfoPanelDistrict = 1030; // > TurnProcessor (1000): reacts to EITHER SelectedHexChangedEvent (produced at 501), TurnCompletedEvent (produced at 1000), OR DistrictBuildConfirmedEvent (produced at 566, DistrictBuildUi) — must sit above all three producers to see any pulse the same frame
             public const int EventCleanup = int.MaxValue; // always last: disposes the frame's event entities
         }
 

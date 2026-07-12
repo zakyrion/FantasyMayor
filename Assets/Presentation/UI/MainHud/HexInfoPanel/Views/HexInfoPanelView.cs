@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using DefaultEcs;
 using DefaultECSExtensions;
@@ -31,6 +32,11 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Views
         private const string ProductionSectionName = "ProductionSection";
         private const string DistrictBuildSectionName = "DistrictBuildSection";
         private const string DistrictBuildButtonName = "DistrictBuildButton";
+        private const string DistrictInProgressSectionName = "DistrictInProgressSection";
+        private const string DistrictInProgressIconName = "DistrictInProgressIcon";
+        private const string DistrictInProgressNameName = "DistrictInProgressName";
+        private const string DistrictInProgressTurnsLeftName = "DistrictInProgressTurnsLeft";
+        private const string DistrictInProgressCancelButtonName = "DistrictInProgressCancelButton";
 
         private const string ChipClass = "chip";
 
@@ -48,6 +54,11 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Views
         private VisualElement _productionSection;
         private VisualElement _districtBuildSection;
         private VisualElement _districtBuildButton;
+        private VisualElement _districtInProgressSection;
+        private VisualElement _districtInProgressIcon;
+        private Label _districtInProgressName;
+        private Label _districtInProgressTurnsLeft;
+        private Button _districtInProgressCancelButton;
 
         // Logical state replayed on (re)bind. The reactive panel systems re-push on the next selection; this
         // covers the pre-selection initial state and a live UI reload while a hex is selected.
@@ -58,6 +69,9 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Views
         private bool _resourcesVisible;
         private IReadOnlyList<ResourceChip> _resources;
         private DistrictState _districtState;
+        private Sprite _districtInProgressSprite;
+        private string _districtInProgressDisplayName;
+        private int _districtInProgressTurnsLeftValue;
 
         // Managed UI elements → System.Collections.Generic (NativeContainer holds unmanaged only).
         private readonly List<VisualElement> _chipPool = new();
@@ -81,13 +95,15 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Views
         {
             _renderer.UnregisterUIReloadCallback(OnUiReloaded);
             UnhookBuildButton();
+            UnhookCancelButton();
         }
 
         // PanelRenderer (re)built its visual tree: re-query elements off the fresh root, re-hook the (recreated)
-        // build slot, reapply picking, and replay the last block state.
+        // build slot + cancel button, reapply picking, and replay the last block state.
         private void OnUiReloaded(PanelRenderer renderer, VisualElement root)
         {
             UnhookBuildButton();
+            UnhookCancelButton();
             _root = root;
             _cached = false;
 
@@ -95,9 +111,14 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Views
                 return;
 
             _districtBuildButton.RegisterCallback<ClickEvent>(OnBuildClicked);
+            _districtInProgressCancelButton.RegisterCallback<ClickEvent>(OnCancelClicked);
             ConfigurePicking();
             ApplyState();
         }
+
+        /// <summary>Raised when the player clicks the in-progress block's cancel button (view→system, local C#;
+        /// PATTERN_VIEW_SYSTEM — not an ECS pulse). No payload: the driving system already knows the selected hex.</summary>
+        public event Action Cancelled;
 
         /// <summary>A hex is selected: show the filled context blocks, hide the empty placeholder.</summary>
         public void ShowSelection()
@@ -167,6 +188,19 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Views
         /// </summary>
         public void ShowDistrictDetails() => SetDistrictState(DistrictState.Details);
 
+        /// <summary>
+        ///     "Build in progress" state: show the type icon + name, turns-left, and the cancel button for the
+        ///     selected hex's in-progress build, hide the other three district blocks. Mutually exclusive with
+        ///     the other <c>ShowDistrict*</c> / <see cref="HideDistrict" /> calls.
+        /// </summary>
+        public void ShowDistrictInProgress(Sprite icon, string displayName, int turnsLeft)
+        {
+            _districtInProgressSprite = icon;
+            _districtInProgressDisplayName = displayName;
+            _districtInProgressTurnsLeftValue = turnsLeft;
+            SetDistrictState(DistrictState.InProgress);
+        }
+
         /// <summary>Nothing selected (or no grid hex): hide every district block.</summary>
         public void HideDistrict() => SetDistrictState(DistrictState.None);
 
@@ -204,6 +238,15 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Views
             _productionSection.style.display = detailsDisplay;
             _districtBuildSection.style.display =
                 _districtState == DistrictState.Build ? DisplayStyle.Flex : DisplayStyle.None;
+
+            var inProgressDisplay = _districtState == DistrictState.InProgress ? DisplayStyle.Flex : DisplayStyle.None;
+            _districtInProgressSection.style.display = inProgressDisplay;
+            if (_districtState == DistrictState.InProgress)
+            {
+                SetBackground(_districtInProgressIcon, _districtInProgressSprite);
+                _districtInProgressName.text = _districtInProgressDisplayName;
+                _districtInProgressTurnsLeft.text = _districtInProgressTurnsLeftValue.ToString();
+            }
         }
 
         // The build slot raises a payload-less one-frame request; the future build window reads the current
@@ -218,6 +261,15 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Views
         private void UnhookBuildButton()
         {
             _districtBuildButton?.UnregisterCallback<ClickEvent>(OnBuildClicked);
+        }
+
+        // Local C# event, not an ECS pulse (PATTERN_VIEW_SYSTEM — same asmdef, same frame). The driving system
+        // owns what happens next.
+        private void OnCancelClicked(ClickEvent evt) => Cancelled?.Invoke();
+
+        private void UnhookCancelButton()
+        {
+            _districtInProgressCancelButton?.UnregisterCallback<ClickEvent>(OnCancelClicked);
         }
 
         private void FillResources(IReadOnlyList<ResourceChip> resources)
@@ -298,6 +350,11 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Views
             _productionSection = _root.Q<VisualElement>(ProductionSectionName);
             _districtBuildSection = _root.Q<VisualElement>(DistrictBuildSectionName);
             _districtBuildButton = _root.Q<VisualElement>(DistrictBuildButtonName);
+            _districtInProgressSection = _root.Q<VisualElement>(DistrictInProgressSectionName);
+            _districtInProgressIcon = _root.Q<VisualElement>(DistrictInProgressIconName);
+            _districtInProgressName = _root.Q<Label>(DistrictInProgressNameName);
+            _districtInProgressTurnsLeft = _root.Q<Label>(DistrictInProgressTurnsLeftName);
+            _districtInProgressCancelButton = _root.Q<Button>(DistrictInProgressCancelButtonName);
             _cached = true;
 
             // A panel reload recreates the elements, so the pooled chips are stale — drop them and strip the
@@ -306,12 +363,13 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Views
             _resourcesContainer.Clear();
         }
 
-        // Which of the three mutually-exclusive district blocks is shown.
+        // Which of the four mutually-exclusive district blocks is shown.
         private enum DistrictState
         {
             None,
             Build,
-            Details
+            Details,
+            InProgress
         }
 
         /// <summary>One resource entry to render as a chip in the resources block.</summary>

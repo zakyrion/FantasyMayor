@@ -70,6 +70,18 @@
                                     <ui:Label text="обрати спеціалізацію для гекса" class="buildslot-hint"/>
                                 </ui:VisualElement>
                             </ui:VisualElement>
+                            <ui:VisualElement name="DistrictInProgressSection" class="block block--district-progress" style="display: none;">
+                                <ui:Label text="РАЙОН" class="block-h"/>
+                                <ui:VisualElement class="hexhead">
+                                    <ui:VisualElement name="DistrictInProgressIcon" class="terrain-icon"/>
+                                    <ui:Label name="DistrictInProgressName" text="—" class="dname"/>
+                                </ui:VisualElement>
+                                <ui:VisualElement class="kv-row">
+                                    <ui:Label text="Ходів залишилось" class="kv-k"/>
+                                    <ui:Label name="DistrictInProgressTurnsLeft" text="—" class="kv-v"/>
+                                </ui:VisualElement>
+                                <ui:Button name="DistrictInProgressCancelButton" text="Скасувати будівництво" class="dprog-cancel"/>
+                            </ui:VisualElement>
                             <ui:VisualElement name="DistrictSection" class="block block--district" style="display: none;">
                                 <ui:VisualElement class="block-h-row">
                                     <ui:Label text="РАЙОН" class="block-h-cap"/>

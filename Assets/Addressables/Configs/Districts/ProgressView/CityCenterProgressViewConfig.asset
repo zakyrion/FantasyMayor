@@ -13,4 +13,4 @@ MonoBehaviour:
   m_Name: CityCenterProgressViewConfig
   m_EditorClassIdentifier: Presentation::Presentation.Districts.Configs.DistrictBuildProgressViewConfig
   _districtType: 1
-  _prefab: {fileID: 0}
+  _prefab: {fileID: 3206430642211145838, guid: da5242cb4e5724352964ce9765213046, type: 3}

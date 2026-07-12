@@ -15,6 +15,11 @@ MonoBehaviour:
   m_GroupName: Districts
   m_GUID: 59a9e40e14cb7476c8c3e0b35c0aeb68
   m_SerializeEntries:
+  - m_GUID: 044d3873e587646f2b5022e384ea2ee4
+    m_Address: DistrictIconConfig
+    m_ReadOnly: 0
+    m_SerializedLabels: []
+    FlaggedDuringContentUpdateRestriction: 0
   - m_GUID: 1cc48c764c4f6413fba9e062332fa06f
     m_Address: DistrictBuildCostsConfig
     m_ReadOnly: 0
