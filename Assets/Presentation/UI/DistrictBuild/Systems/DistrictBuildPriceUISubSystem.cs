@@ -4,6 +4,7 @@ using Domains.Actors.City.Components;
 using Domains.Actors.Components;
 using Domains.Actors.Mayor.Components;
 using Domains.Economy.District.Data;
+using Domains.Economy.District.Helpers;
 using Domains.Economy.Resource.Components;
 using Domains.Economy.Resource.Data;
 using JetBrains.Annotations;
@@ -150,18 +151,8 @@ namespace Presentation.UI.DistrictBuild.Systems
             if (type == DistrictType.None || !World.Has<DistrictBuildCostsConfigComponent>())
                 return false;
 
-            var entries = World.Get<DistrictBuildCostsConfigComponent>().Value?.Districts;
-            if (entries == null)
-                return false;
-
-            for (var i = 0; i < entries.Length; i++)
-                if (entries[i] != null && entries[i].DistrictType == type)
-                {
-                    cost = entries[i];
-                    return true;
-                }
-
-            return false;
+            return DistrictConfigLookup.TryFind(
+                World.Get<DistrictBuildCostsConfigComponent>().Value?.Districts, type, c => c.DistrictType, out cost);
         }
 
         private bool TryGetDistrict(DistrictType type, out DistrictBuildConfig district)
@@ -176,18 +167,8 @@ namespace Presentation.UI.DistrictBuild.Systems
             if (type == DistrictType.None || !World.Has<DistrictBuildsConfigComponent>())
                 return false;
 
-            var entries = World.Get<DistrictBuildsConfigComponent>().Value?.Districts;
-            if (entries == null)
-                return false;
-
-            for (var i = 0; i < entries.Length; i++)
-                if (entries[i] != null && entries[i].DistrictType == type)
-                {
-                    district = entries[i];
-                    return true;
-                }
-
-            return false;
+            return DistrictConfigLookup.TryFind(
+                World.Get<DistrictBuildsConfigComponent>().Value?.Districts, type, d => d.DistrictType, out district);
         }
 
         // Default payer when the view has no valid selection yet: first allowed owner in canonical order

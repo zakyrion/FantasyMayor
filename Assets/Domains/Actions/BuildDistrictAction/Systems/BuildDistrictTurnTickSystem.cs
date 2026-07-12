@@ -1,4 +1,4 @@
-using System.Threading;
+﻿using System.Threading;
 using Cysharp.Threading.Tasks;
 using DefaultEcs;
 using DefaultECSExtensions;
@@ -32,7 +32,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
 
             _inProgress = _world.GetEntities()
                 .With<BuildDistrictInProgressTag>()
-                .With<BuildDistrictTurnsLeftComponent>()
+                .With<BuildDistrictTurnsComponent>()
                 .AsSet();
         }
 
@@ -58,15 +58,15 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             var raiseEvent = false;
             foreach (var entity in _inProgress.GetEntities())
             {
-                var left = entity.Get<BuildDistrictTurnsLeftComponent>().Value;
+                var turns = entity.Get<BuildDistrictTurnsComponent>();
+                var turnsLeft = turns.TurnsLeft-1;
 
-                if (left <= 0)
+                if (turnsLeft <= 0)
                 {
                     raiseEvent = true;
-                    continue;
                 }
 
-                entity.Set(new BuildDistrictTurnsLeftComponent { Value = left - 1 });
+                entity.Set(new BuildDistrictTurnsComponent { TurnsLeft = turnsLeft, TurnsToBuild = turns.TurnsToBuild });
             }
 
             if (raiseEvent)

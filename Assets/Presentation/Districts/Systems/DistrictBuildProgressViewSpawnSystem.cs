@@ -5,6 +5,7 @@ using Domains.Actions.BuildDistrictAction.Components;
 using Domains.Actions.BuildDistrictAction.Events;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
+using Domains.Economy.District.Helpers;
 using Domains.Map.Hex.Components;
 using JetBrains.Annotations;
 using Presentation.Districts.Components;
@@ -106,13 +107,12 @@ namespace Presentation.Districts.Systems
         // Fail loud: an in-progress build with no configured progress prefab is an authoring gap, not a benign skip.
         private GameObject ResolvePrefab(DistrictBuildProgressViewsConfig viewsConfig, DistrictType districtType)
         {
-            var views = viewsConfig.Views;
-            for (var i = 0; i < views.Length; i++)
-                if (views[i].DistrictType == districtType && views[i].Prefab != null)
-                    return views[i].Prefab;
+            if (!DistrictConfigLookup.TryFind(
+                    viewsConfig.Views, districtType, v => v.DistrictType, v => v.Prefab != null, out var match))
+                throw new InvalidOperationException(
+                    $"DistrictBuildProgressViewSpawnSystem: no progress prefab configured for district type '{districtType}'.");
 
-            throw new InvalidOperationException(
-                $"DistrictBuildProgressViewSpawnSystem: no progress prefab configured for district type '{districtType}'.");
+            return match.Prefab;
         }
 
         public override void Dispose()

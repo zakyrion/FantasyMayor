@@ -1,6 +1,7 @@
 using System;
 using DefaultEcs;
 using Domains.Economy.District.Data;
+using Domains.Economy.District.Helpers;
 using Domains.Economy.DistrictBuild.Components;
 using Domains.Economy.DistrictBuild.Configs;
 using Domains.Map.Hex.Components;
@@ -91,18 +92,8 @@ namespace Presentation.UI.DistrictBuild.Systems
             if (type == DistrictType.None || !World.Has<DistrictBuildsConfigComponent>())
                 return false;
 
-            var districts = World.Get<DistrictBuildsConfigComponent>().Value?.Districts;
-            if (districts == null)
-                return false;
-
-            for (var i = 0; i < districts.Length; i++)
-                if (districts[i] != null && districts[i].DistrictType == type)
-                {
-                    district = districts[i];
-                    return true;
-                }
-
-            return false;
+            return DistrictConfigLookup.TryFind(
+                World.Get<DistrictBuildsConfigComponent>().Value?.Districts, type, d => d.DistrictType, out district);
         }
 
         private bool TryGetHexType(HexCoord coords, out HexType type)

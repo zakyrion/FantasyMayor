@@ -13,12 +13,14 @@ using Object = UnityEngine.Object;
 namespace Presentation.Districts.Systems
 {
     /// <summary>
-    ///     Reactive runtime construction-progress remover. Anchored on the one-frame <see cref="DistrictBuiltEvent" />
-    ///     pulse (the same pulse <c>DistrictViewSpawnSystem</c> reacts to — <c>BuildDistrictCompletionSystem</c>
-    ///     disposes the in-progress entity BEFORE raising it): on its presence it reconciles state — every
+    ///     Reactive runtime construction-progress remover. Anchored on EITHER the one-frame
+    ///     <see cref="DistrictBuiltEvent" /> pulse (the same pulse <c>DistrictViewSpawnSystem</c> reacts to —
+    ///     <c>BuildDistrictCompletionSystem</c> disposes the in-progress entity BEFORE raising it) OR
+    ///     <see cref="BuildDistrictCancelEvent" /> (<c>BuildDistrictActionCancelSystem</c> disposes the in-progress
+    ///     entity BEFORE raising it, same-tick ordering) — on either presence it reconciles state: every
     ///     progress-view hex whose hex no longer carries a <c>BuildDistrictInProgressTag</c> entity has its view
     ///     entity (and GameObject) destroyed. Works with current world state, not transitive deltas, so it is
-    ///     idempotent. Cancel (R5) teardown is a future emitter of the same reconcile, not built yet.
+    ///     idempotent regardless of which pulse (or both) fired this tick.
     /// </summary>
     [UsedImplicitly]
     public sealed class DistrictBuildProgressViewDespawnSystem : UpdatedSystem
@@ -33,7 +35,7 @@ namespace Presentation.Districts.Systems
 
         public DistrictBuildProgressViewDespawnSystem(World world)
             : base(world.GetEntities()
-                .With<DistrictBuiltEvent>()
+                .WithEither<DistrictBuiltEvent>().Or<BuildDistrictCancelEvent>()
                 .AsSet())
         {
             _inProgressByHex = world.GetEntities()

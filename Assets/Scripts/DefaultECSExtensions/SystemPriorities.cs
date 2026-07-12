@@ -49,11 +49,12 @@ namespace DefaultECSExtensions
             public const int DistrictBuildUi = 566;
             public const int BuildDistrictAction = 600;
             public const int DistrictBuildProgressViewSpawn = 601; // > BuildDistrictAction (600): reads the in-progress entity it just stamped, same DistrictBuildConfirmedEvent pulse
-            public const int BuildDistrictCompletion = 602; // > DistrictBuildProgressViewSpawn (601), < DistrictBuildProgressViewDespawn (603): consume the completed pulse, write the District fact + raise DistrictBuiltEvent in the SAME frame the views reconcile
+            public const int BuildDistrictActionCancel = 602; // > DistrictBuildProgressViewSpawn (601), < DistrictBuildProgressViewDespawn (604): consumes BuildDistrictCancelEvent, disposes the in-progress entity in the SAME frame the views reconcile
+            public const int BuildDistrictCompletion = 603; // > BuildDistrictActionCancel (602), < DistrictBuildProgressViewDespawn (604): consume the completed pulse, write the District fact + raise DistrictBuiltEvent in the SAME frame the views reconcile
             public const int ForestSpawn = 599; // moved off 601 to free that slot for BuildDistrictCompletion; forest ordering is independent of the district-build chain
-            public const int DistrictBuildProgressViewDespawn = 603; // > BuildDistrictCompletion (602): the in-progress entity it reconciles against is already disposed by then
-            public const int DistrictViewSpawn = 604;
-            public const int ForestDespawn = 605;
+            public const int DistrictBuildProgressViewDespawn = 604; // > BuildDistrictActionCancel (602) and BuildDistrictCompletion (603): the in-progress entity it reconciles against is already disposed by either, whichever raised this tick
+            public const int DistrictViewSpawn = 605;
+            public const int ForestDespawn = 606;
             public const int HexIconsContainerPosition = 700; // > Camera (0): re-project after the camera moves this frame
             public const int HexIconsVisibility = 800;
             public const int TurnProcessor = 1000;

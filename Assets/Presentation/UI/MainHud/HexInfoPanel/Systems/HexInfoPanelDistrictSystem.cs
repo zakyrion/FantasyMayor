@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using DefaultEcs;
 using DefaultECSExtensions;
 using Domains.Actions.BuildDistrictAction.Components;
@@ -27,12 +27,13 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
     ///     (turns-left on an in-progress build advances while the same hex stays selected), OR
     ///     <see cref="DistrictBuildConfirmedEvent" /> (the player just confirmed a build on the still-selected
     ///     hex — without this trigger the block would keep showing the build prompt until a reselect or the next
-    ///     turn boundary) — <c>Priority</c> is deliberately set above ALL THREE producers (see
-    ///     SystemPriorities.RuntimeTick.HexInfoPanelDistrict) so any pulse is visible the same frame it is raised.
-    ///     With no selection it hides every district block; otherwise it checks — in order — whether the hex has
-    ///     an in-progress build (shows type + icon + turns-left + cancel), then whether a district FACT exists
-    ///     (District table — key <see cref="HexIdComponent" /> + discriminator <see cref="DistrictTag" />, still
-    ///     SCAFFOLD: no backing economy components yet, so this branch is currently unreachable), else the
+    ///     turn boundary), OR <see cref="BuildDistrictCancelEvent" /> (the player just cancelled the still-selected
+    ///     hex's build — same reasoning as confirm) — <c>Priority</c> is deliberately set above ALL FOUR producers
+    ///     (see SystemPriorities.RuntimeTick.HexInfoPanelDistrict) so any pulse is visible the same frame it is
+    ///     raised. With no selection it hides every district block; otherwise it checks — in order — whether the
+    ///     hex has an in-progress build (shows type + icon + turns-left + cancel), then whether a district FACT
+    ///     exists (District table — key <see cref="HexIdComponent" /> + discriminator <see cref="DistrictTag" />,
+    ///     still SCAFFOLD: no backing economy components yet, so this branch is currently unreachable), else the
     ///     build-prompt block.
     /// </summary>
     [UsedImplicitly]
@@ -52,6 +53,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
         public HexInfoPanelDistrictSystem(World world)
             : base(world.GetEntities()
                 .WithEither<SelectedHexChangedEvent>().Or<TurnCompletedEvent>().Or<DistrictBuildConfirmedEvent>()
+                .Or<BuildDistrictCancelEvent>()
                 .AsSet())
         {
             _world = world;
@@ -65,7 +67,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
                 .With<BuildDistrictInProgressTag>()
                 .With<HexIdComponent>()
                 .With<DistrictTypeComponent>()
-                .With<BuildDistrictTurnsLeftComponent>()
+                .With<BuildDistrictTurnsComponent>()
                 .AsSet();
         }
 
@@ -118,7 +120,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
                     continue;
 
                 districtType = inProgressEntity.Get<DistrictTypeComponent>().Value;
-                turnsLeft = inProgressEntity.Get<BuildDistrictTurnsLeftComponent>().Value;
+                turnsLeft = inProgressEntity.Get<BuildDistrictTurnsComponent>().TurnsLeft;
                 return true;
             }
 
@@ -169,11 +171,22 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
             _cancelHookedView = view;
         }
 
-        // Dormant emitter: wired for R5 (Flows/FLOW_DISTRICT_BUILD.md) — the target BuildDistrictActionCancelSystem
-        // does not exist yet, so there is nothing to raise. The subscription exists now so the view's cancel
-        // affordance is live and R5 only needs to fill this handler in.
+        // Raises BuildDistrictCancelEvent for the selected hex's in-progress build. Guarded, not fail-loud: the
+        // cancel button only exists while the block shows the in-progress state, but a defensive re-check costs
+        // nothing against a stale-dispatch race. BuildDistrictActionCancelSystem owns the actual state mutation
+        // and is the one that fails loud if the pulse ever reaches it without a matching hex.
         private void OnCancelled()
         {
+            if (_selectedHexSet.Count == 0)
+                return;
+
+            var coords = _selectedHexSet.GetEntities()[0].Get<HexSelectedComponent>().Coords;
+            if (!TryGetInProgress(coords, out _, out _))
+                return;
+
+            var pulse = _world.CreateEntity();
+            pulse.Set(new BuildDistrictCancelEvent { Coords = coords });
+            pulse.Set(new EventTag());
         }
 
         public override void Dispose()

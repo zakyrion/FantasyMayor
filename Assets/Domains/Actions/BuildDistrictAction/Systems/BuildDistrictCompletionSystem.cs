@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using DefaultEcs;
 using DefaultECSExtensions;
 using Domains.Actions.BuildDistrictAction.Components;
@@ -37,7 +37,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             _world = world;
             _buildDistrictsInProgress = world.GetEntities()
                 .With<BuildDistrictInProgressTag>()
-                .With<BuildDistrictTurnsLeftComponent>()
+                .With<BuildDistrictTurnsComponent>()
                 .With<HexIdComponent>()
                 .With<DistrictTypeComponent>()
                 .AsSet();
@@ -58,7 +58,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
 
             var readyCount = 0;
             foreach (var buildingEntity in inProgress)
-                if (buildingEntity.Get<BuildDistrictTurnsLeftComponent>().Value <= 0)
+                if (buildingEntity.Get<BuildDistrictTurnsComponent>().TurnsLeft <= 0)
                     readyCount++;
 
             if (readyCount == 0)
@@ -67,7 +67,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             var ready = new NativeArray<Entity>(readyCount, Allocator.Temp);
             var next = 0;
             foreach (var buildingEntity in inProgress)
-                if (buildingEntity.Get<BuildDistrictTurnsLeftComponent>().Value <= 0)
+                if (buildingEntity.Get<BuildDistrictTurnsComponent>().TurnsLeft <= 0)
                     ready[next++] = buildingEntity;
 
             for (var i = 0; i < ready.Length; i++)

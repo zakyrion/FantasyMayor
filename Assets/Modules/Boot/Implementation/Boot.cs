@@ -92,6 +92,7 @@ namespace Modules.Boot.Implementation
             HexInfoPanelDistrictSystem hexInfoPanelDistrict,
             DistrictBuildUISystem districtBuildUI,
             BuildDistrictActionSystem buildDistrictAction,
+            BuildDistrictActionCancelSystem buildDistrictActionCancel,
             BuildDistrictCompletionSystem buildDistrictCompletion,
             ResourceBarSystem resourceBar,
             TurnPanelViewSystem turnPanelViewSystem,
@@ -117,8 +118,8 @@ namespace Modules.Boot.Implementation
                 {
                     hexSelection, hexSelectionView, forestSpawn, forestDespawn, districtViewSpawn, hexIconsVisibility,
                     hexInfoPanel, hexInfoPanelHeader, hexInfoPanelResources, hexInfoPanelDistrict,
-                    districtBuildUI, buildDistrictAction, districtBuildProgressViewSpawn, buildDistrictCompletion,
-                    districtBuildProgressViewDespawn,
+                    districtBuildUI, buildDistrictAction, districtBuildProgressViewSpawn, buildDistrictActionCancel,
+                    buildDistrictCompletion, districtBuildProgressViewDespawn,
                     resourceBar, turnPanelViewSystem, contextTabSelection,
                     contextTabsAvailability, turnProcessor, turnCount, eventCleanup
                 },
