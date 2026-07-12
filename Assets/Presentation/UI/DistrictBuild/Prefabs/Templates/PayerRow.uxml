@@ -1,0 +1,9 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <!-- One payer segment. Cloned per allowed owner by DistrictBuildPriceUISubSystem, which binds Icon / Who and
+         marks the selected owner; the mayor/city modifier class is added at runtime. Styling comes from the host panel. -->
+    <ui:VisualElement name="PayerRow" class="payseg">
+        <ui:Label name="Icon" class="payseg-pe"/>
+        <ui:Label name="Who" class="payseg-who"/>
+        <ui:Label text="· власник" class="payseg-own"/>
+    </ui:VisualElement>
+</ui:UXML>

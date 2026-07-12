@@ -8,6 +8,7 @@ using Modules.Boot.Core;
 using Domains.Map.Hex.Components;
 using Presentation.Terrain.Components;
 using UnityEngine;
+using Domains.Map.Hex.Tags;
 
 namespace Presentation.Terrain.Systems
 {
@@ -18,7 +19,6 @@ namespace Presentation.Terrain.Systems
     [UsedImplicitly]
     internal sealed class TerrainViewDebugSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        private const int ExecutionPriority = 600;
         private const float RayHeight = 5f;
         private const float RayDuration = 5f;
 
@@ -26,14 +26,14 @@ namespace Presentation.Terrain.Systems
         private readonly EntitySet _hexSet;
 
         /// <inheritdoc />
-        public int Priority => ExecutionPriority;
+        public int Priority => SystemPriorities.WorldInit.TerrainViewDebug;
 
         public TerrainViewDebugSystem(World world)
         {
             _world = world;
             _hexSet = world.GetEntities()
                 .With<HexIdComponent>()
-                .With<HexLevelComponent>()
+                .With<HexLevelComponent>().With<HexTag>()
                 .AsSet();
         }
 

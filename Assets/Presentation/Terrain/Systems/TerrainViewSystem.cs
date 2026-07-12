@@ -12,8 +12,10 @@ using Presentation.Terrain.Components;
 using System.Collections.Generic;
 using System.Linq;
 using Domains.Map.Hex.Components;
+using Domains.Map.Hex.Tags;
 using Unity.Collections;
 using UnityEngine;
+using Presentation.Terrain.Tags;
 
 namespace Presentation.Terrain.Systems
 {
@@ -27,7 +29,6 @@ namespace Presentation.Terrain.Systems
     [UsedImplicitly]
     internal sealed class TerrainViewSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        private const int ExecutionPriority = 300;
         private const string TERRAIN_VIEW_ADDRESS = "TerrainView";
 
         private readonly IAddressable _addressable;
@@ -39,7 +40,7 @@ namespace Presentation.Terrain.Systems
         private Entity? _terrainViewEntity;
 
         /// <inheritdoc />
-        public int Priority => ExecutionPriority;
+        public int Priority => SystemPriorities.WorldInit.TerrainView;
 
         /// <param name="world">The ECS world used for entity creation.</param>
         /// <param name="addressable">Addressable loader used to load and instantiate the TerrainView prefab.</param>
@@ -49,7 +50,7 @@ namespace Presentation.Terrain.Systems
             _world = world;
             _addressable = addressable;
             _terrainViewBox = Box<Views.TerrainView>.Empty();
-            _hexSet = world.GetEntities().With<HexIdComponent>().AsSet();
+            _hexSet = world.GetEntities().With<HexIdComponent>().With<HexTag>().AsSet();
             _viewSubSystems = viewSubSystems
                 .OrderBy(s => s.Priority)
                 .ToArray();
@@ -165,6 +166,7 @@ namespace Presentation.Terrain.Systems
             DestroyTerrainViewEntity();
             var entity = _world.CreateEntity();
             entity.Set(new TerrainViewComponent { ObjectRef = _terrainViewBox.Value });
+            entity.Set(new TerrainViewTag());
             _terrainViewEntity = entity;
         }
 

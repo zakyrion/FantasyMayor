@@ -4,6 +4,8 @@
     "references": [
         "Core",
         "Domains.Map",
+        "Domains.Economy",
+        "Domains.Actions",
         "AxialSystem",
         "VContainer",
         "DefaultECS.Extensions",

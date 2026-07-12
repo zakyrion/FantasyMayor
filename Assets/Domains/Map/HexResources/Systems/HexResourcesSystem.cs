@@ -15,12 +15,10 @@ namespace Domains.Map.HexResources.Systems
     [UsedImplicitly]
     internal sealed class HexResourcesSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        private const int ExecutionPriority = 200;
-
         private readonly IReadOnlyList<HexResourcesSubSystem> _resourceSubSystems;
 
         /// <inheritdoc />
-        public int Priority => ExecutionPriority;
+        public int Priority => SystemPriorities.WorldInit.HexResources;
 
         public HexResourcesSystem(IReadOnlyList<HexResourcesSubSystem> resourceSubSystems)
         {

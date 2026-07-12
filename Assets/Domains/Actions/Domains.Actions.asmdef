@@ -4,13 +4,17 @@
     "references": [
         "Domains.Economy",
         "Domains.Actors",
+        "Domains.Kernel",
+        "Domains.Map",
+        "AxialSystem",
         "Turn",
         "DefaultECS.Extensions",
         "Boot.Core",
         "Addressables.Core",
         "Core",
         "VContainer",
-        "UniTask"
+        "UniTask",
+        "Unity.Collections"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

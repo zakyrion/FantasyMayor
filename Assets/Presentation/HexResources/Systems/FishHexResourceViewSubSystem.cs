@@ -8,9 +8,7 @@ namespace Presentation.HexResources.Systems
     [UsedImplicitly]
     internal sealed class FishHexResourceViewSubSystem : HexResourcesViewSubSystem
     {
-        private const int ExecutionPriority = 300;
-
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.HexResourceView.Fish;
         protected override HexResourceType TargetHexResourceType => HexResourceType.Fish;
 
         public FishHexResourceViewSubSystem(World world)

@@ -6,6 +6,6 @@ namespace Domains.Economy.District.Data
         CityCenter = 1,
         Farm = 2,
         Forester = 3,
-
+        None = 4,
     }
 }

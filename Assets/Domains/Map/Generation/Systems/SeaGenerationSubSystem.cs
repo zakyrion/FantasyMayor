@@ -1,4 +1,4 @@
-using DefaultEcs;
+﻿using DefaultEcs;
 using DefaultECSExtensions;
 using JetBrains.Annotations;
 using Domains.Map.Hex.Components;
@@ -8,18 +8,18 @@ using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 using Random = UnityEngine.Random;
+using Domains.Map.Hex.Tags;
 
 namespace Domains.Map.Generation.Systems
 {
     /// <summary>
-    ///     Runs sea generation when invoked by <see cref="MapGenerationSystem" />.
+    ///     Runs sea generation when invoked by <see cref="GenerationSystem" />.
     ///     Generates a single connected sea body seeded from the map edge and biased to
     ///     remain near that edge, with area derived from <see cref="SeaConfigComponent.SizeFraction" />.
     /// </summary>
     [UsedImplicitly]
-    internal sealed class SeaGenerationSubSystem : MapGenerationSubSystem
+    internal sealed class SeaGenerationSubSystem : GenerationSubSystem
     {
-        private const int ExecutionPriority = 220;
         private const int SeaLevel = -1;
         private const float EdgeWeight = 2f;
         private const float NeighbourWeight = 1f;
@@ -29,7 +29,7 @@ namespace Domains.Map.Generation.Systems
         private readonly EntitySet _hexSet;
 
         /// <inheritdoc />
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.Generation.Sea;
 
         /// <summary>
         ///     Creates a sea generation system bound to the shared ECS world.
@@ -40,7 +40,7 @@ namespace Domains.Map.Generation.Systems
             _world = world;
             _hexSet = world.GetEntities()
                 .With<HexIdComponent>()
-                .With<HexLevelComponent>()
+                .With<HexLevelComponent>().With<HexTag>()
                 .AsSet();
         }
 

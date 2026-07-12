@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "roslyn": {
+      "type": "stdio",
+      "command": "roslyn-mcp",
+      "args": [],
+      "env": {
+        "DOTNET_ROLL_FORWARD": "Major"
+      }
+    }
+  }
+}

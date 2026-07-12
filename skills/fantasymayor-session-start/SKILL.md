@@ -32,7 +32,9 @@ Respect the repository constraints in `CLAUDE.md`, especially:
 
 ### 2. Read only the start-reading set
 
-Read every doc `INDEX.md` marks `read: always` (currently `ARCHITECTURE.md`, `DOC_STANDARD.md`, `GAMEPLAY_FOUNDATION.md`) — via the same Obsidian channel as step 1.
+Read every doc `INDEX.md` marks `read: always` (currently `ARCHITECTURE.md`, `DOC_STANDARD.md`) — via the same Obsidian channel as step 1.
+
+**Never read `GAMEPLAY_FOUNDATION.md`** — not at session-start, not by topic/trigger. Read it ONLY when the user explicitly asks for it. (It is `read: trigger` with an explicit-request-only condition.)
 
 Do **not** read all root Markdown, and do **not** preload `trigger` or `reference` docs — `INDEX.md` already summarizes each one. Glance at the index and read a `trigger`/`reference` doc only when the user's task needs it. Ignore nested package/plugin READMEs.
 

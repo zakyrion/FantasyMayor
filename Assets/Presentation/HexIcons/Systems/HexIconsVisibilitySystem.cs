@@ -12,6 +12,8 @@ using Domains.Map.HexResources.Components;
 using Domains.Map.HexResources.Data;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Presentation.HexIcons.Tags;
+using Domains.Map.HexResources.Tags;
 
 namespace Presentation.HexIcons.Systems
 {
@@ -26,13 +28,11 @@ namespace Presentation.HexIcons.Systems
     [UsedImplicitly]
     public sealed class HexIconsVisibilitySystem : UpdatedSystem
     {
-        private const int ExecutionPriority = 800;
-
         private readonly World _world;
         private readonly EntitySet _containerSet;
         private readonly EntitySet _resourceSet;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.RuntimeTick.HexIconsVisibility;
 
         public HexIconsVisibilitySystem(World world)
             : base(world.GetEntities()
@@ -42,11 +42,11 @@ namespace Presentation.HexIcons.Systems
             _world = world;
             _containerSet = world.GetEntities()
                 .With<HexIdComponent>()
-                .With<HexIconContainerComponent>()
+                .With<HexIconContainerComponent>().With<HexIconContainerTag>()
                 .AsSet();
             _resourceSet = world.GetEntities()
                 .With<HexIdComponent>()
-                .With<HexResourceComponent>()
+                .With<HexResourceComponent>().With<HexResourceTag>()
                 .AsSet();
         }
 

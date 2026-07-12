@@ -4,12 +4,12 @@ using Cysharp.Threading.Tasks;
 using DefaultEcs;
 using DefaultECSExtensions;
 using Domains.Actors.Components;
-using Domains.Actors.Data;
+using Domains.Kernel.Data;
 using Domains.Actors.Mayor.Components;
-using Domains.Economy.Resource.Data;
 using Domains.Economy.Resource.Helpers;
 using JetBrains.Annotations;
 using Modules.Boot.Core;
+using Domains.Actors.Mayor.Tags;
 
 namespace Domains.Actors.Mayor.Systems
 {
@@ -21,11 +21,9 @@ namespace Domains.Actors.Mayor.Systems
     [UsedImplicitly]
     internal sealed class MayorSpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        private const int ExecutionPriority = 910;
-
         private readonly World _world;
 
-        public int Priority => ExecutionPriority;
+        public int Priority => SystemPriorities.WorldInit.MayorSpawn;
 
         public MayorSpawnSystem(World world)
         {
@@ -57,12 +55,12 @@ namespace Domains.Actors.Mayor.Systems
             var mayorIdComponent = new MayorIdComponent { Value = mayorId };
             var mayor = _world.CreateEntity();
             mayor.Set(mayorIdComponent);
+            mayor.Set(new MayorTag());
             mayor.Set(new ActorTypeComponent { Type = ActorType.Mayor });
             mayor.Set(new MayorAPRestoreComponent { Value = config.StartActionPoints });
+            mayor.Set(new MayorAPComponent { Value = config.StartActionPoints });
 
-            ResourceLoadoutSpawner.SpawnLoadout(_world, mayorIdComponent, config.Resources);
-            ResourceLoadoutSpawner.SpawnResource(_world, mayorIdComponent, ResourceType.ActionPoint,
-                config.StartActionPoints);
+            ResourceLoadoutSpawner.SpawnLoadout<MayorIdComponent, MayorResourceTag>(_world, mayorIdComponent, config.Resources);
 
             return UniTask.CompletedTask;
         }

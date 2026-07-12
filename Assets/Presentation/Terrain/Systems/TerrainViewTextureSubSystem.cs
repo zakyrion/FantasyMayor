@@ -7,6 +7,7 @@ using JetBrains.Annotations;
 using Modules.AxialSystem;
 using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Data;
+using Domains.Map.Hex.Tags;
 using Domains.Map.Hex.Utils;
 using Presentation.Terrain.Components;
 using Unity.Collections;
@@ -27,19 +28,17 @@ namespace Presentation.Terrain.Systems
     [UsedImplicitly]
     internal sealed class TerrainViewTextureSubSystem : ViewSubSystem
     {
-        private const int ExecutionPriority = 200;
-
         private readonly EntitySet _hexSet;
         private readonly World _world;
 
         /// <inheritdoc />
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.TerrainView.Texture;
 
         /// <param name="world">ECS world used for entity queries and texture component creation.</param>
         public TerrainViewTextureSubSystem(World world)
         {
             _world = world;
-            _hexSet = world.GetEntities().With<HexIdComponent>().AsSet();
+            _hexSet = world.GetEntities().With<HexIdComponent>().With<HexTag>().AsSet();
         }
 
         /// <inheritdoc />

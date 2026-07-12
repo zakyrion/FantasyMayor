@@ -1,0 +1,28 @@
+{
+	"nodes":[
+		{"id":"05d30a406cb520a7","type":"text","text":"DistrictBuildUISystem","x":-500,"y":-180,"width":250,"height":60},
+		{"id":"c60894bbc275fb05","type":"text","text":"DistrictBuildUIViewComponent","x":160,"y":-300,"width":269,"height":60},
+		{"id":"3816750fadeb0c17","type":"text","text":"DistrictBuildUIView","x":529,"y":-300,"width":250,"height":60},
+		{"id":"4bcae2ec51acf729","type":"text","text":"DistrictBuildUISubSystem","x":-89,"y":-73,"width":250,"height":60},
+		{"id":"28d0168abe81cfb8","type":"text","text":"DistrictBuildHexResourcesUISubSystem","x":415,"y":-180,"width":364,"height":66},
+		{"id":"981bb8fb95ef80ec","type":"text","text":"DistrictBuildPriceUISubSystem","x":415,"y":-68,"width":302,"height":50},
+		{"id":"1f2055f648ac1b19","type":"text","text":"DistrictBuildActionsUISubSystem","x":416,"y":23,"width":301,"height":60},
+		{"id":"44ed586e7a11079d","type":"text","text":"All these SubSystem must to have uniq View : MonoBehaviour\nthat will be placed on the object","x":880,"y":-92,"width":280,"height":115},
+		{"id":"4af242b4e619139c","x":416,"y":120,"width":250,"height":60,"type":"text","text":"DistrictBuildListUISubSystem"},
+		{"id":"7a7b9c4ea9967865","x":826,"y":204,"width":334,"height":116,"type":"text","text":"This is important system. It does set up list of available district. Use DistrictOpenCondition sub domain for that."}
+	],
+	"edges":[
+		{"id":"b9638e387ff30ee5","fromNode":"c60894bbc275fb05","fromSide":"right","toNode":"3816750fadeb0c17","toSide":"left"},
+		{"id":"46efed3beb37a12e","fromNode":"05d30a406cb520a7","fromSide":"right","toNode":"c60894bbc275fb05","toSide":"left"},
+		{"id":"3152f63ef29616d0","fromNode":"05d30a406cb520a7","fromSide":"right","toNode":"4bcae2ec51acf729","toSide":"left"},
+		{"id":"e40699c1e6faacdb","fromNode":"4bcae2ec51acf729","fromSide":"right","toNode":"28d0168abe81cfb8","toSide":"left"},
+		{"id":"5e074cf259e793d4","fromNode":"4bcae2ec51acf729","fromSide":"right","toNode":"981bb8fb95ef80ec","toSide":"left"},
+		{"id":"d0ff7a9c3aab8661","fromNode":"4bcae2ec51acf729","fromSide":"right","toNode":"1f2055f648ac1b19","toSide":"left"},
+		{"id":"884f8c36348a44d0","fromNode":"28d0168abe81cfb8","fromSide":"right","toNode":"44ed586e7a11079d","toSide":"left"},
+		{"id":"3c8551c490c55330","fromNode":"981bb8fb95ef80ec","fromSide":"right","toNode":"44ed586e7a11079d","toSide":"left"},
+		{"id":"5e51bbebcfbc5e1f","fromNode":"1f2055f648ac1b19","fromSide":"right","toNode":"44ed586e7a11079d","toSide":"left"},
+		{"id":"94f36a118bede1a4","fromNode":"4bcae2ec51acf729","fromSide":"right","toNode":"4af242b4e619139c","toSide":"left"},
+		{"id":"52ca8216532c80c1","fromNode":"4af242b4e619139c","fromSide":"right","toNode":"44ed586e7a11079d","toSide":"left"},
+		{"id":"ab0560f3e7f58fa6","fromNode":"4af242b4e619139c","fromSide":"right","toNode":"7a7b9c4ea9967865","toSide":"left"}
+	]
+}

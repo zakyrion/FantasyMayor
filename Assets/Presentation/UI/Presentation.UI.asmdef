@@ -7,6 +7,8 @@
         "Domains.Economy",
         "Domains.Actors",
         "Domains.Actions",
+        "Domains.Kernel",
+        "Flows.DistrictBuild",
         "GUID:3252faac638b944c08c3f6599c32dbb5",
         "GUID:1a9213c446c61437cb6fa2e6b964b224",
         "GUID:a15c10a9d6c504c279af3d692db5acbc",

@@ -5,7 +5,7 @@ namespace Domains.Map.Hex.Components
 {
     // Terrain kind of a hex as a single column on the hex row (replaces the data-less terrain tags
     // HexPlainTag / HexMountTag / HexBedhillTag / HexWaterTag). IEquatable on the enum so it can serve
-    // as an AsMultiMap key — "all hexes of type X" — mirroring HexResourcesComponent.
+    // as an AsMultiMap key — "all hexes of type X" — mirroring HexResourceComponent.
     public struct HexTypeComponent : IEquatable<HexTypeComponent>
     {
         public HexType Type;

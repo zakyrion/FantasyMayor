@@ -19,13 +19,11 @@ namespace Domains.Map.HexResources.Systems
     [UsedImplicitly]
     internal sealed class FishResourceGenerationSubSystem : HexResourcesSubSystem
     {
-        private const int ExecutionPriority = 300;
-
         private readonly World _world;
         private readonly EntitySet _hexSet;
         private readonly EntityMultiMap<HexTypeComponent> _hexesByType;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.HexResourceGeneration.Fish;
         protected override HexResourceType TargetHexResourceType => HexResourceType.Fish;
 
         public FishResourceGenerationSubSystem(World world) : base(world)
@@ -33,7 +31,7 @@ namespace Domains.Map.HexResources.Systems
             _world = world;
             _hexSet = world.GetEntities()
                 .With<HexIdComponent>()
-                .With<HexLevelComponent>()
+                .With<HexLevelComponent>().With<HexTag>()
                 .AsSet();
             _hexesByType = world.GetEntities()
                 .With<HexTag>()

@@ -12,20 +12,19 @@ using Presentation.HexIcons.Views;
 using Unity.Mathematics;
 using UnityEngine.UIElements;
 using Object = UnityEngine.Object;
+using Presentation.HexIcons.Tags;
 
 namespace Presentation.HexIcons.Systems
 {
     [UsedImplicitly]
     internal sealed class HexIconsSpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        private const int ExecutionPriority = 700;
-
         private readonly World _world;
 
         // Cached at spawn for the container builders.
         private HexIconsView _view;
 
-        public int Priority => ExecutionPriority;
+        public int Priority => SystemPriorities.WorldInit.HexIconsSpawn;
 
         public HexIconsSpawnSystem(World world)
         {
@@ -84,6 +83,7 @@ namespace Presentation.HexIcons.Systems
                 var containerEntity = _world.CreateEntity();
                 containerEntity.Set(hexId);
                 containerEntity.Set(new HexIconContainerComponent(container));
+                containerEntity.Set(new HexIconContainerTag());
             }
         }
 

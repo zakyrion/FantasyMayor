@@ -1,6 +1,7 @@
 ---
 category: C
-read: always
+read: trigger
+trigger: "before authoring or reviewing any .md (Flows / Patterns / policy) for standard compliance"
 tags: [docs, conventions]
 related:
   - "[ARCHITECTURE](ARCHITECTURE.md)"
@@ -10,320 +11,127 @@ related:
 # DOC_STANDARD.md
 
 Single source of truth for how to write Markdown docs in this project.
-Read this before creating or editing any `.md` file in a module or repo root.
+Read this before creating or editing any `.md` file.
+
+> **Module/domain/presentation MDs are ABOLISHED (2026-07-09) — never recreate them.** Present-tense
+> narrative about code state rots faster than curation keeps up. Module knowledge lives in code
+> comments (distance zero), tools (`roslyn` / `ecs-graph` / `di-graph`), commit messages, and the
+> genres below. `Tools/doc_lint.py` lint-checks every doc's symbol claims against the code.
 
 ---
 
 ## Rule 0 — Documentation is written for the AI agent, not for a human
 
-Every `.md` file in this project — module docs, templates, policy files, and **this file itself** — is
-written **primarily for an AI agent that will act on it**, not for a human reader. No human is the
-primary audience; optimize for the model that executes against the doc.
+Every `.md` file in this project is written for an AI agent that will act on it. Write for the
+**least-capable agent likely to read it**: explicit, literal, no implied reasoning chains.
 
-Concretely: write for the **least-capable agent likely to read it** — explicit, literal, no implied
-reasoning chains, nothing left "obvious from context". A doc succeeds when an agent can act on it
-correctly **without opening the source**. This target is sharper than a vague "write for AI", and it is
-what every rule below serves.
+## Rule 1 — Only non-rotting genres
+
+A doc may hold ONLY content that does not decay when code drifts:
+
+```clojure
+(def doc-genres
+  {:flow-contract "Flows/FLOW_<NAME>.md"   ;; dated TARGET contract of one cross-domain behavior + gap list; changes by decision, not drift
+   :recipe        "Patterns/PATTERN_*.md"  ;; one-approach-per-file skeleton for a code role; changes when the convention changes
+   :policy        "root *.md"              ;; ARCHITECTURE / ECS_CONVENTIONS / CLAUDE / this file / GENERAL_UI_STYLE / GLOSSARY
+   :never         "present-tense mirror of code state"})  ;; current-state prose, rosters, wiring — tools own those
+```
+
+```clojure
+;; ── structural facts: a tool owns them, a doc NEVER does ────────────────────
+(def tool-owns
+  {#{types signatures references hierarchy outline}                   roslyn-mcp
+   #{writers readers reactive-consumers archetypes PK-FK priorities}  ecs-graph
+   #{registered-as Lifetime installer injectors collections GameMode} di-graph
+   #{asmdef-reachability layering}                                    Tools/asmdef_reach.py
+   :doc-symbol-claims                                                 Tools/doc_lint.py
+   :domain-term->code-anchor                                          GLOSSARY.md})
+```
+
+A live code symbol may appear in a doc only as an ANCHOR (bare name) — doc-lint verifies it exists.
 
 ---
 
-## Why This Standard Exists
+## Rule Style — Clojure rule blocks (all categories)
 
-This project has a knowledge graph (`graphify`) that already extracts everything
-structural from the code:
+Mechanizable rules — conditions→verdicts, invariants, checklists, do/don't lists — are written as
+**Clojure rule blocks** inside a `clojure` code fence: real Clojure syntax (parses in a Clojure
+editor), instruction semantics (nothing evaluates).
 
-- types, fields, method signatures
-- assembly dependencies
-- inheritance chains
-- system priorities
-- folder structure
-- who calls / imports / references whom
+```text
+(def subject {:key value …})   ;; named rule-set: the standing facts/invariants of ONE subject — THE default
+{:key value}                   ;; tiny rule-set / single rule — a bare map, no def needed
+(cond test result …)           ;; runtime branching: first true test wins, :else = fallback
+(-> a b c)                     ;; pipeline / flow
+```
 
-If `graphify` can already answer it, a Markdown file must **not** repeat it.
-Duplicated structure goes stale the moment code changes, and stale docs are worse
-than no docs.
+- **`(def subject {…})`** — the workhorse: subject named once, one `:key value ;; why` entry per
+  rule; align the value column. Keys are kebab-case concepts or constraint keys
+  (`:requires :never :must-not :contains :only-when :exists-only-under :in`).
+  A nested map = that entry's own fields (depth ≤ 2).
+- **values** — bare symbol / exact API name = literal anchor (`EventCleanupSystem`); `"string"` =
+  prose leaf (all fuzziness lives in quotes); `#{a b}` = equal alternatives; `:keyword` = verdict.
+- **`;; why`** — one clause per entry. A "why" needing more than a clause is a design decision →
+  prose section, not a rule entry.
+- The reading glossary lives in ONE place: `~/.claude/CLAUDE.md` → "Clojure instruction notation".
+  A new form/literal gets its glossary row there BEFORE it appears in any doc.
+- `;; ── section label ───` divider comments group related entries inside one fence.
 
-So every Markdown file holds **only** what `graphify` cannot extract from code:
-
-- **Intent** — why this module/type exists, what problem it solves
-- **Non-obvious invariants** — constraints that look different than they are
-- **Design decisions** — why it is built this way (rationale)
-- **How to use it correctly** — usage rules for a non-trivial public API
-- **Behavioral contract** — the semantics *behind* a signature, which `graphify` cannot see:
-  side-effects, ownership/disposal, aliasing (e.g. a getter returns a **live** internal
-  collection, not a copy), required call order, idempotency, re-entrancy, "safe to call again".
-  This is the layer whose absence forces a reader back into the source — capture it.
-- **Current state** — what is implemented vs scaffold
-- **Entity archetypes** — runtime component compositions (DoD entities are not
-  classes, so `graphify` cannot see them — see the ecs-graph (`/ecs-graph`))
-
-Rule of thumb: **if you could get the answer by asking `graphify`, delete it from the MD.**
-
-Corollary (do not over-strip): `graphify` gives the **skeleton** — names, signatures, edges. It does
-**not** give the **semantics**. A method's *signature* is forbidden here (graphify has it); that same
-method's *contract* (what it mutates, what it returns by reference, when it is legal to call) is
-**required** here, because graphify cannot express it. When in doubt, keep the semantics, drop the shape.
+```clojure
+(def conversion  ;; what converts to a rule block, what stays prose
+  {#{invariants checklists do-donts condition->verdict} "Clojure rule block"
+   #{intent design-rationale behavioral-contract}       "prose"              ;; the nuance IS the payload
+   :code-skeleton     "its own language"                ;; C# stays C#
+   :doc-reference     "bare name inside a fence"        ;; the doc↔doc edge lives in frontmatter related
+   :extending-a-block "in kind"})                       ;; one new entry per rule — never grow it back into prose
+```
 
 ---
 
 ## Document Categories
 
-Every Markdown file falls into exactly one category. The rules differ per category.
-
 | Category | What it is | Files | Rule |
 |---|---|---|---|
-| **A — Navigation** | Per-module reference | `Assets/Modules/*/*.md` | Follow the navigation structure below. Strip anything `graphify` covers. |
-| **B — Template / Reference** | How to build new code, or how to use a tricky API | `SYSTEMTEMPLATE.md`, `CONFIGTEMPLATE.md`, `ADDRESSABLE_PATTERNS.md` | Do **not** strip. These encode procedure/convention. Keep accurate, keep complete. |
-| **C — Policy** | Project-wide rules | `CLAUDE.md`, `ARCHITECTURE.md`, this file | Rules and orientation. Keep current. |
-
-When unsure which category a new file is: if it describes one module, it is A.
-If it describes *how to write code that follows a convention*, it is B.
+| **A — Flow contract** | The dated cross-domain contract of ONE behavior: event vocabulary, state ownership (`:now` vs `:target`), ordering invariants, gap list | `Flows/FLOW_*.md` | Diffable against the ecs-graph — a mismatch is drift to fix or a deliberate contract change. Code comments link here, never retell it. |
+| **B — Template / Reference** | How to build new code, or how to use a tricky API | `Patterns/PATTERN_*.md` (incl. `ADDRESSABLE_PATTERNS.md`) | Do **not** strip. Keep accurate, keep complete. Examples use placeholder names (`Foo*`, `My*`) or live anchors that pass doc-lint. |
+| **C — Policy** | Project-wide rules | `CLAUDE.md`, `ARCHITECTURE.md`, `ECS_CONVENTIONS.md`, `GENERAL_UI_STYLE.md`, `GLOSSARY.md`, this file | Rules and orientation. Change by user decision only. |
 
 ---
 
 ## Frontmatter (YAML properties)
 
-Every `.md` file starts with a YAML frontmatter block. It exists for **navigation only** —
-Obsidian properties/Dataview/backlinks for the human, and stable `grep` queries for the agent.
-It carries **doc-meta and doc↔doc relations only**. It is NOT a place to restate code structure.
+Navigation only — doc-meta and doc↔doc relations, never code structure.
 
-```yaml
----
-category: A                              # A | B | C — required, all files
-read: reference                          # always | trigger | reference — required, all files
-trigger: "before editing an ECS system"  # required IFF read: trigger — one line, when to read it
-tags: [terrain, ecs]                     # domain tags, lowercase, no '#'; optional but encouraged
-related:                                 # doc↔doc links only; markdown links, relative paths
-  - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
-  - "[TERRAIN_VIEW](../TerrainView/TERRAIN_VIEW.md)"
-status: implemented                      # Category A ONLY — see enum below
----
-```
+| Field | Required | Rule |
+|---|---|---|
+| `category` | all files | `A` \| `B` \| `C` per the table above |
+| `read` | all files | `always` (session-start set, keep tiny) · `trigger` (+ one imperative `trigger:` line — it is the doc's INDEX entry) · `reference` |
+| `tags` | encouraged | lowercase domain labels, never type/assembly names |
+| `related` | omit if none | doc↔doc **relative markdown links** only |
+| `status` | Category A only | `partial` \| `implemented` — how much of the flow's TARGET the code meets |
+| `code_refs` | Category A only | bare symbol names the contract reasons about, nested by kind — doc-lint drift anchors |
 
-Field rules:
-
-- **`category`** — `A`, `B`, or `C` from the table above. Required in every file. The only field that is
-  not derivable elsewhere in machine-readable form.
-- **`read`** — **required in every file.** The agent's read-priority signal, and the data `INDEX.md` is
-  generated from. One of:
-  - `always` — read on every session start. Reserved for the few orientation docs (this file,
-    `ARCHITECTURE.md`, `CLAUDE.md`, `INDEX.md`). Keep this set tiny.
-  - `trigger` — read **only** when a specific condition holds. Requires a `trigger` field naming that
-    condition (e.g. templates, `ADDRESSABLE_PATTERNS.md`, `GENERAL_UI_STYLE.md`).
-  - `reference` — consult on demand, no fixed trigger. Default for per-module navigation docs (Category A):
-    you read a module's doc when you go into that module.
-- **`trigger`** — **required iff `read: trigger`, forbidden otherwise.** One line, the condition that should
-  send a reader here (imperative, e.g. `"before creating or editing an ECS system"`). This is what makes an
-  otherwise-orphan reference doc discoverable: `INDEX.md` lists it under "read on demand" with this text.
-- **`tags`** — domain labels for filtering (e.g. `ecs`, `terrain`, `ui`, `hex`, `config`, `boot`,
-  `pathfinding`, `input`, `camera`). Lowercase, no `#` prefix (Obsidian adds it in the properties UI).
-  Describe the **domain**, never the code shape. Do not encode type/assembly names — that is graphify's job.
-- **`related`** — cross-**document** links only, as **markdown** links with **relative paths**
-  (consistent with `useMarkdownLinks: true` in `.obsidian/app.json`; renders in IDE, GitHub, and resolves
-  for graphify). Never link to source files here and never duplicate a graphify code edge — this is the
-  doc graph, which graphify does not build. Omit the field if there are no real doc relations.
-- **`status`** — **Category A only.** One of: `implemented`, `partial`, `scaffold`, `stub`.
-  This is the **one** field that overlaps prose (`## Current State`). It is kept on purpose as a
-  machine-readable enum so the agent can answer "list every scaffold module" with one `grep` instead of
-  reading every body. Rule 0 exception, deliberate and scoped: the prose `## Current State` stays the
-  authoritative detail; `status` is its one-word index. Keep the two in sync. Omit `status` in B/C files.
-
-What frontmatter must NOT contain (same spirit as the forbidden list below): module/type/assembly names
-as data, field counts, priorities, signatures, or anything graphify already gives. If `grep`-ing the
-frontmatter and asking graphify would return the same fact, it does not belong here.
-
----
-
-## Category A — Navigation MD Structure
-
-Use these sections, in this order. **Omit any section that has nothing real to say.**
-Do not pad. A 12-line file that says only what matters is correct.
-
-```markdown
-# ModuleName
-
-One sentence: what this module does.
-
-## Purpose
-Why it exists and its role in the game. Skip if the one-liner already covers it.
-
-## Trigger
-REQUIRED if an ECS system in this module runs reactively (e.g. `WhenAdded<SomeEvent>`).
-Name the event and the system. graphify cannot see this — see "Triggers (reactive ECS)" below.
-Skip for modules with no reactive/event-driven entry point.
-
-## How To Use Correctly
-If the module exposes a non-trivial public API that is easy to misuse.
-Use the ADDRESSABLE_PATTERNS.md style: Invariants → Patterns → Anti-patterns.
-Skip entirely for modules with no public API or an obvious one.
-
-## Public Contract & Gotchas
-The behavioral contract of this module's key public/cross-module types — the semantics graphify
-cannot see. One bullet per fact: side-effect, ownership, aliasing (live vs copy), call order,
-idempotency, "safe to re-call". Include it whenever correct use depends on something not visible in
-the signature — even for module-internal types that *other* systems mutate. This is the section whose
-absence sent the last reader into the source. May merge with "Non-Obvious Invariants" when small.
-
-## Non-Obvious Invariants
-Constraints a reader cannot guess from the code shape alone.
-Things that look one way but are another. One bullet each.
-
-## Design Decisions
-Why it is built this way. Trade-offs that were chosen deliberately.
-Only decisions that are non-obvious or were debated. Skip the trivial ones.
-
-## Current State
-What is implemented, what is scaffold, what is stubbed. Be blunt.
-```
-
----
-
-## Forbidden in Category A (graphify already has it)
-
-Never put these in a navigation MD:
-
-- Type / component / field tables that just list what the struct contains
-- Method signatures
-- Dependency lists (assemblies, packages)
-- Folder / file trees
-- Inheritance chains ("X extends Y extends Z")
-- System priority numbers
-- Code blocks that restate a `struct` or `enum` definition
-
-**One exception:** a code block is allowed when the code block *itself is the
-instruction* — e.g. a correct-usage snippet in a "How To Use Correctly" block.
-`ADDRESSABLE_PATTERNS.md` is the reference for this exception.
-
-**Signature vs contract — do not confuse them.** Forbidden = the *shape* (`Set(VertexCoord, HexVertex)`).
-Required = the *contract* graphify cannot see (`Set` mutates the owner cache as a side-effect;
-`GetOwnedVertexCoords` returns the **live** cache set, so snapshot before calling `Set`). Naming a method
-to attach its contract is fine; restating its parameter list as a table is not.
-
----
-
-## When You Need "How To Use Correctly"
-
-Add this block only if **both** are true:
-
-1. The module exposes a public API other modules call.
-2. That API is easy to use wrong (ownership rules, lifecycle, async, disposal,
-   ordering, hidden preconditions).
-
-Examples that need it: `Addressable` (Box/Result ownership), anything with manual
-disposal, anything with a strict call order.
-
-Examples that do not: a pure-math utility, a tag-component-only module, a module
-whose only entry point is a single obvious method.
-
-Model the block on `ADDRESSABLE_PATTERNS.md`:
-- **Invariants** — numbered, hard rules ("Success → exactly one Dispose")
-- **Patterns** — minimal correct-usage snippets
-- **Anti-patterns** — a `Wrong | Why | Right` table
+After adding/removing/renaming a doc or changing `read`/`trigger`/`status`: re-run
+`python3 Tools/gen_index.py` (the pre-commit hook enforces it).
 
 ---
 
 ## AI-First Writing Rules
 
-The reader is an AI agent — assume the least-capable model likely to read it (Rule 0). Optimize for
-zero ambiguity, not for brevity.
-
-- **Explicit over implicit.** State the rule directly. Do not make the reader infer it.
+- **Explicit over implicit.** State the rule; do not make the reader infer it.
 - **Short declarative sentences.** One claim per sentence.
-- **Concrete over abstract.** Show the specific case, not a general description.
-- **Mark incomplete work loudly.** Write "SCAFFOLD — `Update()` is empty", not silence.
-- **Name the gotcha.** If something is a common mistake, say "Common mistake:" and name it.
-- **No narrative.** Skip "first we... then we... finally we." List facts.
-- **Clarity is not verbosity.** "Lean" means no duplicated code structure. It does
-  not mean dropping the explanation a junior model needs.
-
----
-
-## Triggers (reactive ECS)
-
-Systems that react to an event (`world.GetEntities().WhenAdded<SomeEvent>()...`) have a
-trigger relationship that graphify **cannot represent** — a reactive event set is not an edge,
-so `graphify path "SomeEvent" "SomeSystem"` returns nothing.
-
-Therefore every event-driven module MUST carry a `## Trigger` section naming the event and the
-system, and pointing to the ecs-graph (`/ecs-graph`) for the full producer→consumer flow. A reactive
-event set is not a graphify code edge — the ecs-graph is what models it.
-
-Example:
-```markdown
-## Trigger
-`FooSystem` runs on `WhenAdded<FooEventComponent>`.
-This reactive trigger is not visible in graphify — full event flow is in the ecs-graph (`/ecs-graph`).
-```
-
-## Entity Archetypes (DoD)
-
-Runtime entities are component compositions, not classes. They are created by
-scattered `world.CreateEntity().Set(...)` calls, so `graphify` cannot reconstruct
-them. They live in the ecs-graph (`/ecs-graph`), built on demand from the code.
-
-- Do **not** duplicate full archetype definitions in module MDs.
-- A module MD may name its key archetypes in one line and point to the ecs-graph (`/ecs-graph`).
-- When you add or change an archetype in code, refresh the ecs-graph (`/ecs-graph`).
-
----
-
-## Worked Example
-
-Bad (duplicates what graphify has — type table, deps, signatures):
-
-```markdown
-## ECS Components
-| Component | Fields |
-| HexResourcesComponent | ResourceType Type |
-## Dependencies
-Core, VContainer, Hexes.Core, AxialSystem ...
-## HexResourcesSystem
-public HexResourcesSystem(World world, IReadOnlyList<...> subsystems)
-Priority: 200
-```
-
-Good (only what graphify cannot give):
-
-```markdown
-# HexResources
-
-Generates logical resource data for Forest, Clay, Fish. Renders nothing.
-
-## Non-Obvious Invariants
-- Resources live on a DEDICATED entity (HexIdComponent + HexResourcesComponent),
-  never as a tag on the hex entity itself.
-- HexResourcesConfig requires unique ResourceType values — duplicates fail validation.
-
-## Current State
-All three generation subsystems are fully implemented. Visuals live in HexResourcesView.
-```
-
-Behavioral-contract example (the layer that was missing — graphify lists `Set`/`GetOwnedVertexCoords`
-but not their semantics):
-
-```markdown
-## Public Contract & Gotchas
-- `VertexGrid.GetOwnedVertexCoords(hex)` returns the **live** owner-cache set, not a copy.
-- `VertexGrid.Set(coord, vertex)` mutates that owner cache as a side-effect — so iterating
-  `GetOwnedVertexCoords` while calling `Set` throws "Collection was modified". Snapshot first.
-- `TerrainView.ApplyHeightsFromVertexGrid(grid)` is safe to call again after the initial bake; it
-  re-reads the whole grid, so post-bake grid edits (e.g. clay depressions) are picked up.
-```
+- **Concrete over abstract.** The specific case, not a general description.
+- **Mark future/unbuilt loudly** (gap list entries, `:target` values) — never imply it exists.
+- **No narrative.** No "first we… then we… finally". List facts.
+- First content line ≤ 120 chars — it IS the INDEX description.
 
 ---
 
 ## Checklist Before Saving Any MD
 
-- [ ] A YAML frontmatter block is present: `category` + `read` set; `trigger` set iff `read: trigger`;
-      `status` set for Category A; `related` uses relative markdown links to docs only; no graphify-derivable
-      data in frontmatter. (Then regenerate `INDEX.md` — see below.)
-- [ ] If a doc was added/removed/renamed or its `read`/`trigger`/`status` changed, `INDEX.md` was
-      regenerated (`python3 Tools/gen_index.py`).
-- [ ] Every line answers something `graphify` cannot.
-- [ ] No type tables, signatures, dep lists, folder trees, priorities, inheritance.
-- [ ] Key public/cross-module types carry their **behavioral contract** (side-effects, aliasing,
-      ownership, call order) — the semantics behind the signature, not the signature itself.
-- [ ] Scaffold / incomplete work is marked explicitly.
-- [ ] If a system reacts to an event, a `## Trigger` section names the event + points to the ecs-graph (`/ecs-graph`).
+- [ ] The content fits a non-rotting genre (flow contract / recipe / policy) — no present-tense
+      mirror of code state, no rosters, no wiring, no priorities, no signatures.
+- [ ] Frontmatter per the table; `python3 Tools/gen_index.py` re-run if doc-meta changed.
+- [ ] `python3 Tools/doc_lint.py` reports no new ghosts for this doc.
+- [ ] Mechanizable rules are Clojure rule blocks (Rule Style), not prose bullets.
 - [ ] A junior model could act on this without reading the source.
-- [ ] If it changed an archetype, the ecs-graph (`/ecs-graph`) was refreshed too.

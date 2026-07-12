@@ -9,6 +9,7 @@ using Modules.Boot.Core;
 using Presentation.HexIcons.Installer;
 using Domains.Map.HexResources.Installer;
 using Presentation.HexResources.Installer;
+using Presentation.Districts.Installer;
 using Presentation.UI.Installer;
 using Modules.MainCanvas.Core;
 using Modules.MainCanvas.Implementation;
@@ -22,6 +23,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using VContainer;
 using VContainer.Unity;
+using Modules.UserInput.Tags;
 
 namespace Installers.World
 {
@@ -54,6 +56,7 @@ namespace Installers.World
 
             var playerInputEntity = world.CreateEntity();
             playerInputEntity.Set(new PlayerInputComponent { PlayerInput = _playerInput });
+            playerInputEntity.Set(new PlayerInputTag());
 
             // Per-frame systems are registered as concrete singletons; Boot wires them into game states by hand.
             builder.Register<EventCleanupSystem>(Lifetime.Singleton).As<EventCleanupSystem>();
@@ -74,6 +77,7 @@ namespace Installers.World
             new TerrainViewInstaller().Install(builder);
             new HexResourcesInstaller().Install(builder);
             new HexResourcesViewInstaller().Install(builder);
+            new DistrictsInstaller().Install(builder);
             new HexIconsInstaller().Install(builder);
             new TurnInstaller().Install(builder);
             new ActorsInstaller().Install(builder);

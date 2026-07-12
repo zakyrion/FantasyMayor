@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using DefaultEcs;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
@@ -10,16 +10,17 @@ using Domains.Map.Generation.Data;
 using Unity.Collections;
 using UnityEngine;
 using Random = UnityEngine.Random;
+using DefaultECSExtensions;
+using Domains.Map.Hex.Tags;
 
 namespace Domains.Map.Generation.Systems
 {
     /// <summary>
-    ///     Runs river generation when invoked by <see cref="MapGenerationSystem" />.
+    ///     Runs river generation when invoked by <see cref="GenerationSystem" />.
     /// </summary>
     [UsedImplicitly]
-    internal sealed class RiverGenerationSubSystem : MapGenerationSubSystem
+    internal sealed class RiverGenerationSubSystem : GenerationSubSystem
     {
-        private const int ExecutionPriority = 200;
         private const int RiverLevel = -1;
         private const int SideCount = 6;
 
@@ -40,7 +41,7 @@ namespace Domains.Map.Generation.Systems
         private readonly EntitySet _hexSet;
         private readonly IHexPathfindingUtility _pathfindingUtility;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.Generation.River;
 
         public RiverGenerationSubSystem(World world, IHexPathfindingUtility pathfindingUtility)
         {
@@ -48,7 +49,7 @@ namespace Domains.Map.Generation.Systems
             _world = world;
             _hexSet = world.GetEntities()
                 .With<HexIdComponent>()
-                .With<HexLevelComponent>()
+                .With<HexLevelComponent>().With<HexTag>()
                 .AsSet();
         }
 

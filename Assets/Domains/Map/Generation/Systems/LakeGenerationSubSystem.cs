@@ -1,4 +1,4 @@
-using DefaultEcs;
+﻿using DefaultEcs;
 using DefaultECSExtensions;
 using JetBrains.Annotations;
 using Domains.Map.Hex.Components;
@@ -8,19 +8,19 @@ using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 using Random = UnityEngine.Random;
+using Domains.Map.Hex.Tags;
 
 namespace Domains.Map.Generation.Systems
 {
     /// <summary>
-    ///     Runs lake generation when invoked by <see cref="MapGenerationSystem" />.
+    ///     Runs lake generation when invoked by <see cref="GenerationSystem" />.
     ///     Generates a single connected lake near the map centre with area derived from
     ///     <see cref="LakeConfigComponent.SizeFraction" />.
     /// </summary>
     [UsedImplicitly]
-    internal sealed class LakeGenerationSubSystem : MapGenerationSubSystem
+    internal sealed class LakeGenerationSubSystem : GenerationSubSystem
     {
         private const float DistanceWeight = 2f;
-        private const int ExecutionPriority = 210;
         private const int LakeLevel = -1;
         private const float NeighbourWeight = 3f;
         private const float NoiseAmplitude = 0.35f;
@@ -29,7 +29,7 @@ namespace Domains.Map.Generation.Systems
         private readonly EntitySet _hexSet;
 
         /// <inheritdoc />
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.Generation.Lake;
 
         /// <summary>
         ///     Creates a lake generation system bound to the shared ECS world.
@@ -40,7 +40,7 @@ namespace Domains.Map.Generation.Systems
             _world = world;
             _hexSet = world.GetEntities()
                 .With<HexIdComponent>()
-                .With<HexLevelComponent>()
+                .With<HexLevelComponent>().With<HexTag>()
                 .AsSet();
         }
 

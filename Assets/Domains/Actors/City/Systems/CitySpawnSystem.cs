@@ -5,10 +5,11 @@ using DefaultEcs;
 using DefaultECSExtensions;
 using Domains.Actors.City.Components;
 using Domains.Actors.Components;
-using Domains.Actors.Data;
+using Domains.Kernel.Data;
 using Domains.Economy.Resource.Helpers;
 using JetBrains.Annotations;
 using Modules.Boot.Core;
+using Domains.Actors.City.Tags;
 
 namespace Domains.Actors.City.Systems
 {
@@ -18,12 +19,9 @@ namespace Domains.Actors.City.Systems
     [UsedImplicitly]
     internal sealed class CitySpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        // After the terrain stages (100..800); actors are terrain-independent, so the exact value is cosmetic.
-        private const int ExecutionPriority = 900;
-
         private readonly World _world;
 
-        public int Priority => ExecutionPriority;
+        public int Priority => SystemPriorities.WorldInit.CitySpawn;
 
         public CitySpawnSystem(World world)
         {
@@ -55,9 +53,10 @@ namespace Domains.Actors.City.Systems
             var cityIdComponent = new CityIdComponent { Value = cityId };
             var city = _world.CreateEntity();
             city.Set(cityIdComponent);
+            city.Set(new CityTag());
             city.Set(new ActorTypeComponent { Type = ActorType.City });
 
-            ResourceLoadoutSpawner.SpawnLoadout(_world, cityIdComponent, config.Resources);
+            ResourceLoadoutSpawner.SpawnLoadout<CityIdComponent, CityResourceTag>(_world, cityIdComponent, config.Resources);
 
             return UniTask.CompletedTask;
         }

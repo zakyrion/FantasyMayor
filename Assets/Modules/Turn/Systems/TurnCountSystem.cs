@@ -16,11 +16,9 @@ namespace Modules.Turn.Systems
     [UsedImplicitly]
     public sealed class TurnCountSystem : UpdatedSystem
     {
-        private const int ExecutionPriority = 1010;
-
         private readonly World _world;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.RuntimeTick.TurnCount;
 
         public TurnCountSystem(World world)
             : base(world.GetEntities().With<TurnCompletedEvent>().AsSet())

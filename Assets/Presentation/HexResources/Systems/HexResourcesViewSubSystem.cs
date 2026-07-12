@@ -10,6 +10,7 @@ using Domains.Map.HexResources.Data;
 using Presentation.HexResources.Components;
 using Presentation.Terrain.Components;
 using UnityEngine;
+using Domains.Map.HexResources.Tags;
 
 namespace Presentation.HexResources.Systems
 {
@@ -28,7 +29,7 @@ namespace Presentation.HexResources.Systems
             _world = world;
             _resourceSet = world.GetEntities()
                 .With<HexIdComponent>()
-                .With<HexResourceComponent>()
+                .With<HexResourceComponent>().With<HexResourceTag>()
                 .AsSet();
         }
 

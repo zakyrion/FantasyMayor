@@ -10,7 +10,8 @@
         "Presentation.UI",
         "UserInput",
         "Presentation",
-        "Turn"
+        "Turn",
+        "Domains.Actions"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -2,11 +2,11 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Read|Grep|Glob|Bash",
+        "matcher": "Write|Edit|Bash|Read",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/search-gate.py\""
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/graph-gate.py\""
           }
         ]
       }

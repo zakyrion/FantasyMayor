@@ -3,10 +3,12 @@ using DefaultECSExtensions;
 using JetBrains.Annotations;
 using Modules.Cameras.Components;
 using Domains.Map.Hex.Components;
+using Domains.Map.Hex.Tags;
 using Presentation.Terrain.Components;
 using Modules.UserInput.Components;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Modules.UserInput.Tags;
 
 namespace Modules.UserInput.Systems
 {
@@ -41,20 +43,21 @@ namespace Modules.UserInput.Systems
         private float _zoomTicks;
 
         /// <inheritdoc />
-        public override int Priority => 0;
+        public override int Priority => SystemPriorities.RuntimeTick.Camera;
 
         /// <param name="world">The ECS world used to build the entity set.</param>
         public CameraMovementSystem(World world)
             // Anchored on the single PlayerInputComponent entity so Update ticks once per frame;
             // the camera itself is a world component (CameraComponent), read via world.Get below.
-            : base(world.GetEntities().With<PlayerInputComponent>().AsSet())
+            : base(world.GetEntities().With<PlayerInputComponent>().With<PlayerInputTag>().AsSet())
         {
             _world = world;
             _playerInputSet = world.GetEntities()
-                .With<PlayerInputComponent>()
+                .With<PlayerInputComponent>().With<PlayerInputTag>()
                 .AsSet();
             _hexIdSet = world.GetEntities()
                 .With<HexIdComponent>()
+                .With<HexTag>()
                 .AsSet();
 
             TryBindInputActions();

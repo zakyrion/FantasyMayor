@@ -9,7 +9,6 @@ namespace Domains.Economy.Resource.Data
         RawMeat,
         RawFish,
         SmokedMeat,
-        SmokedFish,
-        ActionPoint = 5000
+        SmokedFish
     }
 }

@@ -1,0 +1,48 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using Core;
+using Cysharp.Threading.Tasks;
+using JetBrains.Annotations;
+using Modules.Turn.Data;
+using Modules.Turn.Systems;
+using DefaultECSExtensions;
+
+namespace Domains.Economy.DistrictOpenCondition.Systems
+{
+    // Turn phase (tail / Preview band): every turn, re-runs the condition-evaluator subsystem family so
+    // DistrictCanBeBuildTag stays correct for the next Mayor Phase. Turn 1 is covered separately by the
+    // sibling MapGenerationStep host (DistrictOpenConditionEvaluatorBootstrapSystem) — both share the same
+    // DI-collected subsystem family, no evaluation logic is duplicated. No domain logic of its own.
+    [UsedImplicitly]
+    internal sealed class DistrictOpenConditionEvaluatorSystem : TurnPhaseSubSystem
+    {
+        [StateAllowed]
+        private readonly IReadOnlyList<DistrictOpenConditionEvaluatorSubSystem> _subSystems;
+
+        public override int Priority => SystemPriorities.TurnPhase.DistrictOpenConditionEvaluator;
+
+        public DistrictOpenConditionEvaluatorSystem(IReadOnlyList<DistrictOpenConditionEvaluatorSubSystem> subSystems)
+        {
+            _subSystems = subSystems
+                .OrderBy(system => system.Priority)
+                .ToArray();
+        }
+
+        public override async UniTask Update(TurnPhaseStep state, CancellationToken cancellationToken)
+        {
+            if (cancellationToken.IsCancellationRequested)
+                return;
+
+            // Phases compute off the main thread; every world write goes back on the main thread (the Turn
+            // engine's hard invariant: the pool computes, the main thread writes).
+            //await UniTask.SwitchToMainThread(cancellationToken);
+
+            for (var i = 0; i < _subSystems.Count; i++)
+            {
+                if (_subSystems[i].IsEnabled)
+                    _subSystems[i].Evaluate();
+            }
+        }
+    }
+}

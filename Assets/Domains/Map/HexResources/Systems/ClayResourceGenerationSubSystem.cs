@@ -19,14 +19,13 @@ namespace Domains.Map.HexResources.Systems
     [UsedImplicitly]
     internal sealed class ClayResourceGenerationSubSystem : HexResourcesSubSystem
     {
-        private const int ExecutionPriority = 200;
         private const int LandLevel = 0;
         private readonly EntityMultiMap<HexTypeComponent> _hexesByType;
         private readonly EntitySet _hexSet;
 
         private readonly World _world;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.HexResourceGeneration.Clay;
         protected override HexResourceType TargetHexResourceType => HexResourceType.Clay;
 
         public ClayResourceGenerationSubSystem(World world) : base(world)
@@ -34,7 +33,7 @@ namespace Domains.Map.HexResources.Systems
             _world = world;
             _hexSet = world.GetEntities()
                 .With<HexIdComponent>()
-                .With<HexLevelComponent>()
+                .With<HexLevelComponent>().With<HexTag>()
                 .AsSet();
             _hexesByType = world.GetEntities()
                 .With<HexTag>()

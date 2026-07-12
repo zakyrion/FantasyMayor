@@ -2,6 +2,9 @@ using Unity.Mathematics;
 
 namespace Modules.AxialSystem
 {
+    // Addresses a COARSE TILE (pointy-top grid). Structurally identical to VertexCoord but semantically
+    // distinct — never mix them. Tile centre comes from AxialMath (AxialToWorld/AxialToWorld2D), never from
+    // a centroid over the fine VertexGrid.
     public readonly struct HexCoord : IAxialCoord<HexCoord>
     {
         public int2 Value { get; }

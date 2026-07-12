@@ -1,4 +1,4 @@
-using DefaultEcs;
+﻿using DefaultEcs;
 using DefaultECSExtensions;
 using JetBrains.Annotations;
 using Domains.Map.Hex.Components;
@@ -7,19 +7,19 @@ using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 using Random = UnityEngine.Random;
+using Domains.Map.Hex.Tags;
 
 namespace Domains.Map.Generation.Systems
 {
     /// <summary>
-    ///     Runs mountain generation when invoked by <see cref="MapGenerationSystem" />.
+    ///     Runs mountain generation when invoked by <see cref="GenerationSystem" />.
     ///     Places a blob-shaped mountain body (Level 2) inside a water-safe zone using
     ///     multi-seed BFS: seeds first grow toward each other (centroid pull), then spread
     ///     outward by neighbour cohesion. Foothills (Level 1) are applied in a post-processing pass.
     /// </summary>
     [UsedImplicitly]
-    internal sealed class MountainGenerationSubSystem : MapGenerationSubSystem
+    internal sealed class MountainGenerationSubSystem : GenerationSubSystem
     {
-        private const int ExecutionPriority = 300;
         private const int WaterLevel = -1;
         private const int FoothillLevel = 1;
         private const int MountainLevel = 2;
@@ -31,7 +31,7 @@ namespace Domains.Map.Generation.Systems
         private readonly EntitySet _hexSet;
 
         /// <inheritdoc />
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.Generation.Mountain;
 
         /// <summary>
         ///     Creates a mountain generation system bound to the shared ECS world.
@@ -42,7 +42,7 @@ namespace Domains.Map.Generation.Systems
             _world = world;
             _hexSet = world.GetEntities()
                 .With<HexIdComponent>()
-                .With<HexLevelComponent>()
+                .With<HexLevelComponent>().With<HexTag>()
                 .AsSet();
         }
 

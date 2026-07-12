@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f2e92c53c41f47a688a8d17bfb25c45a, type: 3}
   m_Name: MayorConfig
   m_EditorClassIdentifier: Domains.Actors::Domains.Actors.Mayor.Configs.MayorConfig
-  _startAPCount: 2
+  _startActionPoints: 2
   _resources: []

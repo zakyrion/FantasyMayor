@@ -1,12 +1,12 @@
 using DefaultECSExtensions;
 using Modules.Boot.Core;
-using Presentation.UI.ContextTabs.Systems;
+using Presentation.UI.MainHud.ContextTabs.Systems;
 using Presentation.UI.DistrictBuild.Systems;
-using Presentation.UI.EndTurn.Systems;
+using Presentation.UI.MainHud.TurnPanel.Systems;
 using Presentation.UI.GeneratorMenu.Systems;
-using Presentation.UI.HexInfoPanel.Systems;
-using Presentation.UI.ResourceBar.Systems;
-using Presentation.UI.Systems;
+using Presentation.UI.MainHud.HexInfoPanel.Systems;
+using Presentation.UI.MainHud.ResourceBar.Systems;
+using Presentation.UI.MainHud.Systems;
 using VContainer;
 using VContainer.Unity;
 
@@ -27,21 +27,24 @@ namespace Presentation.UI.Installer
             builder.Register<HexTerrainIconConfigLoaderSystem>(Lifetime.Singleton)
                 .As<HexTerrainIconConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
 
+            builder.Register<DistrictIconConfigLoaderSystem>(Lifetime.Singleton)
+                .As<DistrictIconConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
+
             builder.Register<InventoryResourceIconConfigLoaderSystem>(Lifetime.Singleton)
                 .As<InventoryResourceIconConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
 
             // Main UI spawn — orchestrator (generation pipeline, collected by interface) instantiates the
-            // Main UI root and runs the window spawn subsystems (collected as MainUISpawnSubSystem).
-            builder.Register<MainUISpawnSystem>(Lifetime.Singleton)
-                .As<MainUISpawnSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
+            // Main UI root and runs the window spawn subsystems (collected as MainHudSpawnSubSystem).
+            builder.Register<MainHudSpawnSystem>(Lifetime.Singleton)
+                .As<MainHudSpawnSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
             builder.Register<HexInfoPanelSpawnSubSystem>(Lifetime.Singleton)
-                .As<HexInfoPanelSpawnSubSystem, MainUISpawnSubSystem>();
-            builder.Register<EndTurnSpawnSubSystem>(Lifetime.Singleton)
-                .As<EndTurnSpawnSubSystem, MainUISpawnSubSystem>();
+                .As<HexInfoPanelSpawnSubSystem, MainHudSpawnSubSystem>();
+            builder.Register<TurnPanelSpawnSubSystem>(Lifetime.Singleton)
+                .As<TurnPanelSpawnSubSystem, MainHudSpawnSubSystem>();
             builder.Register<ContextTabsSpawnSubSystem>(Lifetime.Singleton)
-                .As<ContextTabsSpawnSubSystem, MainUISpawnSubSystem>();
+                .As<ContextTabsSpawnSubSystem, MainHudSpawnSubSystem>();
             builder.Register<ResourceBarSpawnSubSystem>(Lifetime.Singleton)
-                .As<ResourceBarSpawnSubSystem, MainUISpawnSubSystem>();
+                .As<ResourceBarSpawnSubSystem, MainHudSpawnSubSystem>();
 
             // District-build overlay — its OWN UIDocument (separate from the shared Main UI), so it has its own
             // spawn orchestrator in the generation pipeline rather than a Main UI spawn subsystem.
@@ -61,8 +64,17 @@ namespace Presentation.UI.Installer
                 .As<HexInfoPanelDistrictSystem>();
             builder.Register<DistrictBuildUISystem>(Lifetime.Singleton)
                 .As<DistrictBuildUISystem>();
-            builder.Register<EndTurnViewSystem>(Lifetime.Singleton)
-                .As<EndTurnViewSystem>();
+            // Section populators collected by DistrictBuildUISystem (IReadOnlyList<DistrictBuildUISubSystem>).
+            builder.Register<DistrictBuildListUISubSystem>(Lifetime.Singleton)
+                .As<DistrictBuildListUISubSystem, DistrictBuildUISubSystem>();
+            builder.Register<DistrictBuildHexResourcesUISubSystem>(Lifetime.Singleton)
+                .As<DistrictBuildHexResourcesUISubSystem, DistrictBuildUISubSystem>();
+            builder.Register<DistrictBuildPriceUISubSystem>(Lifetime.Singleton)
+                .As<DistrictBuildPriceUISubSystem, DistrictBuildUISubSystem>();
+            builder.Register<DistrictBuildActionsUISubSystem>(Lifetime.Singleton)
+                .As<DistrictBuildActionsUISubSystem, DistrictBuildUISubSystem>();
+            builder.Register<TurnPanelViewSystem>(Lifetime.Singleton)
+                .As<TurnPanelViewSystem>();
             builder.Register<ContextTabSelectionSystem>(Lifetime.Singleton)
                 .As<ContextTabSelectionSystem>();
             builder.Register<ContextTabsAvailabilitySystem>(Lifetime.Singleton)

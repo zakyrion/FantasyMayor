@@ -1,11 +1,10 @@
 ---
 category: C
 read: trigger
-trigger: "before gameplay / mechanics / district / turn / economy / actor design work"
+trigger: "ONLY when the user explicitly asks to open this file — never on session-start, never by topic/keyword"
 tags: [gameplay, design]
 related:
   - "[ARCHITECTURE](ARCHITECTURE.md)"
-  - "[TURN](Assets/Modules/Turn/TURN.md)"
 ---
 
 # FantasyMayor - Gameplay Foundation

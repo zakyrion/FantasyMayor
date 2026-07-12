@@ -10,6 +10,7 @@ using Presentation.HexIcons.Components;
 using Presentation.Terrain.Components;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Presentation.HexIcons.Tags;
 
 namespace Presentation.HexIcons.Systems
 {
@@ -28,10 +29,6 @@ namespace Presentation.HexIcons.Systems
     [UsedImplicitly]
     public sealed class HexIconsContainerPositionSystem : LateUpdatedSystem
     {
-        // Must be > CameraMovementSystem (LateUpdate, priority 0) so it re-projects after the camera moves
-        // this frame; otherwise the icons lag the camera by one frame and slide.
-        private const int ExecutionPriority = 700;
-
         private readonly World _world;
 
         // The frame's shared projection inputs — panel/camera/grid, the world Y offset, and the focus depth —
@@ -42,12 +39,12 @@ namespace Presentation.HexIcons.Systems
         [StateAllowed("Per-frame projection inputs; frame-stamped FrameBox, filled in PreUpdate, valid one frame.")]
         private FrameBox<FramePose> _pose;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.RuntimeTick.HexIconsContainerPosition;
 
         public HexIconsContainerPositionSystem(World world)
             : base(world.GetEntities()
                 .With<HexIdComponent>()
-                .With<HexIconContainerComponent>()
+                .With<HexIconContainerComponent>().With<HexIconContainerTag>()
                 .AsSet())
         {
             _world = world;

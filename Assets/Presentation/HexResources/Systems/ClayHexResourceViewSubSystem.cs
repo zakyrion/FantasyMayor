@@ -3,12 +3,14 @@ using DefaultECSExtensions;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
 using Domains.Map.Hex.Components;
+using Domains.Map.Hex.Tags;
 using Domains.Map.HexResources.Data;
 using Presentation.HexResources.Components;
 using Presentation.HexResources.Helpers;
 using Presentation.Terrain.Components;
 using Unity.Collections;
 using UnityEngine;
+using Presentation.Terrain.Tags;
 
 namespace Presentation.HexResources.Systems
 {
@@ -23,8 +25,6 @@ namespace Presentation.HexResources.Systems
     [UsedImplicitly]
     internal sealed class ClayHexResourceViewSubSystem : HexResourcesViewSubSystem
     {
-        private const int ExecutionPriority = 200;
-
         private readonly World _world;
         private readonly EntitySet _hexSet;
         private readonly ClayGroundPainter _painter = new();
@@ -32,15 +32,15 @@ namespace Presentation.HexResources.Systems
         private readonly ClayDepressionShaper _shaper = new();
         private readonly EntitySet _terrainViewSet;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.HexResourceView.Clay;
         protected override HexResourceType TargetHexResourceType => HexResourceType.Clay;
 
         public ClayHexResourceViewSubSystem(World world)
             : base(world)
         {
             _world = world;
-            _terrainViewSet = world.GetEntities().With<TerrainViewComponent>().AsSet();
-            _hexSet = world.GetEntities().With<HexIdComponent>().AsSet();
+            _terrainViewSet = world.GetEntities().With<TerrainViewComponent>().With<TerrainViewTag>().AsSet();
+            _hexSet = world.GetEntities().With<HexIdComponent>().With<HexTag>().AsSet();
         }
 
         public override void Update(GameState state)

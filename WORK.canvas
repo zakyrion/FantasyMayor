@@ -1,0 +1,31 @@
+{
+	"nodes":[
+		{"id":"d16a85ae06414179","type":"text","text":"ActionTurnLeftComponent","x":-100,"y":300,"width":250,"height":60},
+		{"id":"25aec43611b72964","type":"text","text":"How long need to wait till building will be finished","x":350,"y":300,"width":250,"height":60},
+		{"id":"c50ab3adce5688cc","type":"text","text":"DistrictType (FK)","x":-100,"y":400,"width":250,"height":60,"color":"6"},
+		{"id":"445ae23b698c602c","type":"text","text":"OwnerFK: CityId | MayorId | NobleId","x":-100,"y":500,"width":300,"height":46,"color":"6"},
+		{"id":"f7b7f159f584f8a7","type":"text","text":"ActionCompleteTag","x":-100,"y":600,"width":250,"height":60},
+		{"id":"5bff5e88449ad899","type":"text","text":"Signal about action is compelted and now you may apply the result of it","x":350,"y":605,"width":280,"height":55},
+		{"id":"3c83879998f88686","type":"text","text":"BuildDistrictOutcome","x":-560,"y":880,"width":322,"height":50},
+		{"id":"eec152bed41fbba7","type":"text","text":"DistrictType (FK)","x":-100,"y":820,"width":250,"height":60,"color":"6"},
+		{"id":"1b9b787334316047","type":"text","text":"Some specific actions","x":-100,"y":905,"width":250,"height":60},
+		{"id":"f8c9c5f19edb2046","type":"text","text":"ActionId (PK)","x":-100,"y":101,"width":250,"height":60,"color":"4"},
+		{"id":"e8b9a7e0e0930127","type":"text","text":"HexIdComponent (FK)","x":-100,"y":201,"width":250,"height":55,"color":"6"},
+		{"id":"a69e58922f27d1d7","type":"text","text":"BuildDistrictAction","x":-560,"y":350,"width":270,"height":50},
+		{"id":"cbbfc09531eb7781","type":"text","text":"DistrictBuildCostResourcePriceComponent","x":-100,"y":1172,"width":389,"height":59},
+		{"id":"3a813540b428dd82","type":"text","text":"DistrictBuildCost","x":-560,"y":1171,"width":250,"height":60}
+	],
+	"edges":[
+		{"id":"9fd767c2316c2c9f","fromNode":"a69e58922f27d1d7","fromSide":"right","toNode":"d16a85ae06414179","toSide":"left"},
+		{"id":"b830d0ce06539941","fromNode":"d16a85ae06414179","fromSide":"right","toNode":"25aec43611b72964","toSide":"left"},
+		{"id":"dd274ba7eb7babd8","fromNode":"a69e58922f27d1d7","fromSide":"right","toNode":"c50ab3adce5688cc","toSide":"left"},
+		{"id":"1249b723ae2a3026","fromNode":"a69e58922f27d1d7","fromSide":"right","toNode":"445ae23b698c602c","toSide":"left"},
+		{"id":"747646d406213bc9","fromNode":"a69e58922f27d1d7","fromSide":"right","toNode":"f7b7f159f584f8a7","toSide":"left"},
+		{"id":"6653a4ef4a750c15","fromNode":"f7b7f159f584f8a7","fromSide":"right","toNode":"5bff5e88449ad899","toSide":"left"},
+		{"id":"826f04f5d8311d61","fromNode":"a69e58922f27d1d7","fromSide":"right","toNode":"f8c9c5f19edb2046","toSide":"left"},
+		{"id":"1dda4392c952f9d9","fromNode":"a69e58922f27d1d7","fromSide":"right","toNode":"e8b9a7e0e0930127","toSide":"left"},
+		{"id":"ffe827822ddb296b","fromNode":"3c83879998f88686","fromSide":"right","toNode":"eec152bed41fbba7","toSide":"left"},
+		{"id":"9f39bc23a61ca631","fromNode":"3c83879998f88686","fromSide":"right","toNode":"1b9b787334316047","toSide":"left"},
+		{"id":"b7e704f8d542d5e7","fromNode":"3a813540b428dd82","fromSide":"right","toNode":"cbbfc09531eb7781","toSide":"left"}
+	]
+}

@@ -3,16 +3,18 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using DefaultEcs;
 using DefaultECSExtensions;
+using Domains.Actions.BuildDistrictAction.Systems;
 using Modules.Boot.Core;
 using Modules.Boot.Implementation.States;
+using Presentation.Districts.Systems;
 using Presentation.HexIcons.Systems;
 using Presentation.HexResources.Systems;
-using Presentation.UI.ContextTabs.Systems;
+using Presentation.UI.MainHud.ContextTabs.Systems;
 using Presentation.UI.DistrictBuild.Systems;
-using Presentation.UI.EndTurn.Systems;
+using Presentation.UI.MainHud.TurnPanel.Systems;
 using Presentation.UI.GeneratorMenu.Systems;
-using Presentation.UI.HexInfoPanel.Systems;
-using Presentation.UI.ResourceBar.Systems;
+using Presentation.UI.MainHud.HexInfoPanel.Systems;
+using Presentation.UI.MainHud.ResourceBar.Systems;
 using Presentation.Terrain.Systems;
 using Modules.Turn.Systems;
 using Modules.UserInput.Systems;
@@ -79,6 +81,9 @@ namespace Modules.Boot.Implementation
             HexSelectionViewSystem hexSelectionView,
             ForestSpawnSystem forestSpawn,
             ForestDespawnSystem forestDespawn,
+            DistrictViewSpawnSystem districtViewSpawn,
+            DistrictBuildProgressViewSpawnSystem districtBuildProgressViewSpawn,
+            DistrictBuildProgressViewDespawnSystem districtBuildProgressViewDespawn,
             HexIconsContainerPositionSystem hexIconsContainerPosition,
             HexIconsVisibilitySystem hexIconsVisibility,
             HexInfoPanelSystem hexInfoPanel,
@@ -86,8 +91,11 @@ namespace Modules.Boot.Implementation
             HexInfoPanelResourcesSystem hexInfoPanelResources,
             HexInfoPanelDistrictSystem hexInfoPanelDistrict,
             DistrictBuildUISystem districtBuildUI,
+            BuildDistrictActionSystem buildDistrictAction,
+            BuildDistrictActionCancelSystem buildDistrictActionCancel,
+            BuildDistrictCompletionSystem buildDistrictCompletion,
             ResourceBarSystem resourceBar,
-            EndTurnViewSystem endTurnViewSystem,
+            TurnPanelViewSystem turnPanelViewSystem,
             ContextTabSelectionSystem contextTabSelection,
             ContextTabsAvailabilitySystem contextTabsAvailability,
             TurnProcessorSystem turnProcessor,
@@ -108,10 +116,12 @@ namespace Modules.Boot.Implementation
                 world,
                 new IUpdatedSystem[]
                 {
-                    hexSelection, hexSelectionView, forestSpawn, forestDespawn, hexIconsVisibility,
+                    hexSelection, hexSelectionView, forestSpawn, forestDespawn, districtViewSpawn, hexIconsVisibility,
                     hexInfoPanel, hexInfoPanelHeader, hexInfoPanelResources, hexInfoPanelDistrict,
-                    districtBuildUI, resourceBar, endTurnViewSystem, contextTabSelection, contextTabsAvailability,
-                    turnProcessor, turnCount, eventCleanup
+                    districtBuildUI, buildDistrictAction, districtBuildProgressViewSpawn, buildDistrictActionCancel,
+                    buildDistrictCompletion, districtBuildProgressViewDespawn,
+                    resourceBar, turnPanelViewSystem, contextTabSelection,
+                    contextTabsAvailability, turnProcessor, turnCount, eventCleanup
                 },
                 new ILateUpdatedSystem[] { cameraMovement, hexIconsContainerPosition });
 

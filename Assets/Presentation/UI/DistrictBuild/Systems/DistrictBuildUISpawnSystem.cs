@@ -19,19 +19,18 @@ namespace Presentation.UI.DistrictBuild.Systems
     ///     UIDocument from the shared Main UI, authored with a higher sort order so it renders above the HUD and
     ///     its full-screen scrim blocks input below — under the main canvas, resolves its view, publishes the
     ///     view singleton, and leaves it hidden. DistrictBuildUISystem reveals it on the build request.
-    ///     Owns the single addressable handle for the overlay (mirrors the loading half of MainUISpawnSystem).
+    ///     Owns the single addressable handle for the overlay (mirrors the loading half of MainHudSpawnSystem).
     /// </summary>
     [UsedImplicitly]
     internal sealed class DistrictBuildUISpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        private const int ExecutionPriority = 810;
         private const string DistrictBuildActionPath = "UI/DistrictBuildAction";
 
         private readonly IAddressable _addressable;
         private readonly IMainCanvasProvider _canvasProvider;
         private readonly World _world;
 
-        public int Priority => ExecutionPriority;
+        public int Priority => SystemPriorities.WorldInit.DistrictBuildUiSpawn;
 
         public DistrictBuildUISpawnSystem(World world,
             IAddressable addressable,
@@ -76,7 +75,26 @@ namespace Presentation.UI.DistrictBuild.Systems
                     "DistrictBuildUISpawnSystem: DistrictBuildUIView is missing from the overlay prefab.");
             }
 
+            // Each overlay section is its own MonoBehaviour view, resolved like the root and published as a world
+            // component its section subsystem reads. Fail loud if any section is missing from the prefab.
+            var listView = result.Box.Value.GetComponentInChildren<DistrictBuildListUIView>(true);
+            var hexResourcesView = result.Box.Value.GetComponentInChildren<DistrictBuildHexResourcesUIView>(true);
+            var priceView = result.Box.Value.GetComponentInChildren<DistrictBuildPriceUIView>(true);
+            var actionsView = result.Box.Value.GetComponentInChildren<DistrictBuildActionsUIView>(true);
+
+            if (listView == null || hexResourcesView == null || priceView == null || actionsView == null)
+            {
+                result.Box.Dispose();
+                throw new InvalidOperationException(
+                    "DistrictBuildUISpawnSystem: a section view (List/HexResources/Price/Actions) is missing from "
+                    + "the overlay prefab.");
+            }
+
             _world.Set(new DistrictBuildUIRootComponent { RootBox = result.Box });
+            _world.Set(new DistrictBuildListUIViewComponent(listView));
+            _world.Set(new DistrictBuildHexResourcesUIViewComponent(hexResourcesView));
+            _world.Set(new DistrictBuildPriceUIViewComponent(priceView));
+            _world.Set(new DistrictBuildActionsUIViewComponent(actionsView));
 
             var entity = _world.CreateEntity();
             entity.Set(new DistrictBuildUIViewComponent(view));

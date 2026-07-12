@@ -10,6 +10,8 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using Unity.Mathematics;
+using Presentation.Terrain.Tags;
+using Modules.UserInput.Tags;
 
 namespace Modules.UserInput.Systems
 {
@@ -30,20 +32,20 @@ namespace Modules.UserInput.Systems
         private InputAction _pointAction;
 
         /// <inheritdoc />
-        public override int Priority => 0;
+        public override int Priority => SystemPriorities.RuntimeTick.HexSelection;
 
         /// <param name="world">The ECS world used to query camera, config, and selection state.</param>
         public HexSelectionSystem(World world)
             // Anchored on the single PlayerInputComponent entity so Update ticks once per frame;
             // the camera itself is a world component (CameraComponent), read via world.Get below.
-            : base(world.GetEntities().With<PlayerInputComponent>().AsSet())
+            : base(world.GetEntities().With<PlayerInputComponent>().With<PlayerInputTag>().AsSet())
         {
             _world = world;
             _playerInputSet = world.GetEntities()
-                .With<PlayerInputComponent>()
+                .With<PlayerInputComponent>().With<PlayerInputTag>()
                 .AsSet();
             _selectedHexSet = world.GetEntities()
-                .With<HexSelectedComponent>()
+                .With<HexSelectedComponent>().With<HexSelectionTag>()
                 .AsSet();
 
             TryBindInputActions();
@@ -105,7 +107,10 @@ namespace Modules.UserInput.Systems
             var selectedEntities = _selectedHexSet.GetEntities();
             if (selectedEntities.Length == 0)
             {
-                _world.CreateEntity().Set(new HexSelectedComponent { Coords = coord });
+                var entity = _world.CreateEntity();
+                entity.Set(new HexSelectedComponent { Coords = coord });
+                entity.Set(new HexSelectionTag());
+
                 RaiseSelectionChanged();
                 return;
             }
@@ -123,6 +128,7 @@ namespace Modules.UserInput.Systems
 
             // Write through Set (publishing path), never in-place ref-mutation — see ARCHITECTURE.md.
             selectedEntity.Set(new HexSelectedComponent { Coords = coord });
+            selectedEntity.Set(new HexSelectionTag());
             RaiseSelectionChanged();
         }
 

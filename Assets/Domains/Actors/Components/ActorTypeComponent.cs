@@ -1,5 +1,5 @@
 using System;
-using Domains.Actors.Data;
+using Domains.Kernel.Data;
 
 namespace Domains.Actors.Components
 {

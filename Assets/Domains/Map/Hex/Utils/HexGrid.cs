@@ -11,7 +11,7 @@ namespace Domains.Map.Hex.Utils
     ///     Fine vertex grid singleton — one cell per subdivided vertex.
     ///     Uses flat-top axial orientation: the dual of pointy-top tiles, so that BFS expansion
     ///     produces a pointy-top shaped region matching the actual coarse hex tiles.
-    ///     Registered in VContainer as Lifetime.Singleton.
+    ///     Constructed at terrain load and published as the VertexGridComponent world component.
     /// </summary>
     public class VertexGrid : AxialGrid<VertexCoord, HexVertex>
     {
@@ -112,6 +112,9 @@ namespace Domains.Map.Hex.Utils
             return WorldToAxial(AxialMath.AxialToWorldPointTop(hexCoord.Value, _cellSize));
         }
 
+        // Returns the LIVE owner-cache set, not a copy. Set() re-runs the cache bookkeeping (remove+re-add),
+        // so calling Set inside a foreach over this throws "Collection was modified" — snapshot the coords
+        // first (e.g. into a NativeList) and iterate the snapshot (see ClayDepressionShaper / forest spawn).
         public IEnumerable<VertexCoord> GetOwnedVertexCoords(HexCoord hexCoord)
         {
             return _ownerVertexCoords.TryGetValue(hexCoord, out var coords)

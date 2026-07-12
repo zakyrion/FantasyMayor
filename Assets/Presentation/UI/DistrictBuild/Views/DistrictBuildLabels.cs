@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Text;
 using Domains.Economy.District.Data;
 using Domains.Economy.Resource.Data;
+using Domains.Kernel.Data;
 using Domains.Map.Hex.Data;
 using Domains.Map.HexResources.Data;
 
@@ -82,6 +83,20 @@ namespace Presentation.UI.DistrictBuild.Views
             ResourceType.SmokedMeat => "🍖",
             ResourceType.SmokedFish => "🐠",
             _ => "📦"
+        };
+
+        internal static string OwnerLabel(ActorType owner) => owner switch
+        {
+            ActorType.Mayor => "Мер",
+            ActorType.City => "Місто",
+            _ => owner.ToString()
+        };
+
+        internal static string OwnerIcon(ActorType owner) => owner switch
+        {
+            ActorType.Mayor => "👑",
+            ActorType.City => "🏛️",
+            _ => "👤"
         };
     }
 }

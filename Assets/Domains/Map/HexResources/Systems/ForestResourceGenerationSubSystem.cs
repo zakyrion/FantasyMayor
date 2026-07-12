@@ -19,7 +19,6 @@ namespace Domains.Map.HexResources.Systems
     [UsedImplicitly]
     internal sealed class ForestResourceGenerationSubSystem : HexResourcesSubSystem
     {
-        private const int ExecutionPriority = 100;
         private const float ForestNeighborWeight = 2f;
         private const float WindBonusWeight = 1.5f;
         private readonly EntityMultiMap<HexTypeComponent> _hexesByType;
@@ -27,7 +26,7 @@ namespace Domains.Map.HexResources.Systems
 
         private readonly World _world;
 
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.HexResourceGeneration.Forest;
         protected override HexResourceType TargetHexResourceType => HexResourceType.Forest;
 
         public ForestResourceGenerationSubSystem(World world) : base(world)
@@ -35,7 +34,7 @@ namespace Domains.Map.HexResources.Systems
             _world = world;
             _hexSet = world.GetEntities()
                 .With<HexIdComponent>()
-                .With<HexLevelComponent>()
+                .With<HexLevelComponent>().With<HexTag>()
                 .AsSet();
             _hexesByType = world.GetEntities()
                 .With<HexTag>()

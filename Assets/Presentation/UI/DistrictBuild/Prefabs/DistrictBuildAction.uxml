@@ -27,18 +27,7 @@
                     <ui:VisualElement name="ReqLines"/>
 
                     <ui:Label text="ПЛАТНИК" class="sec-h"/>
-                    <ui:VisualElement class="payer">
-                        <ui:VisualElement name="PayerMayor" class="payseg payseg--mayor">
-                            <ui:Label text="👑" class="payseg-pe"/>
-                            <ui:Label text="Мер" class="payseg-who"/>
-                            <ui:Label text="· власник" class="payseg-own"/>
-                        </ui:VisualElement>
-                        <ui:VisualElement name="PayerCity" class="payseg payseg--city">
-                            <ui:Label text="🏛️" class="payseg-pe"/>
-                            <ui:Label text="Місто" class="payseg-who"/>
-                            <ui:Label text="· власник" class="payseg-own"/>
-                        </ui:VisualElement>
-                    </ui:VisualElement>
+                    <ui:VisualElement name="PayerRows" class="payer"/>
 
                     <ui:Label text="БУДІВНИЦТВО" class="sec-h"/>
                     <ui:VisualElement name="ApRow" class="costrow">

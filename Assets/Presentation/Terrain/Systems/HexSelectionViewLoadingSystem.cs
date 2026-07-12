@@ -8,6 +8,7 @@ using Modules.Addressable.Core;
 using Modules.Boot.Core;
 using Presentation.Terrain.Components;
 using Presentation.Terrain.Views;
+using Presentation.Terrain.Tags;
 
 namespace Presentation.Terrain.Systems
 {
@@ -19,7 +20,6 @@ namespace Presentation.Terrain.Systems
     [UsedImplicitly]
     internal sealed class HexSelectionViewLoadingSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        public const int ExecutionPriority = 500;
         private const string HEX_SELECTION_VIEW_ADDRESS = "HexSelectionView";
 
         private readonly IAddressable _addressable;
@@ -29,7 +29,7 @@ namespace Presentation.Terrain.Systems
         private Entity? _hexSelectionViewEntity;
 
         /// <inheritdoc />
-        public int Priority => ExecutionPriority;
+        public int Priority => SystemPriorities.WorldInit.HexSelectionViewLoading;
 
         public HexSelectionViewLoadingSystem(World world, IAddressable addressable)
         {
@@ -89,6 +89,7 @@ namespace Presentation.Terrain.Systems
 
             var entity = _world.CreateEntity();
             entity.Set(new HexSelectionViewComponent { ObjectRef = view });
+            entity.Set(new HexSelectionViewTag());
             _hexSelectionViewEntity = entity;
         }
     }

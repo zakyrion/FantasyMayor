@@ -92,3 +92,6 @@ crashlytics-build.properties
 .obsidian/cache
 .obsidian/.DS_Store
 .obsidian/*
+
+# Python bytecode from .claude hooks — derived, never tracked
+.claude/hooks/__pycache__/

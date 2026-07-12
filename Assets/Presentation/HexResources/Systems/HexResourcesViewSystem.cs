@@ -15,12 +15,10 @@ namespace Presentation.HexResources.Systems
     [UsedImplicitly]
     internal sealed class HexResourcesViewSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        private const int ExecutionPriority = 400;
-
         private readonly IReadOnlyList<HexResourcesViewSubSystem> _viewSubSystems;
 
         /// <inheritdoc />
-        public int Priority => ExecutionPriority;
+        public int Priority => SystemPriorities.WorldInit.HexResourcesView;
 
         public HexResourcesViewSystem(IReadOnlyList<HexResourcesViewSubSystem> viewSubSystems)
         {

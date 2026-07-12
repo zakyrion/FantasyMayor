@@ -49,9 +49,11 @@ MonoBehaviour:
     - Domains.Actions
     - Domains.Actors
     - Domains.Economy
+    - Domains.Kernel
     - Domains.Map
     - Dreamteck.Splines
     - Dreamteck.Utilities
+    - Flows.DistrictBuild
     - Installers
     - Installers.World
     - MainCanvas.Core

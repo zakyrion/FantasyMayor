@@ -13,6 +13,7 @@ using Presentation.Terrain.Components;
 using Presentation.Terrain.Views;
 using Unity.Collections;
 using UnityEngine;
+using Presentation.Terrain.Tags;
 
 namespace Presentation.Terrain.Systems
 {
@@ -25,7 +26,6 @@ namespace Presentation.Terrain.Systems
     [UsedImplicitly]
     internal sealed class WaterViewSubSystem : ViewSubSystem
     {
-        private const int ExecutionPriority = 300;
         private const string WATER_VIEW_ADDRESS = "WaterView";
 
         private readonly IAddressable _addressable;
@@ -37,7 +37,7 @@ namespace Presentation.Terrain.Systems
         private Entity? _waterViewEntity;
 
         /// <inheritdoc />
-        public override int Priority => ExecutionPriority;
+        public override int Priority => SystemPriorities.SubSystems.TerrainView.Water;
 
         /// <param name="world">ECS world used for entity queries and result entity creation.</param>
         /// <param name="addressable">Used to load and instantiate the WaterView prefab.</param>
@@ -46,7 +46,7 @@ namespace Presentation.Terrain.Systems
             _world = world;
             _addressable = addressable;
             _waterViewBox = Box<WaterView>.Empty();
-            _hexSet = world.GetEntities().With<HexIdComponent>().AsSet();
+            _hexSet = world.GetEntities().With<HexIdComponent>().With<HexTag>().AsSet();
             _hexesByType = world.GetEntities().With<HexTag>().AsMultiMap<HexTypeComponent>();
         }
 
@@ -105,6 +105,7 @@ namespace Presentation.Terrain.Systems
             DestroyWaterViewEntity();
             var entity = _world.CreateEntity();
             entity.Set(new WaterViewComponent { ObjectRef = component });
+            entity.Set(new WaterViewTag());
             _waterViewEntity = entity;
         }
 
