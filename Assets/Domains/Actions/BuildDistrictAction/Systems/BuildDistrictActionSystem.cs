@@ -88,6 +88,13 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             entity.Set(new BuildDistrictTurnsComponent { TurnsLeft = cost.TurnsToBuild, TurnsToBuild = cost.TurnsToBuild });
             entity.Set(new ActorTypeComponent { Type = confirmed.Payer });
             entity.Set(new BuildDistrictInProgressTag());
+
+            if (cost.TurnsToBuild == 0)
+            {
+                var eventEntity = _world.CreateEntity();
+                eventEntity.Set(new BuildDistrictCompleteEvent());
+                eventEntity.Set(new EventTag());
+            }
         }
 
         // All-or-nothing spend: resources from the payer's stockpile + AP from the Mayor's pool. Affordability is

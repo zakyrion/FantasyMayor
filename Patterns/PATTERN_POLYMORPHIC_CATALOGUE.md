@@ -24,8 +24,8 @@ variant) + [PATTERN_CONFIG_LOADER](PATTERN_CONFIG_LOADER.md) + [PATTERN_ORCHESTR
 What it adds on top — and what no single pattern states — is the **materialization into an entity table with per-kind
 discriminators**, the **routing vs non-routing** orchestrator split, and the **dual-host** reuse of one subsystem family.
 
-**Canonical implementation:** `Economy.DistrictOpenCondition` (`Assets/Domains/Economy/DistrictOpenCondition/`). Read
-its `DISTRICT_OPEN_CONDITION.md` for the live example; this recipe is the generic procedure.
+**Canonical implementation:** `Economy.DistrictOpenCondition` (`Assets/Domains/Economy/DistrictOpenCondition/`) —
+explore it via the ecs-graph / code headers; this recipe is the generic procedure.
 
 ## When to use / when NOT
 
@@ -136,10 +136,12 @@ internal sealed class BarFooSpawnSubSystem : FooSpawnSubSystem
     public override bool TrySpawn(FooConfig config)
     {
         if (config is not BarFooConfig bar) return false;   // not my kind → let the next try
-        World.CreateEntity()
-             .Set(new FooKeyComponent(bar.Key))             // FK key
-             .Set(new FooTag())                             // discriminator: "this is a Foo row"
-             .Set(new BarFooComponent(bar.RequiredThing));  // per-kind payload (doubles as kind discriminator)
+        var row = World.CreateEntity();
+        row.Set(new FooKeyComponent(bar.Key));                       // FK into the subject's key space
+        row.Set(new FooTag());                                       // the row's ONLY tag (Tag Law)
+        row.Set(new FooKindComponent { Value = FooKind.Bar });       // kind column — the selector
+        row.Set(new BarFooComponent(bar.RequiredThing));             // per-kind payload (parameters only)
+        row.Set(new FooStateComponent { Value = FooState.Closed });  // initial state, if the family evaluates
         return true;
     }
 }
@@ -147,39 +149,48 @@ internal sealed class BarFooSpawnSubSystem : FooSpawnSubSystem
 
 ### 4 — The entity table (one row per authored entry)
 
-Every row shares a **key** + a **discriminator tag**; each **kind** adds its own marker:
+Every row shares a **key** + THE discriminator tag (exactly one — Tag Law); kind and evaluator
+output are enum COLUMNS, never extra tags:
 
-| Slot | Role | Example |
+| Slot | Role | Shape |
 |---|---|---|
-| Key component (FK) | which subject this entry is about | `DistrictTypeComponent` |
-| Discriminator tag | "this row is a Foo" (marks the whole table) | `DistrictOpenConditionTag` |
-| Per-kind marker | which kind this row is | payload **component** or marker **tag** (see rule below) |
-| Output tag (optional) | result the evaluator writes | `DistrictCanBeBuildTag` |
+| Key component (FK) | which subject this entry is about | the subject space's `…FKComponent` (key-role law) |
+| Discriminator tag | "this row is a Foo" — the row's ONLY tag | `DistrictOpenConditionTag` |
+| Kind component | which kind this row is | `FooKindComponent { FooKind Value }` — enum, `IEquatable`, set once at spawn |
+| Payload component (per kind, optional) | the kind's parameters | plain component; `Get` + fail-loud throw when the kind requires it |
+| State component (optional) | result the evaluator reconciles | `FooStateComponent { FooState Value }` — enum, `IEquatable`, change-only `Set()` |
 
-**Query by the table, never by the bare key** (Table Rule, [ECS_CONVENTIONS](../ECS_CONVENTIONS.md)):
-`With<FooTag>().With<BarFooComponent>().With<FooKeyComponent>()`.
+**Query by the table, never by the bare key** (Table Rule): the family sweep is
+`With<FooTag>().With<FooKeyComponent>()`; a KIND slice or a STATE slice is a legal self-index —
+`With<FooTag>().AsMultiMap<FooKindComponent>()` + `TryGetEntities(kind)` (same for state). `Set()`
+re-indexes maintained maps, so a state flip moves the row between slices automatically.
 
 ### 5 — (Optional) Evaluator family — the non-routing loop variant
 
-When rows must be **re-checked over time** (each turn) and reconciled into an output tag, add a **second** family. It
-uses the SAME orchestrator+subsystem shape but a **different loop discipline** (below). Each evaluator self-queries its
-own kind-slice (`AsSet`), joins the target table by key (`AsMultiMap` / `AsMap`), and **idempotently** Sets/Removes the
-output tag. Omit this whole part if the table is a static lookup joined on demand (then it is spawn-only).
+When rows must be **re-checked over time** (each turn) and reconciled into a STATE column, add a **second** family. It
+uses the SAME orchestrator+subsystem shape but a **different loop discipline** (below). Each evaluator reads its
+kind-slice from the kind self-index, joins the target table by key (`AsMultiMap` / `AsMap`), and reconciles the
+state component with **change-only writes**. Omit this whole part if the table is a static lookup joined on demand
+(then it is spawn-only and needs no state component).
 
 ```csharp
 internal sealed class BarFooEvaluatorSubSystem : FooEvaluatorSubSystem
 {
-    private readonly EntitySet _rows;                              // With<FooTag>().With<BarFooComponent>().With<FooKeyComponent>().AsSet()
-    private readonly EntityMultiMap<FooKeyComponent> _targetsByKey; // With<TargetTag>().With<FooKeyComponent>().AsMultiMap(...)
+    private readonly EntityMultiMap<FooKindComponent> _rowsByKind;  // With<FooTag>().AsMultiMap<FooKindComponent>() — kind slice (self-index)
+    private readonly EntityMultiMap<FooKeyComponent> _targetsByKey; // With<TargetTag>().AsMultiMap<FooKeyComponent>()
 
     public override void Evaluate()
     {
-        foreach (ref readonly var row in _rows.GetEntities())
+        if (!_rowsByKind.TryGetEntities(new FooKindComponent { Value = FooKind.Bar }, out var rows))
+            return;   // no rows of my kind — a valid catalogue state, not an error
+
+        foreach (ref readonly var row in rows)
         {
             var key = row.Get<FooKeyComponent>();
             var satisfied = /* join: */ !_targetsByKey.TryGetEntities(key, out _);
-            if (satisfied) row.Set<OutputTag>();     // idempotent
-            else           row.Remove<OutputTag>();  // idempotent
+            var next = satisfied ? FooState.Open : FooState.Closed;
+            if (row.Get<FooStateComponent>().Value != next)   // change-only write: no churn, no spurious re-index
+                row.Set(new FooStateComponent { Value = next });
         }
     }
 }
@@ -207,13 +218,15 @@ Both host an `IReadOnlyList<TSubSystem>`; they differ in HOW they call it:
 
 The loud/quiet asymmetry is deliberate — see the `;;` notes above.
 
-## Per-kind discriminator rule
+## Per-kind rule (2026-07-15 FM-11 — kind is a COLUMN)
 
 ```clojure
-(def per-kind-discriminator
-  {:kind-with-data       "payload component doubles as discriminator"  ;; present ⇒ this kind, e.g. BarFooComponent { RequiredThing }
-   :kind-param-less      "empty marker tag"    ;; without it a parameter-less row is indistinguishable (PATTERN_TAG)
-   :key-as-discriminator :NEVER})              ;; the key is the SUBJECT (1:N per key expected); the discriminator is the KIND
+(def per-kind-rule
+  {:kind                 "FooKindComponent { FooKind Value }"  ;; ONE enum component per family, every row carries it, set once at spawn
+   :selection            "self-index AsMultiMap<FooKindComponent> + TryGetEntities(kind)"  ;; never a second tag, never payload-presence sniffing
+   :payload              {:only-when "the kind has parameters"} ;; Get + fail-loud throw; presence is NOT the kind selector
+   :second-tag           :NEVER                                 ;; breaks 1-entity-1-tag (Tag Law)
+   :key-as-discriminator :NEVER})                               ;; the key is the SUBJECT (1:N per key expected); the kind names the RULE
 ```
 
 ## Dual-host reuse (when the evaluator must run at two lifecycles)
@@ -244,7 +257,7 @@ zero-alloc violation).
 
 Three pieces, orchestrator untouched:
 1. a concrete `FooConfig` subclass (its parameters, or none);
-2. its per-kind discriminator (payload component if it has params, else a marker tag);
+2. a new `FooKind` enum value (+ a payload component if the kind has parameters);
 3. a `FooSpawnSubSystem` (and a `FooEvaluatorSubSystem` if the family evaluates), each registered `.As<…Base>()`.
 
 ## Checklist
@@ -254,9 +267,9 @@ Three pieces, orchestrator untouched:
   {:container-SO       "FooConfig[] items; base carries ONLY the shared key; concretes pure data"
    :loader             "wraps live SO ref, RETAINS the Box, fails loud on null/empty, releases on dispose"
    :spawn-orchestrator "fail loud on null entry / unhandled type; subsystems bool TrySpawn — Try-pattern"
-   :row                "key(FK) + discriminator tag + per-kind marker; consumers query the TABLE, never the bare key"
-   :kind               {:with-data "component discriminator" :param-less "marker tag"}
-   :evaluator          {:if-present "non-routing, self-queries its slice, joins by key AsMap/AsMultiMap, Sets/Removes idempotently"}
+   :row                "key(FK) + ONE discriminator tag + kind component (+ payload, + state); consumers query the TABLE, never the bare key"
+   :kind               "enum FooKindComponent on every row — selection via the kind self-index, never a second tag"
+   :evaluator          {:if-present "non-routing, reads its kind-slice, joins by key AsMap/AsMultiMap, reconciles the state component change-only"}
    :dual-host          {:only-when "two lifecycles needed"}  ;; both reuse ONE subsystem list
    :di                 "all Singleton; subsystems .As<AbstractBase>(); collected field [StateAllowed]"})
 ```

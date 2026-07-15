@@ -36,6 +36,7 @@ PLACEHOLDER_PREFIXES = ("My", "Foo", "Some", "The", "Bar", "Baz", "Example", "Fa
 # (pattern recipes and convention docs speak in these). Curated; extend when a new one shows up.
 GENERIC_VOCAB = {
     "ConfigComponent", "ViewComponent", "EventComponent", "KeyComponent",
+    "IdComponent", "FKComponent", "IdFKComponent", "StateComponent", "KindComponent",
     "SpawnSystem", "DespawnSystem", "ReactiveSystem", "WorldInitSystem", "MapGenerationSystem",
     "TemplateTag", "TargetTag", "OutputTag", "ActionTag", "DraftTag", "FactTag",
     "ItemConfig", "CostConfig", "OutcomeConfig",

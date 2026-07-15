@@ -86,6 +86,9 @@ when designing or reviewing any system.
   - a component **carrying data** → `…Component` (e.g. `HexIdComponent`, `HexIconsVisibilityComponent`)
   - a **tag / marker** component (empty, presence-only) → `…Tag` (e.g. `HexTag`, `EventTag`)
   - a **one-frame event** component → `…Event` (e.g. `ForestHexAppearedEvent`, `SelectedHexChangedEvent`)
+  - a **foreign key** component (its ONLY payload is another key space's key value) → `…FKComponent`.
+    The name derives mechanically from the owner key: insert `FK` before `Component`
+    (the FK of `HexIdComponent` is the hex space's `…IdFKComponent`). Key-role law: Table Rule below.
 
   Pre-existing `…EventComponent` names (e.g. `TerrainGenerationGenerateEventComponent`) predate this rule;
   they stay until a deliberate rename, but new events use the `…Event` suffix.
@@ -238,45 +241,89 @@ An entity "table" is defined by its query, and a query MUST name the table, not 
 
 - **Table = key component + discriminator component.** A bare `With<KeyComponent>` query is
   **forbidden** — it is a UNION of every table sharing that key space, not a table.
-- **Tag Law (2026-07-08) — universal and machine-checkable:**
+- **Tag Law (2026-07-08; strengthened 2026-07-15 FM-11) — universal and machine-checkable:**
 
   ```clojure
   (def tag-law
-    {:entity {:requires "≥1 tag — its table discriminator"}  ;; an entity without a tag does not exist
-     :filter {:requires "≥1 tag in every With<> chain"}      ;; a filter without a tag does not exist
-     :category-tag UITag                                     ;; a shared kind-marker satisfies the law (identity then rides on the *ViewComponent)
-     :why "tag = archetype identity → the ecs-graph attributes every Set/Dispose to its table deterministically"})
+    {:entity {:requires "EXACTLY 1 tag — its identity / table discriminator"}  ;; the tag defines the entity's boundary; an entity without a tag does not exist
+     :filter {:requires "exactly 1 tag in every With<> chain"}  ;; 2 identity tags describe a row that cannot exist — a DEAD filter
+     :category-tag UITag                                        ;; a shared kind-marker satisfies the law (identity then rides on the *ViewComponent)
+     :event-filter :exempt                                      ;; a reactive base set filters on the *Event component — the event IS the filter
+     :state "…StateComponent wrapping an enum — NEVER a toggled tag"  ;; Set() re-indexes maintained maps, so a state flip moves the row between self-index slices automatically
+     :kind  "…KindComponent wrapping an enum — NEVER a second tag"    ;; per-kind access = self-index AsMultiMap lookup by the enum value
+     :why "tag = archetype identity → deterministic attribution; kind and state are COLUMNS of the row, not identities"})
   ```
-- The same key component is the **primary key** on the owner table and a **foreign key** on the
-  parallel tables. The hex key space (key: `HexIdComponent`) currently holds four tables:
 
-  | Table | Discriminator | Key role |
-  |---|---|---|
-  | Hex | `HexTag` | PK — one entity per coordinate |
-  | HexResource | `HexResourceTag` | FK — N per coordinate (one per `ResourceType`) |
-  | ForestView | `ForestViewTag` | FK — N per coordinate |
-  | HexIconContainer | `HexIconContainerTag` | FK — one per coordinate |
-  | DistrictView | `DistrictViewTag` | FK — one per built hex |
+- **Tag classes.** Only ONE class of tag exists — the identity/discriminator (plus the structural
+  `EventTag` on pulses and the category `UITag`). What looked like other tag uses is data:
+  a **runtime-toggled marker** is a state COLUMN → `…StateComponent { Value = enum }`, flipped via
+  `Set()` (change-only writes: compare first, write on difference); a **subtype marker** inside a
+  table family is a kind COLUMN → `…KindComponent { Value = enum }`, set once at spawn. Both are
+  map keys of legal self-indexes (`AsMultiMap<…>` with the family tag as discriminator) — consumers
+  read a slice with `TryGetEntities(value)` instead of scanning or tag-filtering.
+- **Key-role law (2026-07-15, FM-11) — a key's role is visible in its TYPE.** The owner table's
+  identity and other tables' references to it are DIFFERENT component types:
+
+  ```clojure
+  (def key-role-law
+    {:pk   {:suffix "…IdComponent" :home "exactly ONE owner table, paired with its tag" :index "AsMap<PK>"}       ;; the row's own identity
+     :fk   {:suffix "…FKComponent" :home "rows of OTHER tables pointing at the owner"   :index "AsMultiMap<FK>"}  ;; wraps the owner space's key VALUE; IEquatable required
+     :data {:suffix "…Component"   :never "keying maps of two DIFFERENT tables"}                                  ;; attribute value; self-index allowed (exception below)
+     :kind {:owner-side :data      :referencing-side :fk}   ;; enum key space with NO PK table (district types): the carrier's own value = Data, a catalogue/verb pointer = FK
+     :why "a shared key TYPE re-creates the bare-key UNION at the type level; separate types make the compiler enforce the Table Rule"})
+  ```
+
+- **Secondary-index exception (self-index).** A Data component MAY key a map when the map's
+  discriminator is a tag of the SAME table — a join/select over the table's own attribute
+  (hexes grouped by `HexTypeComponent`; resource rows by `HexResourceComponent`). The lookup
+  VALUE may arrive from outside (converted from an FK or another table's field) — the boundary
+  holds because every indexed row belongs to one table. The same Data type keying maps of TWO
+  different tables is the forbidden shared-key conflation — split it into PK + FK.
+
+- The hex key space under the law (FM-11 target shape; FK types are created during the migration):
+
+  <!-- doc-lint: off — FM-11 target-state names, created during the migration -->
+  | Table | Discriminator | Key component | Role |
+  |---|---|---|---|
+  | Hex | `HexTag` | `HexIdComponent` | PK — one entity per coordinate |
+  | HexResource | `HexResourceTag` | `HexIdFKComponent` | FK — N per coordinate (one per `ResourceType`) |
+  | ForestView | `ForestViewTag` | `HexIdFKComponent` | FK — N per coordinate |
+  | HexIconContainer | `HexIconContainerTag` | `HexIdFKComponent` | FK — one per coordinate |
+  | DistrictView | `DistrictViewTag` | `HexIdFKComponent` | FK — one per built hex |
 
 - One query definition has three materializations — pick by access pattern:
 
   ```csharp
-  // PK table → unique index. TryGetEntity(key, out Entity).
+  // PK table → unique index. TryGetEntity(key, out Entity). A duplicate PK value THROWS (fail-loud).
   EntityMap<HexIdComponent> hexByCoord =
       world.GetEntities().With<HexTag>().AsMap<HexIdComponent>();
 
-  // FK 1:N table → non-unique index. TryGetEntities(key, out ReadOnlySpan<Entity>).
-  EntityMultiMap<HexIdComponent> resourcesByCoord =
-      world.GetEntities().With<HexResourceTag>().AsMultiMap<HexIdComponent>();
+  // FK 1:N table → non-unique index, keyed on the FK TYPE. TryGetEntities(key, out ReadOnlySpan<Entity>).
+  EntityMultiMap<HexIdFKComponent> resourcesByCoord =
+      world.GetEntities().With<HexResourceTag>().AsMultiMap<HexIdFKComponent>();
+
+  // Join = construct the FK value from the PK value at the point of use.
+  if (resourcesByCoord.TryGetEntities(new HexIdFKComponent { Coords = hexId.Coords }, out var rows)) { /* … */ }
 
   // The same table as a sweep set.
   EntitySet resources =
-      world.GetEntities().With<HexIdComponent>().With<HexResourceComponent>().With<HexResourceTag>().AsSet();
+      world.GetEntities().With<HexIdFKComponent>().With<HexResourceComponent>().With<HexResourceTag>().AsSet();
   ```
+  <!-- doc-lint: on -->
 
-- `EntityMap` / `EntityMultiMap` are self-maintaining: they update on `Set` / `Remove`. This works
-  ONLY because of the "always write through `entity.Set<T>(value)`" rule above — a single
-  ref-mutation silently desyncs every maintained index.
+- **DefaultEcs mechanics behind the law (verified against 0.17.2 source):**
+  - `AsMap<TKey>` / `AsMultiMap<TKey>` implicitly add `With<TKey>()` to the rule — the map alone is
+    still a bare-key UNION of every table carrying `TKey`; the discriminator tag in the chain is what
+    names the table (Tag Law). The key type carries the ROLE; the tag carries the TABLE.
+  - Maps self-maintain via `ComponentChangedMessage<TKey>`: `entity.Set(newKey)` re-indexes the row,
+    component removal / entity disposal removes the entry. This works ONLY because of the "always
+    write through `entity.Set<T>(value)`" rule above — a single ref-mutation silently desyncs every
+    maintained index.
+  - `EntityMap` (PK index) THROWS `ArgumentException` on a duplicate key value — PK uniqueness is
+    enforced fail-loud by the container itself.
+  - DefaultEcs stores ONE component instance per type per entity ⇒ an entity carries AT MOST ONE FK
+    into a given key space. A relationship that needs two references into the same space gets its own
+    dedicated pair of FK types — a deliberate design decision, never an ad-hoc workaround.
 - Query caches held as system fields (`EntitySet`, `EntityMap`, `EntityMultiMap`) are declarative.
   They do NOT count as forbidden system state under the stateless-systems ban.
 - The map API is Try-pattern (`bool` return + `out` result) — the same contract as the Collector
@@ -295,8 +342,9 @@ An entity "table" is defined by its query, and a query MUST name the table, not 
 
 ## Link Convention — Domain ID vs Entity Handle
 
-- A **domain / persistent relationship** is expressed as a stable domain ID component
-  (e.g. `HexIdComponent`), never as a stored `Entity` handle.
+- A **domain / persistent relationship** is expressed as a stable domain key, never as a stored
+  `Entity` handle: the owner's identity is its `…IdComponent` (PK); a reference from another table
+  is that space's `…FKComponent` wrapping the same value (key-role law, Table Rule above).
 - A **runtime-only link** — non-serialized, lifetime-coupled, typically view-layer (a view
   component holding its `MonoBehaviour`) — may hold a direct reference or an `Entity` handle.
 - Rationale: a stable ID survives save/load and map regeneration; a stale ID fails loud at
