@@ -8,7 +8,7 @@ related:
   - "[PATTERN_EVENT](../Patterns/PATTERN_EVENT.md)"
   - "[PATTERN_ORCHESTRATOR_SUBSYSTEM](../Patterns/PATTERN_ORCHESTRATOR_SUBSYSTEM.md)"
   - "[PATTERN_REACTIVE_SYSTEM](../Patterns/PATTERN_REACTIVE_SYSTEM.md)"
-status: partial
+status: complete
 code_refs:
   systems:    [BuildDistrictActionSystem, BuildDistrictActionCancelSystem, BuildDistrictTurnTickSystem, BuildDistrictCompletionSystem, DistrictViewSpawnSystem, DistrictBuildProgressViewSpawnSystem, DistrictBuildProgressViewDespawnSystem, HexInfoPanelDistrictSystem, DistrictBuildListUISubSystem, DistrictOpenConditionEvaluatorSystem, DistrictOpenConditionEvaluatorBootstrapSystem, DistrictSingleOpenConditionEvaluatorSubSystem, DistrictExistConditionSpawnSubSystem]
   events:     [DistrictBuildUIRequestedEvent, DistrictBuildConfirmedEvent, BuildDistrictCompleteEvent, DistrictTableChangedEvent, BuildDistrictCancelEvent]
@@ -164,12 +164,12 @@ Live wiring is the ecs-graph; this doc is diffable against it. Code comments lin
 (def gaps
   {:g1 {:what "hex + type duplicated across the verb row and the fact row" :cost "every consumer picks a source; a third copy was already being proposed" :closed "2026-07-17 (:unify-district-row)"}
    :g2 {:what "the build stage is unreadable from Domains.Economy"          :cost "SingleOpen cannot count in-progress builds without a DAG violation or a mirror" :closed "2026-07-17 (:unify-district-row)"}
-   :g3 {:what "Exist-kind conditions are spawned with no evaluator"         :cost "every Exist-gated district is permanently unbuildable; the seeded Closed state never flips"}
+   :g3 {:what "Exist-kind conditions are spawned with no evaluator"         :cost "every Exist-gated district is permanently unbuildable; the seeded Closed state never flips" :closed "2026-07-17 (:evaluate-open-conditions)"}
    :g4 {:what "the turn host's comment declares «every world write goes back on the main thread» — stricter than ECS_CONVENTIONS Law 1, which allows an off-thread write to an EXISTING component"
         :cost "the commented-out hop below it reads as a missing guard; it is a deliberate optimisation (a hop costs a frame). The comment is rot — it already misled one reader into filing a phantom bug."
         :closed "2026-07-17 — RETRACTED, not a real gap (:fix-evaluator-comment); comment corrected regardless"}
    :g5 {:what "views react to COMMAND pulses and lean on same-tick system order" :cost "a priority change silently breaks the view; the dependency is invisible at the call site" :closed "2026-07-17 (:rewire-presentation)"}
-   :g6 {:what "SingleOpen's header claims the District table is «pure scaffold — nothing spawns it yet»" :cost "false since the build flow landed; a stale premise misleads the next reader"}})
+   :g6 {:what "SingleOpen's header claims the District table is «pure scaffold — nothing spawns it yet»" :cost "false since the build flow landed; a stale premise misleads the next reader" :closed "2026-07-17 (:evaluate-open-conditions)"}})
 ```
 
 ## Plan
@@ -290,7 +290,9 @@ Every `:resolve` is CLOSED — no step waits on a decision; execute in order.
                 DistrictOpenConditionEvaluatorSystem "turn phase — covers future kinds depending on non-District state (population, tech)"
                 ^:new DistrictOpenConditionEvaluatorTableChangedSystem "reactive — covers District-table changes within a turn"}
   :accept [{:meter ecs-graph :target "DistrictExistConditionComponent has ≥1 reader"}
-           {:meter "playtest" :target "building the last SingleOpen district drops it from the list on CONFIRM, not on completion; cancel returns it"}]}]
+           {:meter "playtest" :target "building the last SingleOpen district drops it from the list on CONFIRM, not on completion; cancel returns it"}]
+  :landed "2026-07-17 (ecs-graph + di-graph meters verified; playtest meter verified — user confirmed)"
+  :correction "the plan-preconditions :asmdef claim («NO new asmdef reference is needed») was WRONG for this step: Boot.Implementation had never directly referenced Domains.Economy (only reachable transitively via Domains.Actions, which Unity's non-SDK-style generated csproj does NOT expose for compilation). Boot must compose a reactive UpdatedSystem by name (decreed invariant, ARCHITECTURE → Boot flow), so landing forced two changes not in the original plan: Boot.Implementation.asmdef gained a Domains.Economy reference, and DistrictOpenConditionEvaluatorSubSystem (the abstract base) went internal → public (PATTERN_ORCHESTRATOR_SUBSYSTEM's actual default — the internal choice on the first two hosts only worked because neither is Boot-composed by name). User approved both before landing."}]
 ```
 
 <!-- doc-lint: on -->

@@ -52,6 +52,12 @@ namespace Domains.Economy.Installer
 
             builder.Register<DistrictSingleOpenConditionEvaluatorSubSystem>(Lifetime.Singleton)
                 .As<DistrictSingleOpenConditionEvaluatorSubSystem, DistrictOpenConditionEvaluatorSubSystem>();
+
+            builder.Register<DistrictExistConditionEvaluatorSubSystem>(Lifetime.Singleton)
+                .As<DistrictExistConditionEvaluatorSubSystem, DistrictOpenConditionEvaluatorSubSystem>();
+
+            builder.Register<DistrictOpenConditionEvaluatorTableChangedSystem>(Lifetime.Singleton)
+                .As<DistrictOpenConditionEvaluatorTableChangedSystem>();
         }
     }
 }

@@ -80,6 +80,14 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         private void OnSelected(DistrictType district)
         {
+            // Fail loud with context (mirrors DistrictBuildUISystem.ReadSelection/ReadPayer): a row click firing
+            // with no active selection entity means the overlay closed/confirmed between the click and this
+            // handler running — root cause not yet pinned down (2026-07-17); replaces a bare IndexOutOfRangeException.
+            if (_selectionSet.Count == 0)
+                throw new InvalidOperationException(
+                    $"DistrictBuildListUISubSystem: row click for '{district}' fired with no active " +
+                    $"{nameof(DistrictBuildSelectionTag)} entity — the overlay closed/confirmed before this handler ran.");
+
             _selectionSet.GetEntities()[0].Set(new DistrictBuildSelectionComponent { Selected = district });
 
             // Selection written — re-run every section populator (including this one, to re-mark the active row)

@@ -55,6 +55,7 @@ namespace DefaultECSExtensions
             public const int DistrictBuildProgressViewDespawn = 604; // > BuildDistrictActionCancel (602) and BuildDistrictCompletion (603): sees their {Removed}/{Built} pulses the same tick the District row stops being Planned
             public const int DistrictViewSpawn = 605; // > BuildDistrictCompletion (603): sees its {Built} pulse the same tick
             public const int ForestDespawn = 606;
+            public const int DistrictOpenConditionEvaluatorTableChanged = 610; // > BuildDistrictAction (600)/BuildDistrictActionCancel (602)/BuildDistrictCompletion (603): sees the same-tick DistrictTableChangedEvent{Planned/Built/Removed} from confirm, cancel, or completion, re-gating open conditions before EventCleanup
             public const int HexIconsContainerPosition = 700; // > Camera (0): re-project after the camera moves this frame
             public const int HexIconsVisibility = 800;
             public const int TurnProcessor = 1000;
@@ -143,6 +144,7 @@ namespace DefaultECSExtensions
             public static class DistrictOpenConditionEvaluator
             {
                 public const int Single = 100;
+                public const int Exist = 200;
             }
 
             public static class DistrictBuildOutcomeSpawn

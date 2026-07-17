@@ -4,10 +4,11 @@ using DefaultEcs;
 namespace Domains.Economy.DistrictOpenCondition.Systems
 {
     // Abstract base for a per-kind condition evaluator. One concrete subsystem per condition kind
-    // (DistrictOpenConditionKind.SingleOpen today; .Exist plugs in later). Each subsystem
-    // self-queries its own kind-slice of the condition table and the District table — there is no shared
-    // read-model and no routing: every enabled subsystem runs unconditionally each call.
-    internal abstract class DistrictOpenConditionEvaluatorSubSystem : IDisposable
+    // (SingleOpen, Exist). Each subsystem self-queries its own kind-slice of the condition table and the
+    // District table — there is no shared read-model and no routing: every enabled subsystem runs
+    // unconditionally each call. Public (PATTERN_ORCHESTRATOR_SUBSYSTEM default): the reactive table-changed
+    // host names IReadOnlyList<DistrictOpenConditionEvaluatorSubSystem> directly in Boot.Construct.
+    public abstract class DistrictOpenConditionEvaluatorSubSystem : IDisposable
     {
         protected readonly World World;
 
