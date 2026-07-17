@@ -228,7 +228,7 @@ namespace Domains.Map.HexResources.Systems
                 foreach (var coord in zoneSet)
                 {
                     var entity = _world.CreateEntity();
-                    entity.Set(new HexIdComponent { Coords = new HexCoord(coord) });
+                    entity.Set(new HexIdFKComponent { Coords = new HexCoord(coord) });
                     entity.Set(new HexResourceComponent { Type = HexResourceType.Forest });
                     entity.Set(new HexResourceTag());
                 }

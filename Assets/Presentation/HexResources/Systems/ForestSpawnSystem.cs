@@ -32,7 +32,7 @@ namespace Presentation.HexResources.Systems
         private readonly EntityMultiMap<HexResourceComponent> _resourcesByType;
 
         // ResourceView (forest) table indexed by the hex FK -> N tree entities per coordinate.
-        private readonly EntityMultiMap<HexIdComponent> _forestViewsByHex;
+        private readonly EntityMultiMap<HexIdFKComponent> _forestViewsByHex;
 
         private readonly EntitySet _hexSet;
         private readonly ForestPlanter _planter = new();
@@ -49,14 +49,14 @@ namespace Presentation.HexResources.Systems
         {
             _world = world;
             _resourcesByType = world.GetEntities()
-                .With<HexIdComponent>()
+                .With<HexIdFKComponent>()
                 .With<HexResourceComponent>().With<HexResourceTag>()
                 .AsMultiMap<HexResourceComponent>();
 
             _forestViewsByHex = world.GetEntities()
-                .With<HexIdComponent>()
+                .With<HexIdFKComponent>()
                 .With<ForestViewComponent>().With<ForestViewTag>()
-                .AsMultiMap<HexIdComponent>();
+                .AsMultiMap<HexIdFKComponent>();
 
             _hexSet = world.GetEntities().With<HexTag>().With<HexIdComponent>().AsSet();
         }
@@ -94,7 +94,7 @@ namespace Presentation.HexResources.Systems
             // Forested but not yet viewed -> plant trees and collect their ground splats.
             foreach (ref readonly var hex in forestHexes)
             {
-                var hexId = hex.Get<HexIdComponent>();
+                var hexId = hex.Get<HexIdFKComponent>();
                 if (!_forestViewsByHex.ContainsKey(hexId))
                     _planter.PlantHex(_world, _root, hexId.Coords, vertexGrid, viewConfig, ref newSplats);
             }

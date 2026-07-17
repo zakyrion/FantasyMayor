@@ -37,13 +37,13 @@ namespace Domains.Actions.BuildDistrictAction.Systems
     public sealed class BuildDistrictActionCancelSystem : UpdatedSystem
     {
         // In-progress builds indexed by hex — the pulse's identifying payload resolves straight to the entity.
-        private readonly EntityMultiMap<HexIdComponent> _inProgressByHex;
+        private readonly EntityMultiMap<HexIdFKComponent> _inProgressByHex;
 
         // Actor rows (Table Rule), same resolution as BuildDistrictActionSystem's spend side.
         private readonly EntitySet _mayorActor;
         private readonly EntitySet _cityActor;
-        private readonly EntityMultiMap<MayorIdComponent> _mayorResources;
-        private readonly EntityMultiMap<CityIdComponent> _cityResources;
+        private readonly EntityMultiMap<MayorIdFKComponent> _mayorResources;
+        private readonly EntityMultiMap<CityIdFKComponent> _cityResources;
 
         private readonly World _world;
 
@@ -56,33 +56,33 @@ namespace Domains.Actions.BuildDistrictAction.Systems
 
             _inProgressByHex = world.GetEntities()
                 .With<BuildDistrictInProgressTag>()
-                .With<HexIdComponent>()
-                .With<DistrictTypeComponent>()
+                .With<HexIdFKComponent>()
+                .With<DistrictTypeFKComponent>()
                 .With<BuildDistrictTurnsComponent>()
                 .With<ActorTypeComponent>()
-                .AsMultiMap<HexIdComponent>();
+                .AsMultiMap<HexIdFKComponent>();
 
             _mayorActor = world.GetEntities()
                 .With<MayorIdComponent>().With<MayorTag>().With<MayorAPComponent>().With<ActorTypeComponent>().AsSet();
             _cityActor = world.GetEntities()
                 .With<CityIdComponent>().With<CityTag>().With<ActorTypeComponent>().AsSet();
             _mayorResources = world.GetEntities()
-                .With<MayorIdComponent>().With<MayorTag>().With<MayorResourceTag>().AsMultiMap<MayorIdComponent>();
+                .With<MayorIdFKComponent>().With<MayorResourceTag>().AsMultiMap<MayorIdFKComponent>();
             _cityResources = world.GetEntities()
-                .With<CityIdComponent>().With<CityTag>().With<CityResourceTag>().AsMultiMap<CityIdComponent>();
+                .With<CityIdFKComponent>().With<CityResourceTag>().AsMultiMap<CityIdFKComponent>();
         }
 
         protected override void Update(GameState state, in Entity pulse)
         {
             var coords = pulse.Get<BuildDistrictCancelEvent>().Coords;
 
-            if (!_inProgressByHex.TryGetEntities(new HexIdComponent { Coords = coords }, out var matches) || matches.Length == 0)
+            if (!_inProgressByHex.TryGetEntities(new HexIdFKComponent { Coords = coords }, out var matches) || matches.Length == 0)
                 throw new InvalidOperationException(
                     $"BuildDistrictActionCancelSystem: no in-progress build at {coords} to cancel.");
 
             var entity = matches[0];
             var turns = entity.Get<BuildDistrictTurnsComponent>();
-            var type = entity.Get<DistrictTypeComponent>().Value;
+            var type = entity.Get<DistrictTypeFKComponent>().Value;
             var payer = entity.Get<ActorTypeComponent>().Type;
 
             Refund(payer, ResolveCost(type), turns);
@@ -131,7 +131,8 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         private ReadOnlySpan<Entity> ResolvePayerStacks(ActorType payer, in Entity mayor)
         {
             if (payer == ActorType.Mayor)
-                return _mayorResources.TryGetEntities(mayor.Get<MayorIdComponent>(), out var mayorStacks)
+                return _mayorResources.TryGetEntities(
+                    new MayorIdFKComponent { Value = mayor.Get<MayorIdComponent>().Value }, out var mayorStacks)
                     ? mayorStacks
                     : ReadOnlySpan<Entity>.Empty;
 
@@ -140,7 +141,8 @@ namespace Domains.Actions.BuildDistrictAction.Systems
                 if (_cityActor.Count == 0)
                     throw new InvalidOperationException("BuildDistrictActionCancelSystem: no City actor to refund resources.");
 
-                return _cityResources.TryGetEntities(_cityActor.GetEntities()[0].Get<CityIdComponent>(), out var cityStacks)
+                var cityId = _cityActor.GetEntities()[0].Get<CityIdComponent>().Value;
+                return _cityResources.TryGetEntities(new CityIdFKComponent { Value = cityId }, out var cityStacks)
                     ? cityStacks
                     : ReadOnlySpan<Entity>.Empty;
             }

@@ -2,7 +2,7 @@ using System;
 
 namespace Domains.Actors.Mayor.Components
 {
-    // Primary key of the Mayor entity; the same component is the foreign key carried by anything the mayor owns.
+    // Primary key of the Mayor entity.
     public struct MayorIdComponent : IEquatable<MayorIdComponent>
     {
         public int Value;

@@ -31,7 +31,7 @@ namespace Presentation.HexResources.Systems
         private readonly EntityMultiMap<HexResourceComponent> _resourcesByType;
 
         // ResourceView (forest) table indexed by the hex FK -> N tree entities per coordinate.
-        private readonly EntityMultiMap<HexIdComponent> _forestViewsByHex;
+        private readonly EntityMultiMap<HexIdFKComponent> _forestViewsByHex;
 
         public override int Priority => SystemPriorities.RuntimeTick.ForestDespawn;
 
@@ -41,14 +41,14 @@ namespace Presentation.HexResources.Systems
                 .AsSet())
         {
             _resourcesByType = world.GetEntities()
-                .With<HexIdComponent>()
+                .With<HexIdFKComponent>()
                 .With<HexResourceComponent>().With<HexResourceTag>()
                 .AsMultiMap<HexResourceComponent>();
 
             _forestViewsByHex = world.GetEntities()
-                .With<HexIdComponent>()
+                .With<HexIdFKComponent>()
                 .With<ForestViewComponent>().With<ForestViewTag>()
-                .AsMultiMap<HexIdComponent>();
+                .AsMultiMap<HexIdFKComponent>();
         }
 
         // The pulse entity itself is ignored — reconciliation is global over current state.
@@ -59,7 +59,7 @@ namespace Presentation.HexResources.Systems
             var forestHexes = new NativeHashSet<HexCoord>(64, Allocator.Temp);
             if (_resourcesByType.TryGetEntities(forestKey, out var forestResources))
                 foreach (ref readonly var resource in forestResources)
-                    forestHexes.Add(resource.Get<HexIdComponent>().Coords);
+                    forestHexes.Add(resource.Get<HexIdFKComponent>().Coords);
 
             // Snapshot stale views before destroying: DestroyView disposes entities, which would mutate the
             // view map mid-enumeration.

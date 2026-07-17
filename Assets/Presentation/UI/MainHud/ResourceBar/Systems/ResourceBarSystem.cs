@@ -28,8 +28,8 @@ namespace Presentation.UI.MainHud.ResourceBar.Systems
         private readonly EntitySet _mayorActor;
         private readonly EntitySet _cityActor;
         // FK 1:N indexes (Table Rule): owner id is a PK on the actor AND a FK on the resource stack.
-        private readonly EntityMultiMap<CityIdComponent> _cityResources;
-        private readonly EntityMultiMap<MayorIdComponent> _mayorResources;
+        private readonly EntityMultiMap<CityIdFKComponent> _cityResources;
+        private readonly EntityMultiMap<MayorIdFKComponent> _mayorResources;
 
         public override int Priority => SystemPriorities.RuntimeTick.ResourceBar;
 
@@ -39,9 +39,9 @@ namespace Presentation.UI.MainHud.ResourceBar.Systems
             _mayorActor = world.GetEntities().With<MayorIdComponent>().With<MayorTag>().With<ActorTypeComponent>().AsSet();
             _cityActor = world.GetEntities().With<CityIdComponent>().With<CityTag>().With<ActorTypeComponent>().AsSet();
             _cityResources = world.GetEntities()
-                .With<CityIdComponent>().With<CityTag>().With<CityResourceTag>().AsMultiMap<CityIdComponent>();
+                .With<CityIdFKComponent>().With<CityResourceTag>().AsMultiMap<CityIdFKComponent>();
             _mayorResources = world.GetEntities()
-                .With<MayorIdComponent>().With<MayorTag>().With<MayorResourceTag>().AsMultiMap<MayorIdComponent>();
+                .With<MayorIdFKComponent>().With<MayorResourceTag>().AsMultiMap<MayorIdFKComponent>();
         }
 
         protected override void Update(GameState state, in Entity entity)
@@ -74,7 +74,7 @@ namespace Presentation.UI.MainHud.ResourceBar.Systems
 
         private void FillCity(ResourceBarView view, CityIdComponent owner)
         {
-            if (!_cityResources.TryGetEntities(owner, out var stacks))
+            if (!_cityResources.TryGetEntities(new CityIdFKComponent { Value = owner.Value }, out var stacks))
                 return;
 
             foreach (var stack in stacks)
@@ -86,7 +86,7 @@ namespace Presentation.UI.MainHud.ResourceBar.Systems
 
         private void FillMayor(ResourceBarView view, MayorIdComponent owner)
         {
-            if (!_mayorResources.TryGetEntities(owner, out var stacks))
+            if (!_mayorResources.TryGetEntities(new MayorIdFKComponent { Value = owner.Value }, out var stacks))
                 return;
 
             foreach (var stack in stacks)

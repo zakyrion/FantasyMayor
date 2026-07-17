@@ -136,13 +136,23 @@ world write stays on the main thread; the pool only computes.
 
 ## Tag Law (entity identity)
 ```clojure
-(def tag-law  ;; 2026-07-08 — universal, machine-checkable
-  {:entity {:requires "≥1 tag — its table discriminator"}  ;; an entity without a tag does not exist
-   :filter {:requires "≥1 tag in every With<> chain"}      ;; a filter without a tag does not exist
-   :category-tag UITag                                     ;; a shared kind-marker satisfies the law (identity rides on the *ViewComponent)
+(def tag-law  ;; 2026-07-08; strengthened 2026-07-15 FM-11 — universal, machine-checkable
+  {:entity {:requires "EXACTLY 1 tag — its identity / table discriminator"}  ;; the tag defines the entity's boundary
+   :filter {:requires "exactly 1 tag in every With<> chain"}  ;; 2 identity tags = a row that cannot exist = a dead filter
+   :category-tag UITag                                        ;; a shared kind-marker satisfies the law (identity rides on the *ViewComponent)
+   :event-filter :exempt                                      ;; a reactive base set filters on the *Event component — the event IS the filter
+   :state "…StateComponent (enum) — never a toggled tag"      ;; a runtime marker is a state COLUMN; Set() re-indexes its self-index
+   :kind  "…KindComponent (enum) — never a second tag"        ;; a subtype marker is a kind COLUMN; per-kind access = self-index lookup
    :why "tag = archetype identity → deterministic archetype attribution in the ecs-graph"})
 ```
-Point-of-code form (tables, key spaces, materializations): `ECS_CONVENTIONS.md` → Table Rule.
+```clojure
+(def key-role-law  ;; 2026-07-15 FM-11 — a key's role is visible in its TYPE
+  {:pk   "…IdComponent — the row's own identity; exactly ONE owner table"
+   :fk   "…FKComponent — another table's reference into the owner's space; ALWAYS a separate type, never the owner's PK type"
+   :data "…Component — attribute value; never a map key shared across tables (self-index exception: ECS_CONVENTIONS)"
+   :why "a shared key TYPE re-creates the bare-key UNION at the type level; separate types make the compiler enforce the Table Rule"})
+```
+Point-of-code form (tables, key spaces, materializations, self-index exception): `ECS_CONVENTIONS.md` → Table Rule.
 
 ## Cross-domain behavior (transactions)
 ```clojure

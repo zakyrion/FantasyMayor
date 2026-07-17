@@ -41,11 +41,11 @@ namespace Presentation.HexIcons.Systems
         {
             _world = world;
             _containerSet = world.GetEntities()
-                .With<HexIdComponent>()
+                .With<HexIdFKComponent>()
                 .With<HexIconContainerComponent>().With<HexIconContainerTag>()
                 .AsSet();
             _resourceSet = world.GetEntities()
-                .With<HexIdComponent>()
+                .With<HexIdFKComponent>()
                 .With<HexResourceComponent>().With<HexResourceTag>()
                 .AsSet();
         }
@@ -81,10 +81,10 @@ namespace Presentation.HexIcons.Systems
                 if (!isVisible)
                     continue;
 
-                var coords = containerEntity.Get<HexIdComponent>().Coords;
+                var coords = containerEntity.Get<HexIdFKComponent>().Coords;
                 foreach (var resourceEntity in _resourceSet.GetEntities())
                 {
-                    if (!resourceEntity.Get<HexIdComponent>().Coords.Value.Equals(coords.Value))
+                    if (!resourceEntity.Get<HexIdFKComponent>().Coords.Value.Equals(coords.Value))
                         continue;
 
                     var type = resourceEntity.Get<HexResourceComponent>().Type;

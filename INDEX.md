@@ -66,7 +66,7 @@ Visual maps (Obsidian Canvas). Read/edit via Obsidian MCP; not preloaded.
 |---|---|
 | [DISTRICT_BUILDING_UI](DISTRICT_BUILDING_UI.canvas) | DistrictBuildUISystem |
 | [ECONOMY_ACTORS](ECONOMY_ACTORS.canvas) | Ownables — each carries one OwnerFK + a Tag · My domain view · Owners — actors with an Id used as OwnerFK · Resource… |
-| [WORK](WORK.canvas) | ActionTurnLeftComponent |
+| [WORK](WORK.canvas) | Колись на потім |
 
 <!-- END GENERATED — content below is the agent zone (pass 2), preserved across runs -->
 

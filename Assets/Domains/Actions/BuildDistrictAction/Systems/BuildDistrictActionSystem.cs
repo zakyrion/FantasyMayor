@@ -30,7 +30,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
     ///     checked across the WHOLE price before any deduction, and a shortfall throws — the confirm is UI-gated
     ///     (<c>DistrictBuildPriceUISubSystem</c> disables «Збудувати» when unaffordable), so a shortfall here is a
     ///     broken invariant, not a normal path. Only after a successful spend is the entity stamped with
-    ///     <c>HexIdComponent</c> + <c>DistrictTypeComponent</c> from the pulse, a unique <c>ActionIdComponent</c>
+    ///     <c>HexIdFKComponent</c> + <c>DistrictTypeFKComponent</c> from the pulse, a unique <c>ActionIdComponent</c>
     ///     (shared <c>ActionIdAllocatorComponent</c> counter, seeded here), the turn countdown
     ///     (<c>BuildDistrictTurnsComponent</c> = the district's <c>TurnsToBuild</c>, twice), the chosen payer
     ///     (<c>ActorTypeComponent</c>), and <c>BuildDistrictInProgressTag</c>. There is no draft: the build is
@@ -49,8 +49,8 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         private readonly EntitySet _cityActor;
 
         // Resource stacks grouped by owner id — the payer's stockpile handed to ResourceLedger for the spend.
-        private readonly EntityMultiMap<MayorIdComponent> _mayorResources;
-        private readonly EntityMultiMap<CityIdComponent> _cityResources;
+        private readonly EntityMultiMap<MayorIdFKComponent> _mayorResources;
+        private readonly EntityMultiMap<CityIdFKComponent> _cityResources;
 
         public override int Priority => SystemPriorities.RuntimeTick.BuildDistrictAction;
 
@@ -64,9 +64,9 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             _cityActor = world.GetEntities()
                 .With<CityIdComponent>().With<CityTag>().With<ActorTypeComponent>().AsSet();
             _mayorResources = world.GetEntities()
-                .With<MayorIdComponent>().With<MayorTag>().With<MayorResourceTag>().AsMultiMap<MayorIdComponent>();
+                .With<MayorIdFKComponent>().With<MayorResourceTag>().AsMultiMap<MayorIdFKComponent>();
             _cityResources = world.GetEntities()
-                .With<CityIdComponent>().With<CityTag>().With<CityResourceTag>().AsMultiMap<CityIdComponent>();
+                .With<CityIdFKComponent>().With<CityResourceTag>().AsMultiMap<CityIdFKComponent>();
 
             // Seed the shared action-id counter once; ids start at 1 (0 = unset).
             if (!world.Has<ActionIdAllocatorComponent>())
@@ -82,12 +82,19 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             SpendCost(confirmed.Payer, cost);
 
             var entity = _world.CreateEntity();
-            entity.Set(new HexIdComponent { Coords = confirmed.Coords });
-            entity.Set(new DistrictTypeComponent { Value = confirmed.Type });
+            entity.Set(new HexIdFKComponent { Coords = confirmed.Coords });
+            entity.Set(new DistrictTypeFKComponent { Value = confirmed.Type });
             entity.Set(new ActionIdComponent { Value = AllocateId() });
             entity.Set(new BuildDistrictTurnsComponent { TurnsLeft = cost.TurnsToBuild, TurnsToBuild = cost.TurnsToBuild });
             entity.Set(new ActorTypeComponent { Type = confirmed.Payer });
             entity.Set(new BuildDistrictInProgressTag());
+
+            if (cost.TurnsToBuild == 0)
+            {
+                var eventEntity = _world.CreateEntity();
+                eventEntity.Set(new BuildDistrictCompleteEvent());
+                eventEntity.Set(new EventTag());
+            }
         }
 
         // All-or-nothing spend: resources from the payer's stockpile + AP from the Mayor's pool. Affordability is
@@ -130,7 +137,8 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         private ReadOnlySpan<Entity> ResolvePayerStacks(ActorType payer, in Entity mayor)
         {
             if (payer == ActorType.Mayor)
-                return _mayorResources.TryGetEntities(mayor.Get<MayorIdComponent>(), out var mayorStacks)
+                return _mayorResources.TryGetEntities(
+                    new MayorIdFKComponent { Value = mayor.Get<MayorIdComponent>().Value }, out var mayorStacks)
                     ? mayorStacks
                     : ReadOnlySpan<Entity>.Empty;
 
@@ -139,7 +147,8 @@ namespace Domains.Actions.BuildDistrictAction.Systems
                 if (_cityActor.Count == 0)
                     throw new InvalidOperationException("BuildDistrictActionSystem: no City actor to charge resources.");
 
-                return _cityResources.TryGetEntities(_cityActor.GetEntities()[0].Get<CityIdComponent>(), out var cityStacks)
+                var cityId = _cityActor.GetEntities()[0].Get<CityIdComponent>().Value;
+                return _cityResources.TryGetEntities(new CityIdFKComponent { Value = cityId }, out var cityStacks)
                     ? cityStacks
                     : ReadOnlySpan<Entity>.Empty;
             }

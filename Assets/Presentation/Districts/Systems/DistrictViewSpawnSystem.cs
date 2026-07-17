@@ -32,7 +32,7 @@ namespace Presentation.Districts.Systems
         private readonly EntitySet _districts;
 
         // District view entities indexed by the hex FK -> lets the reconcile skip hexes already viewed.
-        private readonly EntityMultiMap<HexIdComponent> _viewsByHex;
+        private readonly EntityMultiMap<HexIdFKComponent> _viewsByHex;
 
         private readonly World _world;
 
@@ -49,14 +49,14 @@ namespace Presentation.Districts.Systems
 
             _districts = world.GetEntities()
                 .With<DistrictTag>()
-                .With<HexIdComponent>()
+                .With<HexIdFKComponent>()
                 .With<DistrictTypeComponent>()
                 .AsSet();
 
             _viewsByHex = world.GetEntities()
-                .With<HexIdComponent>()
+                .With<HexIdFKComponent>()
                 .With<DistrictViewComponent>().With<DistrictViewTag>()
-                .AsMultiMap<HexIdComponent>();
+                .AsMultiMap<HexIdFKComponent>();
         }
 
         // The pulse entity itself is ignored — reconciliation is global over current state.
@@ -76,7 +76,7 @@ namespace Presentation.Districts.Systems
             var districts = _districts.GetEntities();
             for (var i = 0; i < districts.Length; i++)
             {
-                var hexId = districts[i].Get<HexIdComponent>();
+                var hexId = districts[i].Get<HexIdFKComponent>();
                 if (_viewsByHex.ContainsKey(hexId))
                     continue;
 
@@ -96,7 +96,7 @@ namespace Presentation.Districts.Systems
                 var view = instance.GetComponent<DistrictView>();
 
                 var viewEntity = _world.CreateEntity();
-                viewEntity.Set(new HexIdComponent { Coords = hexId.Coords });
+                viewEntity.Set(new HexIdFKComponent { Coords = hexId.Coords });
                 viewEntity.Set(new DistrictViewComponent { Type = districtType, View = view });
                 viewEntity.Set(new DistrictViewTag());
             }

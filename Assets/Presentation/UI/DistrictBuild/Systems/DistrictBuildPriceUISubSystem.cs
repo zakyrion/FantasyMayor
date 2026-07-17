@@ -37,8 +37,8 @@ namespace Presentation.UI.DistrictBuild.Systems
         // Actor rows (Table Rule): id PK + ActorTypeComponent discriminator — never a bare key.
         private readonly EntitySet _mayorActor;
         private readonly EntitySet _cityActor;
-        private readonly EntityMultiMap<MayorIdComponent> _mayorResources;
-        private readonly EntityMultiMap<CityIdComponent> _cityResources;
+        private readonly EntityMultiMap<MayorIdFKComponent> _mayorResources;
+        private readonly EntityMultiMap<CityIdFKComponent> _cityResources;
 
         // The chrome view lives on an ENTITY (UITag), not as a world component — resolve it the way the orchestrator does.
         private readonly EntitySet _chrome;
@@ -53,9 +53,9 @@ namespace Presentation.UI.DistrictBuild.Systems
             _mayorActor = world.GetEntities().With<MayorIdComponent>().With<MayorTag>().With<MayorAPComponent>().With<ActorTypeComponent>().AsSet();
             _cityActor = world.GetEntities().With<CityIdComponent>().With<CityTag>().With<ActorTypeComponent>().AsSet();
             _mayorResources = world.GetEntities()
-                .With<MayorIdComponent>().With<MayorTag>().With<MayorResourceTag>().AsMultiMap<MayorIdComponent>();
+                .With<MayorIdFKComponent>().With<MayorResourceTag>().AsMultiMap<MayorIdFKComponent>();
             _cityResources = world.GetEntities()
-                .With<CityIdComponent>().With<CityTag>().With<CityResourceTag>().AsMultiMap<CityIdComponent>();
+                .With<CityIdFKComponent>().With<CityResourceTag>().AsMultiMap<CityIdFKComponent>();
             _chrome = world.GetEntities().With<DistrictBuildUIViewComponent>().With<UITag>().AsSet();
         }
 
@@ -189,14 +189,18 @@ namespace Presentation.UI.DistrictBuild.Systems
             if (payer == ActorType.Mayor)
             {
                 if (_mayorActor.Count > 0
-                    && _mayorResources.TryGetEntities(_mayorActor.GetEntities()[0].Get<MayorIdComponent>(), out var stacks))
+                    && _mayorResources.TryGetEntities(
+                        new MayorIdFKComponent { Value = _mayorActor.GetEntities()[0].Get<MayorIdComponent>().Value },
+                        out var stacks))
                     return AmountIn(stacks, type);
 
                 return 0;
             }
 
             if (_cityActor.Count > 0
-                && _cityResources.TryGetEntities(_cityActor.GetEntities()[0].Get<CityIdComponent>(), out var cityStacks))
+                && _cityResources.TryGetEntities(
+                    new CityIdFKComponent { Value = _cityActor.GetEntities()[0].Get<CityIdComponent>().Value },
+                    out var cityStacks))
                 return AmountIn(cityStacks, type);
 
             return 0;

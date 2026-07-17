@@ -1,34 +1,35 @@
 using DefaultEcs;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Tags;
+using Domains.Economy.DistrictOpenCondition.Components;
+using Domains.Economy.DistrictOpenCondition.Data;
 using Domains.Economy.DistrictOpenCondition.Tags;
 using JetBrains.Annotations;
 using DefaultECSExtensions;
 
 namespace Domains.Economy.DistrictOpenCondition.Systems
 {
-    // Evaluates DistrictSingleOpenConditionTag-kind conditions: the gated district type is buildable only
-    // while zero built instances of it exist. Sets/removes DistrictCanBeBuildTag accordingly. The District
-    // table (DistrictTag + DistrictTypeComponent) is pure scaffold today — nothing spawns it yet — so this
-    // always finds zero built instances; the query is written against the real table shape, not stubbed, so
-    // it activates automatically once a build/spawn mechanic lands.
+    // Evaluates DistrictOpenConditionKind.SingleOpen-kind conditions: the gated district type is buildable only
+    // while zero built instances of it exist. Change-only writes DistrictOpenStateComponent (Closed/Buildable).
+    // The District table (DistrictTag + DistrictTypeComponent) is pure scaffold today — nothing spawns it yet —
+    // so this always finds zero built instances; the query is written against the real table shape, not
+    // stubbed, so it activates automatically once a build/spawn mechanic lands.
     [UsedImplicitly]
     internal sealed class DistrictSingleOpenConditionEvaluatorSubSystem : DistrictOpenConditionEvaluatorSubSystem
     {
-        // Declarative query caches (Table Rule): the Single-kind condition rows, and the built-district rows
-        // indexed by their FK (DistrictTypeComponent) — 1:N, self-maintaining, never a bare-key scan.
-        private readonly EntitySet _singleConditions;
+        // Declarative query caches (Table Rule): every condition row keyed by its kind column, and the
+        // built-district rows indexed by their own type (District table's legal self-index) — 1:N,
+        // self-maintaining, never a bare-key scan.
+        private readonly EntityMultiMap<DistrictOpenConditionKindComponent> _conditionsByKind;
         private readonly EntityMultiMap<DistrictTypeComponent> _builtDistrictsByType;
 
         public override int Priority => SystemPriorities.SubSystems.DistrictOpenConditionEvaluator.Single;
 
         public DistrictSingleOpenConditionEvaluatorSubSystem(World world) : base(world)
         {
-            _singleConditions = world.GetEntities()
+            _conditionsByKind = world.GetEntities()
                 .With<DistrictOpenConditionTag>()
-                .With<DistrictSingleOpenConditionTag>()
-                .With<DistrictTypeComponent>()
-                .AsSet();
+                .AsMultiMap<DistrictOpenConditionKindComponent>();
 
             _builtDistrictsByType = world.GetEntities()
                 .With<DistrictTag>()
@@ -38,27 +39,26 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
 
         public override void Evaluate()
         {
-            foreach (var condition in _singleConditions.GetEntities())
-            {
-                var canBuild = !_builtDistrictsByType.TryGetEntities(
-                    condition.Get<DistrictTypeComponent>(), out _);
+            if (!_conditionsByKind.TryGetEntities(
+                    new DistrictOpenConditionKindComponent { Value = DistrictOpenConditionKind.SingleOpen },
+                    out var conditions))
+                return;
 
-                if (canBuild)
-                {
-                    if (!condition.Has<DistrictCanBeBuildTag>())
-                        condition.Set(new DistrictCanBeBuildTag());
-                }
-                else
-                {
-                    if (condition.Has<DistrictCanBeBuildTag>())
-                        condition.Remove<DistrictCanBeBuildTag>();
-                }
+            foreach (var condition in conditions)
+            {
+                var districtType = condition.Get<DistrictTypeFKComponent>().Value;
+                var canBuild = !_builtDistrictsByType.TryGetEntities(
+                    new DistrictTypeComponent { Value = districtType }, out _);
+
+                var targetState = canBuild ? DistrictOpenState.Buildable : DistrictOpenState.Closed;
+                if (condition.Get<DistrictOpenStateComponent>().Value != targetState)
+                    condition.Set(new DistrictOpenStateComponent { Value = targetState });
             }
         }
 
         public override void Dispose()
         {
-            _singleConditions.Dispose();
+            _conditionsByKind.Dispose();
             _builtDistrictsByType.Dispose();
         }
     }

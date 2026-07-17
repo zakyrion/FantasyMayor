@@ -16,7 +16,7 @@ namespace Presentation.HexIcons.Systems
 {
     /// <summary>
     ///     Per-frame positioner for the per-hex icon containers. Each container is a parallel entity
-    ///     (<see cref="HexIdComponent" /> FK + <see cref="HexIconContainerComponent" />); every frame this
+    ///     (<see cref="HexIdFKComponent" /> + <see cref="HexIconContainerComponent" />); every frame this
     ///     re-projects the hex's real on-mesh center (from the <see cref="VertexGrid" /> — the same geometry
     ///     the selection outline uses) to the screen-space panel so the container tracks the camera.
     ///     Runs in LateUpdate so it projects AFTER CameraMovementSystem has moved the camera this frame —
@@ -43,7 +43,7 @@ namespace Presentation.HexIcons.Systems
 
         public HexIconsContainerPositionSystem(World world)
             : base(world.GetEntities()
-                .With<HexIdComponent>()
+                .With<HexIdFKComponent>()
                 .With<HexIconContainerComponent>().With<HexIconContainerTag>()
                 .AsSet())
         {
@@ -58,7 +58,7 @@ namespace Presentation.HexIcons.Systems
         {
             var pose = _pose.Value;
 
-            var coords = entity.Get<HexIdComponent>().Coords;
+            var coords = entity.Get<HexIdFKComponent>().Coords;
             var container = entity.Get<HexIconContainerComponent>().Container;
 
             var centerCoord = pose.Grid.GetCenterVertexCoord(coords);

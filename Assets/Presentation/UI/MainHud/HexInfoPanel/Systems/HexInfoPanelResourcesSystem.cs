@@ -47,7 +47,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
             _viewSet = world.GetEntities().With<HexInfoPanelViewComponent>().With<UITag>().AsSet();
             _selectedHexSet = world.GetEntities().With<HexSelectedComponent>().With<HexSelectionTag>().AsSet();
             _resourceSet = world.GetEntities()
-                .With<HexIdComponent>()
+                .With<HexIdFKComponent>()
                 .With<HexResourceComponent>().With<HexResourceTag>()
                 .AsSet();
         }
@@ -77,7 +77,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
             _chips.Clear();
             foreach (var resourceEntity in _resourceSet.GetEntities())
             {
-                if (resourceEntity.Get<HexIdComponent>().Coords != coords)
+                if (resourceEntity.Get<HexIdFKComponent>().Coords != coords)
                     continue;
 
                 var type = resourceEntity.Get<HexResourceComponent>().Type;
