@@ -2,7 +2,7 @@ using System;
 
 namespace Domains.Actors.City.Components
 {
-    // Primary key of a City entity; the same component is the foreign key carried by anything a city owns.
+    // Primary key of a City entity.
     public struct CityIdComponent : IEquatable<CityIdComponent>
     {
         public int Value;

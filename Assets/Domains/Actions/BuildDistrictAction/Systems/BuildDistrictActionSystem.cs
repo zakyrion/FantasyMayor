@@ -49,8 +49,8 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         private readonly EntitySet _cityActor;
 
         // Resource stacks grouped by owner id — the payer's stockpile handed to ResourceLedger for the spend.
-        private readonly EntityMultiMap<MayorIdComponent> _mayorResources;
-        private readonly EntityMultiMap<CityIdComponent> _cityResources;
+        private readonly EntityMultiMap<MayorIdFKComponent> _mayorResources;
+        private readonly EntityMultiMap<CityIdFKComponent> _cityResources;
 
         public override int Priority => SystemPriorities.RuntimeTick.BuildDistrictAction;
 
@@ -64,9 +64,9 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             _cityActor = world.GetEntities()
                 .With<CityIdComponent>().With<CityTag>().With<ActorTypeComponent>().AsSet();
             _mayorResources = world.GetEntities()
-                .With<MayorIdComponent>().With<MayorTag>().With<MayorResourceTag>().AsMultiMap<MayorIdComponent>();
+                .With<MayorIdFKComponent>().With<MayorResourceTag>().AsMultiMap<MayorIdFKComponent>();
             _cityResources = world.GetEntities()
-                .With<CityIdComponent>().With<CityTag>().With<CityResourceTag>().AsMultiMap<CityIdComponent>();
+                .With<CityIdFKComponent>().With<CityResourceTag>().AsMultiMap<CityIdFKComponent>();
 
             // Seed the shared action-id counter once; ids start at 1 (0 = unset).
             if (!world.Has<ActionIdAllocatorComponent>())
@@ -137,7 +137,8 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         private ReadOnlySpan<Entity> ResolvePayerStacks(ActorType payer, in Entity mayor)
         {
             if (payer == ActorType.Mayor)
-                return _mayorResources.TryGetEntities(mayor.Get<MayorIdComponent>(), out var mayorStacks)
+                return _mayorResources.TryGetEntities(
+                    new MayorIdFKComponent { Value = mayor.Get<MayorIdComponent>().Value }, out var mayorStacks)
                     ? mayorStacks
                     : ReadOnlySpan<Entity>.Empty;
 
@@ -146,7 +147,8 @@ namespace Domains.Actions.BuildDistrictAction.Systems
                 if (_cityActor.Count == 0)
                     throw new InvalidOperationException("BuildDistrictActionSystem: no City actor to charge resources.");
 
-                return _cityResources.TryGetEntities(_cityActor.GetEntities()[0].Get<CityIdComponent>(), out var cityStacks)
+                var cityId = _cityActor.GetEntities()[0].Get<CityIdComponent>().Value;
+                return _cityResources.TryGetEntities(new CityIdFKComponent { Value = cityId }, out var cityStacks)
                     ? cityStacks
                     : ReadOnlySpan<Entity>.Empty;
             }

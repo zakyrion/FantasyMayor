@@ -42,8 +42,8 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         // Actor rows (Table Rule), same resolution as BuildDistrictActionSystem's spend side.
         private readonly EntitySet _mayorActor;
         private readonly EntitySet _cityActor;
-        private readonly EntityMultiMap<MayorIdComponent> _mayorResources;
-        private readonly EntityMultiMap<CityIdComponent> _cityResources;
+        private readonly EntityMultiMap<MayorIdFKComponent> _mayorResources;
+        private readonly EntityMultiMap<CityIdFKComponent> _cityResources;
 
         private readonly World _world;
 
@@ -67,9 +67,9 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             _cityActor = world.GetEntities()
                 .With<CityIdComponent>().With<CityTag>().With<ActorTypeComponent>().AsSet();
             _mayorResources = world.GetEntities()
-                .With<MayorIdComponent>().With<MayorTag>().With<MayorResourceTag>().AsMultiMap<MayorIdComponent>();
+                .With<MayorIdFKComponent>().With<MayorResourceTag>().AsMultiMap<MayorIdFKComponent>();
             _cityResources = world.GetEntities()
-                .With<CityIdComponent>().With<CityTag>().With<CityResourceTag>().AsMultiMap<CityIdComponent>();
+                .With<CityIdFKComponent>().With<CityResourceTag>().AsMultiMap<CityIdFKComponent>();
         }
 
         protected override void Update(GameState state, in Entity pulse)
@@ -131,7 +131,8 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         private ReadOnlySpan<Entity> ResolvePayerStacks(ActorType payer, in Entity mayor)
         {
             if (payer == ActorType.Mayor)
-                return _mayorResources.TryGetEntities(mayor.Get<MayorIdComponent>(), out var mayorStacks)
+                return _mayorResources.TryGetEntities(
+                    new MayorIdFKComponent { Value = mayor.Get<MayorIdComponent>().Value }, out var mayorStacks)
                     ? mayorStacks
                     : ReadOnlySpan<Entity>.Empty;
 
@@ -140,7 +141,8 @@ namespace Domains.Actions.BuildDistrictAction.Systems
                 if (_cityActor.Count == 0)
                     throw new InvalidOperationException("BuildDistrictActionCancelSystem: no City actor to refund resources.");
 
-                return _cityResources.TryGetEntities(_cityActor.GetEntities()[0].Get<CityIdComponent>(), out var cityStacks)
+                var cityId = _cityActor.GetEntities()[0].Get<CityIdComponent>().Value;
+                return _cityResources.TryGetEntities(new CityIdFKComponent { Value = cityId }, out var cityStacks)
                     ? cityStacks
                     : ReadOnlySpan<Entity>.Empty;
             }

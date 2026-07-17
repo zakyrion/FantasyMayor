@@ -6,7 +6,7 @@ using Domains.Economy.Resource.Data;
 namespace Domains.Economy.Resource.Helpers
 {
     // Stateless: creates one inventory-resource stack per ResourceType for a single owner.
-    // The owner FK component (CityIdComponent | MayorIdComponent | ...) is attached generically as the
+    // The owner FK component (CityIdFKComponent | MayorIdFKComponent | ...) is attached generically as the
     // SoA owner key; TResourceTag is the owner-scoped table discriminator (CityResourceTag |
     // MayorResourceTag | ...) — each owner kind has its OWN resource table (Tag Law), this helper knows
     // none of them. Starting amounts may be supplied per type (e.g. flattened from a loaded config);

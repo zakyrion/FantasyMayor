@@ -60,7 +60,8 @@ namespace Domains.Actors.Mayor.Systems
             mayor.Set(new MayorAPRestoreComponent { Value = config.StartActionPoints });
             mayor.Set(new MayorAPComponent { Value = config.StartActionPoints });
 
-            ResourceLoadoutSpawner.SpawnLoadout<MayorIdComponent, MayorResourceTag>(_world, mayorIdComponent, config.Resources);
+            ResourceLoadoutSpawner.SpawnLoadout<MayorIdFKComponent, MayorResourceTag>(
+                _world, new MayorIdFKComponent { Value = mayorId }, config.Resources);
 
             return UniTask.CompletedTask;
         }

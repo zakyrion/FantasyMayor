@@ -56,7 +56,8 @@ namespace Domains.Actors.City.Systems
             city.Set(new CityTag());
             city.Set(new ActorTypeComponent { Type = ActorType.City });
 
-            ResourceLoadoutSpawner.SpawnLoadout<CityIdComponent, CityResourceTag>(_world, cityIdComponent, config.Resources);
+            ResourceLoadoutSpawner.SpawnLoadout<CityIdFKComponent, CityResourceTag>(
+                _world, new CityIdFKComponent { Value = cityId }, config.Resources);
 
             return UniTask.CompletedTask;
         }

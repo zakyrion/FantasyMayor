@@ -22,8 +22,8 @@ Executor plan: split shared keys into PK + FK types and convert kind/state tags 
 
 ## Status ledger — tick after the step's DoD passes
 
-- [ ] S1 — City space (`CityIdFKComponent`)
-- [ ] S2 — Mayor space (`MayorIdFKComponent`)
+- [x] S1 — City space (`CityIdFKComponent`)
+- [x] S2 — Mayor space (`MayorIdFKComponent`)
 - [ ] S3 — District catalogue (`DistrictTypeFKComponent` + kind/state enum components, 3 tags deleted)
 - [ ] S4a — Hex space, domain half (`HexIdFKComponent`; Map + Actions)
 - [ ] S4b — Hex space, presentation half (views, icons, UI panels)
