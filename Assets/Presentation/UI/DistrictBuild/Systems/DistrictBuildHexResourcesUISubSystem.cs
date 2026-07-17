@@ -32,7 +32,7 @@ namespace Presentation.UI.DistrictBuild.Systems
         private readonly EntitySet _selectionSet;
         private readonly EntitySet _selectedHexSet;
         private readonly EntitySet _hexSet;
-        private readonly EntityMultiMap<HexIdComponent> _hexResources;
+        private readonly EntityMultiMap<HexIdFKComponent> _hexResources;
 
         public override int Priority => SystemPriorities.SubSystems.DistrictBuildUi.HexResources;
 
@@ -42,7 +42,7 @@ namespace Presentation.UI.DistrictBuild.Systems
             _selectedHexSet = world.GetEntities().With<HexSelectedComponent>().With<HexSelectionTag>().AsSet();
             _hexSet = world.GetEntities().With<HexTag>().With<HexIdComponent>().AsSet();
             _hexResources = world.GetEntities()
-                .With<HexResourceComponent>().With<HexResourceTag>().With<HexIdComponent>().AsMultiMap<HexIdComponent>();
+                .With<HexResourceComponent>().With<HexResourceTag>().With<HexIdFKComponent>().AsMultiMap<HexIdFKComponent>();
         }
 
         public override void Populate(GameObject root)
@@ -112,13 +112,13 @@ namespace Presentation.UI.DistrictBuild.Systems
         }
 
         private int HexResourceCount(HexCoord coords) =>
-            _hexResources.TryGetEntities(new HexIdComponent { Coords = coords }, out var resources)
+            _hexResources.TryGetEntities(new HexIdFKComponent { Coords = coords }, out var resources)
                 ? resources.Length
                 : 0;
 
         private bool HexHasResource(HexCoord coords, HexResourceType type)
         {
-            if (!_hexResources.TryGetEntities(new HexIdComponent { Coords = coords }, out var resources))
+            if (!_hexResources.TryGetEntities(new HexIdFKComponent { Coords = coords }, out var resources))
                 return false;
 
             foreach (var resource in resources)

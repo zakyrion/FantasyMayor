@@ -30,7 +30,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
     ///     checked across the WHOLE price before any deduction, and a shortfall throws — the confirm is UI-gated
     ///     (<c>DistrictBuildPriceUISubSystem</c> disables «Збудувати» when unaffordable), so a shortfall here is a
     ///     broken invariant, not a normal path. Only after a successful spend is the entity stamped with
-    ///     <c>HexIdComponent</c> + <c>DistrictTypeFKComponent</c> from the pulse, a unique <c>ActionIdComponent</c>
+    ///     <c>HexIdFKComponent</c> + <c>DistrictTypeFKComponent</c> from the pulse, a unique <c>ActionIdComponent</c>
     ///     (shared <c>ActionIdAllocatorComponent</c> counter, seeded here), the turn countdown
     ///     (<c>BuildDistrictTurnsComponent</c> = the district's <c>TurnsToBuild</c>, twice), the chosen payer
     ///     (<c>ActorTypeComponent</c>), and <c>BuildDistrictInProgressTag</c>. There is no draft: the build is
@@ -82,7 +82,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             SpendCost(confirmed.Payer, cost);
 
             var entity = _world.CreateEntity();
-            entity.Set(new HexIdComponent { Coords = confirmed.Coords });
+            entity.Set(new HexIdFKComponent { Coords = confirmed.Coords });
             entity.Set(new DistrictTypeFKComponent { Value = confirmed.Type });
             entity.Set(new ActionIdComponent { Value = AllocateId() });
             entity.Set(new BuildDistrictTurnsComponent { TurnsLeft = cost.TurnsToBuild, TurnsToBuild = cost.TurnsToBuild });

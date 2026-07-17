@@ -37,7 +37,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
     public sealed class BuildDistrictActionCancelSystem : UpdatedSystem
     {
         // In-progress builds indexed by hex — the pulse's identifying payload resolves straight to the entity.
-        private readonly EntityMultiMap<HexIdComponent> _inProgressByHex;
+        private readonly EntityMultiMap<HexIdFKComponent> _inProgressByHex;
 
         // Actor rows (Table Rule), same resolution as BuildDistrictActionSystem's spend side.
         private readonly EntitySet _mayorActor;
@@ -56,11 +56,11 @@ namespace Domains.Actions.BuildDistrictAction.Systems
 
             _inProgressByHex = world.GetEntities()
                 .With<BuildDistrictInProgressTag>()
-                .With<HexIdComponent>()
+                .With<HexIdFKComponent>()
                 .With<DistrictTypeFKComponent>()
                 .With<BuildDistrictTurnsComponent>()
                 .With<ActorTypeComponent>()
-                .AsMultiMap<HexIdComponent>();
+                .AsMultiMap<HexIdFKComponent>();
 
             _mayorActor = world.GetEntities()
                 .With<MayorIdComponent>().With<MayorTag>().With<MayorAPComponent>().With<ActorTypeComponent>().AsSet();
@@ -76,7 +76,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         {
             var coords = pulse.Get<BuildDistrictCancelEvent>().Coords;
 
-            if (!_inProgressByHex.TryGetEntities(new HexIdComponent { Coords = coords }, out var matches) || matches.Length == 0)
+            if (!_inProgressByHex.TryGetEntities(new HexIdFKComponent { Coords = coords }, out var matches) || matches.Length == 0)
                 throw new InvalidOperationException(
                     $"BuildDistrictActionCancelSystem: no in-progress build at {coords} to cancel.");
 

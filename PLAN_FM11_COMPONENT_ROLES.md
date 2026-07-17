@@ -25,8 +25,8 @@ Executor plan: split shared keys into PK + FK types and convert kind/state tags 
 - [x] S1 — City space (`CityIdFKComponent`)
 - [x] S2 — Mayor space (`MayorIdFKComponent`)
 - [x] S3 — District catalogue (`DistrictTypeFKComponent` + kind/state enum components, 3 tags deleted)
-- [ ] S4a — Hex space, domain half (`HexIdFKComponent`; Map + Actions)
-- [ ] S4b — Hex space, presentation half (views, icons, UI panels)
+- [x] S4a — Hex space, domain half (`HexIdFKComponent`; Map + Actions)
+- [x] S4b — Hex space, presentation half (views, icons, UI panels)
 - [ ] S5 — Sweep & closure (comments, doc-lint wrappers, graphs, this file's fate)
 
 ## Decreed decisions (ALL closed — the executor decides NOTHING)

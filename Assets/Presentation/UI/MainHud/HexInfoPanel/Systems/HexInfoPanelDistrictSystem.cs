@@ -65,7 +65,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
                 .AsSet();
             _inProgressSet = world.GetEntities()
                 .With<BuildDistrictInProgressTag>()
-                .With<HexIdComponent>()
+                .With<HexIdFKComponent>()
                 .With<DistrictTypeFKComponent>()
                 .With<BuildDistrictTurnsComponent>()
                 .AsSet();
@@ -116,7 +116,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
         {
             foreach (var inProgressEntity in _inProgressSet.GetEntities())
             {
-                if (inProgressEntity.Get<HexIdComponent>().Coords != coords)
+                if (inProgressEntity.Get<HexIdFKComponent>().Coords != coords)
                     continue;
 
                 districtType = inProgressEntity.Get<DistrictTypeFKComponent>().Value;

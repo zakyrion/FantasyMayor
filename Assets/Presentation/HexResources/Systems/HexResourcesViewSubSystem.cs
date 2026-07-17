@@ -28,7 +28,7 @@ namespace Presentation.HexResources.Systems
         {
             _world = world;
             _resourceSet = world.GetEntities()
-                .With<HexIdComponent>()
+                .With<HexIdFKComponent>()
                 .With<HexResourceComponent>().With<HexResourceTag>()
                 .AsSet();
         }

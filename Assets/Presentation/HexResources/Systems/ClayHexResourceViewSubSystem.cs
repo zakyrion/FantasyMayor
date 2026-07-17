@@ -77,7 +77,7 @@ namespace Presentation.HexResources.Systems
 
             foreach (var clayEntity in clayEntities)
             {
-                var hex = clayEntity.Get<HexIdComponent>().Coords;
+                var hex = clayEntity.Get<HexIdFKComponent>().Coords;
                 var centerXZ = AxialMath.AxialToWorld2D(hex.Value, cellSize);
                 var footprint = new ClayFootprint(
                     hex,

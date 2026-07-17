@@ -67,7 +67,7 @@ namespace Presentation.HexResources.Systems
 
             foreach (var forestEntity in forestEntities)
             {
-                var hex = forestEntity.Get<HexIdComponent>().Coords;
+                var hex = forestEntity.Get<HexIdFKComponent>().Coords;
                 planter.PlantHex(_world, _root, hex, vertexGrid, viewConfig, ref splats);
             }
 

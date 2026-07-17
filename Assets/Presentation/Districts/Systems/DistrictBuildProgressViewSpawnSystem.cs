@@ -34,7 +34,7 @@ namespace Presentation.Districts.Systems
         private readonly EntitySet _inProgress;
 
         // Progress-view entities indexed by the hex FK -> lets the reconcile skip hexes already viewed.
-        private readonly EntityMultiMap<HexIdComponent> _viewsByHex;
+        private readonly EntityMultiMap<HexIdFKComponent> _viewsByHex;
 
         private readonly World _world;
 
@@ -51,14 +51,14 @@ namespace Presentation.Districts.Systems
 
             _inProgress = world.GetEntities()
                 .With<BuildDistrictInProgressTag>()
-                .With<HexIdComponent>()
+                .With<HexIdFKComponent>()
                 .With<DistrictTypeFKComponent>()
                 .AsSet();
 
             _viewsByHex = world.GetEntities()
-                .With<HexIdComponent>()
+                .With<HexIdFKComponent>()
                 .With<DistrictBuildProgressViewComponent>().With<DistrictBuildProgressViewTag>()
-                .AsMultiMap<HexIdComponent>();
+                .AsMultiMap<HexIdFKComponent>();
         }
 
         // The pulse entity itself is ignored — reconciliation is global over current state.
@@ -78,7 +78,7 @@ namespace Presentation.Districts.Systems
             var inProgress = _inProgress.GetEntities();
             for (var i = 0; i < inProgress.Length; i++)
             {
-                var hexId = inProgress[i].Get<HexIdComponent>();
+                var hexId = inProgress[i].Get<HexIdFKComponent>();
                 if (_viewsByHex.ContainsKey(hexId))
                     continue;
 
@@ -98,7 +98,7 @@ namespace Presentation.Districts.Systems
                 var view = instance.GetComponent<DistrictBuildProgressView>();
 
                 var viewEntity = _world.CreateEntity();
-                viewEntity.Set(new HexIdComponent { Coords = hexId.Coords });
+                viewEntity.Set(new HexIdFKComponent { Coords = hexId.Coords });
                 viewEntity.Set(new DistrictBuildProgressViewComponent { Type = districtType, View = view });
                 viewEntity.Set(new DistrictBuildProgressViewTag());
             }

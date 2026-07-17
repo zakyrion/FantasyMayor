@@ -19,7 +19,7 @@ namespace Presentation.HexResources.Helpers
     /// <summary>
     ///     Stateless tree placer shared by the one-shot startup spawn (<see cref="Systems.ForestHexResourceViewSubSystem" />)
     ///     and the reactive runtime spawn (<see cref="Systems.ForestSpawnSystem" />). Plants a hex's trees as
-    ///     view entities (<see cref="HexIdComponent" /> + <see cref="ForestViewComponent" />), parents the
+    ///     view entities (<see cref="HexIdFKComponent" /> + <see cref="ForestViewComponent" />), parents the
     ///     prefab instances under <paramref name="root" />, and appends each instance's green-ground splat to
     ///     the caller's batch (the caller paints once after planting all hexes — paint is append-only).
     ///     Placement iterates shuffled owned-vertex positions and rejects any vertex closer than
@@ -76,7 +76,7 @@ namespace Presentation.HexResources.Helpers
                     Debug.LogWarning($"[ForestPlanter] Prefab '{entry.Prefab.name}' is missing ForestView component.");
 
                 var viewEntity = world.CreateEntity();
-                viewEntity.Set(new HexIdComponent { Coords = hex });
+                viewEntity.Set(new HexIdFKComponent { Coords = hex });
                 viewEntity.Set(new ForestViewComponent { Type = HexResourceType.Forest, View = view });
                 viewEntity.Set(new ForestViewTag());
 

@@ -26,10 +26,10 @@ namespace Presentation.Districts.Systems
     public sealed class DistrictBuildProgressViewDespawnSystem : UpdatedSystem
     {
         // In-progress build entities indexed by the hex FK -> the currently-building set is the current truth.
-        private readonly EntityMultiMap<HexIdComponent> _inProgressByHex;
+        private readonly EntityMultiMap<HexIdFKComponent> _inProgressByHex;
 
         // Progress-view entities indexed by the hex FK -> candidates for despawn once their hex stops building.
-        private readonly EntityMultiMap<HexIdComponent> _viewsByHex;
+        private readonly EntityMultiMap<HexIdFKComponent> _viewsByHex;
 
         public override int Priority => SystemPriorities.RuntimeTick.DistrictBuildProgressViewDespawn;
 
@@ -40,13 +40,13 @@ namespace Presentation.Districts.Systems
         {
             _inProgressByHex = world.GetEntities()
                 .With<BuildDistrictInProgressTag>()
-                .With<HexIdComponent>()
-                .AsMultiMap<HexIdComponent>();
+                .With<HexIdFKComponent>()
+                .AsMultiMap<HexIdFKComponent>();
 
             _viewsByHex = world.GetEntities()
-                .With<HexIdComponent>()
+                .With<HexIdFKComponent>()
                 .With<DistrictBuildProgressViewComponent>().With<DistrictBuildProgressViewTag>()
-                .AsMultiMap<HexIdComponent>();
+                .AsMultiMap<HexIdFKComponent>();
         }
 
         // The pulse entity itself is ignored — reconciliation is global over current state.

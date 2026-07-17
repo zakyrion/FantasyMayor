@@ -181,7 +181,7 @@ namespace Domains.Map.HexResources.Systems
             for (var i = 0; i < count; i++)
             {
                 var entity = _world.CreateEntity();
-                entity.Set(new HexIdComponent { Coords = new HexCoord(eligible[i]) });
+                entity.Set(new HexIdFKComponent { Coords = new HexCoord(eligible[i]) });
                 entity.Set(new HexResourceComponent { Type = HexResourceType.Fish });
                 entity.Set(new HexResourceTag());
             }

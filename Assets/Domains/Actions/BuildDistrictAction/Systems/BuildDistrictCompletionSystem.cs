@@ -15,7 +15,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
     ///     Event-gated reconcile: on the <c>BuildDistrictCompleteEvent</c> pulse (raised on the main thread by
     ///     <c>BuildDistrictTurnTickSystem</c>) it materialises finished builds into Economy District facts — every
     ///     in-progress verb entity (<see cref="BuildDistrictInProgressTag" />) whose countdown reached zero becomes a
-    ///     District fact (<c>DistrictTag</c> + allocated <c>DistrictIdComponent</c> PK + its <c>HexIdComponent</c> +
+    ///     District fact (<c>DistrictTag</c> + allocated <c>DistrictIdComponent</c> PK + its <c>HexIdFKComponent</c> +
     ///     <c>DistrictTypeComponent</c>); the verb entity is disposed and one <c>DistrictBuiltEvent</c> covers the
     ///     pass for the world-view spawner. The pulse is a DOORBELL, not a payload: this system reconciles the whole
     ///     in-progress set off state, and the producer re-raises the pulse EVERY turn while any countdown sits at
@@ -38,7 +38,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             _buildDistrictsInProgress = world.GetEntities()
                 .With<BuildDistrictInProgressTag>()
                 .With<BuildDistrictTurnsComponent>()
-                .With<HexIdComponent>()
+                .With<HexIdFKComponent>()
                 .With<DistrictTypeFKComponent>()
                 .AsSet();
 
@@ -73,13 +73,13 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             for (var i = 0; i < ready.Length; i++)
             {
                 var entity = ready[i];
-                var coords = entity.Get<HexIdComponent>().Coords;
+                var coords = entity.Get<HexIdFKComponent>().Coords;
                 var type = entity.Get<DistrictTypeFKComponent>().Value;
 
                 var fact = _world.CreateEntity();
                 fact.Set(new DistrictTag());
                 fact.Set(new DistrictIdComponent { Value = AllocateDistrictId() });
-                fact.Set(new HexIdComponent { Coords = coords });
+                fact.Set(new HexIdFKComponent { Coords = coords });
                 fact.Set(new DistrictTypeComponent { Value = type });
 
                 entity.Dispose();

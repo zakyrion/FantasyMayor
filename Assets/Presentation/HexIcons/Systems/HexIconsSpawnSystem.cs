@@ -68,10 +68,9 @@ namespace Presentation.HexIcons.Systems
             return UniTask.CompletedTask;
         }
 
-        // Eagerly creates one container entity per hex (HexIdComponent FK + HexIconContainerComponent).
-        // HexTag is the hex-only marker, so it excludes the resource / resource-view parallel tables that
-        // also carry HexIdComponent. Containers are positioned per frame by HexIconsContainerPositionSystem,
-        // not here.
+        // Eagerly creates one container entity per hex (HexIdFKComponent + HexIconContainerComponent).
+        // HexTag is the hex-only marker, so the hex read here is the PK; the container row carries the FK
+        // into the Hex space. Containers are positioned per frame by HexIconsContainerPositionSystem, not here.
         private void CreateContainers()
         {
             using var hexSet = _world.GetEntities().With<HexTag>().With<HexIdComponent>().AsSet();
@@ -81,7 +80,7 @@ namespace Presentation.HexIcons.Systems
                 var container = CreateContainerElement(hexId.Coords.Value);
 
                 var containerEntity = _world.CreateEntity();
-                containerEntity.Set(hexId);
+                containerEntity.Set(new HexIdFKComponent { Coords = hexId.Coords });
                 containerEntity.Set(new HexIconContainerComponent(container));
                 containerEntity.Set(new HexIconContainerTag());
             }
