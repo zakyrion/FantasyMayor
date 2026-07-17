@@ -2,6 +2,7 @@ using DefaultEcs;
 using Domains.Economy.District.Components;
 using Domains.Economy.DistrictOpenCondition.Components;
 using Domains.Economy.DistrictOpenCondition.Configs;
+using Domains.Economy.DistrictOpenCondition.Data;
 using Domains.Economy.DistrictOpenCondition.Tags;
 using JetBrains.Annotations;
 using DefaultECSExtensions;
@@ -9,7 +10,7 @@ using DefaultECSExtensions;
 namespace Domains.Economy.DistrictOpenCondition.Systems
 {
     // Handles DistrictExistConditionConfig: creates one entity carrying the gated district type (FK), the
-    // required-district payload, and the condition discriminator tag.
+    // required-district payload, the condition discriminator tag, and its kind + state columns (Exist / Closed).
     [UsedImplicitly]
     internal sealed class DistrictExistConditionSpawnSubSystem : DistrictOpenConditionSpawnSubSystem
     {
@@ -25,9 +26,11 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
                 return false;
 
             var entity = World.CreateEntity();
-            entity.Set(new DistrictTypeComponent { Value = existConfig.DistrictType });
+            entity.Set(new DistrictTypeFKComponent { Value = existConfig.DistrictType });
             entity.Set(new DistrictExistConditionComponent { RequiredDistrict = existConfig.RequiredDistrict });
             entity.Set(new DistrictOpenConditionTag());
+            entity.Set(new DistrictOpenConditionKindComponent { Value = DistrictOpenConditionKind.Exist });
+            entity.Set(new DistrictOpenStateComponent { Value = DistrictOpenState.Closed });
 
             return true;
         }

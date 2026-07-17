@@ -57,7 +57,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             _inProgressByHex = world.GetEntities()
                 .With<BuildDistrictInProgressTag>()
                 .With<HexIdComponent>()
-                .With<DistrictTypeComponent>()
+                .With<DistrictTypeFKComponent>()
                 .With<BuildDistrictTurnsComponent>()
                 .With<ActorTypeComponent>()
                 .AsMultiMap<HexIdComponent>();
@@ -82,7 +82,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
 
             var entity = matches[0];
             var turns = entity.Get<BuildDistrictTurnsComponent>();
-            var type = entity.Get<DistrictTypeComponent>().Value;
+            var type = entity.Get<DistrictTypeFKComponent>().Value;
             var payer = entity.Get<ActorTypeComponent>().Type;
 
             Refund(payer, ResolveCost(type), turns);

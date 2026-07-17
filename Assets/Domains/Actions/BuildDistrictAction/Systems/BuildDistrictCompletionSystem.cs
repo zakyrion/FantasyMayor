@@ -39,7 +39,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
                 .With<BuildDistrictInProgressTag>()
                 .With<BuildDistrictTurnsComponent>()
                 .With<HexIdComponent>()
-                .With<DistrictTypeComponent>()
+                .With<DistrictTypeFKComponent>()
                 .AsSet();
 
             // Seed the district-id counter once; ids start at 1 (0 = unset).
@@ -74,7 +74,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             {
                 var entity = ready[i];
                 var coords = entity.Get<HexIdComponent>().Coords;
-                var type = entity.Get<DistrictTypeComponent>().Value;
+                var type = entity.Get<DistrictTypeFKComponent>().Value;
 
                 var fact = _world.CreateEntity();
                 fact.Set(new DistrictTag());

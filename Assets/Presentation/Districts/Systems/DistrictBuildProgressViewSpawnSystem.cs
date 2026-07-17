@@ -52,7 +52,7 @@ namespace Presentation.Districts.Systems
             _inProgress = world.GetEntities()
                 .With<BuildDistrictInProgressTag>()
                 .With<HexIdComponent>()
-                .With<DistrictTypeComponent>()
+                .With<DistrictTypeFKComponent>()
                 .AsSet();
 
             _viewsByHex = world.GetEntities()
@@ -82,7 +82,7 @@ namespace Presentation.Districts.Systems
                 if (_viewsByHex.ContainsKey(hexId))
                     continue;
 
-                var districtType = inProgress[i].Get<DistrictTypeComponent>().Value;
+                var districtType = inProgress[i].Get<DistrictTypeFKComponent>().Value;
                 var prefab = ResolvePrefab(viewsConfig, districtType);
 
                 var centerCoord = vertexGrid.GetCenterVertexCoord(hexId.Coords);
