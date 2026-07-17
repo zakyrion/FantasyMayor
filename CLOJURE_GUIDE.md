@@ -129,9 +129,10 @@ Clojure-конвенція «мутує світ»:
 ```
 
 - **Ядро ключів** (з живого узусу): `:task :goal :where :listen :do :skip :result
-  :pattern :decided :off-limits`. Відповідність блокам шаблона: `:where` = «Працюй
+  :accept :pattern :decided :off-limits`. Відповідність блокам шаблона: `:where` = «Працюй
   тільки в», `:off-limits` = «Не дивись», `:pattern` = «Роби за шаблоном», `:decided` =
-  «Архітектурні рішення», `:skip`+`:result` = «Не потрібно»+«Результат».
+  «Архітектурні рішення», `:skip`+`:result` = «Не потрібно»+«Результат»; `:accept` =
+  вимірюване доповнення «Результату» (§9).
 - **Ключі вільні й самоописові** — нові не потребують канонізації, їх покриває правило
   мапи. Але тримайся ядра, де воно підходить: синонімія (`:do` vs `:implement`) на
   великому батчі почне дрейфувати.
@@ -211,6 +212,17 @@ Rules-блоки `ARCHITECTURE.md`, `Patterns/*`, `Flows/*` — ті самі ф
  :result "ланцюжок видно в ecs-graph"}
 ```
 
+**Задача з вимірюваним прийманням — `:accept` (розгорнуто в §13):**
+
+```clojure
+{:task :fix-tag-law-deviations
+ :goal "прибрати подвійні identity-теги: другий tag → kind/state enum"
+ :where Assets/Domains/
+ :pattern PATTERN_TAG
+ :result "кожна сутність несе рівно один identity-tag"
+ :accept {:meter ecs-graph :target "tag deviations: 12 → 0"}}  ;; приймання вимірюване, не «на око»
+```
+
 **Рантайм-правило з розгалуженням:**
 
 ```clojure
@@ -264,7 +276,7 @@ Rules-блоки `ARCHITECTURE.md`, `Patterns/*`, `Flows/*` — ті самі ф
 **Канонізовано** (кожне має рядок у глобальній таблиці): мапа, вектор, set `#{}`,
 `:keyword` (+ namespaced), символ-vs-рядок (якір/проза), `(cond)`, `(-> …)`,
 `(def subject {…})`, `!`-суфікс, `?`, `:by-<джерело>`, `:keyword`-посилання на
-`:task`-id, `^:meta`-теги, констрейнт-ключі, `;;`.
+`:task`-id, `^:meta`-теги, констрейнт-ключі, `:accept`, `;;`.
 
 **На полиці — крадемо, коли знадобиться:**
 - деструктуринг `{:keys [goal where]}` — компактне «мені потрібні саме ці поля»;
@@ -314,3 +326,133 @@ Rules-блоки `ARCHITECTURE.md`, `Patterns/*`, `Flows/*` — ті самі ф
 **Нюанс, який лишили як є.** Усе в межах `"…"` — проза (§2: лапки маркують розмите), тож
 символ чи `^:new` усередині рядка-кроку декоративні. Строга форма винесла б якорі за лапки;
 для чорнового плану рядок-крок читабельніший — свідомий компроміс, не помилка.
+
+## 12. ECS entity через компоненти — :pk/:fk/:tag/:kind/:state/:data (2026-07-16)
+
+Не нова форма — та сама `(def subject {…})`-мапа з §4, застосована до предметної області
+«entity + його компоненти», щоб описувати мені (і я тобі) сутність одним поглядом замість
+переказу composition прозою. Ключі мапляться на вже decreed `key-role-law` / `tag-law`
+(`ARCHITECTURE.md`), тому окремих рядків у таблиці форм не потребують (§10: нові ключі мапи
+покриває правило мапи). Єдина справжня семантична добавка — читання `#{}` у колекційних
+полях (`:data`, `:fk` → «УСІ члени, невпорядковано», а не глобальне «одне з») — канонізована
+2026-07-17 як project-scoped розширення: блок `notation-ecs-ext` у проєктному `CLAUDE.md`
+(кардинальність поля вирішує читання; глобальний канон дозволяє такі розширення явним
+carve-out'ом). ECS-специфіка живе в проєкті, не в глобальній таблиці.
+
+```clojure
+(def entity-shape
+  {:archetype "ім'я — довідково, не тип"
+   :tag       "РІВНО ОДИН голий символ — identity tag (Tag Law); НІКОЛИ set"
+   :pk        "власна ідентичність рядка в СВОЄМУ ключовому просторі (…IdComponent)"
+   :fk        "посилання в ЧУЖИЙ ключовий простір (…FKComponent); #{} якщо їх декілька"
+   :kind      "enum-компонент-підтип (self-index дискримінатор), не другий tag"
+   :state     "enum-компонент-стан (лічильник стадії), change-only Set()"
+   :data      "прості значення-атрибути → #{} (порядок не важливий)"})
+```
+
+П'ять живих прикладів з коду (2026-07-16, взяті через `ecsg.py explain`), від найпростішого
+до найбільшого — і один навмисно ЗЛАМАНИЙ, щоб бачити, як форма ловить порушення.
+
+<!-- doc-lint: off — приклади містять FM-11 target-типи, яких ще нема (HexIdFKComponent,
+     DistrictTypeFKComponent, DistrictOpenConditionKindComponent/StateComponent) -->
+```clojure
+;; 1. базова "чиста" сутність (Map)
+(def Hex
+  {:archetype Hex
+   :tag       HexTag
+   :pk        HexIdComponent
+   :kind      HexTypeComponent    ;; легасі назва — грає роль kind (self-index за HexTag), не …KindComponent
+   :data      #{HexLevelComponent}})
+
+;; 2. FK-конфляція, яку лагодить FM-11 (S4a)
+(def HexResource
+  {:archetype HexResource
+   :tag       HexResourceTag
+   :fk        HexIdComponent      ;; ^:migrating — сьогодні той самий тип, що й Hex-PK; ціль S4a: HexIdFKComponent
+   :data      #{HexResourceComponent}})
+
+;; 3. актор із kind-маркером і кількома data
+(def Mayor
+  {:archetype Mayor
+   :tag       MayorTag
+   :pk        MayorIdComponent
+   :kind      ActorTypeComponent  ;; спільний з City — категорійний маркер (не другий tag)
+   :data      #{MayorAPComponent MayorAPRestoreComponent}})
+
+;; 4. найбільша — транзакційна сутність (PATTERN_TRANSACTION_ENTITY)
+(def BuildDistrictActionTransaction
+  {:archetype BuildDistrictActionTransaction
+   :tag       BuildDistrictInProgressTag  ;; STAGE tag — swap на наступний tag при переході стадії
+   :pk        ActionIdComponent
+   :fk        #{HexIdComponent DistrictTypeComponent}  ;; ^:migrating — обидва Data-типізовані сьогодні; ціль S4a/S3: HexIdFKComponent + DistrictTypeFKComponent
+   :data      #{BuildDistrictTurnsComponent ActorTypeComponent}})  ;; ActorTypeComponent тут = "хто платить" (Payer), не kind-маркер
+
+;; 5. ЖИВИЙ приклад порушення — для розпізнавання смороду
+(def DistrictSingleOpenCondition
+  {:archetype DistrictSingleOpenCondition
+   :tag       #{DistrictOpenConditionTag DistrictSingleOpenConditionTag}  ;; ⚠ ILLEGAL — 2 identity tags = Tag Law violation (1 з 12 deviations, FM-11 S3 лагодить)
+   :fk        DistrictTypeComponent})  ;; ^:migrating — сьогодні той самий тип, що й District-факт; ціль S3: DistrictTypeFKComponent + kind SingleOpen + state
+```
+<!-- doc-lint: on -->
+
+Читання: `:tag` як `#{...}` замість голого символу — це і є сигнал помилки (приклад 5), не
+альтернативний синтаксис; `set` тут означає «насправді їх два, а мало бути одне». `:fk` як
+`#{...}` (приклад 4) — легальний випадок: одна сутність може нести кілька посилань у різні
+чужі простори одночасно.
+
+## 13. Вимірюване приймання — `:accept` (2026-07-17, запозичено з SDD)
+
+Єдине запозичення з мейнстрімного SDD після порівняння процесів: acceptance criterion
+як першокласне поле задачі. У SDD цю роль грають тести; тут тестів нема — вимірювачем
+служать інструменти репо. Розподіл ролей: `:result` описує результат для людини,
+`:accept` дає машинну перевірку. **Done = вимірювач показує ціль**, а не «виглядає
+готовим». Канонічний рядок — у глобальній таблиці (`~/.claude/CLAUDE.md`), як і все з §10.
+
+Форма значення:
+
+```clojure
+:accept {:meter <якір-інструмента> :target <покази>}   ;; один критерій
+:accept [{:meter …} {:meter …}]                        ;; кілька критеріїв = вектор мап
+```
+
+- `:meter` — голий символ = якір на реальний вимірювач. Живі вимірювачі репо:
+  `ecs-graph` (key-конфляції, tag-відхилення, archetype-факти), `doc_lint`
+  (ghost-символи в доках), `arch-check` (3 арх-заборони), `grep` (повнота
+  видалення/перейменування), `asmdef_reach` (шари/залежності).
+- `:target` — покази, при яких задача прийнята: число (`0`) або рядок-відлік
+  (`"tag deviations: 12 → 0"` — стрілка в лапках = вільний текст, §2).
+
+Як ключ працює в циклі задачі:
+
+1. **Постановка** — done визначено ДО початку роботи: агент знає, чим його міряти,
+   і не може перевизначити критерій під те, що вийшло.
+2. **Фініш Execute** — агент сам запускає вимірювач і показує фактичні покази поруч
+   із ціллю. Покази ≠ ціль → задача НЕ done; «майже досягнуто» не існує.
+3. **Гейт** — опціональний, як `:pattern`: нема природного вимірювача — нема ключа;
+   відсутній `:accept` ніколи не є діркою для питання.
+
+Коли ставити:
+- міграції/рефактори з лічильником відхилень (FM-11: конфляції і tag-відхилення → 0);
+- повні видалення/перейменування — `{:meter grep :target "== 0"}` замість обіцянки
+  «прибрав усюди» (пара до правила «Remove completely, no deferred tails»);
+- док-гігієна (`doc_lint` → 0) та арх-аудити (`arch-check` → clean).
+
+Коли НЕ ставити: поведінкові й геймплейні задачі, де справжня перевірка — playtest.
+Не вигадуй метрику заради ключа: фальшивий вимірювач гірший за відсутній — він
+штампує done, бо щось порахував, а не бо результат правильний.
+
+<!-- doc-lint: off — якорі в прикладах ілюстративні (тип уже видалений з кодової бази) -->
+```clojure
+;; повне видалення: критерій = grep, не обіцянка
+{:task :purge-selection-component
+ :do "видалити DistrictBuildSelectionComponent повністю"
+ :accept {:meter grep :target "DistrictBuildSelectionComponent == 0"}}
+
+;; кілька критеріїв — вектор мап
+{:task :component-roles-migration
+ :goal "PK/FK розділені, tag-закон відновлений"
+ :accept [{:meter ecs-graph :target "key conflations: 3 → 0"}
+          {:meter ecs-graph :target "tag deviations: 12 → 0"}
+          {:meter doc_lint  :target 0}]}
+```
+<!-- doc-lint: on -->

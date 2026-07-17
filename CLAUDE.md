@@ -153,13 +153,21 @@ Field ↔ template-block mapping: `:where` = «Працюй тільки в», `
 «Не потрібно» + «Результат».
 
 - The HARD GATE and the missing-block rules apply UNCHANGED: an absent key means "ask about
-  that block, aiming the question at the specific map" — never "no constraints". The ONE
-  exception is `:pattern` («Роби за шаблоном»): it is optional, so an absent `:pattern` is
-  never an ask — never gate on it.
-- The notation is defined ONCE — do not re-explain it here or anywhere else. The canonical
-  glossary (all forms/literals, with examples): `~/.claude/CLAUDE.md` → "Clojure instruction
-  notation", already in every agent's context; authoring spec for Clojure rules inside
-  docs: `DOC_STANDARD.md` → Rule Style.
+  that block, aiming the question at the specific map" — never "no constraints". The
+  exceptions are `:pattern` («Роби за шаблоном») and `:accept` (measurable done-check):
+  both optional, so an absent one is never an ask — never gate on them.
+- The notation is defined ONCE — universal forms live only in the canonical glossary
+  (`~/.claude/CLAUDE.md` → "Clojure instruction notation", already in every agent's context);
+  authoring spec for Clojure rules inside docs: `DOC_STANDARD.md` → Rule Style. The block
+  below does NOT restate it — it adds PROJECT-scoped readings only (allowed by the
+  glossary's project-scope clause):
+
+```clojure
+(def notation-ecs-ext  ;; 2026-07-17 — project-scoped notation extension (ECS); universal forms stay global
+  {:entity-shape "(def <Archetype> {:archetype … :tag … :pk … :fk … :kind … :state … :data …}) — one map = one entity; keys anchor to tag-law / key-role-law (ARCHITECTURE.md)"
+   :set-cardinality "the FIELD decides the #{} reading: singular-valued key (:home, :tag) → global 'one of'; collection-valued key (:data, :fk) → ALL members, unordered, no duplicates (= ECS composition)"
+   :tag-never-set "a #{} under :tag is not alternative syntax — it DISPLAYS a Tag Law violation (2 identity tags)"})
+```
 
 ## Code Knowledge Policy (tool-first — module MDs abolished 2026-07-09)
 - **Module/domain/presentation MD files do not exist and must NEVER be recreated.** They rotted faster
