@@ -116,6 +116,18 @@ After adding/removing/renaming a doc or changing `read`/`trigger`/`status`: re-r
 
 ---
 
+## Size budgets
+
+```clojure
+(def size-budgets  ;; mechanized by Tools/gen_index.py (warn-level, never blocks)
+  {:description {:limit "120 chars" :what "the doc's first content line"
+                 :why "that line IS the doc's INDEX entry — the limit is a layout fact, not a size opinion"}
+   :body        {:limit :none       ;; user 2026-07-17 — the Category A line budget is ABOLISHED
+                 :why "a flow contract is sized by the behavior it owns; a line count cannot know how many events, rows and invariants that behavior has"
+                 :never "do not reintroduce a body-line budget, and do not split a flow doc to satisfy one"}
+   :real-limit  "the genre rule (Rule 1), not a line count — content that does not fit a non-rotting genre is cut because it rots, never because the file got long"})
+```
+
 ## AI-First Writing Rules
 
 - **Explicit over implicit.** State the rule; do not make the reader infer it.

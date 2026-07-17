@@ -199,8 +199,16 @@ Rewriting the bytes of an already-present component touches no set membership.
                         "entity.Set<T>() that ADDS a component (first write of that type — structural)"
                         "entity.Dispose() / Remove<T>()"
                         "raising event pulses (EventTag entities)"]
-   :bridge             "await UniTask.SwitchToMainThread() before structural ops, back via SwitchToThreadPool"})
+   :bridge             "await UniTask.SwitchToMainThread() before structural ops, back via SwitchToThreadPool"
+   :bridge-cost        "a hop COSTS ~1 update/frame — SwitchToMainThread resumes at PlayerLoopTiming.Update, so a pool thread waits for the next frame"  ;; user 2026-07-17
+   :never-hop-for      "a value-write — it is already legal off-thread; hopping buys nothing and spends a frame"
+   :phase-budget       "each turn phase that hops costs the turn a frame; a phase writing only existing components must NOT hop"})
 ```
+
+An off-thread system that writes ONLY existing components is CORRECT to have no main-thread hop — the
+absence of a hop there is a deliberate optimisation, not a missing guard. A comment claiming a blanket
+"every world write goes back on the main thread" contradicts Law 1 and is rot: the law is STRUCTURAL vs
+VALUE, not write vs read.
 
 **Law 2 — `Allocator.Temp` is thread-bound.** Temp is a per-thread TLS stack: allocation is a
 pointer bump (≈ cost of a local variable), reclamation is a WHOLESALE rewind of the thread's stack.

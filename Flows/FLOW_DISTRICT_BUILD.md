@@ -1,392 +1,288 @@
 ---
 category: A
-read: reference
-tags: [flow, district, cross-domain, ecs]
+read: trigger
+trigger: "before touching district build, the District table, or district open conditions (Domains.Actions.BuildDistrictAction, Domains.Economy.District, Domains.Economy.DistrictOpenCondition, Presentation.Districts)"
+tags: [flow, district, open-condition, cross-domain, ecs]
 related:
   - "[PATTERN_TRANSACTION_ENTITY](../Patterns/PATTERN_TRANSACTION_ENTITY.md)"
   - "[PATTERN_EVENT](../Patterns/PATTERN_EVENT.md)"
-  - "[PATTERN_VIEW_SYSTEM](../Patterns/PATTERN_VIEW_SYSTEM.md)"
-status: implemented
+  - "[PATTERN_ORCHESTRATOR_SUBSYSTEM](../Patterns/PATTERN_ORCHESTRATOR_SUBSYSTEM.md)"
+  - "[PATTERN_REACTIVE_SYSTEM](../Patterns/PATTERN_REACTIVE_SYSTEM.md)"
+status: partial
 code_refs:
-  systems:          [DistrictBuildUISystem, DistrictBuildUISpawnSystem, BuildDistrictActionSystem, BuildDistrictActionCancelSystem, BuildDistrictTurnTickSystem, BuildDistrictCompletionSystem, DistrictViewSpawnSystem, DistrictBuildProgressViewSpawnSystem, DistrictBuildProgressViewDespawnSystem, DistrictBuildProgressViewsConfigLoaderSystem, HexInfoPanelDistrictSystem, DistrictIconConfigLoaderSystem]
-  events:           [DistrictBuildUIRequestedEvent, DistrictBuildConfirmedEvent, BuildDistrictCompleteEvent, DistrictBuiltEvent, BuildDistrictCancelEvent]
-  components:       [DistrictBuildSelectionComponent, BuildDistrictTurnsComponent, ActorTypeComponent, DistrictBuildProgressViewComponent, DistrictIconConfigComponent]
-  tags:             [BuildDistrictInProgressTag, DistrictBuildProgressViewTag]
+  systems:    [BuildDistrictActionSystem, BuildDistrictActionCancelSystem, BuildDistrictTurnTickSystem, BuildDistrictCompletionSystem, DistrictViewSpawnSystem, DistrictBuildProgressViewSpawnSystem, DistrictBuildProgressViewDespawnSystem, HexInfoPanelDistrictSystem, DistrictBuildListUISubSystem, DistrictOpenConditionEvaluatorSystem, DistrictOpenConditionEvaluatorBootstrapSystem, DistrictSingleOpenConditionEvaluatorSubSystem, DistrictExistConditionSpawnSubSystem]
+  events:     [DistrictBuildUIRequestedEvent, DistrictBuildConfirmedEvent, BuildDistrictCompleteEvent, DistrictBuiltEvent, BuildDistrictCancelEvent]
+  components: [DistrictIdComponent, DistrictTypeComponent, DistrictTypeFKComponent, DistrictIdAllocatorComponent, BuildDistrictTurnsComponent, ActorTypeComponent, DistrictOpenStateComponent, DistrictOpenConditionKindComponent, DistrictExistConditionComponent, HexIdFKComponent]
+  tags:       [DistrictTag, BuildDistrictInProgressTag, DistrictOpenConditionTag, DistrictBuildProgressViewTag]
 ---
 
 # FLOW — District Build
 
-The cross-domain contract of the district-build transaction: one player gesture (open → pick →
-confirm / dismiss) spanning `Presentation.UI.MainHud.HexInfoPanel` (the open request), `Presentation.UI.DistrictBuild`,
-`Flows.DistrictBuild` (the event home), `Domains.Actions.BuildDistrictAction`, `Domains.Economy`,
-`Presentation.Districts`.
+One row per district from confirm to built; the buildable set is derived from that same table.
 
-## Purpose
-
-A FLOW doc owns ONE cross-domain behavior end-to-end: its event vocabulary, state ownership, and
-ordering invariants, stated as a CONTRACT — including target rules the code does not meet yet.
-Code comments link here and never retell the other side's half (retold halves are what rots). Live
-wiring is the ecs-graph (`/ecs-graph`); this doc is diffable against it — a mismatch is either
-drift to fix or a deliberate contract change. Present-tense narrative about what the code does
-today does NOT live here (that rots — the tools own it); the Roadmap below states TARGET only.
+This doc owns ONE behavior: the player builds a district, and the districts he MAY build are derived
+from the District table. It states the TARGET contract plus the plan closing `:now` → `:target`.
+Live wiring is the ecs-graph; this doc is diffable against it. Code comments link here, never retell it.
 
 ```clojure
 (def participants  ;; {assembly role-in-this-flow}
-  {Presentation.UI.MainHud.HexInfoPanel "emits the open request (DistrictBuildUIRequestedEvent) from the selected-hex context panel"
-   Presentation.UI.DistrictBuild        "projection + commands: renders the transaction, raises the confirm pulse, owns NO transaction state"
-   Flows.DistrictBuild                  "flow event-vocabulary home: owns the cross-subfeature UI-navigation event; leaf assembly the UI references"
-   Domains.Actions.BuildDistrictAction  "verb owner: creates the in-progress build entity on confirm (no draft); a completion consumer writes the Economy District fact"
-   Domains.Economy                      "vocabulary (build configs, costs, open conditions) + TARGET home of the built-district fact"
-   Presentation.Districts               "world view: construction-progress prefab while a district is in-progress (R3), the built district prefab once the fact exists"})
+  {Presentation.UI.MainHud.HexInfoPanel  "open request; in-progress block (type, turns-left, cancel)"
+   Presentation.UI.DistrictBuild         "projection + commands: lists Buildable districts, raises confirm; owns NO transaction state"
+   Flows.DistrictBuild                   "UI-navigation event home; leaf assembly the UI references"
+   Domains.Actions.BuildDistrictAction   "verb owner: spends, opens the District row, counts turns down, closes or reverts it"
+   Domains.Economy.District              "fact owner: THE District table + its stage column + the table-changed pulse"
+   Domains.Economy.DistrictOpenCondition "derives DistrictOpenState from the District table, per kind"
+   Presentation.Districts                "world view: progress prefab while Planned, district prefab once Built"})
+```
+
+## The unification decision (2026-07-17)
+
+```clojure
+(def unification  ;; user 2026-07-17 — supersedes the verb/fact split of 2026-07-10
+  {:problem   "ONE real fact «district of type T on hex H» lived in TWO rows — the verb row and the fact row both carried hex + type"
+   :symptom   "two near-identical hex-keyed view spawners; a third copy («a planned tag») was proposed and REJECTED"
+   :decision  "the District row exists from CONFIRM; the build stage is a STATE COLUMN on it"
+   :verb-row  "shrinks to pure verb state + an FK into the District PK space — it copies NO district attribute"
+   :bans      #{"a second tag for the planned stage" "a mirror row in another domain" "a hex/type copy on the verb row"}
+   :why-dag   "Domains.Economy must not reference Domains.Actions; an evaluator reading only Economy rows needs no such edge"
+   :tag-law   "1 tag per entity holds: the stage is a …StateComponent column, never a toggled tag"})
+```
+
+## Entity model (target)
+
+<!-- doc-lint: off -->
+
+```clojure
+(def District  ;; Domains.Economy.District — the ONE row per district
+  {:tag DistrictTag :pk DistrictIdComponent :fk HexIdFKComponent :data DistrictTypeComponent
+   :state ^:new DistrictBuildStateComponent})   ;; #{Planned Built}; PK allocated at CONFIRM (was: at completion)
+
+(def BuildDistrictAction  ;; Domains.Actions — pure verb, no district attributes
+  {:tag BuildDistrictInProgressTag
+   :fk  ^:new DistrictIdFKComponent             ;; → District PK; REPLACES the HexIdFK + DistrictTypeFK copy
+   :data [BuildDistrictTurnsComponent ActorTypeComponent]})
+
+(def DistrictOpenCondition  ;; unchanged by this flow
+  {:tag DistrictOpenConditionTag :fk DistrictTypeFKComponent   ;; the GATED type
+   :kind DistrictOpenConditionKindComponent :state DistrictOpenStateComponent
+   :data DistrictExistConditionComponent})                     ;; Exist kind only: the REQUIRED type
+```
+
+<!-- doc-lint: on -->
+
+```clojure
+(def lifecycle
+  {:confirm  (-> "spend AP + resources (all-or-nothing)" "allocate PK" "District row := Planned" "verb row := countdown + payer")
+   :complete (-> "District row := Built" "dispose the verb row")
+   :cancel   (-> "refund per the same-turn rule" "dispose BOTH rows")
+   :invariant "a District row has exactly 2 exits: Built (terminal) or disposed (cancel) — nothing else removes it"})
 ```
 
 ## Event vocabulary (the contract)
 
-| Event                           | Home                | Payload                                                                    | Producer → Consumer                                                          | Semantics                                                                  |
-| ------------------------------- | ------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `DistrictBuildUIRequestedEvent` | Flows.DistrictBuild | —                                                                          | `HexInfoPanelView` → `DistrictBuildUISystem`, `DistrictBuildListUISubSystem` | player asked to open the overlay for the selected hex                      |
-| `DistrictBuildConfirmedEvent`   | Domains.Actions     | `HexCoord` + `DistrictType` + `ActorType` (payer)                          | `DistrictBuildUISystem` → `BuildDistrictActionSystem`, `HexInfoPanelDistrictSystem` | player committed: create the in-progress build entity directly (no draft); the panel also reconciles its district block off the same pulse (R4) |
-| `BuildDistrictCompleteEvent`    | Domains.Actions     | payload-less (doorbell)                                                    | `BuildDistrictTurnTickSystem` → `BuildDistrictCompletionSystem`              | ≥1 build countdown sits at 0; LEVEL-TRIGGERED — re-raised every turn until consumed |
-| `DistrictBuiltEvent`            | Domains.Actions     | payload-less                                                               | `BuildDistrictCompletionSystem` → `DistrictViewSpawnSystem`                  | a district EXISTS as a fact (`DistrictTag`); raised at build completion     |
-| `BuildDistrictCancelEvent`      | Domains.Actions     | `HexCoord`                                                                 | `HexInfoPanelDistrictSystem` → `BuildDistrictActionCancelSystem`, `DistrictBuildProgressViewDespawnSystem` | player cancelled the still-selected hex's in-progress build (R5); the in-progress entity is refunded + disposed, never producing a District fact |
+```clojure
+(def events
+  {DistrictBuildUIRequestedEvent {:home Flows.DistrictBuild :payload :none :semantics "player asked to open the overlay"}
+   DistrictBuildConfirmedEvent   {:home Domains.Actions :payload "HexCoord + DistrictType + ActorType" :semantics :command}
+   BuildDistrictCancelEvent      {:home Domains.Actions :payload "HexCoord" :semantics :command}
+   BuildDistrictCompleteEvent    {:home Domains.Actions :payload :none
+                                  :semantics "doorbell: ≥1 countdown sits at 0; LEVEL-TRIGGERED — re-raised every turn until consumed"}})
 
-> **Not ECS — local C# events.** Close/dismiss and district-selection are **view→system C# events** now, not
-> ECS pulses: the chrome `DistrictBuildUIView` raises `Closed`/`Confirmed` (the orchestrator subscribes),
-> `DistrictBuildListUIView` raises `SelectionChanged` and `DistrictBuildPriceUIView` raises `PayerChanged`
-> (each section subsystem subscribes to its own view). Only the four events above cross a frame (or
-> assembly) boundary as ECS pulses. Traceability = the direct C# subscriptions, all visible at the subscriber.
+(def command-vs-fact  ;; the rule the S3 fold enforces
+  {:command {:consumer "the verb owner ONLY" :never "a view may not react to a command"}
+   :fact    {:consumer "anyone deriving state — views, projections, evaluators"
+             :why "a view on a command depends on system ORDER inside one tick; a view on a fact does not"}})
+```
+
+<!-- doc-lint: off -->
 
 ```clojure
-(def payload-verdicts  ;; deviations from PATTERN_EVENT the contract removed
-  {DistrictBuiltEvent {:siblings :dropped}})  ;; was [HexId DistrictType], now payload-less — consumer reconciles off DistrictTag
+(def target-event  ;; ^:new — DistrictBuiltEvent folds into it (S3)
+  {^:new DistrictTableChangedEvent
+     {:home Domains.Economy.District :payload ^:new DistrictTableChange   ;; #{Planned Built Removed}
+      :shape "struct : IEquatable<> — the value IS the multimap key; filter via EntityMultiMap keyed by value"  ;; user 2026-07-17
+      :raised-by "Domains.Actions (legal: Actions → Economy) — the owner DECLARES the signal, the mutator pulses it"
+      :semantics "FACT: a District row entered this stage"
+      :deviation "PATTERN_EVENT prescribes payload-less; the field is a DECIDED filter key, not a payload copy"
+      :why-not-a-copy "Removed has no row left to read the stage from — the column cannot express it"
+      :note "reconcile stays global + idempotent; a repeat pass in one frame is a no-op, never a correctness case"}})
 ```
+
+<!-- doc-lint: on -->
+
+> **Not ECS — local C# events.** Close/dismiss, district-selection, payer-switch and cancel-click are
+> view→system C# events (`PATTERN_VIEW_SYSTEM`). Only the events above cross a frame or assembly boundary.
 
 ## State ownership
 
 ```clojure
-(def state-ownership  ;; {state {:now … :target …}} — the split below is the flow's core defect
-  {:selected-hex    {:now "Presentation `HexSelectedComponent` — pre-confirm only; read into the committed entity's `HexIdComponent` at confirm, never owned by Actions before that"
-                     :target :same}
-   :chosen-district {:now    DistrictBuildSelectionComponent  ;; component in Presentation.UI.DistrictBuild.Components (own entity, tagged DistrictBuildSelectionTag); written by DistrictBuildListUISubSystem, read by the UI subsystems + DistrictBuildUISystem (confirm payload)
-                     :target :same}  ;; no draft to migrate onto — selection staying in Presentation IS the target
-   :payer           {:now    "view-local (DistrictBuildPriceUIView.SelectedOwner) → carried in the confirm pulse; at confirm BuildDistrictActionSystem spends the payer's resource stacks (ResourceLedger) + the Mayor's AP pool (MayorAPComponent), then stamps ActorTypeComponent on the in-progress entity"  ;; R2 landed — resources + AP spent at confirm
-                     :target :same}
-   :built-district  {:now    "Economy District fact (DistrictTag + DistrictId + HexId + DistrictType), written at completion by BuildDistrictCompletionSystem; the in-progress verb entity (BuildDistrictInProgressTag) is transient"  ;; Presentation.Districts renders the FACT
-                     :target :same}})  ;; S1 landed the fact; turns (S2) only delay when the fact is written
+(def state-ownership  ;; only the rows this flow CHANGES; selection/payer/selected-hex stay as they are
+  {:district-fact {:now    "Economy District row written at COMPLETION; hex + type duplicated on the verb row meanwhile"
+                   :target "written at CONFIRM, carrying the stage column; the verb row holds NO district attribute"}
+   :build-stage   {:now    "implicit — «planned» = a verb row existing in another domain; unreadable from Economy"
+                   :target "explicit — the stage column on the District row; the single source for every consumer"}
+   :open-state    {:now    "DistrictOpenStateComponent, SingleOpen only — Exist rows are spawned and never evaluated"
+                   :target "every kind evaluated; re-derived on every District-table change, not only per turn"}})
 ```
 
 ## Ordering invariants
 
 ```clojure
 (def ordering-invariants
-  {:confirm-vs-dismiss  "view.OnConfirmClicked raises the C# Confirmed event → DistrictBuildUISystem builds then hides; OnCloseClicked/OnScrimClicked raise the C# Closed event → hide only"  ;; no draft, so dismiss never has anything to discard
-   :list-before-others  "DistrictBuildListUISubSystem populates FIRST (Priority order)"  ;; it default-writes the selection the other sections read — reorder = throw on a missing selection
-   :completion-pulse    {:producer "BuildDistrictTurnTickSystem піднімає BuildDistrictCompleteEvent ЩОХОДУ, поки хоч один каунтдаун стоїть на 0 (level-triggered) — ніколи raise-once"
-                         :consumer "BuildDistrictCompletionSystem реконсилить ВЕСЬ in-progress-набір зі стану (TurnsLeft<=0), ніколи не довіряє одиничній доставці пульсу"
-                         :why "pulse = doorbell для трасованості (матеріальний producer→consumer ланцюжок); згублений у вікні EventCleanup pulse = +1 хід латентності, ніколи не втрата коректності. Ослаблення БУДЬ-ЯКОЇ з двох половин ламає механіку мовчки"}})
+  {:list-before-others "DistrictBuildListUISubSystem populates FIRST — it default-writes the selection the other sections read"
+   :completion-pulse   {:producer "raise EVERY turn while any countdown sits at 0 (level-triggered)"
+                        :consumer "reconcile the WHOLE in-progress set off state; never trust single delivery"
+                        :why "this is just the decreed reactive contract (ECS_CONVENTIONS → Decomposition Rules): the pulse says «something changed», the system works off CURRENT state. Level-triggering makes the pair robust to a coalesced pulse."
+                        :not-the-reason "«a lost pulse costs a turn of latency» — VERIFIED FALSE 2026-07-17. A turn phase raises its pulse from a SwitchToMainThread continuation, which resumes at PlayerLoopTiming.Update — BEFORE MonoBehaviour.Update, where Boot ticks the ECS loop. The pulse therefore lands OUTSIDE the tick and cannot be cleaned up before its consumer runs; a turn-phase pulse cannot be lost. Do NOT re-derive the old justification from this pairing, and do not treat pulse-loss as a hazard this flow defends against."}
+   :dispose-before-reconcile "a system disposing rows runs BEFORE the views reconciling against them, same tick"
+   :panel-above-producers    "HexInfoPanelDistrictSystem runs ABOVE every producer it reacts to — below them the pulse dies in the same frame"
+   :evaluator-vs-ui          "NOT a same-tick ordering: the build list projects DistrictOpenState on the window-open pulse only, never every tick, while the evaluator runs on a turn boundary or a table change — earlier frames. They cannot compete in one tick. Do not invent a priority coupling between them."})
 ```
 
-## Target contract
-
-The committed entity in `Domains.Actions` is created directly on confirm — no draft, no promote
-step. The UI is a projection that reads current Presentation selection state (`HexSelectedComponent`
-+ `DistrictBuildSelectionComponent`) and raises command pulses; a completed transaction writes the
-built-district FACT into `Domains.Economy`; `Presentation.Districts` renders facts, never verbs.
-`DistrictBuiltEvent` fires when the fact is written — at construction completion (R1, landed). The
-in-progress entity has exactly two terminations: completion (writes the fact) or cancel (R5, landed —
-refunds AP/resources per the same-turn rule and disposes the entity); a cancelled build never produces
-a District fact.
-
-## Roadmap — planned flows (backlog)
-
-TARGET extensions of THIS district-build behavior, ordered by build-flow dependency. **All five have
-landed** (R1–R5 — see their `LANDED` markers); this section stays as the historical record of how the
-behavior was built out. Every `^:new` symbol in the tasks below was proposed, not existing, at the
-time it was written; new names are proposals (naming policy:
-self-sufficient, repeat the feature name) pending the user's veto. doc-lint is suppressed for this
-section because its vocabulary is deliberately future. Кожен пункт несе `contract-delta` (цільові
-рядки, що задача додає до контракту вище) і `-open` мапу у формі `{:q … :resolve …}`. `:resolve` =
-хто/що закриває питання перед тим, як пункт стане реальною clojure-задачею:
+## Open-condition contract
 
 ```clojure
-(def resolve-legend
-  {?                 "рішення користувача — справжня діра, агент не вигадує"
-   :by-code          "агент закриває сам: читає код / roslyn / ecs-graph / di-graph"
-   :by-policy        "агент пропонує за конвенцією (ECS_CONVENTIONS / Patterns), користувач вето"
-   :by-naming-policy "агент пропонує ім'я за naming-policy, користувач вето"
-   :decided          "вже вирішено — джерело в ;; поруч"})
+(def open-conditions
+  {:derived-not-authored "DistrictOpenStateComponent is DERIVED from the District table; no system may author it as input"
+   :hosts             "ONE DI-collected subsystem family, three hosts — evaluation logic is never duplicated per host"
+   :kind-coverage     {:law "every DistrictOpenConditionKind member has exactly ONE evaluator subsystem"
+                       :why "a spawned row with no evaluator is stuck at its seeded state forever — silently unbuildable"}
+   :change-only-write "Set() the state only on an actual value change — the family is idempotent by contract"
+   :threading         "the family Sets an EXISTING state column only — legal off-thread (ECS_CONVENTIONS Law 1); the turn host deliberately does NOT hop, because a hop costs a frame and buys nothing here"})
+
+(def kind-semantics  ;; user 2026-07-17 — what each kind counts
+  {SingleOpen {:closed-when "≥1 District row of the gated type exists in ANY stage" :counts #{:Planned :Built}
+               :why "a build already under way must not be offered a second time"}
+   Exist      {:buildable-when "≥1 District row of the REQUIRED type is Built" :counts #{:Built}
+               :why "a prerequisite only counts once it actually stands"}})   ;; user: «лише якщо він збудований»
+```
+
+## Gap list (`:now` ≠ `:target`)
+
+```clojure
+(def gaps
+  {:g1 {:what "hex + type duplicated across the verb row and the fact row" :cost "every consumer picks a source; a third copy was already being proposed"}
+   :g2 {:what "the build stage is unreadable from Domains.Economy"          :cost "SingleOpen cannot count in-progress builds without a DAG violation or a mirror"}
+   :g3 {:what "Exist-kind conditions are spawned with no evaluator"         :cost "every Exist-gated district is permanently unbuildable; the seeded Closed state never flips"}
+   :g4 {:what "the turn host's comment declares «every world write goes back on the main thread» — stricter than ECS_CONVENTIONS Law 1, which allows an off-thread write to an EXISTING component"
+        :cost "the commented-out hop below it reads as a missing guard; it is a deliberate optimisation (a hop costs a frame). The comment is rot — it already misled one reader into filing a phantom bug."}
+   :g5 {:what "views react to COMMAND pulses and lean on same-tick system order" :cost "a priority change silently breaks the view; the dependency is invisible at the call site"}
+   :g6 {:what "SingleOpen's header claims the District table is «pure scaffold — nothing spawns it yet»" :cost "false since the build flow landed; a stale premise misleads the next reader"}})
+```
+
+## Plan
+
+Every `^:new` name is a PROPOSAL pending veto (naming policy: self-sufficient without the namespace).
+`:resolve` legend: `?` = user's call · `:by-code` · `:by-policy` · `:by-naming-policy` · `:decided`.
+Every `:resolve` is CLOSED — no step waits on a decision; execute in order.
+
+```clojure
+(def plan-preconditions  ;; checked 2026-07-17 — do not re-derive
+  {:asmdef "NO new asmdef reference is needed: Presentation and Presentation.UI already reference Domains.Economy, and Domains.Actions already references it too — every cross-assembly edge this plan uses exists"
+   :dag    "Domains.Economy gains NO reference to Domains.Actions in any step; if a step seems to need one, the step is wrong"
+   :unity  "one user-side step exists (a new folder's .meta, see :add-table-changed-event); everything else is plain code"})
 ```
 
 <!-- doc-lint: off -->
 
 ```clojure
-(def roadmap-deps  ;; build order — later items need earlier ones
-  {:R1 "фундамент: in-progress-сутність, каунтдаун ходів, Economy-факт на завершенні (вбирає старі gap 2 + gap 5)"
-   :R2 "на confirm разом з R1: списати ресурси; payload події += payer"
-   :R3 "потребує R1 (є in-progress-сутність на гексі, поки будується)"
-   :R4 "потребує R1 (показати turns-left) — і є точкою входу для R5"
-   :R5 "потребує R1+R2+R4 (turns-left, повернення ресурсів, кнопка cancel)"})
-```
+[{:task :fix-evaluator-comment   ;; S1 — was «restore the commented-out hop»; RETRACTED 2026-07-17
+  :closes :g4  :where DistrictOpenConditionEvaluatorSystem
+  :retracted "the missing hop was filed as a bug (:g4) and is NOT one: the family Sets an EXISTING state column, which Law 1 permits off-thread, and a hop would cost a frame"   ;; user 2026-07-17
+  :root-cause "the file's own comment declares a stricter rule than the decreed one — the agent trusted the comment instead of ECS_CONVENTIONS"
+  :do "delete the commented-out SwitchToMainThread line and rewrite the comment to state the REAL reason: this family writes existing components only, so it stays on the pool by design"
+  :skip "the hop itself — restoring it would be a regression"
+  :accept {:meter "code read" :target "no commented-out code; the comment cites Law 1's structural-vs-value line, not a blanket write rule"}}
 
-### The five tasks (as stated)
+ {:task :unify-district-row     ;; S2 — the core; needs nothing
+  :closes #{:g1 :g2}  :where [Domains.Economy.District Domains.Actions.BuildDistrictAction]
+  :decided "row from confirm; stage as a column"   ;; user 2026-07-17
+  :add [{:file ^:new DistrictBuildState :where "Economy/District/Data/" :shape "enum #{Unknown Planned Built}"}   ;; Unknown=0, per the DistrictOpenState precedent
+        {:file ^:new DistrictBuildStateComponent :pattern PATTERN_COMPONENT :shape "stage column; IEquatable — a self-index key"}
+        {:file ^:new DistrictIdFKComponent :pattern PATTERN_COMPONENT :shape "FK into the District PK space; IEquatable — a multimap key"}]
+  :trap "EVERY query over the verb row is invalidated: it loses HexIdFKComponent + DistrictTypeFKComponent, so any With<> chain naming them matches NOTHING. A stale chain does not fail — it yields an EMPTY set and the system silently no-ops. Re-read every verb-row query before assuming it is unchanged."
+  :change {BuildDistrictActionSystem (-> "spend (rule unchanged)" "allocate the PK here — move the DistrictIdAllocatorComponent seed off the completion system"
+                                         "create the District row := Planned" "create the verb row := tag + DistrictIdFK + turns + payer"
+                                         "verb row NO LONGER carries HexIdFKComponent or DistrictTypeFKComponent")
+           BuildDistrictCompletionSystem (-> "REWRITE the base query — its current chain names HexIdFKComponent + DistrictTypeFKComponent, which the verb row no longer has (see :trap); filter on the tag + turns + the new FK instead"
+                                             "reconcile off TurnsLeft<=0 (rule unchanged)"
+                                             "resolve the District row via the FK → Set stage Built"
+                                             "dispose the verb row" "NO LONGER creates the fact row — it already exists")
+           BuildDistrictActionCancelSystem (-> "REWRITE the hex-keyed multimap — it currently indexes the VERB row by HexIdFKComponent, which is gone (see :trap); index the DISTRICT table by hex instead"
+                                               "resolve the District row by hex (the pulse payload) → its PK"
+                                               "resolve the verb row by the FK = that PK"
+                                               "read DistrictType from the District ROW (was: the verb row)" "refund (rule unchanged)" "dispose BOTH rows")
+           BuildDistrictTurnTickSystem "query + logic unchanged — it names only the tag and the turns column, both of which the verb row keeps"}
+  :skip "the refund maths, the AP rule, the level-triggered pulse discipline — all landed, none in scope"
+  :accept [{:meter ecs-graph :target "the BuildDistrictAction archetype carries no HexIdFKComponent and no DistrictTypeFKComponent"}
+           {:meter "playtest" :target "a confirmed build still COMPLETES — the silent-empty-set trap above is the likeliest way this step regresses"}]}
 
-Shared `:where` for всіх п'яти: `Presentation.UI.DistrictBuild`, `Flows.DistrictBuild`, `Domains.*`
-(точні Domains-сайти — це per-task open-questions нижче). Дублікатний `:task :add-turns` розведено
-на `:build-turns` / `:spend-resources`, щоб кожну можна було адресувати.
+ {:task :add-table-changed-event   ;; S3 — needs :unify-district-row
+  :where Domains.Economy.District   ;; closes nothing on its own — see :enables below
+  :add [{:file ^:new DistrictTableChange :where "Economy/District/Data/" :shape "enum #{Unknown Planned Built Removed}"}
+        {:file ^:new DistrictTableChangedEvent :where "Economy/District/Events/" :pattern PATTERN_EVENT}]  ;; shape + rationale: target-event above
+  :user-side "Events/ does not exist under Economy/District/ — a NEW folder needs a Unity-generated .meta. Agents never hand-write .meta: create the folder Unity-side, or ask. Everything else in this step is plain code."
+  :raise {BuildDistrictActionSystem "{Planned} after the row is created"
+          BuildDistrictCompletionSystem "{Built} once per pass, after the stage writes"
+          BuildDistrictActionCancelSystem "{Removed} after the rows are disposed"}
+  :delete DistrictBuiltEvent   ;; folded; consumers migrate in :rewire-presentation
+  :enables :g5   ;; the pulse this step adds is what lets :rewire-presentation actually close :g5
+  :accept {:meter ecs-graph :target "DistrictBuiltEvent absent; DistrictTableChangedEvent has 3 producers"}}
 
-```clojure
-[{:task :build-turns
-  :goal "кожен район будується за різну кількість ходів"
-  :flow (-> (:step-1 "confirm у DistrictBuildUIView")
-            (:step-2 "DistrictBuildUISystem створює DistrictBuildConfirmedEvent")
-            (:step-3 "BuildDistrictActionSystem handle → створює BuildDistrictActionTag entity")
-            (:step-4 "+ ^:new TurnsComponent = ходи до завершення")
-            (:step-5 "кожен хід TurnsComponent -= 1")
-            (:step-6 "TurnsComponent == 0 → будуємо район, видаляємо BuildDistrictActionTag"))}
+ {:task :rewire-presentation   ;; S4 — needs :add-table-changed-event
+  :closes :g5  :where [Presentation.Districts Presentation.UI.MainHud.HexInfoPanel]
+  :change {DistrictBuildProgressViewSpawnSystem
+             {:trigger "{Planned}"   ;; was DistrictBuildConfirmedEvent — a COMMAND
+              :reconcile "District rows staged Planned with no progress view (keyed by hex)"
+              :gain "kills the same-tick order-dependency its header declares (it ran right after BuildDistrictActionSystem)"}
+           DistrictViewSpawnSystem
+             {:trigger "{Built}" :reconcile "District rows staged Built with no district view"}
+           DistrictBuildProgressViewDespawnSystem
+             {:trigger "#{Built Removed}" :reconcile "progress-view rows whose hex has no Planned District row — covers completion AND cancel with one rule"}
+           HexInfoPanelDistrictSystem
+             {:trigger "WithEither: SelectedHexChangedEvent | TurnCompletedEvent | DistrictTableChangedEvent"   ;; 4 disjuncts → 3: confirm + cancel fold in
+              :data "district type from the District ROW; turns-left from the verb row via the FK"
+              :block-rule "in-progress block ⟺ the selected hex's District row is staged Planned"}}
+  :skip "the panel's other block states, the icon config, the cancel C# event — all landed"
+  :accept {:meter ecs-graph :target "no Presentation system reacts to DistrictBuildConfirmedEvent or BuildDistrictCancelEvent"}}
 
- {:task :spend-resources
-  :goal "витратити ресурси на будівництво"
-  :flow (-> (:step-1 "confirm у DistrictBuildUIView")
-            (:step-2 "DistrictBuildUISystem створює DistrictBuildConfirmedEvent + set owner/payer")
-            (:step-3 "BuildDistrictActionSystem handle → бере DistrictBuildCostConfig для DistrictType")
-            (:step-4 "бере ресурси owner/payer і списує згідно DistrictBuildCostConfig")
-            (:step-5 "додати HexIdComponent до BuildDistrictActionTag — де будується район"))}
-
- {:task :build-progress-view
-  :goal "поки район будується — показувати view будівництва на гексі"
-  :flow (-> (:step-1 "confirm у DistrictBuildUIView")
-            (:step-2 "DistrictBuildUISystem створює DistrictBuildConfirmedEvent + set owner/payer")
-            (:step-3 "^:new окрема ViewSystem handle → бере ^:new DistrictBuildProgressViewConfig для DistrictType")
-            (:step-4 "Instantiate prefab для конкретного гексу"))}
-
- {:task :district-ui-block
-  :goal "district-блок у HexInfoPanelView показує район що будується + ходи до завершення + скасувати"
-  :architecture "ймовірно PATTERN_VIEW_SYSTEM"
-  :flow (-> (:step-1 "confirm у DistrictBuildUIView")
-            (:step-2 "BuildDistrictActionSystem створює BuildDistrictActionTag entity")
-            (:step-3 "^:new окрема ViewSystem бере BuildDistrictActionTag, матчить гекс за HexIdComponent, малює UI у блоці"))}
-
- {:task :cancel-build
-  :goal "скасувати будівництво через district-ui-block; той самий хід → повернути AP + ресурси; інший хід → ресурси пропорційно до ходів, що лишилися"
-  :flow (-> (:step-1 "cancel у district-ui-block")
-            (:step-2 "спавн ^:new BuildDistrictCancelEvent для конкретного HexIdComponent")
-            (:step-3 "^:new BuildDistrictActionCancelSystem handle BuildDistrictCancelEvent")
-            (:step-4 (cond
-                       "той самий хід"  "повертаємо AP + ресурси, видаляємо BuildDistrictActionTag"
-                       "інший хід"      "повертаємо ресурси пропорційно до turns-left, видаляємо BuildDistrictActionTag")))}]
-```
-
-### Нотаційні правки твого оригіналу (для тебе, не для агента)
-
-> Людська примітка — дозволена явно. Повний розбір before→after: `CLOJURE_GUIDE.md` §11.
-
-Вихідний батч мав дві нотаційні шорсткості. Що я змінив і чому:
-
-1. **Дубль `:task :add-turns` (×2) → унікальні `:build-turns` / `:spend-resources`.**
-   Сусідні мапи посилаються одна на одну за `:task`-id (напр. `:listen :build-turns`). Два
-   однакові id роблять таке посилання неоднозначним — конкретну задачу неможливо адресувати.
-2. **`:TurnsComponent` → `^:new TurnsComponent`.** `:keyword` = самозначуща мітка/вердикт
-   (`:tile-busy`). Тип, який треба СТВОРИТИ — це код-якір: голий символ `TurnsComponent` +
-   мета-тег `^:new` («створити, ще не існує»). Так агент знає, що це новий клас, а не ярлик.
-
-Дрібниця на майбутнє (свідомо НЕ правив): усе в межах `(:step-1 "текст…")` — це проза, тож
-символи й `^:new` усередині рядка декоративні. Хочеш, щоб якір/тег «працювали» — винось їх за
-лапки. Для чорнового плану рядок-крок читабельніший, тому лишив як є.
-
-### R1 — build over turns  (вбирає старі gap 2 + gap 5-ticking) — LANDED 2026-07-10 (S1→S2→S3)
-
-Confirm creates an IN-PROGRESS verb entity in `Domains.Actions`, stamped with a per-DistrictType turn
-countdown. A turn-phase hops to the main thread (`SwitchToMainThread`), decrements the countdown each
-turn, and — while any countdown sits at 0 — raises the `BuildDistrictCompleteEvent` pulse; the
-EVENT-GATED completion system consumes the pulse and reconciles the in-progress set into the
-built-district FACT in `Domains.Economy`, while the world-view reconciles off the FACT.
-**Event-gated (decided 2026-07-10; supersedes the same-day «Option B / per-frame, no event» draft):**
-the pulse is kept for traceability — a material producer→consumer chain to log and trace («pulse як
-stacktrace») — and made safe by the two-sided discipline decreed in `ordering-invariants
-:completion-pulse` (level-triggered producer + state-reconciling consumer). Known and accepted:
-`TurnsToBuild=0` completes on the NEXT turn, not instantly (pulse піднімається лише в turn-фазі) —
-покрокова гра, latency в межах ходу нічого не вирішує. `DistrictViewSpawnSystem` reconciles off
-`DistrictTag`, not the verb entity. `BuildDistrictActionTag` is dropped (replaced by
-`BuildDistrictInProgressTag`).
-
-```clojure
-(def R1-model  ;; механіка end-to-end (built)
-  {:in-progress-entity   ;; verb, Domains.Actions.BuildDistrictAction — created at confirm, disposed at completion
-     [BuildDistrictInProgressTag ActionIdComponent HexIdComponent DistrictTypeComponent
-      BuildDistrictTurnsLeftComponent ActorTypeComponent]     ;; TurnsLeft=S2, ActorType=S3 (payer — captured at confirm, not spent → R2)
-   :fact-entity          ;; fact, Domains.Economy.District — created at completion
-     [DistrictTag DistrictIdComponent HexIdComponent DistrictTypeComponent] ;; DistrictId PK allocated (DistrictIdAllocatorComponent)
-   :systems  {BuildDistrictActionSystem     "confirm → create in-progress; stamp TurnsLeft = DistrictBuildCostConfig.TurnsToBuild"
-              BuildDistrictTurnTickSystem   "TurnPhaseSubSystem (Upkeep 510): SwitchToMainThread → TurnsLeft -= 1 щоходу (floor 0); поки left<=0 — raise BuildDistrictCompleteEvent (level-triggered)"
-              BuildDistrictCompletionSystem "EVENT-GATED (601): на BuildDistrictCompleteEvent pulse реконсилить in-progress-набір — TurnsLeft<=0 → write fact + dispose + raise DistrictBuiltEvent"
-              DistrictViewSpawnSystem       "reconcile off DistrictTag (fact) на DistrictBuiltEvent (602)"}
-   :pulse-discipline "completion-pulse = doorbell, не payload: рівно та двостороння дисципліна, що декретована в ordering-invariants :completion-pulse — тут не переказується"
-   :events   {BuildDistrictCompleteEvent "payload-less doorbell; TurnTick → Completion; level-triggered (щоходу до consume)"
-              DistrictBuiltEvent         "payload-less; raised at COMPLETION (main-thread, 601); siblings dropped (reconcile off DistrictTag)"}
-   :fix      "off-by-one: decrement відбувався ПІСЛЯ перевірки TurnsLeft<=0 замість ДО — завершення займало на 1 хід більше, ніж TurnsToBuild; виправлено 2026-07-13 (знайдено під час R5): decrement спершу (floor 0), потім перевірка ТОГО Ж тіку — щойно занулений countdown завершується того самого ходу, не наступного"})
-
-(def R1-decomposition  ;; три впорядкованих під-задачі — не «одна дія» (як виконувалось; S2 записано ЯК ЗБУДОВАНО, не як чорновий Option B)
-  {:S1 "verb→fact split: confirm → in-progress entity → completion → Economy fact; view off DistrictTag; build INSTANT. Drops BuildDistrictActionTag."
-   :S2 "turn countdown: + BuildDistrictTurnsLeftComponent (=TurnsToBuild at confirm); BuildDistrictTurnTickSystem (turn phase, main-thread hop) decrements value і level-triggered піднімає BuildDistrictCompleteEvent; completion — event-gated reconcile по TurnsLeft<=0."
-   :S3 "payer capture: DistrictBuildConfirmedEvent += ActorType; read view.SelectedOwner at confirm; stamp ActorTypeComponent. Captured, not spent (→R2)."})
-
-(def R1-open  ;; усі закриті 2026-07-10
-  {:turns-source     {:a "DistrictBuildCostConfig.TurnsToBuild [Range 0..100] — поле вже існує"          :resolve :decided}
-   :decrement-owner  {:a "BuildDistrictTurnTickSystem : TurnPhaseSubSystem — SwitchToMainThread, value-write + level-triggered pulse" :resolve :decided}
-   :completion-owner {:a "BuildDistrictCompletionSystem — event-gated reconcile по TurnsLeft<=0 (pulse = doorbell)" :resolve :decided}
-   :completion-model {:a "event-gated > per-frame: трасованість ланцюжка подій; безпека = level-triggered + reconcile (див. ordering-invariants :completion-pulse)" :resolve :decided}
-   :component-name   {:a "BuildDistrictTurnsLeftComponent (policy > input TurnsComponent)"               :resolve :decided}
-   :archetype        {:a "fact DistrictTag+DistrictId(PK)+HexId+DistrictType в Economy.District"         :resolve :decided}})
-```
-
-### R2 — spend resources — LANDED 2026-07-12
-
-At confirm, `BuildDistrictActionSystem` resolves the whole `DistrictBuildCostConfig` for the
-`DistrictType`, then spends ALL-OR-NOTHING before creating the in-progress entity: the payer's
-resource stacks are charged `DistrictPrices` via `ResourceLedger`, and the Mayor's `MayorAPComponent`
-pool is charged `ApPrice` (AP is always Mayor-paid, whatever the resource payer). Affordability is
-checked across the WHOLE price first; a shortfall throws (fail-loud) — the confirm is UI-GATED, so the
-throw is an invariant net, never a normal path. The confirm pulse already carried the payer
-(`ActorType`, from R1/S3), so no payload change was needed.
-
-```clojure
-(def R2-model  ;; механіка end-to-end (built)
-  {:spend    {:owner     BuildDistrictActionSystem   ;; on the DistrictBuildConfirmedEvent pulse, BEFORE CreateEntity
-              :resources "payer's stacks (Mayor→MayorResourceTag / City→CityResourceTag, keyed by owner FK) charged DistrictPrices via ResourceLedger.Deduct (its first consumer)"
-              :ap        "Mayor's MayorAPComponent -= ApPrice — always Mayor-paid, regardless of the resource payer"
-              :atomicity "CanAfford(all resources) && ap>=ApPrice checked FIRST → then Deduct + AP write; never a partial charge"
-              :fail-loud "shortfall → throw (InvalidOperationException); the UI gate prevents reaching it in normal play"}
-   :ui-gate  {:owner     DistrictBuildPriceUISubSystem  ;; computes affordability in Render — the choke point for populate AND payer switch
-              :verdict   "ap>=ApPrice && every resource have>=need for the selected payer"
-              :push      "chrome DistrictBuildUIView.SetConfirmEnabled(affordable) — disables «ЗБУДУВАТИ» when unaffordable"
-              :style     ".confirm:disabled (muted, no gold) in DistrictBuildAction.uss; SetEnabled(false) drives the pseudo-state"}
-   :fix      "DistrictBuildPriceUISubSystem read the AP pool from MayorIdComponent (the id) instead of MayorAPComponent — corrected so both the AP row and the gate use the real pool"})
-
-(def R2-open  ;; усі закриті 2026-07-12
-  {:payer-model    {:a "payer = ActorType (Mayor|City); resource stacks resolved by owner tag + FK; ResourceLedger is the owner-blind spend channel" :resolve :by-code}
-   :payload-change {:a "no change needed — DistrictBuildConfirmedEvent already carries ActorType Payer (R1/S3)"                                       :resolve :by-code}
-   :affordability  {:a "UI-gate + throw-guard: price subsystem disables confirm when unaffordable; system throws as the invariant net"                :resolve :decided}   ;; user 2026-07-12
-   :ap-spend       {:a "AP spent at confirm too; balance = MayorAPComponent on the Mayor (ApPrice authored in DistrictBuildCostConfig)"               :resolve :decided}   ;; user 2026-07-12
-   :hex-stamp      {:a "HexIdComponent already stamped at confirm since R1 — unchanged"                                                               :resolve :by-code}})
-```
-
-### R3 — construction progress view — LANDED 2026-07-12
-
-While a build is in progress, a world-space progress prefab sits on the hex. Two reactive
-ViewSystems in `Presentation.Districts` own it end-to-end: one spawns on the confirm pulse (the
-in-progress entity already exists by then), one despawns on the completion pulse. Per
-`PATTERN_REACTIVE_SYSTEM` §smell ("create+destroy same content → two reactive systems, one event
-each") — NOT a branch of `DistrictViewSpawnSystem`, whose contract is scoped to the built-district
-FACT. Cancel (R5) teardown is a future emitter of the SAME despawn reconcile, not built here.
-
-```clojure
-(def R3-model  ;; механіка end-to-end (built)
-  {:progress-view-entity   ;; Presentation.Districts, one per hex under construction
-     [DistrictBuildProgressViewTag HexIdComponent DistrictBuildProgressViewComponent]  ;; Component = {Type, View}
-   :systems  {DistrictBuildProgressViewSpawnSystem   "reacts to DistrictBuildConfirmedEvent (600<601, after BuildDistrictActionSystem stamps the in-progress entity); reconciles BuildDistrictInProgressTag rows missing a view -> resolves prefab by DistrictType, instantiates at hex centre"
-              DistrictBuildProgressViewDespawnSystem "reacts to DistrictBuiltEvent (603, after BuildDistrictCompletion 602 already disposed the in-progress entity); reconciles progress-view rows whose hex is no longer in-progress -> destroys the view, disposes the entity"
-              DistrictBuildProgressViewsConfigLoaderSystem "ConfigLoadStep loader: DistrictBuildProgressViewsConfig SO (DistrictType -> prefab), mirrors DistrictViewsConfigLoaderSystem"}
-   :ordering "BuildDistrictAction(600) -> ProgressViewSpawn(601) -> BuildDistrictCompletion(602, dispose in-progress + raise DistrictBuiltEvent) -> ProgressViewDespawn(603) -> DistrictViewSpawn(604, real district off the fact)"})
-
-(def R3-open  ;; усі закриті 2026-07-12
-  {:home    {:a "окремі системи в Presentation.Districts — НЕ гілка DistrictViewSpawnSystem (policy: PATTERN_REACTIVE_SYSTEM §smell)" :resolve :by-policy}
-   :config  {:a "DistrictBuildProgressViewConfig: prefab на DistrictType (PATTERN_CONFIG), дзеркалить DistrictViewConfig" :resolve :decided}
-   :trigger {:a "spawn реагує на DistrictBuildConfirmedEvent (не окрема подія); reconcile за HexIdComponent проти BuildDistrictInProgressTag" :resolve :decided}
-   :despawn {:a "окрема система (policy), реагує на DistrictBuiltEvent; reconcile проти поточного BuildDistrictInProgressTag-набору, не проти payload" :resolve :by-policy}})
-```
-
-### R4 — HexInfoPanel in-progress block — LANDED 2026-07-12
-
-The district block in `HexInfoPanelView` gained a 4th mutually-exclusive state: when the selected hex
-has an in-progress build (`BuildDistrictInProgressTag` whose `HexIdComponent` matches the selection),
-the block shows the district type (icon + name), the turns-left (R1's countdown), and a cancel
-button — instead of the build-prompt block. Landed as an EXTENSION of the existing
-`HexInfoPanelDistrictSystem` (not a new ViewSystem — R4-contract's original proposal was superseded
-during build: the system already owned the block's mutual-exclusivity + selection trigger, so adding
-a 4th state there is simpler than a parallel reactive system over the same view). The system now
-reacts to a selection change, a turn boundary, OR the player confirming a build on the still-selected
-hex — DefaultEcs's `WithEither<A>().Or<B>().Or<C>()` either-group, the first use of that operator in
-the codebase (the ecs-graph analyzer was extended the same day to recognize it —
-`~/.claude/skills/ecs-graph/scripts/build_graph.py`).
-
-```clojure
-(def R4-model  ;; механіка end-to-end (built)
-  {:in-progress-block {:owner HexInfoPanelDistrictSystem  ;; розширено 4-м станом InProgress, НЕ нова ViewSystem
-                        :data  "reconcile BuildDistrictInProgressTag-набору за HexIdComponent проти вибраного гексу -> DistrictTypeComponent + BuildDistrictTurnsLeftComponent"
-                        :icon  "^:new DistrictIconConfig (Sprite на DistrictType, wrap-SO варіант PATTERN_CONFIG, мірор HexTerrainIconConfig) — DistrictBuildLabels (emoji) НЕ використано"}
-   :triple-trigger {:base     "WithEither<SelectedHexChangedEvent>().Or<TurnCompletedEvent>().Or<DistrictBuildConfirmedEvent>().AsSet()"
-                     :why      "той самий гекс лишається вибраним, поки декрементується turns-left (TurnCompletedEvent) АБО щойно підтверджено будівництво на ньому (DistrictBuildConfirmedEvent, інакше блок лишався б на build-prompt до реселекту/ходу) — обидва понад базовий SelectedHexChangedEvent"
-                     :priority "RuntimeTick.HexInfoPanelDistrict перенесено 564 -> 1030: мусить бути ВИЩЕ всіх трьох продюсерів (HexSelectionView@501, DistrictBuildUi@566 — джерело DistrictBuildConfirmedEvent, TurnProcessor@1000 — джерело TurnCompletedEvent), інакше pulse губиться у той самий кадр, не доживши до наступного"
-                     :correction "перша пропозиція (NextTurnEvent — стартовий pulse ходу, ДО decrement) виявилась хибною; TurnCompletedEvent (доворот, документований як 'for future turn-boundary reactors') — правильний doorbell. DistrictBuildConfirmedEvent доданий пізніше — без нього confirm на вибраному гексі не оновлював блок одразу"}
-   :cancel {:emit    "HexInfoPanelView.Cancelled — локальна C# подія (PATTERN_VIEW_SYSTEM), НЕ ECS pulse"
-            :handler "HexInfoPanelDistrictSystem підписується (guard+unhook у Dispose); handler НАВМИСНО порожній — ^:new BuildDistrictCancelEvent (R5) ще не існує, той самий dormant-emitter прецедент що OnBuildClicked"}
-   :systems {HexInfoPanelDistrictSystem     "розширено 4-м станом InProgress; triple-trigger; Priority 1030"
-             DistrictIconConfigLoaderSystem "ConfigLoadStep loader, мірор HexTerrainIconConfigLoaderSystem"}})
-
-(def R4-open  ;; усі закриті 2026-07-12
-  {:pattern        {:a "розширено HexInfoPanelDistrictSystem, не нова ViewSystem (супроти оригінального R4-contract) — той самий SelectedHexChangedEvent-trigger + view/selection EntitySet" :resolve :decided}   ;; user 2026-07-12
-   :block-now      {:a "3 стани до R4: None/Build/Details (Details — SCAFFOLD, недосяжний без Economy-компонентів)" :resolve :by-code}
-   :selection-link {:a "HexSelectedComponent через _selectedHexSet, той самий шлях що Header/Resources-сиблінги" :resolve :by-code}
-   :turns-refresh  {:a "TurnCompletedEvent + DistrictBuildConfirmedEvent — 2-й і 3-й член WithEither (NextTurnEvent був невірний вибір для першого, виправлено під час білду)" :resolve :decided}   ;; user 2026-07-12
-   :cancel-emit    {:a "HexInfoPanelView.Cancelled C# event; handler dormant до R5" :resolve :decided}
-   :icon-source    {:a "^:new DistrictIconConfig — Sprite (не emoji з DistrictBuildLabels)" :resolve :decided}})   ;; user 2026-07-12
-```
-
-Asset authoring outstanding (user-side, Unity): create the `DistrictIconConfig` asset
-(`FantasyMayor/MainUI/DistrictIconConfig`), fill sprite + display name per `DistrictType`
-(`CityCenter`/`Farm`/`Forester`), register it as an addressable under the key `"DistrictIconConfig"`.
-
-### R5 — cancel build (+ refund) — LANDED 2026-07-13
-
-From the in-progress block's cancel button (R4), `HexInfoPanelDistrictSystem.OnCancelled` raises
-`BuildDistrictCancelEvent` for the selected hex. The reactive `BuildDistrictActionCancelSystem`
-(`Domains.Actions.BuildDistrictAction`) finds the in-progress entity by hex, refunds, and disposes it —
-never producing a District fact. **Supersedes the original contract's confirm-turn stamp:** the
-same-turn test doesn't need a separate stamped component or the world's turn counter —
-`BuildDistrictTurnsLeftComponent` was widened into `BuildDistrictTurnsComponent { TurnsLeft,
-TurnsToBuild }` (`TurnsToBuild` set once at confirm, never modified after), so `TurnsLeft ==
-TurnsToBuild` IS the same-turn test (user call, 2026-07-12). Refund: same turn as confirm → AP +
-resources in full; any later turn → resources only, floored proportional to turns-left (`price *
-TurnsLeft / TurnsToBuild`, user call: floor rounding, 2026-07-12); AP is never refunded past the
-confirm turn. Progress-view teardown (R3) needed no new system: `DistrictBuildProgressViewDespawnSystem`
-widened its trigger to `WithEither<DistrictBuiltEvent>().Or<BuildDistrictCancelEvent>()` — the same
-global reconcile the R3 header comment already anticipated ("Cancel teardown is a future emitter of
-the same reconcile"). `HexInfoPanelDistrictSystem`'s own trigger gained a 4th disjunct
-(`.Or<BuildDistrictCancelEvent>()`, alongside R4's three) so the panel drops the in-progress block the
-same frame a cancel lands, for the same reason R4 added its 3rd disjunct. Also closes the independent
-`dedup-debt` item below: the by-`DistrictType` config scan is now the one shared
-`DistrictConfigLookup.TryFind` helper, used by this system and all four former duplicates.
-
-```clojure
-(def R5-model  ;; механіка end-to-end (built)
-  {:same-turn-test "BuildDistrictTurnsComponent.TurnsLeft == TurnsToBuild — no confirm-turn stamp, no TurnCountComponent read"
-   :refund {:same-turn "AP (MayorAPComponent) + resources (ResourceLedger.Credit) in full"
-            :later-turn "resources only, floor(price.Amount * TurnsLeft / TurnsToBuild) per ResourceAmount; AP untouched"
-            :owner "BuildDistrictActionCancelSystem — mirrors BuildDistrictActionSystem's spend-side resolution (Mayor/City actor + stacks)"}
-   :cleanup {:entity "in-progress entity (BuildDistrictInProgressTag row) disposed by BuildDistrictActionCancelSystem"
-             :progress-view "DistrictBuildProgressViewDespawnSystem — widened WithEither, same reconcile as R3, no new system"}
-   :events {BuildDistrictCancelEvent "HexCoord payload; HexInfoPanelDistrictSystem -> BuildDistrictActionCancelSystem + DistrictBuildProgressViewDespawnSystem"}
-   :systems {BuildDistrictActionCancelSystem "reactive, Priority 602 (RuntimeTick, < DistrictBuildProgressViewDespawn@604 — same-tick dispose-before-reconcile, mirrors BuildDistrictCompletion@603)"
-             HexInfoPanelDistrictSystem      "WithEither widened to 4 disjuncts; OnCancelled dormant handler filled in"
-             DistrictBuildProgressViewDespawnSystem "WithEither widened: DistrictBuiltEvent OR BuildDistrictCancelEvent"}
-   :priority-renumber "RuntimeTick cluster 602-605 shifted to 602-606 to insert BuildDistrictActionCancel@602 before Completion@603 (was 602) and Despawn@604 (was 603) — SystemPriorities.cs is the only file touched, no literal priority values elsewhere"
-   :dedup-debt-closed "DistrictConfigLookup.TryFind (Domains.Economy.District.Helpers) — generic by-DistrictType scan, replaces the 4 duplicated loops"})
-
-(def R5-open  ;; усі закриті 2026-07-12/13
-  {:event          {:a "BuildDistrictCancelEvent (HexCoord) + BuildDistrictActionCancelSystem"        :resolve :decided}
-   :same-turn-test {:a "BuildDistrictTurnsComponent.TurnsLeft == TurnsToBuild — user redesign, no confirm-turn stamp needed" :resolve :decided}   ;; user 2026-07-12
-   :refund-partial {:a "floor(price * TurnsLeft / TurnsToBuild) per resource"                          :resolve :decided}   ;; user 2026-07-12 — геймдизайн
-   :ap-rule        {:a "AP лише того ж ходу, ресурси завжди"                                           :resolve :decided}
-   :view-cleanup   {:a "DistrictBuildProgressViewDespawnSystem widened trigger — same reconcile as R3, no new system" :resolve :by-policy}
-   :panel-refresh  {:a "HexInfoPanelDistrictSystem WithEither +BuildDistrictCancelEvent (4th disjunct) — found during build, same reasoning as R4's 3rd" :resolve :by-code}})
-```
-
-### Technical debt — independent of the flows above (former gap 3) — CLOSED 2026-07-13 (during R5)
-
-```clojure
-(def dedup-debt
-  {:problem "find-config-by-DistrictType дублюється: TryGetDistrict verbatim ×2 (Price/HexResources subsystems), TryGetCost — той самий shape, ResolvePrefab — третій варіант"
-   :fix     "DistrictConfigLookup.TryFind (Domains/Economy/District/Helpers/) — generic over the element type, keySelector + optional extraPredicate as non-capturing lambdas (cached, zero per-call allocation); used by BuildDistrictActionSystem, BuildDistrictActionCancelSystem, DistrictBuildPriceUISubSystem (×2), DistrictBuildHexResourcesUISubSystem, DistrictBuildProgressViewSpawnSystem"})
+ {:task :evaluate-open-conditions   ;; S5 — needs :unify-district-row + :add-table-changed-event
+  :closes #{:g3 :g6}  :where Domains.Economy.DistrictOpenCondition
+  :change {DistrictSingleOpenConditionEvaluatorSubSystem
+             {:query :unchanged   ;; its multimap over DistrictTag + DistrictTypeComponent ALREADY spans every row
+              :why "after :unify-district-row that map holds Planned AND Built rows — the in-progress case arrives for FREE"
+              :do "correct the stale header (:g6): the table is no longer scaffold, and the query now counts in-progress builds"
+              :dissolves "the proposed in-progress set on this subsystem — no BuildDistrictInProgressTag read, no Economy→Actions edge"}}
+  :add [{:file ^:new DistrictExistConditionEvaluatorSubSystem :name :by-naming-policy
+         :base DistrictOpenConditionEvaluatorSubSystem :pattern PATTERN_ORCHESTRATOR_SUBSYSTEM
+         :do (-> "slice the condition table by kind Exist" "per row read DistrictExistConditionComponent.RequiredDistrict"
+                 "look that type up in the District multimap, keep only rows staged Built"   ;; user: «лише якщо він збудований»
+                 "target := Buildable when ≥1 Built row exists, else Closed" "change-only Set()")
+         :register "the family is DI-collected — add it to the DistrictOpenCondition installer, or BOTH hosts silently skip it"}
+        {:file ^:new DistrictOpenConditionEvaluatorTableChangedSystem :name :by-naming-policy   ;; 3rd host, sibling of …EvaluatorSystem / …EvaluatorBootstrapSystem
+         :role reactive-system :pattern PATTERN_REACTIVE_SYSTEM
+         :trigger "DistrictTableChangedEvent — any stage; every transition can flip a condition"
+         :do "run the same DI-collected family; NO evaluation logic of its own"
+         :why "per-turn re-derivation is too late: confirm and cancel must re-gate the list within the same turn"
+         :wire "a new reactive system is THREE wiring steps, none optional — miss one and it never runs, silently: (1) a SystemPriorities constant; (2) installer registration, CONCRETE + .As<TheSystem>() per ARCHITECTURE di-composition; (3) manual composition into the Gameplay state in Boot. Verify with dig.py after."
+         :unlike "the sibling subsystem below needs only its installer line — the family is DI-collected; a HOST is not"}]
+  :hosts-after {DistrictOpenConditionEvaluatorBootstrapSystem "world-init — covers turn 1 (no Preview phase runs before it)"
+                DistrictOpenConditionEvaluatorSystem "turn phase — covers future kinds depending on non-District state (population, tech)"
+                ^:new DistrictOpenConditionEvaluatorTableChangedSystem "reactive — covers District-table changes within a turn"}
+  :accept [{:meter ecs-graph :target "DistrictExistConditionComponent has ≥1 reader"}
+           {:meter "playtest" :target "building the last SingleOpen district drops it from the list on CONFIRM, not on completion; cancel returns it"}]}]
 ```
 
 <!-- doc-lint: on -->
+
+## Decision log
+
+```clojure
+(def decisions  ;; all user calls, 2026-07-17
+  {:unified-row   "District row from confirm + a stage column; a separate planned-tag REJECTED as a third copy"
+   :exist-counts  "Exist counts Built only; SingleOpen counts Planned + Built"
+   :triggers      "re-evaluate on new turn, confirm, completion AND cancel"
+   :fold          "DistrictBuiltEvent folds into the table-changed pulse; views leave command pulses"
+   :event-payload "field ON the event + IEquatable + multimap-keyed; NOT a separate component reusing the stage column — Removed has no row to carry it"
+   :doc-rewrite   "this contract rewritten from scratch; the R1–R5 build history dropped — the record is the commit log"})
+```

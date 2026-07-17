@@ -152,18 +152,18 @@ def _code_ref_names(block):
     return names
 
 
-BODY_BUDGET_LINES = 120   # Category A size budget (DOC_STANDARD → Size budgets)
 DESC_BUDGET_CHARS = 120   # first content line = the INDEX description
+
+# No body-line budget. It only ever applied to Category A (= Flows), and Flows are exempt by
+# decision (user, 2026-07-17 — DOC_STANDARD → Size budgets): a flow contract is sized by the
+# behavior it owns, not by a line count. The description budget below is unrelated and stays —
+# that line IS the INDEX entry, so its limit is a layout fact, not a size opinion.
 
 
 def lint_budgets(docs):
-    """Size budgets (DOC_STANDARD → Size budgets). WARN-level: reported, never blocks —
-    promote into lint() once the first shrink-pass brings the corpus under budget."""
+    """Description budget only. WARN-level: reported, never blocks."""
     warns = []
     for p, m in docs:
-        body_lines = sum(1 for ln in m["_body"].splitlines() if ln.strip())
-        if m["category"] == "A" and body_lines > BODY_BUDGET_LINES:
-            warns.append(f"{p}: body {body_lines} lines > budget {BODY_BUDGET_LINES} (Category A)")
         if len(m["desc"]) > DESC_BUDGET_CHARS:
             warns.append(f"{p}: first content line {len(m['desc'])} chars > {DESC_BUDGET_CHARS}")
     return warns

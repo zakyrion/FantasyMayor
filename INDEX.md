@@ -13,7 +13,7 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 24 docs — 2 always · 20 trigger · 2 reference · 3 canvas.
+Totals: 24 docs — 2 always · 21 trigger · 1 reference · 3 canvas.
 
 ## Read at start (always)
 
@@ -30,6 +30,7 @@ Do **not** preload. Read only when the trigger condition holds.
 |---|---|---|
 | [DOC_STANDARD.md](DOC_STANDARD.md) | before authoring or reviewing any .md (Flows / Patterns / policy) for standard compliance | Single source of truth for how to write Markdown docs in this project. |
 | [FantasyMayor — ECS & Runtime Conventions](ECS_CONVENTIONS.md) | before writing or editing any ECS system, component, event, config, or query | The ECS/runtime rulebook: where state lives, how systems are decomposed, and the write / collection / |
+| [FLOW — District Build](Flows/FLOW_DISTRICT_BUILD.md) | before touching district build, the District table, or district open conditions (Domains.Actions.BuildDistrictAction, Domains.Economy.District, Domains.Economy.DistrictOpenCondition, Presentation.Districts) | One row per district from confirm to built; the buildable set is derived from that same table. |
 | [FantasyMayor - Gameplay Foundation](GAMEPLAY_FOUNDATION.md) | ONLY when the user explicitly asks to open this file — never on session-start, never by topic/keyword | `FantasyMayor` is a turn-based game about governing a city through a scarcity of `Action Points`, limited resources, population as a productive and political force, and an unstable balance of power between the mayor and the local elites. |
 | [GENERAL_UI_STYLE.md](GENERAL_UI_STYLE.md) | before creating or changing UI (UI Toolkit, panels, tokens, USS) | The general UI design language for FantasyMayor: the global HUD layout model, design principles, visual |
 | [GLOSSARY — domain vocabulary → code anchors](GLOSSARY.md) | when a domain term (any language) needs its canonical code name before searching roslyn / ecs-graph / di-graph | Map from human vocabulary (game-design terms, Ukrainian/English synonyms, abbreviations) to the |
@@ -56,7 +57,6 @@ Reference docs read on demand.
 | Doc | Cat | Status | What it is |
 |---|---|---|---|
 | [Як читати і писати Clojure-інструкції](CLOJURE_GUIDE.md) | B | — | Людський підручник до Clojure-нотації задач і правил: реальний синтаксис Clojure як мова |
-| [FLOW — District Build](Flows/FLOW_DISTRICT_BUILD.md) | A | implemented | The cross-domain contract of the district-build transaction: one player gesture (open → pick → |
 
 ## Canvas map (on demand)
 
