@@ -11,7 +11,9 @@ using Domains.Actors.Mayor.Components;
 using Domains.Actors.Mayor.Tags;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
+using Domains.Economy.District.Events;
 using Domains.Economy.District.Helpers;
+using Domains.Economy.District.Tags;
 using Domains.Economy.DistrictBuildCost.Components;
 using Domains.Economy.DistrictBuildCost.Configs;
 using Domains.Economy.Resource.Data;
@@ -24,20 +26,26 @@ namespace Domains.Actions.BuildDistrictAction.Systems
 {
     /// <summary>
     ///     Reactive: on the <see cref="BuildDistrictCancelEvent" /> pulse (raised by
-    ///     <c>HexInfoPanelDistrictSystem.OnCancelled</c>) finds the in-progress build at the pulse's hex and
-    ///     REFUNDS then disposes it. Same turn as confirm (<c>BuildDistrictTurnsComponent.TurnsLeft ==
-    ///     TurnsToBuild</c> — nothing has ticked yet) refunds AP + resources in full; any later turn refunds only
-    ///     resources, floored proportional to turns-left (<c>price * TurnsLeft / TurnsToBuild</c>). AP is always
-    ///     Mayor-paid (mirrors the R2 spend), so the AP refund always targets the Mayor's pool regardless of the
-    ///     resource payer. A pulse with no matching in-progress hex is a broken invariant — the cancel control is
-    ///     UI-gated (only shown while a build is in progress on the selected hex) — so it throws, not skips. See
-    ///     <c>Flows/FLOW_DISTRICT_BUILD.md</c> R5 and <c>Patterns/PATTERN_REACTIVE_SYSTEM.md</c>.
+    ///     <c>HexInfoPanelDistrictSystem.OnCancelled</c>) resolves the District row at the pulse's hex, its
+    ///     matching in-progress verb row (via <c>DistrictIdFKComponent</c>), REFUNDS, then disposes BOTH rows —
+    ///     the unified District row has exactly 2 exits: Built (terminal) or disposed on cancel
+    ///     (FLOW_DISTRICT_BUILD unification, 2026-07-17). Same turn as confirm
+    ///     (<c>BuildDistrictTurnsComponent.TurnsLeft == TurnsToBuild</c> — nothing has ticked yet) refunds AP +
+    ///     resources in full; any later turn refunds only resources, floored proportional to turns-left
+    ///     (<c>price * TurnsLeft / TurnsToBuild</c>). AP is always Mayor-paid (mirrors the R2 spend), so the AP
+    ///     refund always targets the Mayor's pool regardless of the resource payer. A pulse with no matching
+    ///     District row (or no matching verb row for it — a broken invariant) is a broken invariant — the cancel
+    ///     control is UI-gated (only shown while a build is in progress on the selected hex) — so it throws, not
+    ///     skips. See <c>Flows/FLOW_DISTRICT_BUILD.md</c> R5 and <c>Patterns/PATTERN_REACTIVE_SYSTEM.md</c>.
     /// </summary>
     [UsedImplicitly]
     public sealed class BuildDistrictActionCancelSystem : UpdatedSystem
     {
-        // In-progress builds indexed by hex — the pulse's identifying payload resolves straight to the entity.
-        private readonly EntityMultiMap<HexIdFKComponent> _inProgressByHex;
+        // District rows indexed by hex — the pulse's identifying payload resolves straight to the row.
+        private readonly EntityMultiMap<HexIdFKComponent> _districtsByHex;
+
+        // In-progress verb rows indexed by their FK into the District PK space.
+        private readonly EntityMultiMap<DistrictIdFKComponent> _inProgressByDistrictId;
 
         // Actor rows (Table Rule), same resolution as BuildDistrictActionSystem's spend side.
         private readonly EntitySet _mayorActor;
@@ -54,13 +62,18 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         {
             _world = world;
 
-            _inProgressByHex = world.GetEntities()
-                .With<BuildDistrictInProgressTag>()
+            _districtsByHex = world.GetEntities()
+                .With<DistrictTag>()
                 .With<HexIdFKComponent>()
-                .With<DistrictTypeFKComponent>()
+                .With<DistrictTypeComponent>()
+                .AsMultiMap<HexIdFKComponent>();
+
+            _inProgressByDistrictId = world.GetEntities()
+                .With<BuildDistrictInProgressTag>()
+                .With<DistrictIdFKComponent>()
                 .With<BuildDistrictTurnsComponent>()
                 .With<ActorTypeComponent>()
-                .AsMultiMap<HexIdFKComponent>();
+                .AsMultiMap<DistrictIdFKComponent>();
 
             _mayorActor = world.GetEntities()
                 .With<MayorIdComponent>().With<MayorTag>().With<MayorAPComponent>().With<ActorTypeComponent>().AsSet();
@@ -76,18 +89,30 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         {
             var coords = pulse.Get<BuildDistrictCancelEvent>().Coords;
 
-            if (!_inProgressByHex.TryGetEntities(new HexIdFKComponent { Coords = coords }, out var matches) || matches.Length == 0)
+            if (!_districtsByHex.TryGetEntities(new HexIdFKComponent { Coords = coords }, out var districtMatches) || districtMatches.Length == 0)
                 throw new InvalidOperationException(
-                    $"BuildDistrictActionCancelSystem: no in-progress build at {coords} to cancel.");
+                    $"BuildDistrictActionCancelSystem: no District row at {coords} to cancel.");
 
-            var entity = matches[0];
-            var turns = entity.Get<BuildDistrictTurnsComponent>();
-            var type = entity.Get<DistrictTypeFKComponent>().Value;
-            var payer = entity.Get<ActorTypeComponent>().Type;
+            var district = districtMatches[0];
+            var districtId = district.Get<DistrictIdComponent>().Value;
+            var type = district.Get<DistrictTypeComponent>().Value;
+
+            if (!_inProgressByDistrictId.TryGetEntities(new DistrictIdFKComponent { Value = districtId }, out var verbMatches) || verbMatches.Length == 0)
+                throw new InvalidOperationException(
+                    $"BuildDistrictActionCancelSystem: no in-progress verb row for district {districtId} to cancel.");
+
+            var verb = verbMatches[0];
+            var turns = verb.Get<BuildDistrictTurnsComponent>();
+            var payer = verb.Get<ActorTypeComponent>().Type;
 
             Refund(payer, ResolveCost(type), turns);
 
-            entity.Dispose();
+            district.Dispose();
+            verb.Dispose();
+
+            var changeEntity = _world.CreateEntity();
+            changeEntity.Set(new DistrictTableChangedEvent { Change = DistrictTableChange.Removed });
+            changeEntity.Set(new EventTag());
         }
 
         // Same-turn (TurnsLeft == TurnsToBuild, nothing ticked since confirm): AP + resources in full. Any later
@@ -167,7 +192,8 @@ namespace Domains.Actions.BuildDistrictAction.Systems
 
         public override void Dispose()
         {
-            _inProgressByHex.Dispose();
+            _districtsByHex.Dispose();
+            _inProgressByDistrictId.Dispose();
             _mayorActor.Dispose();
             _cityActor.Dispose();
             _mayorResources.Dispose();

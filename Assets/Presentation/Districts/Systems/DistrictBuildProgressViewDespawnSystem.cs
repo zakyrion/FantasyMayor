@@ -1,7 +1,9 @@
 using DefaultEcs;
 using DefaultECSExtensions;
-using Domains.Actions.BuildDistrictAction.Components;
-using Domains.Actions.BuildDistrictAction.Events;
+using Domains.Economy.District.Components;
+using Domains.Economy.District.Data;
+using Domains.Economy.District.Events;
+using Domains.Economy.District.Tags;
 using Domains.Map.Hex.Components;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
@@ -13,20 +15,19 @@ using Object = UnityEngine.Object;
 namespace Presentation.Districts.Systems
 {
     /// <summary>
-    ///     Reactive runtime construction-progress remover. Anchored on EITHER the one-frame
-    ///     <see cref="DistrictBuiltEvent" /> pulse (the same pulse <c>DistrictViewSpawnSystem</c> reacts to —
-    ///     <c>BuildDistrictCompletionSystem</c> disposes the in-progress entity BEFORE raising it) OR
-    ///     <see cref="BuildDistrictCancelEvent" /> (<c>BuildDistrictActionCancelSystem</c> disposes the in-progress
-    ///     entity BEFORE raising it, same-tick ordering) — on either presence it reconciles state: every
-    ///     progress-view hex whose hex no longer carries a <c>BuildDistrictInProgressTag</c> entity has its view
-    ///     entity (and GameObject) destroyed. Works with current world state, not transitive deltas, so it is
-    ///     idempotent regardless of which pulse (or both) fired this tick.
+    ///     Reactive runtime construction-progress remover. Anchored on the one-frame
+    ///     <see cref="DistrictTableChangedEvent" /> pulse (folds the former dual
+    ///     <c>DistrictBuiltEvent</c>/<c>BuildDistrictCancelEvent</c> trigger, FLOW_DISTRICT_BUILD unification,
+    ///     2026-07-17): on its presence it reconciles state — every progress-view hex that no longer has a
+    ///     District row staged <c>DistrictBuildState.Planned</c> (completion flipped it to <c>Built</c>, or
+    ///     cancel disposed it) has its view entity (and GameObject) destroyed. Works with current world state,
+    ///     not transitive deltas, so it is idempotent regardless of which stage transition fired this tick.
     /// </summary>
     [UsedImplicitly]
     public sealed class DistrictBuildProgressViewDespawnSystem : UpdatedSystem
     {
-        // In-progress build entities indexed by the hex FK -> the currently-building set is the current truth.
-        private readonly EntityMultiMap<HexIdFKComponent> _inProgressByHex;
+        // District rows: one per hex, carrying the hex FK and its build stage.
+        private readonly EntitySet _districts;
 
         // Progress-view entities indexed by the hex FK -> candidates for despawn once their hex stops building.
         private readonly EntityMultiMap<HexIdFKComponent> _viewsByHex;
@@ -35,13 +36,14 @@ namespace Presentation.Districts.Systems
 
         public DistrictBuildProgressViewDespawnSystem(World world)
             : base(world.GetEntities()
-                .WithEither<DistrictBuiltEvent>().Or<BuildDistrictCancelEvent>()
+                .With<DistrictTableChangedEvent>()
                 .AsSet())
         {
-            _inProgressByHex = world.GetEntities()
-                .With<BuildDistrictInProgressTag>()
+            _districts = world.GetEntities()
+                .With<DistrictTag>()
                 .With<HexIdFKComponent>()
-                .AsMultiMap<HexIdFKComponent>();
+                .With<DistrictBuildStateComponent>()
+                .AsSet();
 
             _viewsByHex = world.GetEntities()
                 .With<HexIdFKComponent>()
@@ -52,16 +54,17 @@ namespace Presentation.Districts.Systems
         // The pulse entity itself is ignored — reconciliation is global over current state.
         protected override void Update(GameState state, in Entity pulse)
         {
-            var buildingHexes = new NativeHashSet<HexCoord>(64, Allocator.Temp);
-            foreach (var hexId in _inProgressByHex.Keys)
-                buildingHexes.Add(hexId.Coords);
+            var plannedHexes = new NativeHashSet<HexCoord>(64, Allocator.Temp);
+            foreach (var district in _districts.GetEntities())
+                if (district.Get<DistrictBuildStateComponent>().Value == DistrictBuildState.Planned)
+                    plannedHexes.Add(district.Get<HexIdFKComponent>().Coords);
 
             // Snapshot stale views before destroying: DestroyView disposes entities, which would mutate the
             // view map mid-enumeration.
             var staleViews = new NativeList<Entity>(8, Allocator.Temp);
             foreach (var hexId in _viewsByHex.Keys)
             {
-                if (buildingHexes.Contains(hexId.Coords))
+                if (plannedHexes.Contains(hexId.Coords))
                     continue;
 
                 if (_viewsByHex.TryGetEntities(hexId, out var views))
@@ -73,12 +76,12 @@ namespace Presentation.Districts.Systems
                 DestroyView(staleViews[i]);
 
             staleViews.Dispose();
-            buildingHexes.Dispose();
+            plannedHexes.Dispose();
         }
 
         public override void Dispose()
         {
-            _inProgressByHex.Dispose();
+            _districts.Dispose();
             _viewsByHex.Dispose();
             base.Dispose();
         }

@@ -1,9 +1,9 @@
 using System;
 using DefaultEcs;
 using DefaultECSExtensions;
-using Domains.Actions.BuildDistrictAction.Events;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
+using Domains.Economy.District.Events;
 using Domains.Economy.District.Tags;
 using Domains.Map.Hex.Components;
 using JetBrains.Annotations;
@@ -18,17 +18,19 @@ using Presentation.Districts.Tags;
 namespace Presentation.Districts.Systems
 {
     /// <summary>
-    ///     Reactive runtime district-view spawner. Anchored on the one-frame <see cref="DistrictBuiltEvent" />
-    ///     pulse: on its presence it reconciles state — every built District fact entity
-    ///     (<c>DistrictTag</c>) that has no view yet gets its prefab instantiated on the hex centre. Works with
-    ///     current world state, not the pulse payload, so it is idempotent: a second pulse in the same frame finds
-    ///     nothing missing and no-ops. The pulse is raised by <c>BuildDistrictCompletionSystem</c> at build
-    ///     completion.
+    ///     Reactive runtime district-view spawner. Anchored on the one-frame
+    ///     <see cref="DistrictTableChangedEvent" /> pulse (folds the former <c>DistrictBuiltEvent</c>,
+    ///     FLOW_DISTRICT_BUILD unification, 2026-07-17): on its presence it reconciles state — every District row
+    ///     staged <c>DistrictBuildState.Built</c> that has no view yet gets its prefab instantiated on the hex
+    ///     centre. The stage filter matters now the row exists from CONFIRM (<c>Planned</c>), not just at
+    ///     completion — an unfiltered scan would spawn the finished-district prefab on rows still under
+    ///     construction. Works with current world state, not the pulse payload, so it is idempotent: a second
+    ///     pulse in the same frame finds nothing missing and no-ops.
     /// </summary>
     [UsedImplicitly]
     public sealed class DistrictViewSpawnSystem : UpdatedSystem
     {
-        // Built District fact entities: one per built hex, carrying the hex FK and its district type.
+        // District rows: one per hex, carrying the hex FK, its type, and its build stage.
         private readonly EntitySet _districts;
 
         // District view entities indexed by the hex FK -> lets the reconcile skip hexes already viewed.
@@ -42,7 +44,7 @@ namespace Presentation.Districts.Systems
 
         public DistrictViewSpawnSystem(World world)
             : base(world.GetEntities()
-                .With<DistrictBuiltEvent>()
+                .With<DistrictTableChangedEvent>()
                 .AsSet())
         {
             _world = world;
@@ -51,6 +53,7 @@ namespace Presentation.Districts.Systems
                 .With<DistrictTag>()
                 .With<HexIdFKComponent>()
                 .With<DistrictTypeComponent>()
+                .With<DistrictBuildStateComponent>()
                 .AsSet();
 
             _viewsByHex = world.GetEntities()
@@ -76,6 +79,9 @@ namespace Presentation.Districts.Systems
             var districts = _districts.GetEntities();
             for (var i = 0; i < districts.Length; i++)
             {
+                if (districts[i].Get<DistrictBuildStateComponent>().Value != DistrictBuildState.Built)
+                    continue;
+
                 var hexId = districts[i].Get<HexIdFKComponent>();
                 if (_viewsByHex.ContainsKey(hexId))
                     continue;

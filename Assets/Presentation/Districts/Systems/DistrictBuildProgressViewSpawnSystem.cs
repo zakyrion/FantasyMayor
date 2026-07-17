@@ -1,11 +1,11 @@
 using System;
 using DefaultEcs;
 using DefaultECSExtensions;
-using Domains.Actions.BuildDistrictAction.Components;
-using Domains.Actions.BuildDistrictAction.Events;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
+using Domains.Economy.District.Events;
 using Domains.Economy.District.Helpers;
+using Domains.Economy.District.Tags;
 using Domains.Map.Hex.Components;
 using JetBrains.Annotations;
 using Presentation.Districts.Components;
@@ -20,18 +20,19 @@ namespace Presentation.Districts.Systems
 {
     /// <summary>
     ///     Reactive runtime construction-progress spawner. Anchored on the one-frame
-    ///     <see cref="DistrictBuildConfirmedEvent" /> pulse (the same pulse <c>BuildDistrictActionSystem</c>
-    ///     consumes to create the in-progress entity — this system runs right after it, same tick): on its
-    ///     presence it reconciles state — every in-progress build (<c>BuildDistrictInProgressTag</c>) whose hex
-    ///     has no progress view yet gets its prefab instantiated on the hex centre. Works with current world
-    ///     state, not the pulse payload, so it is idempotent. Torn down by
+    ///     <see cref="DistrictTableChangedEvent" /> pulse (FLOW_DISTRICT_BUILD unification, 2026-07-17 — was
+    ///     <c>DistrictBuildConfirmedEvent</c>, a COMMAND, which coupled this system to
+    ///     <c>BuildDistrictActionSystem</c>'s tick order): on its presence it reconciles state — every District
+    ///     row staged <c>DistrictBuildState.Planned</c> whose hex has no progress view yet gets its prefab
+    ///     instantiated on the hex centre. Works with current world state, not the pulse payload, so it is
+    ///     idempotent regardless of which stage transition raised the pulse. Torn down by
     ///     <see cref="DistrictBuildProgressViewDespawnSystem" /> at build completion (R1) or cancel (R5).
     /// </summary>
     [UsedImplicitly]
     public sealed class DistrictBuildProgressViewSpawnSystem : UpdatedSystem
     {
-        // In-progress build entities: one per hex under construction, carrying the hex FK and its district type.
-        private readonly EntitySet _inProgress;
+        // District rows: one per hex, carrying the hex FK, its type, and its build stage.
+        private readonly EntitySet _districts;
 
         // Progress-view entities indexed by the hex FK -> lets the reconcile skip hexes already viewed.
         private readonly EntityMultiMap<HexIdFKComponent> _viewsByHex;
@@ -44,15 +45,16 @@ namespace Presentation.Districts.Systems
 
         public DistrictBuildProgressViewSpawnSystem(World world)
             : base(world.GetEntities()
-                .With<DistrictBuildConfirmedEvent>()
+                .With<DistrictTableChangedEvent>()
                 .AsSet())
         {
             _world = world;
 
-            _inProgress = world.GetEntities()
-                .With<BuildDistrictInProgressTag>()
+            _districts = world.GetEntities()
+                .With<DistrictTag>()
                 .With<HexIdFKComponent>()
-                .With<DistrictTypeFKComponent>()
+                .With<DistrictTypeComponent>()
+                .With<DistrictBuildStateComponent>()
                 .AsSet();
 
             _viewsByHex = world.GetEntities()
@@ -75,14 +77,17 @@ namespace Presentation.Districts.Systems
             var viewsConfig = _world.Get<DistrictBuildProgressViewsConfigComponent>().Value;
             var vertexGrid = _world.Get<VertexGridComponent>().Grid;
 
-            var inProgress = _inProgress.GetEntities();
-            for (var i = 0; i < inProgress.Length; i++)
+            var districts = _districts.GetEntities();
+            for (var i = 0; i < districts.Length; i++)
             {
-                var hexId = inProgress[i].Get<HexIdFKComponent>();
+                if (districts[i].Get<DistrictBuildStateComponent>().Value != DistrictBuildState.Planned)
+                    continue;
+
+                var hexId = districts[i].Get<HexIdFKComponent>();
                 if (_viewsByHex.ContainsKey(hexId))
                     continue;
 
-                var districtType = inProgress[i].Get<DistrictTypeFKComponent>().Value;
+                var districtType = districts[i].Get<DistrictTypeComponent>().Value;
                 var prefab = ResolvePrefab(viewsConfig, districtType);
 
                 var centerCoord = vertexGrid.GetCenterVertexCoord(hexId.Coords);
@@ -117,7 +122,7 @@ namespace Presentation.Districts.Systems
 
         public override void Dispose()
         {
-            _inProgress.Dispose();
+            _districts.Dispose();
             _viewsByHex.Dispose();
             base.Dispose();
         }

@@ -4,8 +4,9 @@ using DefaultECSExtensions;
 using Domains.Actions.BuildDistrictAction.Components;
 using Domains.Actions.BuildDistrictAction.Events;
 using Domains.Economy.District.Components;
+using Domains.Economy.District.Data;
+using Domains.Economy.District.Events;
 using Domains.Economy.District.Tags;
-using Domains.Map.Hex.Components;
 using JetBrains.Annotations;
 using Unity.Collections;
 
@@ -13,11 +14,12 @@ namespace Domains.Actions.BuildDistrictAction.Systems
 {
     /// <summary>
     ///     Event-gated reconcile: on the <c>BuildDistrictCompleteEvent</c> pulse (raised on the main thread by
-    ///     <c>BuildDistrictTurnTickSystem</c>) it materialises finished builds into Economy District facts — every
-    ///     in-progress verb entity (<see cref="BuildDistrictInProgressTag" />) whose countdown reached zero becomes a
-    ///     District fact (<c>DistrictTag</c> + allocated <c>DistrictIdComponent</c> PK + its <c>HexIdFKComponent</c> +
-    ///     <c>DistrictTypeComponent</c>); the verb entity is disposed and one <c>DistrictBuiltEvent</c> covers the
-    ///     pass for the world-view spawner. The pulse is a DOORBELL, not a payload: this system reconciles the whole
+    ///     <c>BuildDistrictTurnTickSystem</c>) flips finished builds' District row to Built — every in-progress
+    ///     verb row (<see cref="BuildDistrictInProgressTag" />) whose countdown reached zero resolves its
+    ///     <c>DistrictIdFKComponent</c> to the District row (allocated at CONFIRM by
+    ///     <c>BuildDistrictActionSystem</c> — the fact already exists, this system does NOT create it), Sets it
+    ///     <c>DistrictBuildState.Built</c>, then disposes the verb row; one <c>DistrictTableChangedEvent</c>
+    ///     {Built} covers the pass for the world-view spawner. The pulse is a DOORBELL, not a payload: this system reconciles the whole
     ///     in-progress set off state, and the producer re-raises the pulse EVERY turn while any countdown sits at
     ///     zero (level-triggered) — a pulse lost to the EventCleanup frame window costs one turn of latency, never
     ///     correctness. Both halves of that discipline are the contract; weakening either breaks the mechanic
@@ -28,6 +30,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
     {
         private readonly World _world;
         private readonly EntitySet _buildDistrictsInProgress;
+        private readonly EntityMap<DistrictIdComponent> _districtsById;
 
         public override int Priority => SystemPriorities.RuntimeTick.BuildDistrictCompletion;
 
@@ -38,13 +41,12 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             _buildDistrictsInProgress = world.GetEntities()
                 .With<BuildDistrictInProgressTag>()
                 .With<BuildDistrictTurnsComponent>()
-                .With<HexIdFKComponent>()
-                .With<DistrictTypeFKComponent>()
+                .With<DistrictIdFKComponent>()
                 .AsSet();
-
-            // Seed the district-id counter once; ids start at 1 (0 = unset).
-            if (!world.Has<DistrictIdAllocatorComponent>())
-                world.Set(new DistrictIdAllocatorComponent { Next = 1 });
+            _districtsById = world.GetEntities()
+                .With<DistrictTag>()
+                .With<DistrictIdComponent>()
+                .AsMap<DistrictIdComponent>();
         }
 
         // Batch override: the pulse batch is only the trigger — the work runs over the in-progress set, so however
@@ -73,37 +75,36 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             for (var i = 0; i < ready.Length; i++)
             {
                 var entity = ready[i];
-                var coords = entity.Get<HexIdFKComponent>().Coords;
-                var type = entity.Get<DistrictTypeFKComponent>().Value;
+                var districtId = entity.Get<DistrictIdFKComponent>().Value;
 
-                var fact = _world.CreateEntity();
-                fact.Set(new DistrictTag());
-                fact.Set(new DistrictIdComponent { Value = AllocateDistrictId() });
-                fact.Set(new HexIdFKComponent { Coords = coords });
-                fact.Set(new DistrictTypeComponent { Value = type });
+                if (!_districtsById.TryGetEntity(new DistrictIdComponent { Value = districtId }, out var district))
+                    throw new InvalidOperationException(
+                        $"BuildDistrictCompletionSystem: no District row for id {districtId} — unify-district-row invariant broken.");
+
+                district.Set(new DistrictBuildStateComponent { Value = DistrictBuildState.Built });
 
                 entity.Dispose();
             }
 
             ready.Dispose();
-            RaiseDistrictBuilt();
+            RaiseTableChanged();
         }
 
-        // Hands out the next unique district id and advances the shared counter (write via Set).
-        private int AllocateDistrictId()
-        {
-            var id = _world.Get<DistrictIdAllocatorComponent>().Next;
-            _world.Set(new DistrictIdAllocatorComponent { Next = id + 1 });
-            return id;
-        }
-
-        // One payload-less pulse covers however many facts were just written: DistrictViewSpawnSystem reconciles
-        // the new District facts against the views it has already spawned.
-        private void RaiseDistrictBuilt()
+        // One pulse per pass (not per row — the multimap filter lets consumers reconcile the whole Built slice):
+        // DistrictViewSpawnSystem reconciles the newly-Built District rows against the views it has already
+        // spawned.
+        private void RaiseTableChanged()
         {
             var entity = _world.CreateEntity();
-            entity.Set(new DistrictBuiltEvent());
+            entity.Set(new DistrictTableChangedEvent { Change = DistrictTableChange.Built });
             entity.Set(new EventTag());
+        }
+
+        public override void Dispose()
+        {
+            _buildDistrictsInProgress.Dispose();
+            _districtsById.Dispose();
+            base.Dispose();
         }
     }
 }

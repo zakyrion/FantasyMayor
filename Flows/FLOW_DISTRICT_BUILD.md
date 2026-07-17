@@ -11,8 +11,9 @@ related:
 status: partial
 code_refs:
   systems:    [BuildDistrictActionSystem, BuildDistrictActionCancelSystem, BuildDistrictTurnTickSystem, BuildDistrictCompletionSystem, DistrictViewSpawnSystem, DistrictBuildProgressViewSpawnSystem, DistrictBuildProgressViewDespawnSystem, HexInfoPanelDistrictSystem, DistrictBuildListUISubSystem, DistrictOpenConditionEvaluatorSystem, DistrictOpenConditionEvaluatorBootstrapSystem, DistrictSingleOpenConditionEvaluatorSubSystem, DistrictExistConditionSpawnSubSystem]
-  events:     [DistrictBuildUIRequestedEvent, DistrictBuildConfirmedEvent, BuildDistrictCompleteEvent, DistrictBuiltEvent, BuildDistrictCancelEvent]
-  components: [DistrictIdComponent, DistrictTypeComponent, DistrictTypeFKComponent, DistrictIdAllocatorComponent, BuildDistrictTurnsComponent, ActorTypeComponent, DistrictOpenStateComponent, DistrictOpenConditionKindComponent, DistrictExistConditionComponent, HexIdFKComponent]
+  events:     [DistrictBuildUIRequestedEvent, DistrictBuildConfirmedEvent, BuildDistrictCompleteEvent, DistrictTableChangedEvent, BuildDistrictCancelEvent]
+  components: [DistrictIdComponent, DistrictIdFKComponent, DistrictTypeComponent, DistrictTypeFKComponent, DistrictIdAllocatorComponent, DistrictBuildStateComponent, BuildDistrictTurnsComponent, ActorTypeComponent, DistrictOpenStateComponent, DistrictOpenConditionKindComponent, DistrictExistConditionComponent, HexIdFKComponent]
+  data:       [DistrictBuildState, DistrictTableChange]
   tags:       [DistrictTag, BuildDistrictInProgressTag, DistrictOpenConditionTag, DistrictBuildProgressViewTag]
 ---
 
@@ -161,12 +162,13 @@ Live wiring is the ecs-graph; this doc is diffable against it. Code comments lin
 
 ```clojure
 (def gaps
-  {:g1 {:what "hex + type duplicated across the verb row and the fact row" :cost "every consumer picks a source; a third copy was already being proposed"}
-   :g2 {:what "the build stage is unreadable from Domains.Economy"          :cost "SingleOpen cannot count in-progress builds without a DAG violation or a mirror"}
+  {:g1 {:what "hex + type duplicated across the verb row and the fact row" :cost "every consumer picks a source; a third copy was already being proposed" :closed "2026-07-17 (:unify-district-row)"}
+   :g2 {:what "the build stage is unreadable from Domains.Economy"          :cost "SingleOpen cannot count in-progress builds without a DAG violation or a mirror" :closed "2026-07-17 (:unify-district-row)"}
    :g3 {:what "Exist-kind conditions are spawned with no evaluator"         :cost "every Exist-gated district is permanently unbuildable; the seeded Closed state never flips"}
    :g4 {:what "the turn host's comment declares «every world write goes back on the main thread» — stricter than ECS_CONVENTIONS Law 1, which allows an off-thread write to an EXISTING component"
-        :cost "the commented-out hop below it reads as a missing guard; it is a deliberate optimisation (a hop costs a frame). The comment is rot — it already misled one reader into filing a phantom bug."}
-   :g5 {:what "views react to COMMAND pulses and lean on same-tick system order" :cost "a priority change silently breaks the view; the dependency is invisible at the call site"}
+        :cost "the commented-out hop below it reads as a missing guard; it is a deliberate optimisation (a hop costs a frame). The comment is rot — it already misled one reader into filing a phantom bug."
+        :closed "2026-07-17 — RETRACTED, not a real gap (:fix-evaluator-comment); comment corrected regardless"}
+   :g5 {:what "views react to COMMAND pulses and lean on same-tick system order" :cost "a priority change silently breaks the view; the dependency is invisible at the call site" :closed "2026-07-17 (:rewire-presentation)"}
    :g6 {:what "SingleOpen's header claims the District table is «pure scaffold — nothing spawns it yet»" :cost "false since the build flow landed; a stale premise misleads the next reader"}})
 ```
 
@@ -206,7 +208,8 @@ Every `:resolve` is CLOSED — no step waits on a decision; execute in order.
   :root-cause "the file's own comment declares a stricter rule than the decreed one — the agent trusted the comment instead of ECS_CONVENTIONS"
   :do "delete the commented-out SwitchToMainThread line and rewrite the comment to state the REAL reason: this family writes existing components only, so it stays on the pool by design"
   :skip "the hop itself — restoring it would be a regression"
-  :accept {:meter "code read" :target "no commented-out code; the comment cites Law 1's structural-vs-value line, not a blanket write rule"}}
+  :accept {:meter "code read" :target "no commented-out code; the comment cites Law 1's structural-vs-value line, not a blanket write rule"}
+  :landed "2026-07-17"}
 
  {:task :unify-district-row     ;; S2 — the core; needs nothing
   :closes #{:g1 :g2}  :where [Domains.Economy.District Domains.Actions.BuildDistrictAction]
@@ -229,7 +232,8 @@ Every `:resolve` is CLOSED — no step waits on a decision; execute in order.
            BuildDistrictTurnTickSystem "query + logic unchanged — it names only the tag and the turns column, both of which the verb row keeps"}
   :skip "the refund maths, the AP rule, the level-triggered pulse discipline — all landed, none in scope"
   :accept [{:meter ecs-graph :target "the BuildDistrictAction archetype carries no HexIdFKComponent and no DistrictTypeFKComponent"}
-           {:meter "playtest" :target "a confirmed build still COMPLETES — the silent-empty-set trap above is the likeliest way this step regresses"}]}
+           {:meter "playtest" :target "a confirmed build still COMPLETES — the silent-empty-set trap above is the likeliest way this step regresses"}]
+  :landed "2026-07-17 (ecs-graph meter verified; playtest meter is user-side)"}
 
  {:task :add-table-changed-event   ;; S3 — needs :unify-district-row
   :where Domains.Economy.District   ;; closes nothing on its own — see :enables below
@@ -241,7 +245,8 @@ Every `:resolve` is CLOSED — no step waits on a decision; execute in order.
           BuildDistrictActionCancelSystem "{Removed} after the rows are disposed"}
   :delete DistrictBuiltEvent   ;; folded; consumers migrate in :rewire-presentation
   :enables :g5   ;; the pulse this step adds is what lets :rewire-presentation actually close :g5
-  :accept {:meter ecs-graph :target "DistrictBuiltEvent absent; DistrictTableChangedEvent has 3 producers"}}
+  :accept {:meter ecs-graph :target "DistrictBuiltEvent absent; DistrictTableChangedEvent has 3 producers"}
+  :landed "2026-07-17 (ecs-graph meter verified)"}
 
  {:task :rewire-presentation   ;; S4 — needs :add-table-changed-event
   :closes :g5  :where [Presentation.Districts Presentation.UI.MainHud.HexInfoPanel]
@@ -258,7 +263,8 @@ Every `:resolve` is CLOSED — no step waits on a decision; execute in order.
               :data "district type from the District ROW; turns-left from the verb row via the FK"
               :block-rule "in-progress block ⟺ the selected hex's District row is staged Planned"}}
   :skip "the panel's other block states, the icon config, the cancel C# event — all landed"
-  :accept {:meter ecs-graph :target "no Presentation system reacts to DistrictBuildConfirmedEvent or BuildDistrictCancelEvent"}}
+  :accept {:meter ecs-graph :target "no Presentation system reacts to DistrictBuildConfirmedEvent or BuildDistrictCancelEvent"}
+  :landed "2026-07-17 (ecs-graph meter verified)"}
 
  {:task :evaluate-open-conditions   ;; S5 — needs :unify-district-row + :add-table-changed-event
   :closes #{:g3 :g6}  :where Domains.Economy.DistrictOpenCondition
@@ -296,7 +302,7 @@ Every `:resolve` is CLOSED — no step waits on a decision; execute in order.
   {:unified-row   "District row from confirm + a stage column; a separate planned-tag REJECTED as a third copy"
    :exist-counts  "Exist counts Built only; SingleOpen counts Planned + Built"
    :triggers      "re-evaluate on new turn, confirm, completion AND cancel"
-   :fold          "DistrictBuiltEvent folds into the table-changed pulse; views leave command pulses"
+   :fold          "the old completion-only pulse folds into the table-changed event; views leave command pulses"
    :event-payload "field ON the event + IEquatable + multimap-keyed; NOT a separate component reusing the stage column — Removed has no row to carry it"
    :doc-rewrite   "this contract rewritten from scratch; the R1–R5 build history dropped — the record is the commit log"})
 ```

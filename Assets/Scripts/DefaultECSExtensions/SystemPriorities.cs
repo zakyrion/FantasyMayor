@@ -47,20 +47,20 @@ namespace DefaultECSExtensions
             public const int HexInfoPanelResources = 563;
             public const int ResourceBar = 565;
             public const int DistrictBuildUi = 566;
-            public const int BuildDistrictAction = 600;
-            public const int DistrictBuildProgressViewSpawn = 601; // > BuildDistrictAction (600): reads the in-progress entity it just stamped, same DistrictBuildConfirmedEvent pulse
-            public const int BuildDistrictActionCancel = 602; // > DistrictBuildProgressViewSpawn (601), < DistrictBuildProgressViewDespawn (604): consumes BuildDistrictCancelEvent, disposes the in-progress entity in the SAME frame the views reconcile
-            public const int BuildDistrictCompletion = 603; // > BuildDistrictActionCancel (602), < DistrictBuildProgressViewDespawn (604): consume the completed pulse, write the District fact + raise DistrictBuiltEvent in the SAME frame the views reconcile
+            public const int BuildDistrictAction = 600; // raises DistrictTableChangedEvent{Planned} on confirm
+            public const int DistrictBuildProgressViewSpawn = 601; // > BuildDistrictAction (600): sees its {Planned} pulse the same tick, spawns the progress view for the just-created District row
+            public const int BuildDistrictActionCancel = 602; // > DistrictBuildProgressViewSpawn (601), < DistrictBuildProgressViewDespawn (604): consumes BuildDistrictCancelEvent, disposes both rows and raises DistrictTableChangedEvent{Removed} in the SAME frame the views reconcile
+            public const int BuildDistrictCompletion = 603; // > BuildDistrictActionCancel (602), < DistrictBuildProgressViewDespawn (604): consume the completed pulse, flip the District row to Built + raise DistrictTableChangedEvent{Built} in the SAME frame the views reconcile
             public const int ForestSpawn = 599; // moved off 601 to free that slot for BuildDistrictCompletion; forest ordering is independent of the district-build chain
-            public const int DistrictBuildProgressViewDespawn = 604; // > BuildDistrictActionCancel (602) and BuildDistrictCompletion (603): the in-progress entity it reconciles against is already disposed by either, whichever raised this tick
-            public const int DistrictViewSpawn = 605;
+            public const int DistrictBuildProgressViewDespawn = 604; // > BuildDistrictActionCancel (602) and BuildDistrictCompletion (603): sees their {Removed}/{Built} pulses the same tick the District row stops being Planned
+            public const int DistrictViewSpawn = 605; // > BuildDistrictCompletion (603): sees its {Built} pulse the same tick
             public const int ForestDespawn = 606;
             public const int HexIconsContainerPosition = 700; // > Camera (0): re-project after the camera moves this frame
             public const int HexIconsVisibility = 800;
             public const int TurnProcessor = 1000;
             public const int TurnCount = 1010;
             public const int TurnPanelView = 1020; // > TurnCount (1010): reads TurnProcessorComponent/TurnCountComponent every frame — must run after both write
-            public const int HexInfoPanelDistrict = 1030; // > TurnProcessor (1000): reacts to EITHER SelectedHexChangedEvent (produced at 501), TurnCompletedEvent (produced at 1000), OR DistrictBuildConfirmedEvent (produced at 566, DistrictBuildUi) — must sit above all three producers to see any pulse the same frame
+            public const int HexInfoPanelDistrict = 1030; // > TurnProcessor (1000): reacts to EITHER SelectedHexChangedEvent (produced at 501), TurnCompletedEvent (produced at 1000), OR DistrictTableChangedEvent (produced at 600/602/603) — must sit above all three producers to see any pulse the same frame
             public const int EventCleanup = int.MaxValue; // always last: disposes the frame's event entities
         }
 
