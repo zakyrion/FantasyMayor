@@ -183,6 +183,20 @@ Every `:resolve` is CLOSED — no step waits on a decision; execute in order.
    :unity  "one user-side step exists (a new folder's .meta, see :add-table-changed-event); everything else is plain code"})
 ```
 
+```clojure
+(def plan-atomicity  ;; READ BEFORE STARTING — the middle of this plan is a knowingly broken world
+  {:band "S2 + S3 + S4 are ONE landing unit; the world is BROKEN between them BY DESIGN"
+   :why  "S2 removes hex + type from the verb row; S4 is what re-points Presentation at the District row. Between them, Presentation reads columns that no longer exist."
+   :broken-after-S2
+     {DistrictBuildProgressViewSpawnSystem "its query still names the dropped columns → EMPTY set → no progress prefab. SILENT."
+      DistrictViewSpawnSystem              "no stage filter yet → on any completion pulse it also spawns prefabs for PLANNED rows → districts appear before they are built. VISIBLE."
+      HexInfoPanelDistrictSystem           "reads hex + type off the verb row → gone → the in-progress block breaks"}
+   :do-not "do NOT playtest between S2 and S4, and do NOT 'fix' any of the three above — S4 repairs each one by design. Patching them in place re-creates the duplication this whole plan removes."
+   :expected-early-win "SingleOpen starts counting in-progress builds correctly the moment S2 lands — that is the mechanic arriving, not a bug to investigate"
+   :independent #{:fix-evaluator-comment}   ;; S1 touches nothing this band touches — land it whenever
+   :verify-at "the end of S4 — the first point where the world is coherent again; S5 then adds the missing evaluators on top"})
+```
+
 <!-- doc-lint: off -->
 
 ```clojure
