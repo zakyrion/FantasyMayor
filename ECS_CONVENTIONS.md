@@ -280,9 +280,8 @@ An entity "table" is defined by its query, and a query MUST name the table, not 
   holds because every indexed row belongs to one table. The same Data type keying maps of TWO
   different tables is the forbidden shared-key conflation — split it into PK + FK.
 
-- The hex key space under the law (FM-11 target shape; FK types are created during the migration):
+- The hex key space under the law:
 
-  <!-- doc-lint: off — FM-11 target-state names, created during the migration -->
   | Table | Discriminator | Key component | Role |
   |---|---|---|---|
   | Hex | `HexTag` | `HexIdComponent` | PK — one entity per coordinate |
@@ -309,7 +308,6 @@ An entity "table" is defined by its query, and a query MUST name the table, not 
   EntitySet resources =
       world.GetEntities().With<HexIdFKComponent>().With<HexResourceComponent>().With<HexResourceTag>().AsSet();
   ```
-  <!-- doc-lint: on -->
 
 - **DefaultEcs mechanics behind the law (verified against 0.17.2 source):**
   - `AsMap<TKey>` / `AsMultiMap<TKey>` implicitly add `With<TKey>()` to the rule — the map alone is

@@ -13,7 +13,7 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 25 docs — 2 always · 20 trigger · 3 reference · 3 canvas.
+Totals: 24 docs — 2 always · 20 trigger · 2 reference · 3 canvas.
 
 ## Read at start (always)
 
@@ -57,7 +57,6 @@ Reference docs read on demand.
 |---|---|---|---|
 | [Як читати і писати Clojure-інструкції](CLOJURE_GUIDE.md) | B | — | Людський підручник до Clojure-нотації задач і правил: реальний синтаксис Clojure як мова |
 | [FLOW — District Build](Flows/FLOW_DISTRICT_BUILD.md) | A | implemented | The cross-domain contract of the district-build transaction: one player gesture (open → pick → |
-| [PLAN FM-11 — Component key-role migration (PK / FK / Data + tag classes)](PLAN_FM11_COMPONENT_ROLES.md) | C | — | Executor plan: split shared keys into PK + FK types and convert kind/state tags to enum components. |
 
 ## Canvas map (on demand)
 
