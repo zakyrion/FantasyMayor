@@ -1,6 +1,6 @@
 using System;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Presentation.UI.MainHud.ContextTabs.Components;
 using Presentation.UI.MainHud.ContextTabs.Data;
@@ -17,31 +17,34 @@ namespace Presentation.UI.MainHud.ContextTabs.Systems
     [UsedImplicitly]
     public sealed class ContextTabSelectionSystem : UpdatedSystem
     {
-        private readonly World _world;
+        private readonly EntityStore _world;
 
         public override int Priority => SystemPriorities.RuntimeTick.ContextTabSelection;
 
-        public ContextTabSelectionSystem(World world)
-            : base(world.GetEntities().With<ContextTabChangedEvent>().AsSet())
+        public ContextTabSelectionSystem(EntityStore world)
+            : base(world.Query<ContextTabChangedEvent>())
         {
             _world = world;
         }
 
         protected override void Update(GameState state, in Entity entity)
         {
-            if (!_world.Has<ContextTabsViewComponent>())
+            if (!EcsEventExtensions.IsRipe(entity))
                 return;
 
-            if (!_world.Has<ActiveContextTabComponent>())
+            if (!_world.HasWorldComponent<ContextTabsViewComponent>())
+                return;
+
+            if (!_world.HasWorldComponent<ActiveContextTabComponent>())
                 throw new InvalidOperationException(
                     "ContextTabSelectionSystem: ActiveContextTabComponent is missing — it must be seeded on spawn.");
 
-            var active = _world.Get<ActiveContextTabComponent>().Value;
+            var active = _world.GetWorldComponent<ActiveContextTabComponent>().Value;
             if (active == ContextTab.Unknown)
                 throw new InvalidOperationException(
                     "ContextTabSelectionSystem: active tab is Unknown — the view must record a real tab.");
 
-            var view = _world.Get<ContextTabsViewComponent>().View;
+            var view = _world.GetWorldComponent<ContextTabsViewComponent>().View;
             if (view == null)
                 return;
 

@@ -1,11 +1,12 @@
-using System;
 using Domains.Economy.District.Data;
+using Friflo.Engine.ECS;
+using System;
 
 namespace Domains.Economy.District.Components
 {
     // Stage column on the District row (Tag Law): Planned from CONFIRM, Built at completion. Change-only Set()
     // — re-indexes the AsMultiMap self-index automatically.
-    public struct DistrictBuildStateComponent : IEquatable<DistrictBuildStateComponent>
+    public struct DistrictBuildStateComponent : IEquatable<DistrictBuildStateComponent>, IComponent
     {
         public DistrictBuildState Value;
 

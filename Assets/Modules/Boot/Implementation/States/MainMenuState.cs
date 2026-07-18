@@ -1,7 +1,7 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using Friflo.Engine.ECS;
+using EcsExtensions;
 using Modules.Boot.Core;
 using Presentation.UI.GeneratorMenu.Systems;
 using Domains.Map.Generation.Components;
@@ -15,19 +15,17 @@ namespace Modules.Boot.Implementation.States
     public sealed class MainMenuState : IAppState
     {
         private readonly ShowHexesUISystem _ui;
-        private readonly EntitySet _generateRequests;
+        private readonly ArchetypeQuery _generateRequests;
 
         private GameMode? _requestedMode;
 
         public GameMode Mode => GameMode.MainMenu;
         public GameMode? RequestedMode => _requestedMode;
 
-        public MainMenuState(World world, ShowHexesUISystem ui)
+        public MainMenuState(EntityStore world, ShowHexesUISystem ui)
         {
             _ui = ui;
-            _generateRequests = world.GetEntities()
-                .With<TerrainGenerationGenerateEventComponent>()
-                .AsSet();
+            _generateRequests = world.Query<TerrainGenerationGenerateEventComponent>();
         }
 
         public async UniTask EnterAsync(CancellationToken cancellationToken)
@@ -40,11 +38,20 @@ namespace Modules.Boot.Implementation.States
 
         public void Tick(GameState state)
         {
-            if (_generateRequests.Count == 0)
+            if (!HasRipeRequest())
                 return;
 
             // The event entity is cleaned up by EventCleanupSystem once MapCreation starts ticking.
             _requestedMode = GameMode.MapCreation;
+        }
+
+        private bool HasRipeRequest()
+        {
+            foreach (var pulse in _generateRequests.Entities)
+                if (EcsEventExtensions.IsRipe(pulse))
+                    return true;
+
+            return false;
         }
 
         public void LateTick(GameState state)

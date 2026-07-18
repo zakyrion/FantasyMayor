@@ -1,8 +1,8 @@
 using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using Modules.AxialSystem;
@@ -29,9 +29,9 @@ namespace Presentation.Terrain.Systems
         private const string WATER_VIEW_ADDRESS = "WaterView";
 
         private readonly IAddressable _addressable;
-        private readonly EntitySet _hexSet;
-        private readonly EntityMultiMap<HexTypeComponent> _hexesByType;
-        private readonly World _world;
+        private readonly ArchetypeQuery _hexSet;
+        private readonly ComponentIndex<HexTypeComponent, HexType> _hexesByType;
+        private readonly EntityStore _world;
 
         private Box<WaterView> _waterViewBox;
         private Entity? _waterViewEntity;
@@ -41,13 +41,13 @@ namespace Presentation.Terrain.Systems
 
         /// <param name="world">ECS world used for entity queries and result entity creation.</param>
         /// <param name="addressable">Used to load and instantiate the WaterView prefab.</param>
-        public WaterViewSubSystem(World world, IAddressable addressable)
+        public WaterViewSubSystem(EntityStore world, IAddressable addressable)
         {
             _world = world;
             _addressable = addressable;
             _waterViewBox = Box<WaterView>.Empty();
-            _hexSet = world.GetEntities().With<HexIdComponent>().With<HexTag>().AsSet();
-            _hexesByType = world.GetEntities().With<HexTag>().AsMultiMap<HexTypeComponent>();
+            _hexSet = world.Query<HexIdComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
+            _hexesByType = world.ComponentIndex<HexTypeComponent, HexType>();
         }
 
         /// <inheritdoc />
@@ -58,8 +58,8 @@ namespace Presentation.Terrain.Systems
             if (!HasRequiredConfigEntities())
                 return;
 
-            var terrainConfig = _world.Get<TerrainViewConfigComponent>();
-            var waterConfig = _world.Get<WaterViewConfigComponent>();
+            var terrainConfig = _world.GetWorldComponent<TerrainViewConfigComponent>();
+            var waterConfig = _world.GetWorldComponent<WaterViewConfigComponent>();
 
             var result = await _addressable.LoadAndInstanceAsync(WATER_VIEW_ADDRESS, cancellationToken);
 
@@ -104,8 +104,8 @@ namespace Presentation.Terrain.Systems
 
             DestroyWaterViewEntity();
             var entity = _world.CreateEntity();
-            entity.Set(new WaterViewComponent { ObjectRef = component });
-            entity.Set(new WaterViewTag());
+            entity.AddComponent(new WaterViewComponent { ObjectRef = component });
+            entity.AddTag<WaterViewTag>();
             _waterViewEntity = entity;
         }
 
@@ -113,8 +113,6 @@ namespace Presentation.Terrain.Systems
         public override void Dispose()
         {
             DisposeWaterView();
-            _hexSet.Dispose();
-            _hexesByType.Dispose();
             base.Dispose();
         }
 
@@ -126,9 +124,8 @@ namespace Presentation.Terrain.Systems
         {
             var waterHexes = new NativeHashSet<HexCoord>(1, Allocator.Persistent);
 
-            if (_hexesByType.TryGetEntities(new HexTypeComponent { Type = HexType.Water }, out var entities))
-                foreach (ref readonly var entity in entities)
-                    waterHexes.Add(entity.Get<HexIdComponent>().Coords);
+            foreach (var entity in _hexesByType[HexType.Water])
+                waterHexes.Add(entity.GetComponent<HexIdComponent>().Coords);
 
             return waterHexes;
         }
@@ -141,17 +138,17 @@ namespace Presentation.Terrain.Systems
         /// <param name="waterHexes">Already-computed water hex set; not modified.</param>
         private NativeHashSet<HexCoord> CollectShoreHexCoords(NativeHashSet<HexCoord> waterHexes)
         {
-            var entities   = _hexSet.GetEntities();
+            var entities   = _hexSet.Entities;
             var shoreHexes = new NativeHashSet<HexCoord>(
-                Mathf.Max(1, entities.Length),
+                Mathf.Max(1, entities.Count),
                 Allocator.Persistent);
 
-            foreach (ref readonly var entity in entities)
+            foreach (var entity in entities)
             {
-                if (!entity.Has<HexTypeComponent>() || entity.Get<HexTypeComponent>().Type == HexType.Water)
+                if (!entity.HasComponent<HexTypeComponent>() || entity.GetComponent<HexTypeComponent>().Type == HexType.Water)
                     continue;
 
-                var coord = entity.Get<HexIdComponent>().Coords;
+                var coord = entity.GetComponent<HexIdComponent>().Coords;
                 for (var d = 0; d < AxialMath.NeighborCount; d++)
                 {
                     var neighbor = coord + AxialMath.NeighborsPointyTop[d];
@@ -169,7 +166,7 @@ namespace Presentation.Terrain.Systems
         /// <summary>Validates that all singleton config entity sets are populated.</summary>
         private bool HasRequiredConfigEntities()
         {
-            if (_world.Has<TerrainViewConfigComponent>() && _world.Has<WaterViewConfigComponent>())
+            if (_world.HasWorldComponent<TerrainViewConfigComponent>() && _world.HasWorldComponent<WaterViewConfigComponent>())
                 return true;
 
             Debug.LogError("[WaterViewSubSystem] One or more required configs are missing.");
@@ -184,10 +181,10 @@ namespace Presentation.Terrain.Systems
 
         private void DestroyWaterViewEntity()
         {
-            if (_waterViewEntity == null || !_waterViewEntity.Value.IsAlive)
+            if (_waterViewEntity == null || _waterViewEntity.Value.IsNull)
                 return;
 
-            _waterViewEntity.Value.Dispose();
+            _waterViewEntity.Value.DeleteEntity();
             _waterViewEntity = null;
         }
 

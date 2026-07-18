@@ -1,3 +1,4 @@
+using Friflo.Engine.ECS;
 using Presentation.UI.DistrictBuild.Views;
 
 namespace Presentation.UI.DistrictBuild.Components
@@ -7,7 +8,7 @@ namespace Presentation.UI.DistrictBuild.Components
     ///     Box) is owned by DistrictBuildUISpawnSystem via <see cref="DistrictBuildUIRootComponent" />;
     ///     this only references the view. Mirrors TurnPanelViewComponent.
     /// </summary>
-    public readonly struct DistrictBuildUIViewComponent
+    public readonly struct DistrictBuildUIViewComponent : IComponent
     {
         public readonly DistrictBuildUIView View;
 

@@ -1,4 +1,5 @@
 using Core;
+using Friflo.Engine.ECS;
 using UnityEngine;
 
 namespace Presentation.UI.DistrictBuild.Components
@@ -8,7 +9,7 @@ namespace Presentation.UI.DistrictBuild.Components
     ///     (a separate document from the shared Main UI, with a higher sort order). DistrictBuildUISpawnSystem
     ///     owns the handle and disposes it on teardown. Mirrors MainHudComponent.
     /// </summary>
-    public struct DistrictBuildUIRootComponent
+    public struct DistrictBuildUIRootComponent : IComponent
     {
         public Box<GameObject> RootBox;
     }

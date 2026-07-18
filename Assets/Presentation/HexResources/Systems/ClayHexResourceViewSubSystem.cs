@@ -1,5 +1,5 @@
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
 using Domains.Map.Hex.Components;
@@ -25,22 +25,22 @@ namespace Presentation.HexResources.Systems
     [UsedImplicitly]
     internal sealed class ClayHexResourceViewSubSystem : HexResourcesViewSubSystem
     {
-        private readonly World _world;
-        private readonly EntitySet _hexSet;
+        private readonly EntityStore _world;
+        private readonly ArchetypeQuery _hexSet;
         private readonly ClayGroundPainter _painter = new();
 
         private readonly ClayDepressionShaper _shaper = new();
-        private readonly EntitySet _terrainViewSet;
+        private readonly ArchetypeQuery _terrainViewSet;
 
         public override int Priority => SystemPriorities.SubSystems.HexResourceView.Clay;
         protected override HexResourceType TargetHexResourceType => HexResourceType.Clay;
 
-        public ClayHexResourceViewSubSystem(World world)
+        public ClayHexResourceViewSubSystem(EntityStore world)
             : base(world)
         {
             _world = world;
-            _terrainViewSet = world.GetEntities().With<TerrainViewComponent>().With<TerrainViewTag>().AsSet();
-            _hexSet = world.GetEntities().With<HexIdComponent>().With<HexTag>().AsSet();
+            _terrainViewSet = world.Query<TerrainViewComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<TerrainViewTag>());
+            _hexSet = world.Query<HexIdComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
         }
 
         public override void Update(GameState state)
@@ -49,19 +49,20 @@ namespace Presentation.HexResources.Systems
             if (clayEntities.Length == 0)
                 return;
 
-            if (!TryGetVertexGrid(out var grid) || !_world.Has<ClayViewConfigComponent>())
+            if (!TryGetVertexGrid(out var grid) || !_world.HasWorldComponent<ClayViewConfigComponent>())
                 return;
 
-            if (!_world.Has<TerrainViewConfigComponent>() || !_world.Has<TerrainTextureComponent>() || _terrainViewSet.Count == 0)
+            if (!_world.HasWorldComponent<TerrainViewConfigComponent>() || !_world.HasWorldComponent<TerrainTextureComponent>() || _terrainViewSet.Count == 0)
             {
                 Debug.LogWarning("[ClayHexResourceViewSubSystem] Missing terrain config, texture, or view — clay skipped.");
                 return;
             }
 
-            var clayConfig = _world.Get<ClayViewConfigComponent>();
-            var cellSize = _world.Get<TerrainViewConfigComponent>().CellSize;
-            var texture = _world.Get<TerrainTextureComponent>().Texture;
-            var terrainView = _terrainViewSet.GetEntities()[0].Get<TerrainViewComponent>().ObjectRef;
+            var clayConfig = _world.GetWorldComponent<ClayViewConfigComponent>();
+            var cellSize = _world.GetWorldComponent<TerrainViewConfigComponent>().CellSize;
+            var texture = _world.GetWorldComponent<TerrainTextureComponent>().Texture;
+            _terrainViewSet.TryGetFirst(out var terrainViewEntity);
+            var terrainView = terrainViewEntity.GetComponent<TerrainViewComponent>().ObjectRef;
 
             if (texture == null || terrainView == null)
             {
@@ -77,7 +78,7 @@ namespace Presentation.HexResources.Systems
 
             foreach (var clayEntity in clayEntities)
             {
-                var hex = clayEntity.Get<HexIdFKComponent>().Coords;
+                var hex = clayEntity.GetComponent<HexIdFKComponent>().Coords;
                 var centerXZ = AxialMath.AxialToWorld2D(hex.Value, cellSize);
                 var footprint = new ClayFootprint(
                     hex,
@@ -97,17 +98,16 @@ namespace Presentation.HexResources.Systems
 
         public override void Dispose()
         {
-            _terrainViewSet.Dispose();
-            _hexSet.Dispose();
             base.Dispose();
         }
 
         private void InitializePainter(Texture2D texture, float cellSize)
         {
-            var hexEntities = _hexSet.GetEntities();
-            var hexCoords = new NativeArray<HexCoord>(hexEntities.Length, Allocator.Temp);
-            for (var i = 0; i < hexEntities.Length; i++)
-                hexCoords[i] = hexEntities[i].Get<HexIdComponent>().Coords;
+            var hexEntities = _hexSet.Entities;
+            var hexCoords = new NativeArray<HexCoord>(hexEntities.Count, Allocator.Temp);
+            var index = 0;
+            foreach (var hexEntity in hexEntities)
+                hexCoords[index++] = hexEntity.GetComponent<HexIdComponent>().Coords;
 
             _painter.Initialize(hexCoords, texture, cellSize);
             hexCoords.Dispose();

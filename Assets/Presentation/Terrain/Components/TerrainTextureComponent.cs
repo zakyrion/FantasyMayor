@@ -1,3 +1,4 @@
+using Friflo.Engine.ECS;
 using UnityEngine;
 
 namespace Presentation.Terrain.Components
@@ -10,7 +11,7 @@ namespace Presentation.Terrain.Components
     ///     runtime systems (e.g. forest ground painting) can mutate the same <see cref="Texture2D" />
     ///     instance; mutations are reflected by the material automatically.
     /// </summary>
-    public struct TerrainTextureComponent
+    public struct TerrainTextureComponent : IComponent
     {
         public Texture2D Texture;
     }

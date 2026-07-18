@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using Core;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using Domains.Economy.District.Events;
 using JetBrains.Annotations;
 
@@ -21,8 +21,8 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
         public override int Priority => SystemPriorities.RuntimeTick.DistrictOpenConditionEvaluatorTableChanged;
 
         public DistrictOpenConditionEvaluatorTableChangedSystem(
-            World world, IReadOnlyList<DistrictOpenConditionEvaluatorSubSystem> subSystems)
-            : base(world.GetEntities().With<DistrictTableChangedEvent>().AsSet())
+            EntityStore world, IReadOnlyList<DistrictOpenConditionEvaluatorSubSystem> subSystems)
+            : base(world.Query<DistrictTableChangedEvent>())
         {
             _subSystems = subSystems
                 .OrderBy(system => system.Priority)
@@ -32,6 +32,9 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
         // The pulse entity is ignored — every subsystem reconciles globally off current world state.
         protected override void Update(GameState state, in Entity pulse)
         {
+            if (!EcsEventExtensions.IsRipe(pulse))
+                return;
+
             for (var i = 0; i < _subSystems.Count; i++)
                 if (_subSystems[i].IsEnabled)
                     _subSystems[i].Evaluate();

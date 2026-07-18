@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Domains.Map.Hex.Components;
 using Presentation.HexIcons.Components;
@@ -28,26 +28,18 @@ namespace Presentation.HexIcons.Systems
     [UsedImplicitly]
     public sealed class HexIconsVisibilitySystem : UpdatedSystem
     {
-        private readonly World _world;
-        private readonly EntitySet _containerSet;
-        private readonly EntitySet _resourceSet;
+        private readonly EntityStore _world;
+        private readonly ArchetypeQuery _containerSet;
+        private readonly ArchetypeQuery _resourceSet;
 
         public override int Priority => SystemPriorities.RuntimeTick.HexIconsVisibility;
 
-        public HexIconsVisibilitySystem(World world)
-            : base(world.GetEntities()
-                .With<HexIconsVisibilityChangedEvent>()
-                .AsSet())
+        public HexIconsVisibilitySystem(EntityStore world)
+            : base(world.Query<HexIconsVisibilityChangedEvent>())
         {
             _world = world;
-            _containerSet = world.GetEntities()
-                .With<HexIdFKComponent>()
-                .With<HexIconContainerComponent>().With<HexIconContainerTag>()
-                .AsSet();
-            _resourceSet = world.GetEntities()
-                .With<HexIdFKComponent>()
-                .With<HexResourceComponent>().With<HexResourceTag>()
-                .AsSet();
+            _containerSet = world.Query<HexIdFKComponent, HexIconContainerComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexIconContainerTag>());
+            _resourceSet = world.Query<HexIdFKComponent, HexResourceComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexResourceTag>());
         }
 
         // Fires once per event (normally one per frame). Resolves prerequisites fail-loud, then clears and —
@@ -55,39 +47,42 @@ namespace Presentation.HexIcons.Systems
         // O(containers × resources) but runs only on event frames, so no per-hex lookup index is cached.
         protected override void Update(GameState state, in Entity entity)
         {
-            if (!_world.Has<HexIconsVisibilityComponent>())
+            if (!EcsEventExtensions.IsRipe(entity))
+                return;
+
+            if (!_world.HasWorldComponent<HexIconsVisibilityComponent>())
                 throw new InvalidOperationException(
                     "HexIconsVisibilitySystem: HexIconsVisibilityComponent is missing.");
-            if (!_world.Has<HexIconsViewComponent>())
+            if (!_world.HasWorldComponent<HexIconsViewComponent>())
                 throw new InvalidOperationException(
                     "HexIconsVisibilitySystem: HexIconsViewComponent is missing.");
-            if (!_world.Has<HexIconsConfigComponent>())
+            if (!_world.HasWorldComponent<HexIconsConfigComponent>())
                 throw new InvalidOperationException(
                     "HexIconsVisibilitySystem: HexIconsConfigComponent is missing.");
-            if (!_world.Has<HexResourceIconConfigComponent>())
+            if (!_world.HasWorldComponent<HexResourceIconConfigComponent>())
                 throw new InvalidOperationException(
                     "HexIconsVisibilitySystem: HexResourceIconConfigComponent is missing.");
 
-            var isVisible = _world.Get<HexIconsVisibilityComponent>().IsVisible;
-            var view = _world.Get<HexIconsViewComponent>().View;
-            var iconSize = _world.Get<HexIconsConfigComponent>().Value.IconSize;
-            var entries = _world.Get<HexResourceIconConfigComponent>().Value.Entries;
+            var isVisible = _world.GetWorldComponent<HexIconsVisibilityComponent>().IsVisible;
+            var view = _world.GetWorldComponent<HexIconsViewComponent>().View;
+            var iconSize = _world.GetWorldComponent<HexIconsConfigComponent>().Value.IconSize;
+            var entries = _world.GetWorldComponent<HexResourceIconConfigComponent>().Value.Entries;
 
-            foreach (var containerEntity in _containerSet.GetEntities())
+            foreach (var containerEntity in _containerSet.Entities)
             {
-                var container = containerEntity.Get<HexIconContainerComponent>().Container;
+                var container = containerEntity.GetComponent<HexIconContainerComponent>().Container;
                 container.Clear();
 
                 if (!isVisible)
                     continue;
 
-                var coords = containerEntity.Get<HexIdFKComponent>().Coords;
-                foreach (var resourceEntity in _resourceSet.GetEntities())
+                var coords = containerEntity.GetComponent<HexIdFKComponent>().Coords;
+                foreach (var resourceEntity in _resourceSet.Entities)
                 {
-                    if (!resourceEntity.Get<HexIdFKComponent>().Coords.Value.Equals(coords.Value))
+                    if (!resourceEntity.GetComponent<HexIdFKComponent>().Coords.Value.Equals(coords.Value))
                         continue;
 
-                    var type = resourceEntity.Get<HexResourceComponent>().Type;
+                    var type = resourceEntity.GetComponent<HexResourceComponent>().Type;
                     if (TryFindSprite(entries, type, out var sprite))
                         AddIcon(view, container, iconSize, type, sprite);
                 }

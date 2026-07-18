@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Core;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using Domains.Actions.BuildDistrictAction.Events;
 using Domains.Economy.District.Data;
 using Domains.Kernel.Data;
@@ -31,26 +31,26 @@ namespace Presentation.UI.DistrictBuild.Systems
     ///     reconciles its own view from ECS (orchestrator + subsystem family, like DistrictOpenConditionSpawnSystem).
     /// </summary>
     [UsedImplicitly]
-    public sealed class DistrictBuildUISystem : UpdatedSystem
+    public sealed class DistrictBuildUISystem : UpdatedSystem, IDisposable
     {
-        private readonly World _world;
+        private readonly EntityStore _world;
 
         // DI-collected section populators. Ordered once; fixed composition, not per-frame state — hence
         // [StateAllowed] (mirrors DistrictOpenConditionSpawnSystem).
         [StateAllowed]
         private readonly IReadOnlyList<DistrictBuildUISubSystem> _subSystems;
 
-        private readonly EntitySet _requestedSet;
-        private readonly EntitySet _selectedHexSet;
-        private readonly EntitySet _selectionSet;
+        private readonly ArchetypeQuery _requestedSet;
+        private readonly ArchetypeQuery _selectedHexSet;
+        private readonly ArchetypeQuery _selectionSet;
 
         private DistrictBuildUIView _view;
         private bool _chromeHooked;
 
         public override int Priority => SystemPriorities.RuntimeTick.DistrictBuildUi;
 
-        public DistrictBuildUISystem(World world, IReadOnlyList<DistrictBuildUISubSystem> subSystems)
-            : base(world.GetEntities().With<DistrictBuildUIViewComponent>().With<UITag>().AsSet())
+        public DistrictBuildUISystem(EntityStore world, IReadOnlyList<DistrictBuildUISubSystem> subSystems)
+            : base(world.Query<DistrictBuildUIViewComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<UITag>()))
         {
             _world = world;
             _subSystems = subSystems
@@ -62,14 +62,14 @@ namespace Presentation.UI.DistrictBuild.Systems
             for (var i = 0; i < _subSystems.Count; i++)
                 _subSystems[i].Repopulate = PopulateSections;
 
-            _requestedSet = world.GetEntities().With<DistrictBuildUIRequestedEvent>().With<EventTag>().AsSet();
-            _selectedHexSet = world.GetEntities().With<HexSelectedComponent>().With<HexSelectionTag>().AsSet();
-            _selectionSet = world.GetEntities().With<DistrictBuildSelectionTag>().AsSet();
+            _requestedSet = world.Query<DistrictBuildUIRequestedEvent>();
+            _selectedHexSet = world.Query<HexSelectedComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexSelectionTag>());
+            _selectionSet = world.Query().AllTags(Friflo.Engine.ECS.Tags.Get<DistrictBuildSelectionTag>());
         }
 
         protected override void Update(GameState state, in Entity entity)
         {
-            var view = entity.Get<DistrictBuildUIViewComponent>().View;
+            var view = entity.GetComponent<DistrictBuildUIViewComponent>().View;
             if (view == null)
                 return;
 
@@ -99,9 +99,7 @@ namespace Presentation.UI.DistrictBuild.Systems
             var (coords, type) = ReadSelection();
             var payer = ReadPayer();
 
-            var buildEntity = _world.CreateEntity();
-            buildEntity.Set(new DistrictBuildConfirmedEvent { Coords = coords, Type = type, Payer = payer });
-            buildEntity.Set(new EventTag());
+            _world.CreateEvent(new DistrictBuildConfirmedEvent { Coords = coords, Type = type, Payer = payer });
 
             _view.Hide();
             DestroySelection();
@@ -119,13 +117,13 @@ namespace Presentation.UI.DistrictBuild.Systems
         // rather than build an Unknown district.
         private (HexCoord coords, DistrictType type) ReadSelection()
         {
-            if (_selectedHexSet.Count == 0)
+            if (!_selectedHexSet.TryGetFirst(out var hexEntity))
                 throw new InvalidOperationException("DistrictBuildUISystem: confirm with no selected hex.");
-            if (_selectionSet.Count == 0)
+            if (!_selectionSet.TryGetFirst(out var selectionEntity))
                 throw new InvalidOperationException("DistrictBuildUISystem: confirm with no selected district.");
 
-            var coords = _selectedHexSet.GetEntities()[0].Get<HexSelectedComponent>().Coords;
-            var type = _selectionSet.GetEntities()[0].Get<DistrictBuildSelectionComponent>().Selected;
+            var coords = hexEntity.GetComponent<HexSelectedComponent>().Coords;
+            var type = selectionEntity.GetComponent<DistrictBuildSelectionComponent>().Selected;
             return (coords, type);
         }
 
@@ -135,10 +133,10 @@ namespace Presentation.UI.DistrictBuild.Systems
         // spends the payer's stockpile from it (R2).
         private ActorType ReadPayer()
         {
-            if (!_world.Has<DistrictBuildPriceUIViewComponent>())
+            if (!_world.HasWorldComponent<DistrictBuildPriceUIViewComponent>())
                 throw new InvalidOperationException("DistrictBuildUISystem: confirm with no price section view.");
 
-            var payer = _world.Get<DistrictBuildPriceUIViewComponent>().View.SelectedOwner;
+            var payer = _world.GetWorldComponent<DistrictBuildPriceUIViewComponent>().View.SelectedOwner;
             if (payer == ActorType.Unknown)
                 throw new InvalidOperationException("DistrictBuildUISystem: confirm with no selected payer.");
 
@@ -164,38 +162,33 @@ namespace Presentation.UI.DistrictBuild.Systems
                 return;
 
             var entity = _world.CreateEntity();
-            entity.Set(new DistrictBuildSelectionTag());
+            entity.AddTag<DistrictBuildSelectionTag>();
         }
 
         private void DestroySelection()
         {
-            foreach (var entity in _selectionSet.GetEntities())
-                entity.Dispose();
+            if (_selectionSet.TryGetFirst(out var entity))
+                entity.DeleteEntity();
         }
 
         // Each section subsystem reconciles its own view from the current ECS selection; the orchestrator only
         // sequences them by Priority and hands over the overlay root.
         private void PopulateSections()
         {
-            var root = _world.Get<DistrictBuildUIRootComponent>().RootBox.Value;
+            var root = _world.GetWorldComponent<DistrictBuildUIRootComponent>().RootBox.Value;
 
             for (var i = 0; i < _subSystems.Count; i++)
                 if (_subSystems[i].IsEnabled)
                     _subSystems[i].Populate(root);
         }
 
-        public override void Dispose()
+        public void Dispose()
         {
             if (_chromeHooked && _view != null)
             {
                 _view.Confirmed -= OnConfirmed;
                 _view.Closed -= OnClosed;
             }
-
-            _requestedSet.Dispose();
-            _selectedHexSet.Dispose();
-            _selectionSet.Dispose();
-            base.Dispose();
         }
     }
 }

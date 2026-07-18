@@ -1,8 +1,8 @@
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
 using Domains.Map.Hex.Components;
@@ -29,9 +29,9 @@ namespace Presentation.Terrain.Systems
     [UsedImplicitly]
     internal sealed class TerrainViewGenerationSubSystem : ViewSubSystem
     {
-        private readonly EntitySet _hexSet;
-        private readonly EntityMultiMap<HexTypeComponent> _hexesByType;
-        private readonly World _world;
+        private readonly ArchetypeQuery _hexSet;
+        private readonly ComponentIndex<HexTypeComponent, HexType> _hexesByType;
+        private readonly EntityStore _world;
 
         /// <inheritdoc />
         public override int Priority => SystemPriorities.SubSystems.TerrainView.Generation;
@@ -40,11 +40,11 @@ namespace Presentation.Terrain.Systems
         ///     Creates the generation subsystem bound to the shared ECS world.
         /// </summary>
         /// <param name="world">World used to query terrain configs and hex entities.</param>
-        public TerrainViewGenerationSubSystem(World world)
+        public TerrainViewGenerationSubSystem(EntityStore world)
         {
             _world = world;
-            _hexSet = world.GetEntities().With<HexIdComponent>().With<HexTag>().AsSet();
-            _hexesByType = world.GetEntities().With<HexTag>().AsMultiMap<HexTypeComponent>();
+            _hexSet = world.Query<HexIdComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
+            _hexesByType = world.ComponentIndex<HexTypeComponent, HexType>();
         }
 
         /// <inheritdoc />
@@ -53,16 +53,16 @@ namespace Presentation.Terrain.Systems
             if (!HasRequiredConfigEntities())
                 return;
 
-            if (!_world.Has<VertexGridComponent>())
+            if (!_world.HasWorldComponent<VertexGridComponent>())
                 throw new InvalidOperationException("TerrainViewGenerationSubSystem: VertexGridComponent world component is missing.");
 
-            var vertexGrid = _world.Get<VertexGridComponent>().Grid;
-            var config = _world.Get<TerrainViewConfigComponent>();
-            var innerConfig = _world.Get<InnerIsolineConfigComponent>();
-            var outerConfig = _world.Get<OuterIsolineConfigComponent>();
-            var heightSmoothingConfig = _world.Get<HeightSmoothingConfigComponent>();
-            var hydraulicConfig = _world.Get<HydraulicErosionConfigComponent>();
-            var windConfig = _world.Get<WindErosionConfigComponent>();
+            var vertexGrid = _world.GetWorldComponent<VertexGridComponent>().Grid;
+            var config = _world.GetWorldComponent<TerrainViewConfigComponent>();
+            var innerConfig = _world.GetWorldComponent<InnerIsolineConfigComponent>();
+            var outerConfig = _world.GetWorldComponent<OuterIsolineConfigComponent>();
+            var heightSmoothingConfig = _world.GetWorldComponent<HeightSmoothingConfigComponent>();
+            var hydraulicConfig = _world.GetWorldComponent<HydraulicErosionConfigComponent>();
+            var windConfig = _world.GetWorldComponent<WindErosionConfigComponent>();
 
             await BuildIsolinesAsync(vertexGrid, config, innerConfig, outerConfig, cancellationToken);
 
@@ -85,7 +85,6 @@ namespace Presentation.Terrain.Systems
         /// <inheritdoc />
         public override void Dispose()
         {
-            _hexSet.Dispose();
             base.Dispose();
         }
 
@@ -95,10 +94,10 @@ namespace Presentation.Terrain.Systems
         /// <returns><c>true</c> if all config sets are populated; <c>false</c> with a logged error otherwise.</returns>
         private bool HasRequiredConfigEntities()
         {
-            if (_world.Has<TerrainViewConfigComponent>() &&
-                _world.Has<InnerIsolineConfigComponent>() && _world.Has<OuterIsolineConfigComponent>() &&
-                _world.Has<HeightSmoothingConfigComponent>() && _world.Has<HydraulicErosionConfigComponent>() &&
-                _world.Has<WindErosionConfigComponent>())
+            if (_world.HasWorldComponent<TerrainViewConfigComponent>() &&
+                _world.HasWorldComponent<InnerIsolineConfigComponent>() && _world.HasWorldComponent<OuterIsolineConfigComponent>() &&
+                _world.HasWorldComponent<HeightSmoothingConfigComponent>() && _world.HasWorldComponent<HydraulicErosionConfigComponent>() &&
+                _world.HasWorldComponent<WindErosionConfigComponent>())
                 return true;
 
             Debug.LogError("[TerrainViewGenerationSubSystem] One or more required configs are missing.");
@@ -186,11 +185,8 @@ namespace Presentation.Terrain.Systems
         /// </summary>
         private void AddCoordsOfType(HexType type, ref NativeList<HexCoord> result)
         {
-            if (!_hexesByType.TryGetEntities(new HexTypeComponent { Type = type }, out var entities))
-                return;
-
-            foreach (ref readonly var entity in entities)
-                result.Add(entity.Get<HexIdComponent>().Coords);
+            foreach (var entity in _hexesByType[type])
+                result.Add(entity.GetComponent<HexIdComponent>().Coords);
         }
 
         /// <summary>
@@ -199,11 +195,11 @@ namespace Presentation.Terrain.Systems
         /// </summary>
         private NativeHashSet<HexCoord> CollectHexCoordDomain()
         {
-            var entities = _hexSet.GetEntities();
-            var hexDomain = new NativeHashSet<HexCoord>(math.max(1, entities.Length), Allocator.Persistent);
+            var entities = _hexSet.Entities;
+            var hexDomain = new NativeHashSet<HexCoord>(math.max(1, entities.Count), Allocator.Persistent);
 
-            foreach (ref readonly var entity in entities)
-                hexDomain.Add(entity.Get<HexIdComponent>().Coords);
+            foreach (var entity in entities)
+                hexDomain.Add(entity.GetComponent<HexIdComponent>().Coords);
 
             return hexDomain;
         }
@@ -217,18 +213,19 @@ namespace Presentation.Terrain.Systems
         private NativeList<HexCoord> CollectWaterEdgePaddingHexCoords(NativeHashSet<HexCoord> hexDomain)
         {
             var ghostHexes = new NativeList<HexCoord>(Allocator.Persistent);
-            if (!_hexesByType.TryGetEntities(new HexTypeComponent { Type = HexType.Water }, out var waterEntities))
+            var waterEntities = _hexesByType[HexType.Water];
+            if (waterEntities.Count == 0)
                 return ghostHexes;
 
             var uniqueGhostHexes = new NativeHashSet<HexCoord>(
-                math.max(1, waterEntities.Length * AxialMath.NeighborCount),
+                math.max(1, waterEntities.Count * AxialMath.NeighborCount),
                 Allocator.Temp);
 
             try
             {
-                foreach (ref readonly var entity in waterEntities)
+                foreach (var entity in waterEntities)
                 {
-                    var waterHex = entity.Get<HexIdComponent>().Coords;
+                    var waterHex = entity.GetComponent<HexIdComponent>().Coords;
                     for (var direction = 0; direction < AxialMath.NeighborCount; direction++)
                     {
                         var neighbor = waterHex + AxialMath.NeighborsPointyTop[direction];
@@ -271,14 +268,15 @@ namespace Presentation.Terrain.Systems
         /// <param name="extraHexes">Additional hexes to append to the vertex-grid build domain.</param>
         private NativeArray<HexCoord> CollectHexCoordsArray(NativeList<HexCoord> extraHexes)
         {
-            var entities = _hexSet.GetEntities();
-            var hexCoords = new NativeArray<HexCoord>(entities.Length + extraHexes.Length, Allocator.Persistent);
+            var entities = _hexSet.Entities;
+            var hexCoords = new NativeArray<HexCoord>(entities.Count + extraHexes.Length, Allocator.Persistent);
 
-            for (var i = 0; i < entities.Length; i++)
-                hexCoords[i] = entities[i].Get<HexIdComponent>().Coords;
+            var index = 0;
+            foreach (var entity in entities)
+                hexCoords[index++] = entity.GetComponent<HexIdComponent>().Coords;
 
             for (var i = 0; i < extraHexes.Length; i++)
-                hexCoords[entities.Length + i] = extraHexes[i];
+                hexCoords[entities.Count + i] = extraHexes[i];
 
             return hexCoords;
         }

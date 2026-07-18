@@ -1,5 +1,5 @@
-﻿using DefaultEcs;
-using DefaultECSExtensions;
+﻿using Friflo.Engine.ECS;
+using EcsExtensions;
 using JetBrains.Annotations;
 using Domains.Map.Hex.Components;
 using Domains.Map.Generation.Components;
@@ -25,8 +25,8 @@ namespace Domains.Map.Generation.Systems
         private const float NeighbourWeight = 1f;
         private const float NoiseAmplitude = 0.5f;
 
-        private readonly World _world;
-        private readonly EntitySet _hexSet;
+        private readonly EntityStore _world;
+        private readonly ArchetypeQuery _hexSet;
 
         /// <inheritdoc />
         public override int Priority => SystemPriorities.SubSystems.Generation.Sea;
@@ -35,13 +35,10 @@ namespace Domains.Map.Generation.Systems
         ///     Creates a sea generation system bound to the shared ECS world.
         /// </summary>
         /// <param name="world">World used to query terrain config, sea config, and generated hexes.</param>
-        public SeaGenerationSubSystem(World world)
+        public SeaGenerationSubSystem(EntityStore world)
         {
             _world = world;
-            _hexSet = world.GetEntities()
-                .With<HexIdComponent>()
-                .With<HexLevelComponent>().With<HexTag>()
-                .AsSet();
+            _hexSet = world.Query<HexIdComponent, HexLevelComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
         }
 
         /// <summary>
@@ -50,24 +47,17 @@ namespace Domains.Map.Generation.Systems
         /// <param name="state">Current game state.</param>
         public override void Update(GameState state)
         {
-            if (!_world.Has<TerrainGenerationConfigComponent>() || !_world.Has<SeaConfigComponent>())
+            if (!_world.HasWorldComponent<TerrainGenerationConfigComponent>() || !_world.HasWorldComponent<SeaConfigComponent>())
                 return;
 
-            ref readonly var terrainConfig = ref _world.Get<TerrainGenerationConfigComponent>();
+            var terrainConfig = _world.GetWorldComponent<TerrainGenerationConfigComponent>();
 
             if (terrainConfig.WaterType != WaterType.Sea)
                 return;
 
-            ref readonly var config = ref _world.Get<SeaConfigComponent>();
+            var config = _world.GetWorldComponent<SeaConfigComponent>();
 
             Generate(in terrainConfig, in config);
-        }
-
-        /// <inheritdoc />
-        public override void Dispose()
-        {
-            base.Dispose();
-            _hexSet.Dispose();
         }
 
         /// <summary>
@@ -76,13 +66,13 @@ namespace Domains.Map.Generation.Systems
         /// <param name="seaCoords">Coordinates that should be marked as water.</param>
         private void ApplySeaLevels(ref NativeParallelHashSet<int2> seaCoords)
         {
-            var entities = _hexSet.GetEntities();
+            var entities = _hexSet.Entities;
 
-            foreach (ref readonly var entity in entities)
+            foreach (var entity in entities)
             {
-                var coord = entity.Get<HexIdComponent>().Coords.Value;
+                var coord = entity.GetComponent<HexIdComponent>().Coords.Value;
                 var level = seaCoords.Contains(coord) ? SeaLevel : 0;
-                entity.Set(new HexLevelComponent { Level = level });
+                entity.AddComponent(new HexLevelComponent { Level = level });
             }
         }
 
@@ -95,11 +85,11 @@ namespace Domains.Map.Generation.Systems
             ref NativeList<int2> mapCoords,
             ref NativeParallelHashSet<int2> mapDomain)
         {
-            var entities = _hexSet.GetEntities();
+            var entities = _hexSet.Entities;
 
-            foreach (ref readonly var entity in entities)
+            foreach (var entity in entities)
             {
-                var coord = entity.Get<HexIdComponent>().Coords.Value;
+                var coord = entity.GetComponent<HexIdComponent>().Coords.Value;
                 mapDomain.Add(coord);
                 mapCoords.Add(coord);
             }
@@ -181,8 +171,8 @@ namespace Domains.Map.Generation.Systems
         /// <param name="config">Sea-specific config.</param>
         private void Generate(in TerrainGenerationConfigComponent terrainConfig, in SeaConfigComponent config)
         {
-            var entities = _hexSet.GetEntities();
-            var mapCapacity = math.max(1, entities.Length);
+            var entities = _hexSet.Entities;
+            var mapCapacity = math.max(1, entities.Count);
             var mapCoords = new NativeList<int2>(mapCapacity, Allocator.Temp);
             var mapDomain = new NativeParallelHashSet<int2>(mapCapacity, Allocator.Temp);
 

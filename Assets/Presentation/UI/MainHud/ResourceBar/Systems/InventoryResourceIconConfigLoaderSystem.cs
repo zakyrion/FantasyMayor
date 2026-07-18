@@ -2,8 +2,8 @@ using System;
 using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using Domains.Economy.Resource.Data;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
@@ -24,7 +24,7 @@ namespace Presentation.UI.MainHud.ResourceBar.Systems
     {
         private const string INVENTORY_RESOURCE_ICON_CONFIG = "InventoryResourceIconConfig";
 
-        public InventoryResourceIconConfigLoaderSystem(IAddressable addressable, World world)
+        public InventoryResourceIconConfigLoaderSystem(IAddressable addressable, EntityStore world)
             : base(addressable, world) { }
 
         protected override async UniTask LoadConfigsAsync(CancellationToken cancellationToken)
@@ -39,7 +39,7 @@ namespace Presentation.UI.MainHud.ResourceBar.Systems
 
                 ValidateConfig(config.Value);
 
-                World.Set(new InventoryResourceIconConfigComponent(config));
+                World.SetWorldComponent(new InventoryResourceIconConfigComponent(config));
                 config = Box<InventoryResourceIconConfig>.Empty();
                 MarkAsLoaded();
             }

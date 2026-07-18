@@ -1,5 +1,5 @@
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Presentation.UI.MainHud.ContextTabs.Components;
 using Presentation.UI.MainHud.ContextTabs.Data;
@@ -21,24 +21,27 @@ namespace Presentation.UI.MainHud.ContextTabs.Systems
     [UsedImplicitly]
     public sealed class ContextTabsAvailabilitySystem : UpdatedSystem
     {
-        private readonly World _world;
-        private readonly EntitySet _selectedHexSet;
+        private readonly EntityStore _world;
+        private readonly ArchetypeQuery _selectedHexSet;
 
         public override int Priority => SystemPriorities.RuntimeTick.ContextTabsAvailability;
 
-        public ContextTabsAvailabilitySystem(World world)
-            : base(world.GetEntities().With<SelectedHexChangedEvent>().AsSet())
+        public ContextTabsAvailabilitySystem(EntityStore world)
+            : base(world.Query<SelectedHexChangedEvent>())
         {
             _world = world;
-            _selectedHexSet = world.GetEntities().With<HexSelectedComponent>().With<HexSelectionTag>().AsSet();
+            _selectedHexSet = world.Query<HexSelectedComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexSelectionTag>());
         }
 
         protected override void Update(GameState state, in Entity entity)
         {
-            if (!_world.Has<ContextTabsViewComponent>())
+            if (!EcsEventExtensions.IsRipe(entity))
                 return;
 
-            var view = _world.Get<ContextTabsViewComponent>().View;
+            if (!_world.HasWorldComponent<ContextTabsViewComponent>())
+                return;
+
+            var view = _world.GetWorldComponent<ContextTabsViewComponent>().View;
             if (view == null)
                 return;
 
@@ -46,12 +49,6 @@ namespace Presentation.UI.MainHud.ContextTabs.Systems
             view.SetTabEnabled(ContextTab.Overview, IsAvailable(ContextTab.Overview, hasSelection));
             view.SetTabEnabled(ContextTab.Buildings, IsAvailable(ContextTab.Buildings, hasSelection));
             view.SetTabEnabled(ContextTab.Actions, IsAvailable(ContextTab.Actions, hasSelection));
-        }
-
-        public override void Dispose()
-        {
-            _selectedHexSet.Dispose();
-            base.Dispose();
         }
 
         // STUB: no player-action model yet — every tab is always available regardless of selection.

@@ -1,5 +1,5 @@
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
 using Domains.Economy.District.Events;
@@ -27,73 +27,61 @@ namespace Presentation.Districts.Systems
     public sealed class DistrictBuildProgressViewDespawnSystem : UpdatedSystem
     {
         // District rows: one per hex, carrying the hex FK and its build stage.
-        private readonly EntitySet _districts;
+        private readonly ArchetypeQuery _districts;
 
         // Progress-view entities indexed by the hex FK -> candidates for despawn once their hex stops building.
-        private readonly EntityMultiMap<HexIdFKComponent> _viewsByHex;
+        private readonly ComponentIndex<HexIdFKComponent, HexCoord> _viewsByHex;
+
+        private readonly EntityStore _world;
 
         public override int Priority => SystemPriorities.RuntimeTick.DistrictBuildProgressViewDespawn;
 
-        public DistrictBuildProgressViewDespawnSystem(World world)
-            : base(world.GetEntities()
-                .With<DistrictTableChangedEvent>()
-                .AsSet())
+        public DistrictBuildProgressViewDespawnSystem(EntityStore world)
+            : base(world.Query<DistrictTableChangedEvent>())
         {
-            _districts = world.GetEntities()
-                .With<DistrictTag>()
-                .With<HexIdFKComponent>()
-                .With<DistrictBuildStateComponent>()
-                .AsSet();
-
-            _viewsByHex = world.GetEntities()
-                .With<HexIdFKComponent>()
-                .With<DistrictBuildProgressViewComponent>().With<DistrictBuildProgressViewTag>()
-                .AsMultiMap<HexIdFKComponent>();
+            _world = world;
+            _districts = world.Query<HexIdFKComponent, DistrictBuildStateComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<DistrictTag>());
+            _viewsByHex = world.ComponentIndex<HexIdFKComponent, HexCoord>();
         }
 
         // The pulse entity itself is ignored — reconciliation is global over current state.
         protected override void Update(GameState state, in Entity pulse)
         {
-            var plannedHexes = new NativeHashSet<HexCoord>(64, Allocator.Temp);
-            foreach (var district in _districts.GetEntities())
-                if (district.Get<DistrictBuildStateComponent>().Value == DistrictBuildState.Planned)
-                    plannedHexes.Add(district.Get<HexIdFKComponent>().Coords);
+            if (!EcsEventExtensions.IsRipe(pulse))
+                return;
 
-            // Snapshot stale views before destroying: DestroyView disposes entities, which would mutate the
-            // view map mid-enumeration.
-            var staleViews = new NativeList<Entity>(8, Allocator.Temp);
-            foreach (var hexId in _viewsByHex.Keys)
+            var plannedHexes = new NativeHashSet<HexCoord>(64, Allocator.Temp);
+            foreach (var district in _districts.Entities)
+                if (district.GetComponent<DistrictBuildStateComponent>().Value == DistrictBuildState.Planned)
+                    plannedHexes.Add(district.GetComponent<HexIdFKComponent>().Coords);
+
+            // Snapshot ids first, not entities: Friflo's Entity carries a store reference (not unmanaged), and
+            // deleting mid-enumeration of the index throws StructuralChangeException.
+            var staleViewIds = new NativeList<int>(8, Allocator.Temp);
+            foreach (var coords in _viewsByHex.Values)
             {
-                if (plannedHexes.Contains(hexId.Coords))
+                if (plannedHexes.Contains(coords))
                     continue;
 
-                if (_viewsByHex.TryGetEntities(hexId, out var views))
-                    foreach (ref readonly var view in views)
-                        staleViews.Add(view);
+                foreach (var view in _viewsByHex[coords])
+                    staleViewIds.Add(view.Id);
             }
 
-            for (var i = 0; i < staleViews.Length; i++)
-                DestroyView(staleViews[i]);
+            for (var i = 0; i < staleViewIds.Length; i++)
+                if (_world.TryGetEntityById(staleViewIds[i], out var view))
+                    DestroyView(view);
 
-            staleViews.Dispose();
+            staleViewIds.Dispose();
             plannedHexes.Dispose();
-        }
-
-        public override void Dispose()
-        {
-            _districts.Dispose();
-            _viewsByHex.Dispose();
-            base.Dispose();
         }
 
         private void DestroyView(Entity entity)
         {
-            var view = entity.Get<DistrictBuildProgressViewComponent>().View;
+            var view = entity.GetComponent<DistrictBuildProgressViewComponent>().View;
             if (view != null)
                 Object.Destroy(view.gameObject);
 
-            if (entity.IsAlive)
-                entity.Dispose();
+            entity.DeleteEntity();
         }
     }
 }

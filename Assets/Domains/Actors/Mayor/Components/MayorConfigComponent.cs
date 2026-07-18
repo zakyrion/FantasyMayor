@@ -1,5 +1,6 @@
 using Domains.Actors.Mayor.Configs;
 using Domains.Economy.Resource.Data;
+using Friflo.Engine.ECS;
 
 namespace Domains.Actors.Mayor.Components
 {
@@ -9,7 +10,7 @@ namespace Domains.Actors.Mayor.Components
     // Resources seed the per-ResourceType inventory loadout; StartActionPoints seeds BOTH the per-turn restore
     // amount (MayorAPRestoreComponent) and the starting ActionPoint resource stack (live AP pool).
     // The array is copied out of the SO so the loader can release the addressable after flattening.
-    public struct MayorConfigComponent
+    public struct MayorConfigComponent : IComponent
     {
         public ResourceAmount[] Resources;
         public int StartActionPoints;

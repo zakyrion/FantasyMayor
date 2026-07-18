@@ -1,10 +1,11 @@
-using System;
 using Domains.Economy.DistrictBuildOutcome.Data;
+using Friflo.Engine.ECS;
+using System;
 
 namespace Domains.Economy.DistrictBuildOutcome.Components
 {
     // Kind column on a district-build-outcome row (Tag Law): which outcome effect the row applies on completion.
-    public struct DistrictBuildOutcomeKindComponent : IEquatable<DistrictBuildOutcomeKindComponent>
+    public struct DistrictBuildOutcomeKindComponent : IEquatable<DistrictBuildOutcomeKindComponent>, IComponent
     {
         public DistrictBuildOutcomeKind Value;
 

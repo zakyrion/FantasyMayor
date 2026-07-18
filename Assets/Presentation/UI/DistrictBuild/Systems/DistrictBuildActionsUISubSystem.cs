@@ -1,7 +1,7 @@
-using DefaultEcs;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using UnityEngine;
-using DefaultECSExtensions;
+using EcsExtensions;
 
 namespace Presentation.UI.DistrictBuild.Systems
 {
@@ -12,7 +12,7 @@ namespace Presentation.UI.DistrictBuild.Systems
     {
         public override int Priority => SystemPriorities.SubSystems.DistrictBuildUi.Actions;
 
-        public DistrictBuildActionsUISubSystem(World world) : base(world)
+        public DistrictBuildActionsUISubSystem(EntityStore world) : base(world)
         {
         }
 

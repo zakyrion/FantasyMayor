@@ -1,8 +1,8 @@
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using Domains.Actors.City.Components;
 using Domains.Actors.Components;
 using Domains.Kernel.Data;
@@ -19,11 +19,11 @@ namespace Domains.Actors.City.Systems
     [UsedImplicitly]
     internal sealed class CitySpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        private readonly World _world;
+        private readonly EntityStore _world;
 
         public int Priority => SystemPriorities.WorldInit.CitySpawn;
 
-        public CitySpawnSystem(World world)
+        public CitySpawnSystem(EntityStore world)
         {
             _world = world;
         }
@@ -35,26 +35,26 @@ namespace Domains.Actors.City.Systems
 
             // Idempotent one-shot: an existing allocator means the City was already created
             // (or restored by a future load flow) — never spawn a duplicate on pipeline re-entry.
-            if (_world.Has<CityIdAllocatorComponent>())
+            if (_world.HasWorldComponent<CityIdAllocatorComponent>())
                 return UniTask.CompletedTask;
 
-            if (!_world.Has<CityConfigComponent>())
+            if (!_world.HasWorldComponent<CityConfigComponent>())
                 throw new InvalidOperationException(
                     "CitySpawnSystem: CityConfigComponent missing — CityConfigLoaderSystem must run at ConfigLoadStep first.");
 
-            var config = _world.Get<CityConfigComponent>();
+            var config = _world.GetWorldComponent<CityConfigComponent>();
 
-            _world.Set(new CityIdAllocatorComponent { Next = 1 });
+            _world.SetWorldComponent(new CityIdAllocatorComponent { Next = 1 });
 
             // Take the next id, advance the allocator, create the row (PK + discriminator).
-            var cityId = _world.Get<CityIdAllocatorComponent>().Next;
-            _world.Set(new CityIdAllocatorComponent { Next = cityId + 1 });
+            var cityId = _world.GetWorldComponent<CityIdAllocatorComponent>().Next;
+            _world.SetWorldComponent(new CityIdAllocatorComponent { Next = cityId + 1 });
 
             var cityIdComponent = new CityIdComponent { Value = cityId };
             var city = _world.CreateEntity();
-            city.Set(cityIdComponent);
-            city.Set(new CityTag());
-            city.Set(new ActorTypeComponent { Type = ActorType.City });
+            city.AddComponent(cityIdComponent);
+            city.AddTag<CityTag>();
+            city.AddComponent(new ActorTypeComponent { Type = ActorType.City });
 
             ResourceLoadoutSpawner.SpawnLoadout<CityIdFKComponent, CityResourceTag>(
                 _world, new CityIdFKComponent { Value = cityId }, config.Resources);

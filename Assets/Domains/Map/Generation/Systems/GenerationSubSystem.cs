@@ -1,5 +1,4 @@
-﻿using DefaultEcs.System;
-using DefaultECSExtensions;
+﻿using EcsExtensions;
 
 namespace Domains.Map.Generation.Systems
 {

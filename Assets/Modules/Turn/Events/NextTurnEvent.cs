@@ -1,3 +1,4 @@
+using Friflo.Engine.ECS;
 namespace Modules.Turn.Events
 {
     /// <summary>
@@ -5,7 +6,7 @@ namespace Modules.Turn.Events
     ///     <c>EventTag</c>; consumed by <c>TurnProcessorSystem</c>. The emitter is gameplay-owned and
     ///     not wired yet.
     /// </summary>
-    public struct NextTurnEvent
+    public struct NextTurnEvent : IComponent
     {
     }
 }

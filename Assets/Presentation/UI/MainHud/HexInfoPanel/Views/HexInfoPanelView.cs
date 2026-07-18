@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using Flows.DistrictBuild.Events;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -42,7 +42,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Views
 
         [SerializeField] private PanelRenderer _renderer;
 
-        private World _world;
+        private EntityStore _world;
         private VisualElement _root;
         private VisualElement _contextFilled;
         private VisualElement _contextEmpty;
@@ -78,7 +78,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Views
         private bool _cached;
 
         [Inject]
-        public void Construct(World world)
+        public void Construct(EntityStore world)
         {
             _world = world;
         }
@@ -253,9 +253,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Views
         // HexSelectedComponent for the target hex. No consumer yet (dormant emitter).
         private void OnBuildClicked(ClickEvent evt)
         {
-            var entity = _world.CreateEntity();
-            entity.Set(new DistrictBuildUIRequestedEvent());
-            entity.Set(new EventTag());
+            _world.CreateEvent(new DistrictBuildUIRequestedEvent());
         }
 
         private void UnhookBuildButton()

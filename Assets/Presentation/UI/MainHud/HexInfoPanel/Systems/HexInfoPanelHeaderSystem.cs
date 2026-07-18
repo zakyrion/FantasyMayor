@@ -1,6 +1,6 @@
 using System;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
 using Domains.Map.Hex.Components;
@@ -25,33 +25,36 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
     [UsedImplicitly]
     public sealed class HexInfoPanelHeaderSystem : UpdatedSystem
     {
-        private readonly World _world;
-        private readonly EntitySet _viewSet;
-        private readonly EntitySet _selectedHexSet;
-        private readonly EntitySet _hexSet;
+        private readonly EntityStore _world;
+        private readonly ArchetypeQuery _viewSet;
+        private readonly ArchetypeQuery _selectedHexSet;
+        private readonly ArchetypeQuery _hexSet;
 
         public override int Priority => SystemPriorities.RuntimeTick.HexInfoPanelHeader;
 
-        public HexInfoPanelHeaderSystem(World world)
-            : base(world.GetEntities().With<SelectedHexChangedEvent>().AsSet())
+        public HexInfoPanelHeaderSystem(EntityStore world)
+            : base(world.Query<SelectedHexChangedEvent>())
         {
             _world = world;
-            _viewSet = world.GetEntities().With<HexInfoPanelViewComponent>().With<UITag>().AsSet();
-            _selectedHexSet = world.GetEntities().With<HexSelectedComponent>().With<HexSelectionTag>().AsSet();
-            _hexSet = world.GetEntities().With<HexTag>().With<HexIdComponent>().AsSet();
+            _viewSet = world.Query<HexInfoPanelViewComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<UITag>());
+            _selectedHexSet = world.Query<HexSelectedComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexSelectionTag>());
+            _hexSet = world.Query<HexIdComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
         }
 
         protected override void Update(GameState state, in Entity entity)
         {
-            if (_viewSet.Count == 0 || _selectedHexSet.Count == 0)
+            if (!EcsEventExtensions.IsRipe(entity))
                 return;
 
-            if (!_world.Has<HexTerrainIconConfigComponent>())
+            if (!_viewSet.TryGetFirst(out var viewEntity) || !_selectedHexSet.TryGetFirst(out var selectedHexEntity))
+                return;
+
+            if (!_world.HasWorldComponent<HexTerrainIconConfigComponent>())
                 throw new InvalidOperationException(
                     "HexInfoPanelHeaderSystem: HexTerrainIconConfigComponent is missing.");
 
-            var coords = _selectedHexSet.GetEntities()[0].Get<HexSelectedComponent>().Coords;
-            var view = _viewSet.GetEntities()[0].Get<HexInfoPanelViewComponent>().View;
+            var coords = selectedHexEntity.GetComponent<HexSelectedComponent>().Coords;
+            var view = viewEntity.GetComponent<HexInfoPanelViewComponent>().View;
             if (view == null)
                 return;
 
@@ -60,7 +63,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
             if (!TryGetHexTerrainType(coords, out var terrainType))
                 return;
 
-            var config = _world.Get<HexTerrainIconConfigComponent>().Value;
+            var config = _world.GetWorldComponent<HexTerrainIconConfigComponent>().Value;
             if (!TryGetTerrainEntry(config, terrainType, out var sprite, out var displayName))
             {
                 // No authored entry yet — the out values already carry the fallback (enum name + null icon,
@@ -74,12 +77,12 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
         {
             type = default;
 
-            foreach (var hexEntity in _hexSet.GetEntities())
+            foreach (var hexEntity in _hexSet.Entities)
             {
-                if (hexEntity.Get<HexIdComponent>().Coords != coords)
+                if (hexEntity.GetComponent<HexIdComponent>().Coords != coords)
                     continue;
 
-                type = hexEntity.Get<HexTypeComponent>().Type;
+                type = hexEntity.GetComponent<HexTypeComponent>().Type;
                 return true;
             }
 
@@ -102,14 +105,6 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
             sprite = null;
             displayName = type.ToString();
             return false;
-        }
-
-        public override void Dispose()
-        {
-            _viewSet.Dispose();
-            _selectedHexSet.Dispose();
-            _hexSet.Dispose();
-            base.Dispose();
         }
     }
 }

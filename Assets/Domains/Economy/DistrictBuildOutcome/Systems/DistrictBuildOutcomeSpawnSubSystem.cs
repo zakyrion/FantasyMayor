@@ -1,5 +1,5 @@
 ﻿using System;
-using DefaultEcs;
+using Friflo.Engine.ECS;
 using Domains.Economy.DistrictBuildOutcome.Configs;
 
 namespace Domains.Economy.DistrictBuildOutcome.Systems{
@@ -8,13 +8,13 @@ namespace Domains.Economy.DistrictBuildOutcome.Systems{
     // authored config to the subsystem that handles its concrete type.
     internal abstract class DistrictBuildOutcomeSpawnSubSystem : IDisposable
     {
-        protected readonly World World;
+        protected readonly EntityStore World;
 
         public bool IsEnabled { get; set; } = true;
 
         public abstract int Priority { get; }
 
-        protected DistrictBuildOutcomeSpawnSubSystem(World world)
+        protected DistrictBuildOutcomeSpawnSubSystem(EntityStore world)
         {
             World = world;
         }

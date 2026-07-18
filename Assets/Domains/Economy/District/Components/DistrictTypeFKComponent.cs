@@ -1,10 +1,11 @@
-using System;
 using Domains.Economy.District.Data;
+using Friflo.Engine.ECS;
+using System;
 
 namespace Domains.Economy.District.Components
 {
     // FK into the District-type key space: carried by rows of other tables, keys their AsMultiMap indexes.
-    public struct DistrictTypeFKComponent : IEquatable<DistrictTypeFKComponent>
+    public struct DistrictTypeFKComponent : IEquatable<DistrictTypeFKComponent>, IComponent
     {
         public DistrictType Value;
 

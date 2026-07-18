@@ -2,8 +2,8 @@ using System;
 using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using Modules.AxialSystem;
@@ -32,9 +32,9 @@ namespace Presentation.Terrain.Systems
         private const string TERRAIN_VIEW_ADDRESS = "TerrainView";
 
         private readonly IAddressable _addressable;
-        private readonly EntitySet _hexSet;
+        private readonly ArchetypeQuery _hexSet;
         private readonly IReadOnlyList<ViewSubSystem> _viewSubSystems;
-        private readonly World _world;
+        private readonly EntityStore _world;
 
         private Box<Views.TerrainView> _terrainViewBox;
         private Entity? _terrainViewEntity;
@@ -45,12 +45,12 @@ namespace Presentation.Terrain.Systems
         /// <param name="world">The ECS world used for entity creation.</param>
         /// <param name="addressable">Addressable loader used to load and instantiate the TerrainView prefab.</param>
         /// <param name="viewSubSystems">View subsystems executed after mesh generation, ordered by priority.</param>
-        public TerrainViewSystem(World world, IAddressable addressable, IReadOnlyList<ViewSubSystem> viewSubSystems)
+        public TerrainViewSystem(EntityStore world, IAddressable addressable, IReadOnlyList<ViewSubSystem> viewSubSystems)
         {
             _world = world;
             _addressable = addressable;
             _terrainViewBox = Box<Views.TerrainView>.Empty();
-            _hexSet = world.GetEntities().With<HexIdComponent>().With<HexTag>().AsSet();
+            _hexSet = world.Query<HexIdComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
             _viewSubSystems = viewSubSystems
                 .OrderBy(s => s.Priority)
                 .ToArray();
@@ -67,7 +67,6 @@ namespace Presentation.Terrain.Systems
         {
             DestroyTerrainViewEntity();
             DisposeTerrainViewBox();
-            _hexSet.Dispose();
         }
 
         /// <summary>
@@ -77,11 +76,11 @@ namespace Presentation.Terrain.Systems
         /// </summary>
         private NativeHashSet<HexCoord> CollectHexCoords()
         {
-            var entities = _hexSet.GetEntities();
-            var hexCoords = new NativeHashSet<HexCoord>(entities.Length, Allocator.TempJob);
+            var entities = _hexSet.Entities;
+            var hexCoords = new NativeHashSet<HexCoord>(entities.Count, Allocator.TempJob);
 
-            foreach (ref readonly var entity in entities)
-                hexCoords.Add(entity.Get<HexIdComponent>().Coords);
+            foreach (var entity in entities)
+                hexCoords.Add(entity.GetComponent<HexIdComponent>().Coords);
 
             return hexCoords;
         }
@@ -91,10 +90,10 @@ namespace Presentation.Terrain.Systems
         /// </summary>
         private void DestroyTerrainViewEntity()
         {
-            if (_terrainViewEntity == null || !_terrainViewEntity.Value.IsAlive)
+            if (_terrainViewEntity == null || _terrainViewEntity.Value.IsNull)
                 return;
 
-            _terrainViewEntity.Value.Dispose();
+            _terrainViewEntity.Value.DeleteEntity();
             _terrainViewEntity = null;
         }
 
@@ -129,13 +128,13 @@ namespace Presentation.Terrain.Systems
             _terrainViewBox = result.Box;
             var terrainView = _terrainViewBox.Value;
 
-            if (!_world.Has<TerrainViewConfigComponent>())
+            if (!_world.HasWorldComponent<TerrainViewConfigComponent>())
             {
                 Debug.LogError("[TerrainViewSystem] TerrainViewConfigComponent is missing.");
                 return;
             }
 
-            var config = _world.Get<TerrainViewConfigComponent>();
+            var config = _world.GetWorldComponent<TerrainViewConfigComponent>();
 
             var hexCoords = CollectHexCoords();
             try
@@ -157,16 +156,16 @@ namespace Presentation.Terrain.Systems
 
             ApplyGeneratedTexture(terrainView);
 
-            if (!_world.Has<VertexGridComponent>())
+            if (!_world.HasWorldComponent<VertexGridComponent>())
                 throw new InvalidOperationException("TerrainViewSystem: VertexGridComponent world component is missing.");
 
-            var vertexGrid = _world.Get<VertexGridComponent>().Grid;
+            var vertexGrid = _world.GetWorldComponent<VertexGridComponent>().Grid;
             terrainView.ApplyHeightsFromVertexGrid(vertexGrid);
 
             DestroyTerrainViewEntity();
             var entity = _world.CreateEntity();
-            entity.Set(new TerrainViewComponent { ObjectRef = _terrainViewBox.Value });
-            entity.Set(new TerrainViewTag());
+            entity.AddComponent(new TerrainViewComponent { ObjectRef = _terrainViewBox.Value });
+            entity.AddTag<TerrainViewTag>();
             _terrainViewEntity = entity;
         }
 
@@ -180,10 +179,10 @@ namespace Presentation.Terrain.Systems
         /// <param name="terrainView">Target terrain view that receives the texture.</param>
         private void ApplyGeneratedTexture(Views.TerrainView terrainView)
         {
-            if (!_world.Has<TerrainTextureComponent>())
+            if (!_world.HasWorldComponent<TerrainTextureComponent>())
                 return;
 
-            var texture = _world.Get<TerrainTextureComponent>().Texture;
+            var texture = _world.GetWorldComponent<TerrainTextureComponent>().Texture;
             terrainView.ApplyTexture(texture);
         }
 

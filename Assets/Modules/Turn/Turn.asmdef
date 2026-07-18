@@ -3,7 +3,7 @@
     "rootNamespace": "",
     "references": [
         "Core",
-        "DefaultECS.Extensions",
+        "Ecs.Extensions",
         "VContainer",
         "UniTask"
     ],

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
 using Domains.Map.Hex.Components;
@@ -30,57 +30,57 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
     [UsedImplicitly]
     public sealed class HexInfoPanelResourcesSystem : UpdatedSystem
     {
-        private readonly World _world;
-        private readonly EntitySet _viewSet;
-        private readonly EntitySet _selectedHexSet;
-        private readonly EntitySet _resourceSet;
+        private readonly EntityStore _world;
+        private readonly ArchetypeQuery _viewSet;
+        private readonly ArchetypeQuery _selectedHexSet;
+        private readonly ArchetypeQuery _resourceSet;
 
         // Managed UI payload → System.Collections.Generic. Reused buffer to avoid per-refresh allocation.
         private readonly List<HexInfoPanelView.ResourceChip> _chips = new();
 
         public override int Priority => SystemPriorities.RuntimeTick.HexInfoPanelResources;
 
-        public HexInfoPanelResourcesSystem(World world)
-            : base(world.GetEntities().With<SelectedHexChangedEvent>().AsSet())
+        public HexInfoPanelResourcesSystem(EntityStore world)
+            : base(world.Query<SelectedHexChangedEvent>())
         {
             _world = world;
-            _viewSet = world.GetEntities().With<HexInfoPanelViewComponent>().With<UITag>().AsSet();
-            _selectedHexSet = world.GetEntities().With<HexSelectedComponent>().With<HexSelectionTag>().AsSet();
-            _resourceSet = world.GetEntities()
-                .With<HexIdFKComponent>()
-                .With<HexResourceComponent>().With<HexResourceTag>()
-                .AsSet();
+            _viewSet = world.Query<HexInfoPanelViewComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<UITag>());
+            _selectedHexSet = world.Query<HexSelectedComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexSelectionTag>());
+            _resourceSet = world.Query<HexIdFKComponent, HexResourceComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexResourceTag>());
         }
 
         protected override void Update(GameState state, in Entity entity)
         {
-            if (_viewSet.Count == 0)
+            if (!EcsEventExtensions.IsRipe(entity))
                 return;
 
-            var view = _viewSet.GetEntities()[0].Get<HexInfoPanelViewComponent>().View;
+            if (!_viewSet.TryGetFirst(out var viewEntity))
+                return;
+
+            var view = viewEntity.GetComponent<HexInfoPanelViewComponent>().View;
             if (view == null)
                 return;
 
-            if (_selectedHexSet.Count == 0)
+            if (!_selectedHexSet.TryGetFirst(out var selectedHexEntity))
             {
                 view.HideResources();
                 return;
             }
 
-            if (!_world.Has<HexResourceIconConfigComponent>())
+            if (!_world.HasWorldComponent<HexResourceIconConfigComponent>())
                 throw new InvalidOperationException(
                     "HexInfoPanelResourcesSystem: HexResourceIconConfigComponent is missing.");
 
-            var coords = _selectedHexSet.GetEntities()[0].Get<HexSelectedComponent>().Coords;
-            var entries = _world.Get<HexResourceIconConfigComponent>().Value.Entries;
+            var coords = selectedHexEntity.GetComponent<HexSelectedComponent>().Coords;
+            var entries = _world.GetWorldComponent<HexResourceIconConfigComponent>().Value.Entries;
 
             _chips.Clear();
-            foreach (var resourceEntity in _resourceSet.GetEntities())
+            foreach (var resourceEntity in _resourceSet.Entities)
             {
-                if (resourceEntity.Get<HexIdFKComponent>().Coords != coords)
+                if (resourceEntity.GetComponent<HexIdFKComponent>().Coords != coords)
                     continue;
 
-                var type = resourceEntity.Get<HexResourceComponent>().Type;
+                var type = resourceEntity.GetComponent<HexResourceComponent>().Type;
 
                 // A missing sprite is fine — the chip still shows the USS placeholder, so we keep the result
                 // regardless of the lookup outcome.
@@ -111,14 +111,6 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
 
             sprite = null;
             return false;
-        }
-
-        public override void Dispose()
-        {
-            _viewSet.Dispose();
-            _selectedHexSet.Dispose();
-            _resourceSet.Dispose();
-            base.Dispose();
         }
     }
 }

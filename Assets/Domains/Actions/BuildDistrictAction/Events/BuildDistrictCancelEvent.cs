@@ -1,3 +1,4 @@
+using Friflo.Engine.ECS;
 using Modules.AxialSystem;
 
 namespace Domains.Actions.BuildDistrictAction.Events
@@ -11,7 +12,7 @@ namespace Domains.Actions.BuildDistrictAction.Events
     ///     asmdef boundary because the Actions assembly cannot read the Presentation selection state, same
     ///     rationale as <c>DistrictBuildConfirmedEvent</c>. Cleared by <c>EventCleanupSystem</c>.
     /// </summary>
-    public struct BuildDistrictCancelEvent
+    public struct BuildDistrictCancelEvent : IComponent
     {
         public HexCoord Coords;
     }

@@ -1,4 +1,4 @@
-using DefaultECSExtensions;
+using EcsExtensions;
 using Domains.Actors.City.Systems;
 using Domains.Actors.Mayor.Systems;
 using Modules.Boot.Core;

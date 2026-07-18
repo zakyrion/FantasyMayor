@@ -1,5 +1,5 @@
-using DefaultEcs;
-using DefaultECSExtensions;
+using Friflo.Engine.ECS;
+using EcsExtensions;
 using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Data;
 using Domains.Map.Hex.Tags;
@@ -20,24 +20,19 @@ namespace Domains.Map.HexResources.Systems
     internal sealed class ClayResourceGenerationSubSystem : HexResourcesSubSystem
     {
         private const int LandLevel = 0;
-        private readonly EntityMultiMap<HexTypeComponent> _hexesByType;
-        private readonly EntitySet _hexSet;
+        private readonly ComponentIndex<HexTypeComponent, HexType> _hexesByType;
+        private readonly ArchetypeQuery _hexSet;
 
-        private readonly World _world;
+        private readonly EntityStore _world;
 
         public override int Priority => SystemPriorities.SubSystems.HexResourceGeneration.Clay;
         protected override HexResourceType TargetHexResourceType => HexResourceType.Clay;
 
-        public ClayResourceGenerationSubSystem(World world) : base(world)
+        public ClayResourceGenerationSubSystem(EntityStore world) : base(world)
         {
             _world = world;
-            _hexSet = world.GetEntities()
-                .With<HexIdComponent>()
-                .With<HexLevelComponent>().With<HexTag>()
-                .AsSet();
-            _hexesByType = world.GetEntities()
-                .With<HexTag>()
-                .AsMultiMap<HexTypeComponent>();
+            _hexSet = world.Query<HexIdComponent, HexLevelComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
+            _hexesByType = world.ComponentIndex<HexTypeComponent, HexType>();
         }
 
         public override void Update(GameState state)
@@ -46,24 +41,24 @@ namespace Domains.Map.HexResources.Systems
                 return;
 
             var config = (ClayResourceConfig)baseConfig;
-            var hexEntities = _hexSet.GetEntities();
-            _hexesByType.TryGetEntities(new HexTypeComponent { Type = HexType.Water }, out var waterEntities);
+            var hexEntities = _hexSet.Entities;
+            var waterEntities = _hexesByType[HexType.Water];
 
-            if (hexEntities.Length == 0 || waterEntities.Length == 0)
+            if (hexEntities.Count == 0 || waterEntities.Count == 0)
                 return;
 
-            var hexCapacity = math.max(1, hexEntities.Length);
-            var waterCapacity = math.max(1, waterEntities.Length);
+            var hexCapacity = math.max(1, hexEntities.Count);
+            var waterCapacity = math.max(1, waterEntities.Count);
             var levelMap = new NativeParallelHashMap<int2, int>(hexCapacity, Allocator.Temp);
             var waterCoords = new NativeParallelHashSet<int2>(waterCapacity, Allocator.Temp);
 
             try
             {
-                foreach (ref readonly var entity in hexEntities)
-                    levelMap.TryAdd(entity.Get<HexIdComponent>().Coords.Value, entity.Get<HexLevelComponent>().Level);
+                foreach (var entity in hexEntities)
+                    levelMap.TryAdd(entity.GetComponent<HexIdComponent>().Coords.Value, entity.GetComponent<HexLevelComponent>().Level);
 
-                foreach (ref readonly var entity in waterEntities)
-                    waterCoords.Add(entity.Get<HexIdComponent>().Coords.Value);
+                foreach (var entity in waterEntities)
+                    waterCoords.Add(entity.GetComponent<HexIdComponent>().Coords.Value);
 
                 var shoreline = BuildShoreline(hexCapacity, ref levelMap, ref waterCoords);
                 try
@@ -91,13 +86,6 @@ namespace Domains.Map.HexResources.Systems
                 levelMap.Dispose();
                 waterCoords.Dispose();
             }
-        }
-
-        public override void Dispose()
-        {
-            base.Dispose();
-            _hexSet.Dispose();
-            _hexesByType.Dispose();
         }
 
         private NativeList<int2> BuildEligibleZone(
@@ -194,9 +182,9 @@ namespace Domains.Map.HexResources.Systems
             for (var i = 0; i < count; i++)
             {
                 var entity = _world.CreateEntity();
-                entity.Set(new HexIdFKComponent { Coords = new HexCoord(eligible[i]) });
-                entity.Set(new HexResourceComponent { Type = HexResourceType.Clay });
-                entity.Set(new HexResourceTag());
+                entity.AddComponent(new HexIdFKComponent { Coords = new HexCoord(eligible[i]) });
+                entity.AddComponent(new HexResourceComponent { Type = HexResourceType.Clay });
+                entity.AddTag<HexResourceTag>();
             }
         }
 

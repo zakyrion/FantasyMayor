@@ -1,5 +1,5 @@
-﻿using DefaultEcs;
-using DefaultECSExtensions;
+﻿using Friflo.Engine.ECS;
+using EcsExtensions;
 using JetBrains.Annotations;
 using Domains.Map.Hex.Components;
 using Domains.Map.Generation.Components;
@@ -25,8 +25,8 @@ namespace Domains.Map.Generation.Systems
         private const float NeighbourWeight = 3f;
         private const float NoiseAmplitude = 0.35f;
 
-        private readonly World _world;
-        private readonly EntitySet _hexSet;
+        private readonly EntityStore _world;
+        private readonly ArchetypeQuery _hexSet;
 
         /// <inheritdoc />
         public override int Priority => SystemPriorities.SubSystems.Generation.Lake;
@@ -35,13 +35,10 @@ namespace Domains.Map.Generation.Systems
         ///     Creates a lake generation system bound to the shared ECS world.
         /// </summary>
         /// <param name="world">World used to query terrain config, lake config, and generated hexes.</param>
-        public LakeGenerationSubSystem(World world)
+        public LakeGenerationSubSystem(EntityStore world)
         {
             _world = world;
-            _hexSet = world.GetEntities()
-                .With<HexIdComponent>()
-                .With<HexLevelComponent>().With<HexTag>()
-                .AsSet();
+            _hexSet = world.Query<HexIdComponent, HexLevelComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
         }
 
         /// <summary>
@@ -50,24 +47,17 @@ namespace Domains.Map.Generation.Systems
         /// <param name="state">Current game state.</param>
         public override void Update(GameState state)
         {
-            if (!_world.Has<TerrainGenerationConfigComponent>() || !_world.Has<LakeConfigComponent>())
+            if (!_world.HasWorldComponent<TerrainGenerationConfigComponent>() || !_world.HasWorldComponent<LakeConfigComponent>())
                 return;
 
-            ref readonly var terrainConfig = ref _world.Get<TerrainGenerationConfigComponent>();
+            var terrainConfig = _world.GetWorldComponent<TerrainGenerationConfigComponent>();
 
             if (terrainConfig.WaterType != WaterType.Lake)
                 return;
 
-            ref readonly var config = ref _world.Get<LakeConfigComponent>();
+            var config = _world.GetWorldComponent<LakeConfigComponent>();
 
             Generate(in terrainConfig, in config);
-        }
-
-        /// <inheritdoc />
-        public override void Dispose()
-        {
-            base.Dispose();
-            _hexSet.Dispose();
         }
 
         /// <summary>
@@ -76,13 +66,13 @@ namespace Domains.Map.Generation.Systems
         /// <param name="lakeCoords">Coordinates that should be marked as water.</param>
         private void ApplyLakeLevels(ref NativeParallelHashSet<int2> lakeCoords)
         {
-            var entities = _hexSet.GetEntities();
+            var entities = _hexSet.Entities;
 
-            foreach (ref readonly var entity in entities)
+            foreach (var entity in entities)
             {
-                var coord = entity.Get<HexIdComponent>().Coords.Value;
+                var coord = entity.GetComponent<HexIdComponent>().Coords.Value;
                 var level = lakeCoords.Contains(coord) ? LakeLevel : 0;
-                entity.Set(new HexLevelComponent { Level = level });
+                entity.AddComponent(new HexLevelComponent { Level = level });
             }
         }
 
@@ -95,11 +85,11 @@ namespace Domains.Map.Generation.Systems
             ref NativeList<int2> mapCoords,
             ref NativeParallelHashSet<int2> mapDomain)
         {
-            var entities = _hexSet.GetEntities();
+            var entities = _hexSet.Entities;
 
-            foreach (ref readonly var entity in entities)
+            foreach (var entity in entities)
             {
-                var coord = entity.Get<HexIdComponent>().Coords.Value;
+                var coord = entity.GetComponent<HexIdComponent>().Coords.Value;
                 mapDomain.Add(coord);
                 mapCoords.Add(coord);
             }
@@ -130,10 +120,10 @@ namespace Domains.Map.Generation.Systems
         /// </summary>
         private void ClearLakeLevels()
         {
-            var entities = _hexSet.GetEntities();
+            var entities = _hexSet.Entities;
 
-            foreach (ref readonly var entity in entities)
-                entity.Set(new HexLevelComponent { Level = 0 });
+            foreach (var entity in entities)
+                entity.AddComponent(new HexLevelComponent { Level = 0 });
         }
 
         /// <summary>
@@ -186,8 +176,8 @@ namespace Domains.Map.Generation.Systems
         /// <param name="config">Lake-specific config.</param>
         private void Generate(in TerrainGenerationConfigComponent terrainConfig, in LakeConfigComponent config)
         {
-            var entities = _hexSet.GetEntities();
-            var mapCapacity = math.max(1, entities.Length);
+            var entities = _hexSet.Entities;
+            var mapCapacity = math.max(1, entities.Count);
             var mapCoords = new NativeList<int2>(mapCapacity, Allocator.Temp);
             var mapDomain = new NativeParallelHashSet<int2>(mapCapacity, Allocator.Temp);
 

@@ -1,5 +1,5 @@
 ﻿using System;
-using DefaultEcs;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
 using Domains.Map.Hex.Components;
@@ -10,7 +10,7 @@ using Domains.Map.Generation.Data;
 using Unity.Collections;
 using UnityEngine;
 using Random = UnityEngine.Random;
-using DefaultECSExtensions;
+using EcsExtensions;
 using Domains.Map.Hex.Tags;
 
 namespace Domains.Map.Generation.Systems
@@ -37,44 +37,35 @@ namespace Domains.Map.Generation.Systems
             }
         }
 
-        private readonly World _world;
-        private readonly EntitySet _hexSet;
+        private readonly EntityStore _world;
+        private readonly ArchetypeQuery _hexSet;
         private readonly IHexPathfindingUtility _pathfindingUtility;
 
         public override int Priority => SystemPriorities.SubSystems.Generation.River;
 
-        public RiverGenerationSubSystem(World world, IHexPathfindingUtility pathfindingUtility)
+        public RiverGenerationSubSystem(EntityStore world, IHexPathfindingUtility pathfindingUtility)
         {
             _pathfindingUtility = pathfindingUtility;
             _world = world;
-            _hexSet = world.GetEntities()
-                .With<HexIdComponent>()
-                .With<HexLevelComponent>().With<HexTag>()
-                .AsSet();
+            _hexSet = world.Query<HexIdComponent, HexLevelComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
         }
 
-        public override void Update(DefaultECSExtensions.GameState state)
+        public override void Update(EcsExtensions.GameState state)
         {
-            if (!_world.Has<TerrainGenerationConfigComponent>())
+            if (!_world.HasWorldComponent<TerrainGenerationConfigComponent>())
                 return;
 
-            ref readonly var config = ref _world.Get<TerrainGenerationConfigComponent>();
+            var config = _world.GetWorldComponent<TerrainGenerationConfigComponent>();
 
             if (config.WaterType != WaterType.River)
                 return;
 
-            if (!_world.Has<RiverConfigComponent>())
+            if (!_world.HasWorldComponent<RiverConfigComponent>())
                 return;
 
-            ref readonly var riverConfig = ref _world.Get<RiverConfigComponent>();
+            var riverConfig = _world.GetWorldComponent<RiverConfigComponent>();
 
             Generate(config.WaveCount, riverConfig.CornerOffsetTiles);
-        }
-
-        public override void Dispose()
-        {
-            base.Dispose();
-            _hexSet.Dispose();
         }
 
         private void Generate(int waveCount, int cornerOffsetTiles)
@@ -203,25 +194,27 @@ namespace Domains.Map.Generation.Systems
 
         private void ApplyRiver(NativeList<HexCoord> path)
         {
-            var entities = _hexSet.GetEntities();
-            var entityByCoord = new NativeParallelHashMap<HexCoord, Entity>(entities.Length, Allocator.Temp);
+            var entities = _hexSet.Entities;
+            // Entity carries a store reference (not unmanaged), so the map stores ids and re-fetches on write.
+            var idByCoord = new NativeParallelHashMap<HexCoord, int>(entities.Count, Allocator.Temp);
             try
             {
-                foreach (ref readonly var entity in entities)
-                    entityByCoord[entity.Get<HexIdComponent>().Coords] = entity;
+                foreach (var entity in entities)
+                    idByCoord[entity.GetComponent<HexIdComponent>().Coords] = entity.Id;
 
                 for (var index = 0; index < path.Length; index++)
                 {
                     var coord = path[index];
-                    if (!entityByCoord.TryGetValue(coord, out var entity))
+                    if (!idByCoord.TryGetValue(coord, out var id))
                         continue;
 
-                    entity.Set(new HexLevelComponent { Level = RiverLevel });
+                    _world.TryGetEntityById(id, out var entity);
+                    entity.AddComponent(new HexLevelComponent { Level = RiverLevel });
                 }
             }
             finally
             {
-                entityByCoord.Dispose();
+                idByCoord.Dispose();
             }
         }
 

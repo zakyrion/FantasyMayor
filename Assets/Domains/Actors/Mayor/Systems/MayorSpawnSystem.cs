@@ -1,8 +1,8 @@
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using Domains.Actors.Components;
 using Domains.Kernel.Data;
 using Domains.Actors.Mayor.Components;
@@ -21,11 +21,11 @@ namespace Domains.Actors.Mayor.Systems
     [UsedImplicitly]
     internal sealed class MayorSpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        private readonly World _world;
+        private readonly EntityStore _world;
 
         public int Priority => SystemPriorities.WorldInit.MayorSpawn;
 
-        public MayorSpawnSystem(World world)
+        public MayorSpawnSystem(EntityStore world)
         {
             _world = world;
         }
@@ -37,28 +37,28 @@ namespace Domains.Actors.Mayor.Systems
 
             // Idempotent one-shot: an existing allocator means the Mayor was already created
             // (or restored by a future load flow) — never spawn a duplicate on pipeline re-entry.
-            if (_world.Has<MayorIdAllocatorComponent>())
+            if (_world.HasWorldComponent<MayorIdAllocatorComponent>())
                 return UniTask.CompletedTask;
 
-            if (!_world.Has<MayorConfigComponent>())
+            if (!_world.HasWorldComponent<MayorConfigComponent>())
                 throw new InvalidOperationException(
                     "MayorSpawnSystem: MayorConfigComponent missing — MayorConfigLoaderSystem must run at ConfigLoadStep first.");
 
-            var config = _world.Get<MayorConfigComponent>();
+            var config = _world.GetWorldComponent<MayorConfigComponent>();
 
-            _world.Set(new MayorIdAllocatorComponent { Next = 1 });
+            _world.SetWorldComponent(new MayorIdAllocatorComponent { Next = 1 });
 
             // Single actor (id stays 1); allocate-then-advance for symmetry with City and the save/load contract.
-            var mayorId = _world.Get<MayorIdAllocatorComponent>().Next;
-            _world.Set(new MayorIdAllocatorComponent { Next = mayorId + 1 });
+            var mayorId = _world.GetWorldComponent<MayorIdAllocatorComponent>().Next;
+            _world.SetWorldComponent(new MayorIdAllocatorComponent { Next = mayorId + 1 });
 
             var mayorIdComponent = new MayorIdComponent { Value = mayorId };
             var mayor = _world.CreateEntity();
-            mayor.Set(mayorIdComponent);
-            mayor.Set(new MayorTag());
-            mayor.Set(new ActorTypeComponent { Type = ActorType.Mayor });
-            mayor.Set(new MayorAPRestoreComponent { Value = config.StartActionPoints });
-            mayor.Set(new MayorAPComponent { Value = config.StartActionPoints });
+            mayor.AddComponent(mayorIdComponent);
+            mayor.AddTag<MayorTag>();
+            mayor.AddComponent(new ActorTypeComponent { Type = ActorType.Mayor });
+            mayor.AddComponent(new MayorAPRestoreComponent { Value = config.StartActionPoints });
+            mayor.AddComponent(new MayorAPComponent { Value = config.StartActionPoints });
 
             ResourceLoadoutSpawner.SpawnLoadout<MayorIdFKComponent, MayorResourceTag>(
                 _world, new MayorIdFKComponent { Value = mayorId }, config.Resources);

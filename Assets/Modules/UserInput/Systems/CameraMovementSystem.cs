@@ -1,5 +1,5 @@
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Cameras.Components;
 using Domains.Map.Hex.Components;
@@ -27,9 +27,9 @@ namespace Modules.UserInput.Systems
         /// <summary>Below this |forward.y| the camera looks too flat to change height by dollying — skip.</summary>
         private const float MinForwardPitch = 1e-4f;
 
-        private readonly EntitySet _hexIdSet;
-        private readonly EntitySet _playerInputSet;
-        private readonly World _world;
+        private readonly ArchetypeQuery _hexIdQuery;
+        private readonly ArchetypeQuery _playerInputQuery;
+        private readonly EntityStore _world;
 
         private Rect _bounds;
         private bool _boundsValid;
@@ -46,19 +46,14 @@ namespace Modules.UserInput.Systems
         public override int Priority => SystemPriorities.RuntimeTick.Camera;
 
         /// <param name="world">The ECS world used to build the entity set.</param>
-        public CameraMovementSystem(World world)
+        public CameraMovementSystem(EntityStore world)
             // Anchored on the single PlayerInputComponent entity so Update ticks once per frame;
             // the camera itself is a world component (CameraComponent), read via world.Get below.
-            : base(world.GetEntities().With<PlayerInputComponent>().With<PlayerInputTag>().AsSet())
+            : base(world.Query<PlayerInputComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<PlayerInputTag>()))
         {
             _world = world;
-            _playerInputSet = world.GetEntities()
-                .With<PlayerInputComponent>().With<PlayerInputTag>()
-                .AsSet();
-            _hexIdSet = world.GetEntities()
-                .With<HexIdComponent>()
-                .With<HexTag>()
-                .AsSet();
+            _playerInputQuery = world.Query<PlayerInputComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<PlayerInputTag>());
+            _hexIdQuery = world.Query<HexIdComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
 
             TryBindInputActions();
         }
@@ -72,28 +67,19 @@ namespace Modules.UserInput.Systems
                     return;
             }
 
-            if (!_world.Has<CameraMovementConfigComponent>() || !_world.Has<CameraComponent>())
+            if (!_world.HasWorldComponent<CameraMovementConfigComponent>() || !_world.HasWorldComponent<CameraComponent>())
                 return;
 
-            var camera = _world.Get<CameraComponent>().Camera;
+            var camera = _world.GetWorldComponent<CameraComponent>().Camera;
             if (camera == null)
                 return;
 
-            var config = _world.Get<CameraMovementConfigComponent>();
+            var config = _world.GetWorldComponent<CameraMovementConfigComponent>();
             var cameraTransform = camera.transform;
 
             MoveCamera(cameraTransform, config, state.DeltaTime);
             ApplyDolly(cameraTransform, config, state.DeltaTime);
             ClampCameraPosition(cameraTransform, camera);
-        }
-
-        /// <inheritdoc />
-        public override void Dispose()
-        {
-            UnbindInputActions();
-            _playerInputSet.Dispose();
-            _hexIdSet.Dispose();
-            base.Dispose();
         }
 
         /// <summary>
@@ -103,19 +89,19 @@ namespace Modules.UserInput.Systems
         /// <returns><c>true</c> when bounds were successfully computed and cached.</returns>
         private bool TryComputeBounds()
         {
-            if (!_world.Has<TerrainViewConfigComponent>() || _hexIdSet.Count == 0)
+            if (!_world.HasWorldComponent<TerrainViewConfigComponent>() || _hexIdQuery.Count == 0)
                 return false;
 
-            var cellSize = _world.Get<TerrainViewConfigComponent>().CellSize;
+            var cellSize = _world.GetWorldComponent<TerrainViewConfigComponent>().CellSize;
 
             var minX = float.MaxValue;
             var maxX = float.MinValue;
             var minZ = float.MaxValue;
             var maxZ = float.MinValue;
 
-            foreach (var hexEntity in _hexIdSet.GetEntities())
+            foreach (var hexEntity in _hexIdQuery.Entities)
             {
-                var coord = hexEntity.Get<HexIdComponent>().Coords.Value;
+                var coord = hexEntity.GetComponent<HexIdComponent>().Coords.Value;
                 var world = AxialMath.AxialToWorldPointTop(coord, cellSize);
 
                 if (world.x < minX) minX = world.x;
@@ -138,7 +124,7 @@ namespace Modules.UserInput.Systems
         /// </summary>
         /// <param name="cameraTransform">Transform of the camera being controlled.</param>
         /// <param name="camera">Camera used to cast the center ray.</param>
-        private void ClampCameraPosition(Transform cameraTransform, Camera camera)
+        private void ClampCameraPosition(UnityEngine.Transform cameraTransform, Camera camera)
         {
             if (!_boundsValid && !TryComputeBounds())
                 return;
@@ -193,7 +179,7 @@ namespace Modules.UserInput.Systems
         /// <param name="cameraTransform">Transform of the camera being controlled.</param>
         /// <param name="config">Zoom settings loaded into ECS.</param>
         /// <param name="deltaTime">Frame delta time in seconds.</param>
-        private void ApplyDolly(Transform cameraTransform, in CameraMovementConfigComponent config, float deltaTime)
+        private void ApplyDolly(UnityEngine.Transform cameraTransform, in CameraMovementConfigComponent config, float deltaTime)
         {
             var pos = cameraTransform.position;
             var forward = cameraTransform.forward;
@@ -231,7 +217,7 @@ namespace Modules.UserInput.Systems
         /// <param name="cameraTransform">Transform of the camera being controlled.</param>
         /// <param name="config">Pan settings loaded into ECS.</param>
         /// <param name="deltaTime">Frame delta time in seconds.</param>
-        private void MoveCamera(Transform cameraTransform, in CameraMovementConfigComponent config, float deltaTime)
+        private void MoveCamera(UnityEngine.Transform cameraTransform, in CameraMovementConfigComponent config, float deltaTime)
         {
             var right = Vector3.ProjectOnPlane(cameraTransform.right, Vector3.up).normalized;
             var forward = Vector3.ProjectOnPlane(cameraTransform.forward, Vector3.up).normalized;
@@ -287,10 +273,10 @@ namespace Modules.UserInput.Systems
             if (_moveAction != null && _zoomAction != null && _rightClickAction != null && _lookAction != null)
                 return true;
 
-            if (_playerInputSet.Count == 0)
+            if (!_playerInputQuery.TryGetFirst(out var playerInputEntity))
                 return false;
 
-            var playerInput = _playerInputSet.GetEntities()[0].Get<PlayerInputComponent>().PlayerInput;
+            var playerInput = playerInputEntity.GetComponent<PlayerInputComponent>().PlayerInput;
             if (playerInput == null || playerInput.actions == null)
                 return false;
 
@@ -313,29 +299,6 @@ namespace Modules.UserInput.Systems
             // _rightClickAction and _lookAction are polled each tick — no event subscription needed.
 
             return true;
-        }
-
-        /// <summary>Removes previously registered input callbacks.</summary>
-        private void UnbindInputActions()
-        {
-            if (_moveAction != null)
-            {
-                _moveAction.performed -= OnMovePerformed;
-                _moveAction.canceled -= OnMoveCanceled;
-                _moveAction = null;
-            }
-
-            if (_zoomAction != null)
-            {
-                _zoomAction.performed -= OnZoomPerformed;
-                _zoomAction = null;
-            }
-
-            if (_rightClickAction != null)
-                _rightClickAction = null;
-
-            if (_lookAction != null)
-                _lookAction = null;
         }
     }
 }

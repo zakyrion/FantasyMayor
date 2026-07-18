@@ -4,7 +4,7 @@
     "references": [
         "VContainer",
         "Boot.Core",
-        "DefaultECS.Extensions",
+        "Ecs.Extensions",
         "UniTask",
         "Domains.Map",
         "Presentation.UI",

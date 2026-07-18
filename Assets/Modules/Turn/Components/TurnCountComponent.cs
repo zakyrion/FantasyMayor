@@ -1,3 +1,4 @@
+using Friflo.Engine.ECS;
 namespace Modules.Turn.Components
 {
     /// <summary>
@@ -5,7 +6,7 @@ namespace Modules.Turn.Components
     ///     Phase is turn 1) and incremented by <c>TurnCountSystem</c> after each turn fully resolves. Read by the
     ///     MainUI turn cluster to show "Хід N". Immutable — write a new value via <c>World.Set</c>.
     /// </summary>
-    public readonly struct TurnCountComponent
+    public readonly struct TurnCountComponent : IComponent
     {
         public readonly int Value;
 

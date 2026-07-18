@@ -1,6 +1,6 @@
 using System;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Tags;
@@ -24,19 +24,19 @@ namespace Presentation.HexResources.Systems
     [UsedImplicitly]
     internal sealed class ForestHexResourceViewSubSystem : HexResourcesViewSubSystem
     {
-        private readonly EntitySet _hexSet;
-        private readonly World _world;
+        private readonly ArchetypeQuery _hexSet;
+        private readonly EntityStore _world;
 
-        private Transform _root;
+        private UnityEngine.Transform _root;
 
         public override int Priority => SystemPriorities.SubSystems.HexResourceView.Forest;
         protected override HexResourceType TargetHexResourceType => HexResourceType.Forest;
 
-        public ForestHexResourceViewSubSystem(World world)
+        public ForestHexResourceViewSubSystem(EntityStore world)
             : base(world)
         {
             _world = world;
-            _hexSet = world.GetEntities().With<HexTag>().With<HexIdComponent>().AsSet();
+            _hexSet = world.Query<HexIdComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
         }
 
         public override void Update(GameState state)
@@ -49,15 +49,15 @@ namespace Presentation.HexResources.Systems
                 throw new InvalidOperationException(
                     "ForestHexResourceViewSubSystem: VertexGridComponent world component is missing.");
 
-            if (!_world.Has<TerrainViewConfigComponent>() || !_world.Has<HexResourcesViewConfigComponent>() || !_world.Has<TerrainTextureComponent>())
+            if (!_world.HasWorldComponent<TerrainViewConfigComponent>() || !_world.HasWorldComponent<HexResourcesViewConfigComponent>() || !_world.HasWorldComponent<TerrainTextureComponent>())
                 return;
 
-            var texture = _world.Get<TerrainTextureComponent>().Texture;
+            var texture = _world.GetWorldComponent<TerrainTextureComponent>().Texture;
             if (texture == null)
                 return;
 
-            var viewConfig = _world.Get<HexResourcesViewConfigComponent>().Value;
-            var cellSize = _world.Get<TerrainViewConfigComponent>().CellSize;
+            var viewConfig = _world.GetWorldComponent<HexResourcesViewConfigComponent>().Value;
+            var cellSize = _world.GetWorldComponent<TerrainViewConfigComponent>().CellSize;
 
             if (_root == null)
                 _root = new GameObject("ForestViewRoot").transform;
@@ -67,7 +67,7 @@ namespace Presentation.HexResources.Systems
 
             foreach (var forestEntity in forestEntities)
             {
-                var hex = forestEntity.Get<HexIdFKComponent>().Coords;
+                var hex = forestEntity.GetComponent<HexIdFKComponent>().Coords;
                 planter.PlantHex(_world, _root, hex, vertexGrid, viewConfig, ref splats);
             }
 
@@ -78,7 +78,6 @@ namespace Presentation.HexResources.Systems
 
         public override void Dispose()
         {
-            _hexSet.Dispose();
             base.Dispose();
         }
     }

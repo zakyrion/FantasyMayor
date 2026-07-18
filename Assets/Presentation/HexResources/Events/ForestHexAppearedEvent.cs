@@ -1,3 +1,4 @@
+using Friflo.Engine.ECS;
 namespace Presentation.HexResources.Events
 {
     /// <summary>
@@ -6,7 +7,7 @@ namespace Presentation.HexResources.Events
     ///     view state, so the signal only needs to *exist*. Paired with EventTag; disposed each tick by
     ///     EventCleanupSystem. No emitter wires it yet — runtime planting is future gameplay.
     /// </summary>
-    public struct ForestHexAppearedEvent
+    public struct ForestHexAppearedEvent : IComponent
     {
     }
 }

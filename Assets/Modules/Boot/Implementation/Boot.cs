@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using Friflo.Engine.ECS;
+using EcsExtensions;
 using Domains.Actions.BuildDistrictAction.Systems;
 using Modules.Boot.Core;
 using Modules.Boot.Implementation.States;
@@ -104,7 +104,7 @@ namespace Modules.Boot.Implementation
             TurnCountSystem turnCount,
             EventCleanupSystem eventCleanup,
             CameraMovementSystem cameraMovement,
-            World world)
+            EntityStore world)
         {
             _configLoadSystems = configLoadSystems;
 

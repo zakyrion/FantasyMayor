@@ -1,4 +1,4 @@
-using DefaultEcs;
+using Friflo.Engine.ECS;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
 using Domains.Economy.District.Tags;
@@ -6,7 +6,7 @@ using Domains.Economy.DistrictOpenCondition.Components;
 using Domains.Economy.DistrictOpenCondition.Data;
 using Domains.Economy.DistrictOpenCondition.Tags;
 using JetBrains.Annotations;
-using DefaultECSExtensions;
+using EcsExtensions;
 
 namespace Domains.Economy.DistrictOpenCondition.Systems
 {
@@ -19,58 +19,38 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
         // Declarative query caches (Table Rule): every condition row keyed by its kind column, and every
         // District row keyed by its type (District table's legal self-index) — stage is read per-row below,
         // since the self-index cannot key on two columns at once.
-        private readonly EntityMultiMap<DistrictOpenConditionKindComponent> _conditionsByKind;
-        private readonly EntityMultiMap<DistrictTypeComponent> _districtsByType;
+        private readonly ComponentIndex<DistrictOpenConditionKindComponent, DistrictOpenConditionKind> _conditionsByKind;
+        private readonly ComponentIndex<DistrictTypeComponent, DistrictType> _districtsByType;
 
         public override int Priority => SystemPriorities.SubSystems.DistrictOpenConditionEvaluator.Exist;
 
-        public DistrictExistConditionEvaluatorSubSystem(World world) : base(world)
+        public DistrictExistConditionEvaluatorSubSystem(EntityStore world) : base(world)
         {
-            _conditionsByKind = world.GetEntities()
-                .With<DistrictOpenConditionTag>()
-                .AsMultiMap<DistrictOpenConditionKindComponent>();
-
-            _districtsByType = world.GetEntities()
-                .With<DistrictTag>()
-                .With<DistrictBuildStateComponent>()
-                .AsMultiMap<DistrictTypeComponent>();
+            _conditionsByKind = world.ComponentIndex<DistrictOpenConditionKindComponent, DistrictOpenConditionKind>();
+            _districtsByType = world.ComponentIndex<DistrictTypeComponent, DistrictType>();
         }
 
         public override void Evaluate()
         {
-            if (!_conditionsByKind.TryGetEntities(
-                    new DistrictOpenConditionKindComponent { Value = DistrictOpenConditionKind.Exist },
-                    out var conditions))
-                return;
-
-            foreach (var condition in conditions)
+            foreach (var condition in _conditionsByKind[DistrictOpenConditionKind.Exist])
             {
-                var requiredType = condition.Get<DistrictExistConditionComponent>().RequiredDistrict;
+                var requiredType = condition.GetComponent<DistrictExistConditionComponent>().RequiredDistrict;
                 var targetState = HasBuiltDistrictOfType(requiredType)
                     ? DistrictOpenState.Buildable
                     : DistrictOpenState.Closed;
 
-                if (condition.Get<DistrictOpenStateComponent>().Value != targetState)
-                    condition.Set(new DistrictOpenStateComponent { Value = targetState });
+                if (condition.GetComponent<DistrictOpenStateComponent>().Value != targetState)
+                    condition.AddComponent(new DistrictOpenStateComponent { Value = targetState });
             }
         }
 
         private bool HasBuiltDistrictOfType(DistrictType districtType)
         {
-            if (!_districtsByType.TryGetEntities(new DistrictTypeComponent { Value = districtType }, out var rows))
-                return false;
-
-            foreach (var row in rows)
-                if (row.Get<DistrictBuildStateComponent>().Value == DistrictBuildState.Built)
+            foreach (var row in _districtsByType[districtType])
+                if (row.GetComponent<DistrictBuildStateComponent>().Value == DistrictBuildState.Built)
                     return true;
 
             return false;
-        }
-
-        public override void Dispose()
-        {
-            _conditionsByKind.Dispose();
-            _districtsByType.Dispose();
         }
     }
 }

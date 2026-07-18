@@ -1,6 +1,6 @@
-﻿using System;
-using DefaultEcs;
-using DefaultECSExtensions;
+using System;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using Domains.Actions.BuildDistrictAction.Components;
 using Domains.Actions.BuildDistrictAction.Events;
 using Domains.Economy.District.Components;
@@ -24,66 +24,69 @@ namespace Domains.Actions.BuildDistrictAction.Systems
     ///     zero (level-triggered) — a pulse lost to the EventCleanup frame window costs one turn of latency, never
     ///     correctness. Both halves of that discipline are the contract; weakening either breaks the mechanic
     ///     silently. See <c>Flows/FLOW_DISTRICT_BUILD.md</c>.
+    ///     Batch dispatch (whole in-progress set reconciled once per ripe pulse, not per-entity), so this
+    ///     implements <see cref="IUpdatedSystem" /> directly instead of extending <c>UpdatedSystem</c> — same
+    ///     precedent as <c>TurnProcessorSystem</c>.
     /// </summary>
     [UsedImplicitly]
-    public sealed class BuildDistrictCompletionSystem : UpdatedSystem
+    public sealed class BuildDistrictCompletionSystem : IUpdatedSystem
     {
-        private readonly World _world;
-        private readonly EntitySet _buildDistrictsInProgress;
-        private readonly EntityMap<DistrictIdComponent> _districtsById;
+        private readonly EntityStore _world;
+        private readonly ArchetypeQuery _completePulses;
+        private readonly ArchetypeQuery _buildDistrictsInProgress;
+        private readonly ComponentIndex<DistrictIdComponent, int> _districtsById;
 
-        public override int Priority => SystemPriorities.RuntimeTick.BuildDistrictCompletion;
+        public int Priority => SystemPriorities.RuntimeTick.BuildDistrictCompletion;
 
-        public BuildDistrictCompletionSystem(World world)
-            : base(world.GetEntities().With<BuildDistrictCompleteEvent>().AsSet())
+        public BuildDistrictCompletionSystem(EntityStore world)
         {
             _world = world;
-            _buildDistrictsInProgress = world.GetEntities()
-                .With<BuildDistrictInProgressTag>()
-                .With<BuildDistrictTurnsComponent>()
-                .With<DistrictIdFKComponent>()
-                .AsSet();
-            _districtsById = world.GetEntities()
-                .With<DistrictTag>()
-                .With<DistrictIdComponent>()
-                .AsMap<DistrictIdComponent>();
+            _completePulses = world.Query<BuildDistrictCompleteEvent>();
+            _buildDistrictsInProgress = world.Query<BuildDistrictTurnsComponent, DistrictIdFKComponent>()
+                .AllTags(Friflo.Engine.ECS.Tags.Get<BuildDistrictInProgressTag>());
+            _districtsById = world.ComponentIndex<DistrictIdComponent, int>();
         }
 
-        // Batch override: the pulse batch is only the trigger — the work runs over the in-progress set, so however
-        // many pulses fired this frame, the set is reconciled once. Snapshot-before-dispose: disposing during the
-        // set's own span iteration only works by leaning on DefaultEcs swap-remove internals (frozen span length +
-        // uncleared tail slot) — copy the ready entities out first instead. Temp allocation happens only on frames
-        // where at least one build actually finished; idle pulses return at the zero count.
-        protected override void Update(GameState state, ReadOnlySpan<Entity> entities)
+        // The pulse batch is only the trigger — the work runs over the in-progress set, so however many ripe
+        // pulses fired this frame, the set is reconciled once. Snapshot ids first: deleting an entity while
+        // enumerating the query that selects it throws StructuralChangeException. Temp allocation happens only
+        // on frames where at least one build actually finished; idle pulses return at the zero count.
+        public void Update(GameState state)
         {
-            var inProgress = _buildDistrictsInProgress.GetEntities();
+            var hasRipePulse = false;
+            foreach (var pulse in _completePulses.Entities)
+                if (EcsEventExtensions.IsRipe(pulse))
+                {
+                    hasRipePulse = true;
+                    break;
+                }
 
-            var readyCount = 0;
-            foreach (var buildingEntity in inProgress)
-                if (buildingEntity.Get<BuildDistrictTurnsComponent>().TurnsLeft <= 0)
-                    readyCount++;
-
-            if (readyCount == 0)
+            if (!hasRipePulse)
                 return;
 
-            var ready = new NativeArray<Entity>(readyCount, Allocator.Temp);
-            var next = 0;
-            foreach (var buildingEntity in inProgress)
-                if (buildingEntity.Get<BuildDistrictTurnsComponent>().TurnsLeft <= 0)
-                    ready[next++] = buildingEntity;
+            var ready = new NativeList<int>(8, Allocator.Temp);
+            foreach (var buildingEntity in _buildDistrictsInProgress.Entities)
+                if (buildingEntity.GetComponent<BuildDistrictTurnsComponent>().TurnsLeft <= 0)
+                    ready.Add(buildingEntity.Id);
+
+            if (ready.Length == 0)
+            {
+                ready.Dispose();
+                return;
+            }
 
             for (var i = 0; i < ready.Length; i++)
             {
-                var entity = ready[i];
-                var districtId = entity.Get<DistrictIdFKComponent>().Value;
+                _world.TryGetEntityById(ready[i], out var entity);
+                var districtId = entity.GetComponent<DistrictIdFKComponent>().Value;
 
-                if (!_districtsById.TryGetEntity(new DistrictIdComponent { Value = districtId }, out var district))
+                if (!_districtsById[districtId].TryGetFirst(out var district))
                     throw new InvalidOperationException(
                         $"BuildDistrictCompletionSystem: no District row for id {districtId} — unify-district-row invariant broken.");
 
-                district.Set(new DistrictBuildStateComponent { Value = DistrictBuildState.Built });
+                district.AddComponent(new DistrictBuildStateComponent { Value = DistrictBuildState.Built });
 
-                entity.Dispose();
+                entity.DeleteEntity();
             }
 
             ready.Dispose();
@@ -95,16 +98,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         // spawned.
         private void RaiseTableChanged()
         {
-            var entity = _world.CreateEntity();
-            entity.Set(new DistrictTableChangedEvent { Change = DistrictTableChange.Built });
-            entity.Set(new EventTag());
-        }
-
-        public override void Dispose()
-        {
-            _buildDistrictsInProgress.Dispose();
-            _districtsById.Dispose();
-            base.Dispose();
+            _world.CreateEvent(new DistrictTableChangedEvent { Change = DistrictTableChange.Built });
         }
     }
 }

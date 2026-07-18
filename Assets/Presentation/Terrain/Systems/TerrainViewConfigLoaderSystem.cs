@@ -1,8 +1,8 @@
 using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using Domains.Map.Hex.Utils;
@@ -24,7 +24,7 @@ namespace Presentation.Terrain.Systems
         private const string WATER_VIEW_CONFIG = "WaterViewConfig";
         private const string WIND_EROSION_CONFIG = "WindErosionConfig";
 
-        public TerrainViewConfigLoaderSystem(IAddressable addressable, World world)
+        public TerrainViewConfigLoaderSystem(IAddressable addressable, EntityStore world)
             : base(addressable, world)
         {
         }
@@ -56,19 +56,19 @@ namespace Presentation.Terrain.Systems
                 if (cancellationToken.IsCancellationRequested)
                     return;
 
-                World.Set(InnerIsolineConfigComponent.FromConfig(innerIsolineConfig.Value));
-                World.Set(OuterIsolineConfigComponent.FromConfig(outerIsolineConfig.Value));
-                World.Set(HeightSmoothingConfigComponent.FromConfig(heightSmoothingConfig.Value));
-                World.Set(WindErosionConfigComponent.FromConfig(windErosionConfig.Value));
-                World.Set(HydraulicErosionConfigComponent.FromConfig(hydraulicErosionConfig.Value));
-                World.Set(TerrainViewConfigComponent.FromConfig(terrainViewConfig.Value));
-                World.Set(TerrainTextureConfigComponent.FromConfig(terrainTextureConfig.Value));
-                World.Set(WaterViewConfigComponent.FromConfig(waterViewConfig.Value));
+                World.SetWorldComponent(InnerIsolineConfigComponent.FromConfig(innerIsolineConfig.Value));
+                World.SetWorldComponent(OuterIsolineConfigComponent.FromConfig(outerIsolineConfig.Value));
+                World.SetWorldComponent(HeightSmoothingConfigComponent.FromConfig(heightSmoothingConfig.Value));
+                World.SetWorldComponent(WindErosionConfigComponent.FromConfig(windErosionConfig.Value));
+                World.SetWorldComponent(HydraulicErosionConfigComponent.FromConfig(hydraulicErosionConfig.Value));
+                World.SetWorldComponent(TerrainViewConfigComponent.FromConfig(terrainViewConfig.Value));
+                World.SetWorldComponent(TerrainTextureConfigComponent.FromConfig(terrainTextureConfig.Value));
+                World.SetWorldComponent(WaterViewConfigComponent.FromConfig(waterViewConfig.Value));
 
                 var vertexGrid = new VertexGrid(
                     terrainViewConfig.Value.CellSize,
                     terrainViewConfig.Value.Subdivisions);
-                World.Set(new VertexGridComponent { Grid = vertexGrid });
+                World.SetWorldComponent(new VertexGridComponent { Grid = vertexGrid });
 
                 MarkAsLoaded();
             }

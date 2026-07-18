@@ -1,5 +1,5 @@
-using DefaultEcs;
-using DefaultECSExtensions;
+using Friflo.Engine.ECS;
+using EcsExtensions;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
 using Domains.Map.Hex.Components;
@@ -19,23 +19,18 @@ namespace Domains.Map.HexResources.Systems
     [UsedImplicitly]
     internal sealed class FishResourceGenerationSubSystem : HexResourcesSubSystem
     {
-        private readonly World _world;
-        private readonly EntitySet _hexSet;
-        private readonly EntityMultiMap<HexTypeComponent> _hexesByType;
+        private readonly EntityStore _world;
+        private readonly ArchetypeQuery _hexSet;
+        private readonly ComponentIndex<HexTypeComponent, HexType> _hexesByType;
 
         public override int Priority => SystemPriorities.SubSystems.HexResourceGeneration.Fish;
         protected override HexResourceType TargetHexResourceType => HexResourceType.Fish;
 
-        public FishResourceGenerationSubSystem(World world) : base(world)
+        public FishResourceGenerationSubSystem(EntityStore world) : base(world)
         {
             _world = world;
-            _hexSet = world.GetEntities()
-                .With<HexIdComponent>()
-                .With<HexLevelComponent>().With<HexTag>()
-                .AsSet();
-            _hexesByType = world.GetEntities()
-                .With<HexTag>()
-                .AsMultiMap<HexTypeComponent>();
+            _hexSet = world.Query<HexIdComponent, HexLevelComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
+            _hexesByType = world.ComponentIndex<HexTypeComponent, HexType>();
         }
 
         public override void Update(GameState state)
@@ -44,24 +39,24 @@ namespace Domains.Map.HexResources.Systems
                 return;
 
             var config = (FishResourceConfig)baseConfig;
-            _hexesByType.TryGetEntities(new HexTypeComponent { Type = HexType.Water }, out var waterEntities);
-            var hexEntities = _hexSet.GetEntities();
+            var waterEntities = _hexesByType[HexType.Water];
+            var hexEntities = _hexSet.Entities;
 
-            if (waterEntities.Length == 0 || hexEntities.Length == 0)
+            if (waterEntities.Count == 0 || hexEntities.Count == 0)
                 return;
 
-            var hexCapacity = math.max(1, hexEntities.Length);
-            var waterCapacity = math.max(1, waterEntities.Length);
+            var hexCapacity = math.max(1, hexEntities.Count);
+            var waterCapacity = math.max(1, waterEntities.Count);
             var levelMap = new NativeParallelHashMap<int2, int>(hexCapacity, Allocator.Temp);
             var waterCoords = new NativeParallelHashSet<int2>(waterCapacity, Allocator.Temp);
 
             try
             {
-                foreach (ref readonly var entity in hexEntities)
-                    levelMap.TryAdd(entity.Get<HexIdComponent>().Coords.Value, entity.Get<HexLevelComponent>().Level);
+                foreach (var entity in hexEntities)
+                    levelMap.TryAdd(entity.GetComponent<HexIdComponent>().Coords.Value, entity.GetComponent<HexLevelComponent>().Level);
 
-                foreach (ref readonly var entity in waterEntities)
-                    waterCoords.Add(entity.Get<HexIdComponent>().Coords.Value);
+                foreach (var entity in waterEntities)
+                    waterCoords.Add(entity.GetComponent<HexIdComponent>().Coords.Value);
 
                 var shoreline = BuildShoreline(waterCapacity, ref levelMap, ref waterCoords);
                 try
@@ -181,9 +176,9 @@ namespace Domains.Map.HexResources.Systems
             for (var i = 0; i < count; i++)
             {
                 var entity = _world.CreateEntity();
-                entity.Set(new HexIdFKComponent { Coords = new HexCoord(eligible[i]) });
-                entity.Set(new HexResourceComponent { Type = HexResourceType.Fish });
-                entity.Set(new HexResourceTag());
+                entity.AddComponent(new HexIdFKComponent { Coords = new HexCoord(eligible[i]) });
+                entity.AddComponent(new HexResourceComponent { Type = HexResourceType.Fish });
+                entity.AddTag<HexResourceTag>();
             }
         }
 
@@ -194,13 +189,6 @@ namespace Domains.Map.HexResources.Systems
                 var j = Random.Range(0, i + 1);
                 (list[i], list[j]) = (list[j], list[i]);
             }
-        }
-
-        public override void Dispose()
-        {
-            base.Dispose();
-            _hexSet.Dispose();
-            _hexesByType.Dispose();
         }
     }
 }

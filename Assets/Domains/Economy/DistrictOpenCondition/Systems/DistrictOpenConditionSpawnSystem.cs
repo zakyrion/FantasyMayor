@@ -4,8 +4,8 @@ using System.Linq;
 using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using Domains.Economy.DistrictOpenCondition.Components;
 using Domains.Economy.DistrictOpenCondition.Configs;
 using JetBrains.Annotations;
@@ -20,7 +20,7 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
     [UsedImplicitly]
     internal sealed class DistrictOpenConditionSpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        private readonly World _world;
+        private readonly EntityStore _world;
 
         [StateAllowed]
         private readonly IReadOnlyList<DistrictOpenConditionSpawnSubSystem> _subSystems;
@@ -28,7 +28,7 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
         public int Priority => SystemPriorities.WorldInit.DistrictOpenConditionSpawn;
 
         public DistrictOpenConditionSpawnSystem(
-            World world, IReadOnlyList<DistrictOpenConditionSpawnSubSystem> subSystems)
+            EntityStore world, IReadOnlyList<DistrictOpenConditionSpawnSubSystem> subSystems)
         {
             _world = world;
             _subSystems = subSystems
@@ -38,14 +38,14 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
 
         public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
         {
-            if (!_world.Has<DistrictOpenConditionsConfigComponent>())
+            if (!_world.HasWorldComponent<DistrictOpenConditionsConfigComponent>())
                 throw new InvalidOperationException(
                     "DistrictOpenConditionSpawnSystem: DistrictOpenConditionsConfigComponent is missing.");
 
             if (cancellationToken.IsCancellationRequested)
                 return UniTask.CompletedTask;
 
-            var conditions = _world.Get<DistrictOpenConditionsConfigComponent>().Value.Conditions;
+            var conditions = _world.GetWorldComponent<DistrictOpenConditionsConfigComponent>().Value.Conditions;
 
             for (var index = 0; index < conditions.Length; index++)
             {

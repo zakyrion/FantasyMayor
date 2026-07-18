@@ -1,5 +1,5 @@
 using System;
-using DefaultEcs;
+using Friflo.Engine.ECS;
 
 namespace Domains.Economy.DistrictOpenCondition.Systems
 {
@@ -10,13 +10,13 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
     // host names IReadOnlyList<DistrictOpenConditionEvaluatorSubSystem> directly in Boot.Construct.
     public abstract class DistrictOpenConditionEvaluatorSubSystem : IDisposable
     {
-        protected readonly World World;
+        protected readonly EntityStore World;
 
         public bool IsEnabled { get; set; } = true;
 
         public abstract int Priority { get; }
 
-        protected DistrictOpenConditionEvaluatorSubSystem(World world)
+        protected DistrictOpenConditionEvaluatorSubSystem(EntityStore world)
         {
             World = world;
         }

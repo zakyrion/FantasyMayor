@@ -1,11 +1,11 @@
-using DefaultEcs;
+using Friflo.Engine.ECS;
 using Domains.Economy.District.Components;
 using Domains.Economy.DistrictOpenCondition.Components;
 using Domains.Economy.DistrictOpenCondition.Configs;
 using Domains.Economy.DistrictOpenCondition.Data;
 using Domains.Economy.DistrictOpenCondition.Tags;
 using JetBrains.Annotations;
-using DefaultECSExtensions;
+using EcsExtensions;
 
 namespace Domains.Economy.DistrictOpenCondition.Systems
 {
@@ -17,7 +17,7 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
     {
         public override int Priority => SystemPriorities.SubSystems.DistrictOpenConditionSpawn.Single;
 
-        public DistrictSingleOpenConditionSpawnSubSystem(World world) : base(world)
+        public DistrictSingleOpenConditionSpawnSubSystem(EntityStore world) : base(world)
         {
         }
 
@@ -27,10 +27,10 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
                 return false;
 
             var entity = World.CreateEntity();
-            entity.Set(new DistrictTypeFKComponent { Value = singleConfig.DistrictType });
-            entity.Set(new DistrictOpenConditionTag());
-            entity.Set(new DistrictOpenConditionKindComponent { Value = DistrictOpenConditionKind.SingleOpen });
-            entity.Set(new DistrictOpenStateComponent { Value = DistrictOpenState.Closed });
+            entity.AddComponent(new DistrictTypeFKComponent { Value = singleConfig.DistrictType });
+            entity.AddTag<DistrictOpenConditionTag>();
+            entity.AddComponent(new DistrictOpenConditionKindComponent { Value = DistrictOpenConditionKind.SingleOpen });
+            entity.AddComponent(new DistrictOpenStateComponent { Value = DistrictOpenState.Closed });
 
             return true;
         }

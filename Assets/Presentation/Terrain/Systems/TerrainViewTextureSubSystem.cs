@@ -1,8 +1,8 @@
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
 using Domains.Map.Hex.Components;
@@ -28,34 +28,34 @@ namespace Presentation.Terrain.Systems
     [UsedImplicitly]
     internal sealed class TerrainViewTextureSubSystem : ViewSubSystem
     {
-        private readonly EntitySet _hexSet;
-        private readonly World _world;
+        private readonly ArchetypeQuery _hexSet;
+        private readonly EntityStore _world;
 
         /// <inheritdoc />
         public override int Priority => SystemPriorities.SubSystems.TerrainView.Texture;
 
         /// <param name="world">ECS world used for entity queries and texture component creation.</param>
-        public TerrainViewTextureSubSystem(World world)
+        public TerrainViewTextureSubSystem(EntityStore world)
         {
             _world = world;
-            _hexSet = world.GetEntities().With<HexIdComponent>().With<HexTag>().AsSet();
+            _hexSet = world.Query<HexIdComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
         }
 
         /// <inheritdoc />
         public override async UniTask Update(GameState state, CancellationToken cancellationToken)
         {
-            if (!_world.Has<VertexGridComponent>())
+            if (!_world.HasWorldComponent<VertexGridComponent>())
                 throw new InvalidOperationException("TerrainViewTextureSubSystem: VertexGridComponent world component is missing.");
 
-            if (!_world.Has<TerrainTextureConfigComponent>() || !_world.Has<TerrainViewConfigComponent>())
+            if (!_world.HasWorldComponent<TerrainTextureConfigComponent>() || !_world.HasWorldComponent<TerrainViewConfigComponent>())
             {
                 Debug.LogError("[TerrainViewTextureSubSystem] Required config is missing.");
                 return;
             }
 
-            var config = _world.Get<TerrainTextureConfigComponent>();
-            var terrainConfig = _world.Get<TerrainViewConfigComponent>();
-            var vertexGrid = _world.Get<VertexGridComponent>().Grid;
+            var config = _world.GetWorldComponent<TerrainTextureConfigComponent>();
+            var terrainConfig = _world.GetWorldComponent<TerrainViewConfigComponent>();
+            var vertexGrid = _world.GetWorldComponent<VertexGridComponent>().Grid;
 
             // Persistent (not Temp): the map is read inside RunOnThreadPool, so it must outlive the await.
             // NativeParallelHashMap is the thread-safe-read container; disposed on every exit path below.
@@ -86,7 +86,9 @@ namespace Presentation.Terrain.Systems
                 texture.SetPixels32(pixels);
                 texture.Apply(false);
 
-                _world.Set(new TerrainTextureComponent { Texture = texture });
+                // Store write sits after the RunOnThreadPool hop back to main (Law 1) — UniTask resumes
+                // on the main thread by default once the background delegate completes.
+                _world.SetWorldComponent(new TerrainTextureComponent { Texture = texture });
             }
             finally
             {
@@ -98,7 +100,6 @@ namespace Presentation.Terrain.Systems
         /// <inheritdoc />
         public override void Dispose()
         {
-            _hexSet.Dispose();
             base.Dispose();
         }
 
@@ -109,17 +110,17 @@ namespace Presentation.Terrain.Systems
         /// </summary>
         private NativeParallelHashMap<HexCoord, HexType> BuildHexTypeMap()
         {
-            var entities = _hexSet.GetEntities();
-            var map = new NativeParallelHashMap<HexCoord, HexType>(entities.Length, Allocator.Persistent);
+            var entities = _hexSet.Entities;
+            var map = new NativeParallelHashMap<HexCoord, HexType>(entities.Count, Allocator.Persistent);
 
-            foreach (ref readonly var entity in entities)
+            foreach (var entity in entities)
             {
                 // _hexSet is keyed on HexIdComponent (also carried by non-hex rows like resources);
                 // only hex rows carry HexTypeComponent, so this skips rows that merely share a coord.
-                if (!entity.Has<HexTypeComponent>())
+                if (!entity.HasComponent<HexTypeComponent>())
                     continue;
 
-                map[entity.Get<HexIdComponent>().Coords] = entity.Get<HexTypeComponent>().Type;
+                map[entity.GetComponent<HexIdComponent>().Coords] = entity.GetComponent<HexTypeComponent>().Type;
             }
 
             return map;

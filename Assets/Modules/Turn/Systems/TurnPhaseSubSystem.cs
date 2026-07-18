@@ -1,6 +1,6 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using DefaultECSExtensions;
+using EcsExtensions;
 using Modules.Turn.Data;
 
 namespace Modules.Turn.Systems

@@ -1,4 +1,5 @@
 using Domains.Map.HexResources.Data;
+using Friflo.Engine.ECS;
 using Presentation.HexResources.Views;
 
 namespace Presentation.HexResources.Components
@@ -8,7 +9,7 @@ namespace Presentation.HexResources.Components
     ///     held so the <see cref="ForestView" /> GameObject can be destroyed when the hex stops being a forest.
     ///     Forest ground paint is append-only and never reverted, so no splat data is stored here.
     /// </summary>
-    internal struct ForestViewComponent
+    internal struct ForestViewComponent : IComponent
     {
         public HexResourceType Type;
         public ForestView View;

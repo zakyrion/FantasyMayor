@@ -1,14 +1,14 @@
-using System;
-using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
 using Domains.Actors.City.Components;
 using Domains.Actors.City.Configs;
 using Domains.Economy.Resource.Data;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
+using System.Threading;
+using System;
 using Unity.Collections;
 
 namespace Domains.Actors.City.Systems
@@ -21,7 +21,7 @@ namespace Domains.Actors.City.Systems
     {
         private const string CITY_CONFIG = "CityConfig";
 
-        public CityConfigLoaderSystem(IAddressable addressable, World world) : base(addressable, world)
+        public CityConfigLoaderSystem(IAddressable addressable, EntityStore world) : base(addressable, world)
         {
         }
 
@@ -37,7 +37,7 @@ namespace Domains.Actors.City.Systems
 
                 ValidateConfig(configBox.Value);
 
-                World.Set(CityConfigComponent.FromConfig(configBox.Value));
+                World.SetWorldComponent(CityConfigComponent.FromConfig(configBox.Value));
                 MarkAsLoaded();
             }
             finally

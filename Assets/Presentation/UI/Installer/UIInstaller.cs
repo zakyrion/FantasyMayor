@@ -1,4 +1,4 @@
-using DefaultECSExtensions;
+using EcsExtensions;
 using Modules.Boot.Core;
 using Presentation.UI.MainHud.ContextTabs.Systems;
 using Presentation.UI.DistrictBuild.Systems;

@@ -1,3 +1,4 @@
+using Friflo.Engine.ECS;
 using Modules.Turn.Data;
 
 namespace Modules.Turn.Components
@@ -8,7 +9,7 @@ namespace Modules.Turn.Components
     ///     flipped to <see cref="TurnProcessorStatus.Completed" /> by the background run, then removed by
     ///     <c>TurnProcessorSystem</c>.
     /// </summary>
-    public struct TurnProcessorComponent
+    public struct TurnProcessorComponent : IComponent
     {
         public TurnProcessorStatus Status;
     }

@@ -1,13 +1,13 @@
-﻿using System;
-using System.Threading;
-using Core;
+﻿using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using Domains.Economy.DistrictBuildOutcome.Components;
+using Domains.Economy.DistrictBuildOutcome.Configs;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
-using Domains.Economy.DistrictBuildOutcome.Configs;
-using Domains.Economy.DistrictBuildOutcome.Components;
+using System.Threading;
+using System;
 
 namespace Domains.Economy.DistrictBuildOutcome.Systems{
     // Config Loader (ConfigLoadStep, one-shot): loads the BuildDistrictOutcomesConfig SO from Addressables,
@@ -21,7 +21,7 @@ namespace Domains.Economy.DistrictBuildOutcome.Systems{
 
         private Box<DistrictBuildOutcomesConfig> _config = Box<DistrictBuildOutcomesConfig>.Empty();
 
-        public DistrictBuildOutcomesConfigLoaderSystem(IAddressable addressable, World world)
+        public DistrictBuildOutcomesConfigLoaderSystem(IAddressable addressable, EntityStore world)
             : base(addressable, world)
         {
         }
@@ -39,7 +39,7 @@ namespace Domains.Economy.DistrictBuildOutcome.Systems{
             ValidateConfig(box.Value);
 
             _config = box;
-            World.Set(new DistrictBuildOutcomesConfigComponent(box.Value));
+            World.SetWorldComponent(new DistrictBuildOutcomesConfigComponent(box.Value));
             MarkAsLoaded();
         }
 

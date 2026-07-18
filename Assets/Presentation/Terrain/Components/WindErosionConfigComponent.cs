@@ -1,8 +1,9 @@
+using Friflo.Engine.ECS;
 using Presentation.Terrain.Data;
 
 namespace Presentation.Terrain.Components
 {
-    public struct WindErosionConfigComponent
+    public struct WindErosionConfigComponent : IComponent
     {
         public bool EnableWindErosion;
         public float WindStrength;

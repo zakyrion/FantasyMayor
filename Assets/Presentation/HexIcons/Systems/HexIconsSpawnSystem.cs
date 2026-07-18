@@ -1,8 +1,8 @@
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Boot.Core;
 using Domains.Map.Hex.Components;
@@ -19,14 +19,14 @@ namespace Presentation.HexIcons.Systems
     [UsedImplicitly]
     internal sealed class HexIconsSpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        private readonly World _world;
+        private readonly EntityStore _world;
 
         // Cached at spawn for the container builders.
         private HexIconsView _view;
 
         public int Priority => SystemPriorities.WorldInit.HexIconsSpawn;
 
-        public HexIconsSpawnSystem(World world)
+        public HexIconsSpawnSystem(EntityStore world)
         {
             _world = world;
         }
@@ -36,10 +36,10 @@ namespace Presentation.HexIcons.Systems
             if (cancellationToken.IsCancellationRequested)
                 return UniTask.CompletedTask;
 
-            if (!_world.Has<HexIconsConfigComponent>())
+            if (!_world.HasWorldComponent<HexIconsConfigComponent>())
                 throw new InvalidOperationException("HexIconsSpawnSystem: HexIconsConfigComponent is missing.");
 
-            var iconConfig = _world.Get<HexIconsConfigComponent>();
+            var iconConfig = _world.GetWorldComponent<HexIconsConfigComponent>();
 
             var prefab = iconConfig.Value.Prefab;
             if (prefab == null)
@@ -61,7 +61,7 @@ namespace Presentation.HexIcons.Systems
 
             _view = view;
 
-            _world.Set(new HexIconsViewComponent(view));
+            _world.SetWorldComponent(new HexIconsViewComponent(view));
 
             CreateContainers();
 
@@ -73,16 +73,16 @@ namespace Presentation.HexIcons.Systems
         // into the Hex space. Containers are positioned per frame by HexIconsContainerPositionSystem, not here.
         private void CreateContainers()
         {
-            using var hexSet = _world.GetEntities().With<HexTag>().With<HexIdComponent>().AsSet();
-            foreach (var hexEntity in hexSet.GetEntities())
+            var hexSet = _world.Query<HexIdComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
+            foreach (var hexEntity in hexSet.Entities)
             {
-                var hexId = hexEntity.Get<HexIdComponent>();
+                var hexId = hexEntity.GetComponent<HexIdComponent>();
                 var container = CreateContainerElement(hexId.Coords.Value);
 
                 var containerEntity = _world.CreateEntity();
-                containerEntity.Set(new HexIdFKComponent { Coords = hexId.Coords });
-                containerEntity.Set(new HexIconContainerComponent(container));
-                containerEntity.Set(new HexIconContainerTag());
+                containerEntity.AddComponent(new HexIdFKComponent { Coords = hexId.Coords });
+                containerEntity.AddComponent(new HexIconContainerComponent(container));
+                containerEntity.AddTag<HexIconContainerTag>();
             }
         }
 
@@ -93,7 +93,7 @@ namespace Presentation.HexIcons.Systems
         private VisualElement CreateContainerElement(int2 coord)
         {
             var container = new VisualElement { name = $"hex-container-{coord.x}-{coord.y}" };
-            container.style.position = Position.Absolute;
+            container.style.position = UnityEngine.UIElements.Position.Absolute;
             container.style.flexDirection = FlexDirection.Column;
             container.style.alignItems = Align.Center;
             container.style.translate = new Translate(Length.Percent(-50f), Length.Percent(-50f));

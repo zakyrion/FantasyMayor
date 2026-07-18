@@ -1,6 +1,6 @@
 using System;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
 using Domains.Economy.District.Events;
@@ -8,6 +8,7 @@ using Domains.Economy.District.Helpers;
 using Domains.Economy.District.Tags;
 using Domains.Map.Hex.Components;
 using JetBrains.Annotations;
+using Modules.AxialSystem;
 using Presentation.Districts.Components;
 using Presentation.Districts.Configs;
 using Presentation.Districts.Tags;
@@ -32,62 +33,55 @@ namespace Presentation.Districts.Systems
     public sealed class DistrictBuildProgressViewSpawnSystem : UpdatedSystem
     {
         // District rows: one per hex, carrying the hex FK, its type, and its build stage.
-        private readonly EntitySet _districts;
+        private readonly ArchetypeQuery _districts;
 
         // Progress-view entities indexed by the hex FK -> lets the reconcile skip hexes already viewed.
-        private readonly EntityMultiMap<HexIdFKComponent> _viewsByHex;
+        private readonly ComponentIndex<HexIdFKComponent, HexCoord> _viewsByHex;
 
-        private readonly World _world;
+        private readonly EntityStore _world;
 
-        private Transform _root;
+        private UnityEngine.Transform _root;
 
         public override int Priority => SystemPriorities.RuntimeTick.DistrictBuildProgressViewSpawn;
 
-        public DistrictBuildProgressViewSpawnSystem(World world)
-            : base(world.GetEntities()
-                .With<DistrictTableChangedEvent>()
-                .AsSet())
+        public DistrictBuildProgressViewSpawnSystem(EntityStore world)
+            : base(world.Query<DistrictTableChangedEvent>())
         {
             _world = world;
 
-            _districts = world.GetEntities()
-                .With<DistrictTag>()
-                .With<HexIdFKComponent>()
-                .With<DistrictTypeComponent>()
-                .With<DistrictBuildStateComponent>()
-                .AsSet();
+            _districts = world.Query<HexIdFKComponent, DistrictTypeComponent, DistrictBuildStateComponent>()
+                .AllTags(Friflo.Engine.ECS.Tags.Get<DistrictTag>());
 
-            _viewsByHex = world.GetEntities()
-                .With<HexIdFKComponent>()
-                .With<DistrictBuildProgressViewComponent>().With<DistrictBuildProgressViewTag>()
-                .AsMultiMap<HexIdFKComponent>();
+            _viewsByHex = world.ComponentIndex<HexIdFKComponent, HexCoord>();
         }
 
         // The pulse entity itself is ignored — reconciliation is global over current state.
         protected override void Update(GameState state, in Entity pulse)
         {
-            if (!_world.Has<DistrictBuildProgressViewsConfigComponent>())
+            if (!EcsEventExtensions.IsRipe(pulse))
+                return;
+
+            if (!_world.HasWorldComponent<DistrictBuildProgressViewsConfigComponent>())
                 throw new InvalidOperationException(
                     "DistrictBuildProgressViewSpawnSystem: DistrictBuildProgressViewsConfigComponent world component is missing.");
 
-            if (!_world.Has<VertexGridComponent>())
+            if (!_world.HasWorldComponent<VertexGridComponent>())
                 throw new InvalidOperationException(
                     "DistrictBuildProgressViewSpawnSystem: VertexGridComponent world component is missing.");
 
-            var viewsConfig = _world.Get<DistrictBuildProgressViewsConfigComponent>().Value;
-            var vertexGrid = _world.Get<VertexGridComponent>().Grid;
+            var viewsConfig = _world.GetWorldComponent<DistrictBuildProgressViewsConfigComponent>().Value;
+            var vertexGrid = _world.GetWorldComponent<VertexGridComponent>().Grid;
 
-            var districts = _districts.GetEntities();
-            for (var i = 0; i < districts.Length; i++)
+            foreach (var district in _districts.Entities)
             {
-                if (districts[i].Get<DistrictBuildStateComponent>().Value != DistrictBuildState.Planned)
+                if (district.GetComponent<DistrictBuildStateComponent>().Value != DistrictBuildState.Planned)
                     continue;
 
-                var hexId = districts[i].Get<HexIdFKComponent>();
-                if (_viewsByHex.ContainsKey(hexId))
+                var hexId = district.GetComponent<HexIdFKComponent>();
+                if (_viewsByHex[hexId.Coords].Count > 0)
                     continue;
 
-                var districtType = districts[i].Get<DistrictTypeComponent>().Value;
+                var districtType = district.GetComponent<DistrictTypeComponent>().Value;
                 var prefab = ResolvePrefab(viewsConfig, districtType);
 
                 var centerCoord = vertexGrid.GetCenterVertexCoord(hexId.Coords);
@@ -103,9 +97,9 @@ namespace Presentation.Districts.Systems
                 var view = instance.GetComponent<DistrictBuildProgressView>();
 
                 var viewEntity = _world.CreateEntity();
-                viewEntity.Set(new HexIdFKComponent { Coords = hexId.Coords });
-                viewEntity.Set(new DistrictBuildProgressViewComponent { Type = districtType, View = view });
-                viewEntity.Set(new DistrictBuildProgressViewTag());
+                viewEntity.AddComponent(new HexIdFKComponent { Coords = hexId.Coords });
+                viewEntity.AddComponent(new DistrictBuildProgressViewComponent { Type = districtType, View = view });
+                viewEntity.AddTag<DistrictBuildProgressViewTag>();
             }
         }
 
@@ -118,13 +112,6 @@ namespace Presentation.Districts.Systems
                     $"DistrictBuildProgressViewSpawnSystem: no progress prefab configured for district type '{districtType}'.");
 
             return match.Prefab;
-        }
-
-        public override void Dispose()
-        {
-            _districts.Dispose();
-            _viewsByHex.Dispose();
-            base.Dispose();
         }
     }
 }

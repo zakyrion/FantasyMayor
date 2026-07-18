@@ -1,3 +1,4 @@
+using Friflo.Engine.ECS;
 using Presentation.Districts.Configs;
 
 namespace Presentation.Districts.Components
@@ -6,7 +7,7 @@ namespace Presentation.Districts.Components
     // one prefab per DistrictType). No copy/flatten — the SO already holds the data; DistrictViewsConfigLoaderSystem
     // keeps the addressable Box alive for the catalogue's lifetime and releases it on teardown. Read by
     // DistrictViewSpawnSystem to pick a built district's prefab by DistrictType.
-    public readonly struct DistrictViewsConfigComponent
+    public readonly struct DistrictViewsConfigComponent : IComponent
     {
         public readonly DistrictViewsConfig Value;
 

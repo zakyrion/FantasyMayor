@@ -1,6 +1,6 @@
 using System;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using Domains.Actions.BuildDistrictAction.Components;
 using Domains.Actions.BuildDistrictAction.Events;
 using Domains.Economy.District.Components;
@@ -35,63 +35,55 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
     ///     verb row via <c>DistrictIdFKComponent</c> + cancel); row staged <c>Built</c> → district-details block.
     /// </summary>
     [UsedImplicitly]
-    public sealed class HexInfoPanelDistrictSystem : UpdatedSystem
+    public sealed class HexInfoPanelDistrictSystem : UpdatedSystem, IDisposable
     {
-        private readonly World _world;
-        private readonly EntitySet _viewSet;
-        private readonly EntitySet _selectedHexSet;
+        private readonly EntityStore _world;
+        private readonly ArchetypeQuery _viewSet;
+        private readonly ArchetypeQuery _selectedHexSet;
 
         // District rows indexed by hex — one district per hex, so the first match is the answer.
-        private readonly EntityMultiMap<HexIdFKComponent> _districtsByHex;
+        private readonly ComponentIndex<HexIdFKComponent, HexCoord> _districtsByHex;
 
         // In-progress verb rows indexed by their FK into the District PK space.
-        private readonly EntityMultiMap<DistrictIdFKComponent> _inProgressByDistrictId;
+        private readonly ComponentIndex<DistrictIdFKComponent, int> _inProgressByDistrictId;
 
         private bool _cancelHooked;
         private HexInfoPanelView _cancelHookedView;
 
         public override int Priority => SystemPriorities.RuntimeTick.HexInfoPanelDistrict;
 
-        public HexInfoPanelDistrictSystem(World world)
-            : base(world.GetEntities()
-                .WithEither<SelectedHexChangedEvent>().Or<TurnCompletedEvent>().Or<DistrictTableChangedEvent>()
-                .AsSet())
+        public HexInfoPanelDistrictSystem(EntityStore world)
+            : base(world.Query()
+                .AnyComponents(ComponentTypes.Get<SelectedHexChangedEvent, TurnCompletedEvent, DistrictTableChangedEvent>()))
         {
             _world = world;
-            _viewSet = world.GetEntities().With<HexInfoPanelViewComponent>().With<UITag>().AsSet();
-            _selectedHexSet = world.GetEntities().With<HexSelectedComponent>().With<HexSelectionTag>().AsSet();
-            _districtsByHex = world.GetEntities()
-                .With<DistrictTag>()
-                .With<HexIdFKComponent>()
-                .With<DistrictIdComponent>()
-                .With<DistrictTypeComponent>()
-                .With<DistrictBuildStateComponent>()
-                .AsMultiMap<HexIdFKComponent>();
-            _inProgressByDistrictId = world.GetEntities()
-                .With<BuildDistrictInProgressTag>()
-                .With<DistrictIdFKComponent>()
-                .With<BuildDistrictTurnsComponent>()
-                .AsMultiMap<DistrictIdFKComponent>();
+            _viewSet = world.Query<HexInfoPanelViewComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<UITag>());
+            _selectedHexSet = world.Query<HexSelectedComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexSelectionTag>());
+            _districtsByHex = world.ComponentIndex<HexIdFKComponent, HexCoord>();
+            _inProgressByDistrictId = world.ComponentIndex<DistrictIdFKComponent, int>();
         }
 
         protected override void Update(GameState state, in Entity entity)
         {
-            if (_viewSet.Count == 0)
+            if (!EcsEventExtensions.IsRipe(entity))
                 return;
 
-            var view = _viewSet.GetEntities()[0].Get<HexInfoPanelViewComponent>().View;
+            if (!_viewSet.TryGetFirst(out var viewEntity))
+                return;
+
+            var view = viewEntity.GetComponent<HexInfoPanelViewComponent>().View;
             if (view == null)
                 return;
 
             HookCancel(view);
 
-            if (_selectedHexSet.Count == 0)
+            if (!_selectedHexSet.TryGetFirst(out var selectedHexEntity))
             {
                 view.HideDistrict();
                 return;
             }
 
-            var coords = _selectedHexSet.GetEntities()[0].Get<HexSelectedComponent>().Coords;
+            var coords = selectedHexEntity.GetComponent<HexSelectedComponent>().Coords;
 
             if (!TryGetDistrict(coords, out var district))
             {
@@ -99,10 +91,10 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
                 return;
             }
 
-            if (district.Get<DistrictBuildStateComponent>().Value == DistrictBuildState.Planned)
+            if (district.GetComponent<DistrictBuildStateComponent>().Value == DistrictBuildState.Planned)
             {
-                var turnsLeft = ResolveTurnsLeft(district.Get<DistrictIdComponent>().Value);
-                ShowInProgress(view, district.Get<DistrictTypeComponent>().Value, turnsLeft);
+                var turnsLeft = ResolveTurnsLeft(district.GetComponent<DistrictIdComponent>().Value);
+                ShowInProgress(view, district.GetComponent<DistrictTypeComponent>().Value, turnsLeft);
             }
             else
             {
@@ -110,35 +102,25 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
             }
         }
 
-        private bool TryGetDistrict(HexCoord coords, out Entity district)
-        {
-            if (_districtsByHex.TryGetEntities(new HexIdFKComponent { Coords = coords }, out var matches) && matches.Length > 0)
-            {
-                district = matches[0];
-                return true;
-            }
-
-            district = default;
-            return false;
-        }
+        private bool TryGetDistrict(HexCoord coords, out Entity district) => _districtsByHex[coords].TryGetFirst(out district);
 
         // A Planned District row always has exactly one matching verb row — a miss is a broken invariant.
         private int ResolveTurnsLeft(int districtId)
         {
-            if (!_inProgressByDistrictId.TryGetEntities(new DistrictIdFKComponent { Value = districtId }, out var matches) || matches.Length == 0)
+            if (!_inProgressByDistrictId[districtId].TryGetFirst(out var verb))
                 throw new InvalidOperationException(
                     $"HexInfoPanelDistrictSystem: no in-progress verb row for Planned district {districtId}.");
 
-            return matches[0].Get<BuildDistrictTurnsComponent>().TurnsLeft;
+            return verb.GetComponent<BuildDistrictTurnsComponent>().TurnsLeft;
         }
 
         private void ShowInProgress(HexInfoPanelView view, DistrictType districtType, int turnsLeft)
         {
-            if (!_world.Has<DistrictIconConfigComponent>())
+            if (!_world.HasWorldComponent<DistrictIconConfigComponent>())
                 throw new InvalidOperationException(
                     "HexInfoPanelDistrictSystem: DistrictIconConfigComponent is missing.");
 
-            var config = _world.Get<DistrictIconConfigComponent>().Value;
+            var config = _world.GetWorldComponent<DistrictIconConfigComponent>().Value;
             TryGetDistrictIconEntry(config, districtType, out var sprite, out var displayName);
 
             view.ShowDistrictInProgress(sprite, displayName, turnsLeft);
@@ -180,28 +162,20 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
         // and is the one that fails loud if the pulse ever reaches it without a matching hex.
         private void OnCancelled()
         {
-            if (_selectedHexSet.Count == 0)
+            if (!_selectedHexSet.TryGetFirst(out var selectedHexEntity))
                 return;
 
-            var coords = _selectedHexSet.GetEntities()[0].Get<HexSelectedComponent>().Coords;
-            if (!TryGetDistrict(coords, out var district) || district.Get<DistrictBuildStateComponent>().Value != DistrictBuildState.Planned)
+            var coords = selectedHexEntity.GetComponent<HexSelectedComponent>().Coords;
+            if (!TryGetDistrict(coords, out var district) || district.GetComponent<DistrictBuildStateComponent>().Value != DistrictBuildState.Planned)
                 return;
 
-            var pulse = _world.CreateEntity();
-            pulse.Set(new BuildDistrictCancelEvent { Coords = coords });
-            pulse.Set(new EventTag());
+            _world.CreateEvent(new BuildDistrictCancelEvent { Coords = coords });
         }
 
-        public override void Dispose()
+        public void Dispose()
         {
             if (_cancelHooked && _cancelHookedView != null)
                 _cancelHookedView.Cancelled -= OnCancelled;
-
-            _viewSet.Dispose();
-            _selectedHexSet.Dispose();
-            _districtsByHex.Dispose();
-            _inProgressByDistrictId.Dispose();
-            base.Dispose();
         }
     }
 }

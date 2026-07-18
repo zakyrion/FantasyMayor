@@ -1,8 +1,8 @@
 using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using Modules.Boot.Core;
@@ -23,7 +23,7 @@ namespace Presentation.Terrain.Systems
         private const string HEX_SELECTION_VIEW_ADDRESS = "HexSelectionView";
 
         private readonly IAddressable _addressable;
-        private readonly World _world;
+        private readonly EntityStore _world;
 
         private Box<HexSelectionView> _hexSelectionViewBox;
         private Entity? _hexSelectionViewEntity;
@@ -31,7 +31,7 @@ namespace Presentation.Terrain.Systems
         /// <inheritdoc />
         public int Priority => SystemPriorities.WorldInit.HexSelectionViewLoading;
 
-        public HexSelectionViewLoadingSystem(World world, IAddressable addressable)
+        public HexSelectionViewLoadingSystem(EntityStore world, IAddressable addressable)
         {
             _world = world;
             _addressable = addressable;
@@ -53,10 +53,10 @@ namespace Presentation.Terrain.Systems
 
         private void DestroyHexSelectionViewEntity()
         {
-            if (_hexSelectionViewEntity == null || !_hexSelectionViewEntity.Value.IsAlive)
+            if (_hexSelectionViewEntity == null || _hexSelectionViewEntity.Value.IsNull)
                 return;
 
-            _hexSelectionViewEntity.Value.Dispose();
+            _hexSelectionViewEntity.Value.DeleteEntity();
             _hexSelectionViewEntity = null;
         }
 
@@ -88,8 +88,8 @@ namespace Presentation.Terrain.Systems
             view.HideSelectionMesh();
 
             var entity = _world.CreateEntity();
-            entity.Set(new HexSelectionViewComponent { ObjectRef = view });
-            entity.Set(new HexSelectionViewTag());
+            entity.AddComponent(new HexSelectionViewComponent { ObjectRef = view });
+            entity.AddTag<HexSelectionViewTag>();
             _hexSelectionViewEntity = entity;
         }
     }

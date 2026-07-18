@@ -1,9 +1,10 @@
 using Core;
+using Friflo.Engine.ECS;
 using Presentation.HexIcons.Configs;
 
 namespace Presentation.HexIcons.Components
 {
-    public readonly struct HexResourceIconConfigComponent
+    public readonly struct HexResourceIconConfigComponent : IComponent
     {
         private readonly Box<HexResourceIconConfig> _config;
 

@@ -1,5 +1,5 @@
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using Domains.Actors.City.Components;
 using Domains.Actors.Components;
 using Domains.Actors.Mayor.Components;
@@ -25,73 +25,52 @@ namespace Presentation.UI.MainHud.ResourceBar.Systems
     public sealed class ResourceBarSystem : UpdatedSystem
     {
         // Actor rows (Table Rule): id PK + ActorTypeComponent discriminator — never a bare key.
-        private readonly EntitySet _mayorActor;
-        private readonly EntitySet _cityActor;
+        private readonly ArchetypeQuery _mayorActor;
+        private readonly ArchetypeQuery _cityActor;
         // FK 1:N indexes (Table Rule): owner id is a PK on the actor AND a FK on the resource stack.
-        private readonly EntityMultiMap<CityIdFKComponent> _cityResources;
-        private readonly EntityMultiMap<MayorIdFKComponent> _mayorResources;
+        private readonly ComponentIndex<CityIdFKComponent, int> _cityResources;
+        private readonly ComponentIndex<MayorIdFKComponent, int> _mayorResources;
 
         public override int Priority => SystemPriorities.RuntimeTick.ResourceBar;
 
-        public ResourceBarSystem(World world)
-            : base(world.GetEntities().With<ResourceBarViewComponent>().With<UITag>().AsSet())
+        public ResourceBarSystem(EntityStore world)
+            : base(world.Query<ResourceBarViewComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<UITag>()))
         {
-            _mayorActor = world.GetEntities().With<MayorIdComponent>().With<MayorTag>().With<ActorTypeComponent>().AsSet();
-            _cityActor = world.GetEntities().With<CityIdComponent>().With<CityTag>().With<ActorTypeComponent>().AsSet();
-            _cityResources = world.GetEntities()
-                .With<CityIdFKComponent>().With<CityResourceTag>().AsMultiMap<CityIdFKComponent>();
-            _mayorResources = world.GetEntities()
-                .With<MayorIdFKComponent>().With<MayorResourceTag>().AsMultiMap<MayorIdFKComponent>();
+            _mayorActor = world.Query<MayorIdComponent, ActorTypeComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<MayorTag>());
+            _cityActor = world.Query<CityIdComponent, ActorTypeComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<CityTag>());
+            _cityResources = world.ComponentIndex<CityIdFKComponent, int>();
+            _mayorResources = world.ComponentIndex<MayorIdFKComponent, int>();
         }
 
         protected override void Update(GameState state, in Entity entity)
         {
-            var view = entity.Get<ResourceBarViewComponent>().View;
+            var view = entity.GetComponent<ResourceBarViewComponent>().View;
             if (view == null)
                 return;
 
-            if (_mayorActor.Count > 0)
-            {
-                FillMayor(view, _mayorActor.GetEntities()[0].Get<MayorIdComponent>());
-            }
+            if (_mayorActor.TryGetFirst(out var mayor))
+                FillMayor(view, mayor.GetComponent<MayorIdComponent>());
 
-            if (_cityActor.Count > 0)
-            {
-                FillCity(view, _cityActor.GetEntities()[0].Get<CityIdComponent>());
-            }
+            if (_cityActor.TryGetFirst(out var city))
+                FillCity(view, city.GetComponent<CityIdComponent>());
 
             view.Show();
         }
 
-        public override void Dispose()
-        {
-            _mayorActor.Dispose();
-            _cityActor.Dispose();
-            _cityResources.Dispose();
-            _mayorResources.Dispose();
-            base.Dispose();
-        }
-
         private void FillCity(ResourceBarView view, CityIdComponent owner)
         {
-            if (!_cityResources.TryGetEntities(new CityIdFKComponent { Value = owner.Value }, out var stacks))
-                return;
-
-            foreach (var stack in stacks)
+            foreach (var stack in _cityResources[owner.Value])
             {
-                var resource = stack.Get<ResourceComponent>();
+                var resource = stack.GetComponent<ResourceComponent>();
                 view.SetCityAmount(resource.Type, resource.Amount);
             }
         }
 
         private void FillMayor(ResourceBarView view, MayorIdComponent owner)
         {
-            if (!_mayorResources.TryGetEntities(new MayorIdFKComponent { Value = owner.Value }, out var stacks))
-                return;
-
-            foreach (var stack in stacks)
+            foreach (var stack in _mayorResources[owner.Value])
             {
-                var resource = stack.Get<ResourceComponent>();
+                var resource = stack.GetComponent<ResourceComponent>();
                 view.SetMayorAmount(resource.Type, resource.Amount);
             }
         }

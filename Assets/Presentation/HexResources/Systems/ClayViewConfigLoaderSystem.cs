@@ -1,8 +1,8 @@
 using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using Presentation.HexResources.Components;
@@ -15,7 +15,7 @@ namespace Presentation.HexResources.Systems
     {
         private const string CLAY_VIEW_CONFIG = "ClayViewConfig";
 
-        public ClayViewConfigLoaderSystem(IAddressable addressable, World world)
+        public ClayViewConfigLoaderSystem(IAddressable addressable, EntityStore world)
             : base(addressable, world)
         {
         }
@@ -31,7 +31,7 @@ namespace Presentation.HexResources.Systems
                     return;
 
                 // Flattened component owns its data — the ScriptableObject is not retained past load.
-                World.Set(ClayViewConfigComponent.FromConfig(loadedConfig.Value));
+                World.SetWorldComponent(ClayViewConfigComponent.FromConfig(loadedConfig.Value));
                 MarkAsLoaded();
             }
             finally

@@ -1,13 +1,13 @@
-using System;
-using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
 using Domains.Economy.DistrictOpenCondition.Components;
 using Domains.Economy.DistrictOpenCondition.Configs;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
+using System.Threading;
+using System;
 
 namespace Domains.Economy.DistrictOpenCondition.Systems
 {
@@ -22,7 +22,7 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
 
         private Box<DistrictOpenConditionsConfig> _config = Box<DistrictOpenConditionsConfig>.Empty();
 
-        public DistrictOpenConditionsConfigLoaderSystem(IAddressable addressable, World world)
+        public DistrictOpenConditionsConfigLoaderSystem(IAddressable addressable, EntityStore world)
             : base(addressable, world)
         {
         }
@@ -40,7 +40,7 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
             ValidateConfig(box.Value);
 
             _config = box;
-            World.Set(new DistrictOpenConditionsConfigComponent(box.Value));
+            World.SetWorldComponent(new DistrictOpenConditionsConfigComponent(box.Value));
             MarkAsLoaded();
         }
 

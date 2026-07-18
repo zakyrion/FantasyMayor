@@ -1,4 +1,5 @@
 using Core;
+using Friflo.Engine.ECS;
 using Presentation.UI.MainHud.ResourceBar.Configs;
 
 namespace Presentation.UI.MainHud.ResourceBar.Components
@@ -8,7 +9,7 @@ namespace Presentation.UI.MainHud.ResourceBar.Components
     ///     the sprite assets stay loaded for the resource strip's lifetime (ownership is transferred here by the
     ///     loader). Mirrors HexTerrainIconConfigComponent.
     /// </summary>
-    public readonly struct InventoryResourceIconConfigComponent
+    public readonly struct InventoryResourceIconConfigComponent : IComponent
     {
         private readonly Box<InventoryResourceIconConfig> _config;
 

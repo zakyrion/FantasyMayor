@@ -1,12 +1,12 @@
 using System;
-using DefaultEcs;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Presentation.UI.MainHud.ResourceBar.Components;
 using Presentation.UI.MainHud.ResourceBar.Views;
 using Presentation.UI.MainHud.Systems;
 using Presentation.UI.Tags;
 using UnityEngine;
-using DefaultECSExtensions;
+using EcsExtensions;
 
 namespace Presentation.UI.MainHud.ResourceBar.Systems
 {
@@ -18,11 +18,11 @@ namespace Presentation.UI.MainHud.ResourceBar.Systems
     [UsedImplicitly]
     internal sealed class ResourceBarSpawnSubSystem : MainHudSpawnSubSystem
     {
-        private readonly World _world;
+        private readonly EntityStore _world;
 
         public override int Priority => SystemPriorities.SubSystems.MainHudSpawn.ResourceBar;
 
-        public ResourceBarSpawnSubSystem(World world)
+        public ResourceBarSpawnSubSystem(EntityStore world)
         {
             _world = world;
         }
@@ -34,17 +34,17 @@ namespace Presentation.UI.MainHud.ResourceBar.Systems
                 throw new InvalidOperationException(
                     "ResourceBarSpawnSubSystem: ResourceBarView is missing from the Main UI prefab.");
 
-            if (!_world.Has<InventoryResourceIconConfigComponent>())
+            if (!_world.HasWorldComponent<InventoryResourceIconConfigComponent>())
                 throw new InvalidOperationException(
                     "ResourceBarSpawnSubSystem: InventoryResourceIconConfigComponent missing — " +
                     "InventoryResourceIconConfigLoaderSystem must run at ConfigLoadStep first.");
 
-            view.Build(_world.Get<InventoryResourceIconConfigComponent>().Value.Entries);
+            view.Build(_world.GetWorldComponent<InventoryResourceIconConfigComponent>().Value.Entries);
             view.Hide();
 
             var entity = _world.CreateEntity();
-            entity.Set(new ResourceBarViewComponent(view));
-            entity.Set<UITag>();
+            entity.AddComponent(new ResourceBarViewComponent(view));
+            entity.AddTag<UITag>();
         }
     }
 }

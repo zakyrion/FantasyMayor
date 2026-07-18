@@ -1,6 +1,6 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using DefaultECSExtensions;
+using EcsExtensions;
 
 namespace Presentation.Terrain.Systems
 {

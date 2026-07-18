@@ -1,3 +1,4 @@
+using Friflo.Engine.ECS;
 using Presentation.Terrain.Configs;
 using UnityEngine;
 
@@ -7,7 +8,7 @@ namespace Presentation.Terrain.Components
     ///     Flattened ECS snapshot of <see cref="WaterViewConfig" />.
     ///     Created once by the config loader; consumed by <see cref="Systems.WaterViewSubSystem" />.
     /// </summary>
-    public struct WaterViewConfigComponent
+    public struct WaterViewConfigComponent : IComponent
     {
         public float WaterYOffset;
         public int Subdivisions;

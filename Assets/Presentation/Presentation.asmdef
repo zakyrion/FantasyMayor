@@ -8,7 +8,7 @@
         "Domains.Actions",
         "AxialSystem",
         "VContainer",
-        "DefaultECS.Extensions",
+        "Ecs.Extensions",
         "Addressables.Core",
         "UniTask",
         "Boot.Core",

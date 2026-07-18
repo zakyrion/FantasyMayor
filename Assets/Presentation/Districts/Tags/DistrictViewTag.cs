@@ -1,7 +1,8 @@
+using Friflo.Engine.ECS;
 namespace Presentation.Districts.Tags
 {
     // Discriminator: present on every DistrictView entity; filters must combine it with the key component.
-    public struct DistrictViewTag
+    public struct DistrictViewTag : ITag
     {
     }
 }

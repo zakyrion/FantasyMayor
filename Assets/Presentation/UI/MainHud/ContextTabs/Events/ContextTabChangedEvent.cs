@@ -1,3 +1,4 @@
+using Friflo.Engine.ECS;
 namespace Presentation.UI.MainHud.ContextTabs.Events
 {
     /// <summary>
@@ -6,7 +7,7 @@ namespace Presentation.UI.MainHud.ContextTabs.Events
     ///     active-tab state (idempotent) — the pulse carries no data by design. Paired with EventTag; disposed
     ///     each tick by EventCleanupSystem.
     /// </summary>
-    public struct ContextTabChangedEvent
+    public struct ContextTabChangedEvent : IComponent
     {
     }
 }

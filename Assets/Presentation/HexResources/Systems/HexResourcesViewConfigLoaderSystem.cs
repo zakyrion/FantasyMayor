@@ -2,8 +2,8 @@ using System;
 using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using Presentation.HexResources.Components;
@@ -18,7 +18,7 @@ namespace Presentation.HexResources.Systems
 
         private Box<HexResourcesViewConfig> _config = Box<HexResourcesViewConfig>.Empty();
 
-        public HexResourcesViewConfigLoaderSystem(IAddressable addressable, World world)
+        public HexResourcesViewConfigLoaderSystem(IAddressable addressable, EntityStore world)
             : base(addressable, world)
         {
         }
@@ -38,7 +38,7 @@ namespace Presentation.HexResources.Systems
                 _config = loadedConfig;
                 loadedConfig = Box<HexResourcesViewConfig>.Empty();
 
-                World.Set(new HexResourcesViewConfigComponent { Value = _config.Value });
+                World.SetWorldComponent(new HexResourcesViewConfigComponent { Value = _config.Value });
                 MarkAsLoaded();
             }
             finally

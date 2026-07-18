@@ -1,8 +1,9 @@
+using Friflo.Engine.ECS;
 using Presentation.Terrain.Data;
 
 namespace Presentation.Terrain.Components
 {
-    public struct HeightSmoothingConfigComponent
+    public struct HeightSmoothingConfigComponent : IComponent
     {
         public bool EnableHeightBlur;
         public int HeightBlurRadius;

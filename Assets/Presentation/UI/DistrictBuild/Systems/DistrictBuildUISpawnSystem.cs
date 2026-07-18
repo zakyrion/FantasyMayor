@@ -2,8 +2,8 @@ using System;
 using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using Modules.Boot.Core;
@@ -28,11 +28,11 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         private readonly IAddressable _addressable;
         private readonly IMainCanvasProvider _canvasProvider;
-        private readonly World _world;
+        private readonly EntityStore _world;
 
         public int Priority => SystemPriorities.WorldInit.DistrictBuildUiSpawn;
 
-        public DistrictBuildUISpawnSystem(World world,
+        public DistrictBuildUISpawnSystem(EntityStore world,
             IAddressable addressable,
             IMainCanvasProvider canvasProvider)
         {
@@ -43,7 +43,7 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public async UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
         {
-            if (_world.Has<DistrictBuildUIRootComponent>())
+            if (_world.HasWorldComponent<DistrictBuildUIRootComponent>())
                 return;
 
             var canvas = _canvasProvider.RootGO;
@@ -90,15 +90,15 @@ namespace Presentation.UI.DistrictBuild.Systems
                     + "the overlay prefab.");
             }
 
-            _world.Set(new DistrictBuildUIRootComponent { RootBox = result.Box });
-            _world.Set(new DistrictBuildListUIViewComponent(listView));
-            _world.Set(new DistrictBuildHexResourcesUIViewComponent(hexResourcesView));
-            _world.Set(new DistrictBuildPriceUIViewComponent(priceView));
-            _world.Set(new DistrictBuildActionsUIViewComponent(actionsView));
+            _world.SetWorldComponent(new DistrictBuildUIRootComponent { RootBox = result.Box });
+            _world.SetWorldComponent(new DistrictBuildListUIViewComponent(listView));
+            _world.SetWorldComponent(new DistrictBuildHexResourcesUIViewComponent(hexResourcesView));
+            _world.SetWorldComponent(new DistrictBuildPriceUIViewComponent(priceView));
+            _world.SetWorldComponent(new DistrictBuildActionsUIViewComponent(actionsView));
 
             var entity = _world.CreateEntity();
-            entity.Set(new DistrictBuildUIViewComponent(view));
-            entity.Set<UITag>();
+            entity.AddComponent(new DistrictBuildUIViewComponent(view));
+            entity.AddTag<UITag>();
 
             // Spawned hidden so it never flashes during map creation; DistrictBuildUISystem shows it on the
             // build request and hides it on close.
@@ -107,10 +107,10 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public void Dispose()
         {
-            if (_world != null && _world.Has<DistrictBuildUIRootComponent>())
+            if (_world != null && _world.HasWorldComponent<DistrictBuildUIRootComponent>())
             {
-                _world.Get<DistrictBuildUIRootComponent>().RootBox.Dispose();
-                _world.Remove<DistrictBuildUIRootComponent>();
+                _world.GetWorldComponent<DistrictBuildUIRootComponent>().RootBox.Dispose();
+                _world.RemoveWorldComponent<DistrictBuildUIRootComponent>();
             }
         }
     }

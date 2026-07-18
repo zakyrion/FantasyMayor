@@ -1,12 +1,12 @@
-using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using Modules.UserInput.Components;
 using Modules.UserInput.Configs;
+using System.Threading;
 
 namespace Modules.UserInput.Systems
 {
@@ -21,7 +21,7 @@ namespace Modules.UserInput.Systems
 
         /// <param name="addressable">Addressable loader abstraction.</param>
         /// <param name="world">World that receives the flattened config entity.</param>
-        public CameraMovementConfigLoaderSystem(IAddressable addressable, World world)
+        public CameraMovementConfigLoaderSystem(IAddressable addressable, EntityStore world)
             : base(addressable, world)
         {
         }
@@ -37,7 +37,7 @@ namespace Modules.UserInput.Systems
                 if (cancellationToken.IsCancellationRequested)
                     return;
 
-                World.Set(CameraMovementConfigComponent.FromConfig(cameraMovementConfig.Value));
+                World.SetWorldComponent(CameraMovementConfigComponent.FromConfig(cameraMovementConfig.Value));
                 MarkAsLoaded();
             }
             finally

@@ -2,8 +2,8 @@ using System;
 using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using Presentation.Districts.Components;
@@ -22,7 +22,7 @@ namespace Presentation.Districts.Systems
 
         private Box<DistrictViewsConfig> _config = Box<DistrictViewsConfig>.Empty();
 
-        public DistrictViewsConfigLoaderSystem(IAddressable addressable, World world)
+        public DistrictViewsConfigLoaderSystem(IAddressable addressable, EntityStore world)
             : base(addressable, world)
         {
         }
@@ -40,7 +40,7 @@ namespace Presentation.Districts.Systems
             ValidateConfig(box.Value);
 
             _config = box;
-            World.Set(new DistrictViewsConfigComponent(box.Value));
+            World.SetWorldComponent(new DistrictViewsConfigComponent(box.Value));
             MarkAsLoaded();
         }
 

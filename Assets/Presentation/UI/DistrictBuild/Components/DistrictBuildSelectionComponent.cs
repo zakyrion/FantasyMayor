@@ -1,4 +1,5 @@
 using Domains.Economy.District.Data;
+using Friflo.Engine.ECS;
 
 namespace Presentation.UI.DistrictBuild.Components
 {
@@ -6,7 +7,7 @@ namespace Presentation.UI.DistrictBuild.Components
     // single entity tagged DistrictBuildSelectionTag, created on overlay-open and destroyed on close by
     // DistrictBuildUISystem. Written exclusively by DistrictBuildListUISubSystem (default-selected on open, then on
     // each row click), read + reconciled by the other section subsystems. Not visible outside this subdomain.
-    internal struct DistrictBuildSelectionComponent
+    internal struct DistrictBuildSelectionComponent : IComponent
     {
         public DistrictType Selected;
     }

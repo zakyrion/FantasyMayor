@@ -1,9 +1,10 @@
-using System;
 using Domains.Economy.DistrictBuildCost.Data;
+using Friflo.Engine.ECS;
+using System;
 
 namespace Domains.Economy.DistrictBuildCost.Components
 {
-    public struct DistrictBuildCostResourcePriceComponent
+    public struct DistrictBuildCostResourcePriceComponent : IComponent
     {
         public const int Capacity = 7;
 

@@ -1,5 +1,5 @@
-using DefaultEcs;
-using DefaultECSExtensions;
+using Friflo.Engine.ECS;
+using EcsExtensions;
 using Domains.Actions.Installer;
 using Domains.Actors.Installer;
 using Domains.Economy.Installer;
@@ -27,7 +27,7 @@ using Modules.UserInput.Tags;
 
 namespace Installers.World
 {
-    /// <summary>Registers the DefaultEcs <see cref="World" />, the camera world component, and world-level ECS systems.</summary>
+    /// <summary>Registers the Friflo <see cref="EntityStore" />, the camera world component, and world-level ECS systems.</summary>
     public class WorldInstaller : LifetimeScope
     {
         [SerializeField] private Camera _mainCamera;
@@ -44,19 +44,21 @@ namespace Installers.World
         /// <inheritdoc />
         protected override void Configure(IContainerBuilder builder)
         {
-            var world = new DefaultEcs.World();
+            var world = new EntityStore();
             builder.RegisterInstance(world);
+
+            // The "world" singleton must exist before any SetWorldComponent call.
+            world.CreateEntity(new UniqueEntity("world"));
+
             builder.Register<IMainCanvasProvider, MainCanvasProvider>(Lifetime.Scoped).WithParameter(_uiRoot);
 
             // CameraComponent is single-instance world state, stored as a world component, not an entity.
-            world.Set(new CameraComponent
+            world.SetWorldComponent(new CameraComponent
             {
                 Camera = _mainCamera
             });
 
-            var playerInputEntity = world.CreateEntity();
-            playerInputEntity.Set(new PlayerInputComponent { PlayerInput = _playerInput });
-            playerInputEntity.Set(new PlayerInputTag());
+            world.CreateEntity(new PlayerInputComponent { PlayerInput = _playerInput }, Tags.Get<PlayerInputTag>());
 
             // Per-frame systems are registered as concrete singletons; Boot wires them into game states by hand.
             builder.Register<EventCleanupSystem>(Lifetime.Singleton).As<EventCleanupSystem>();

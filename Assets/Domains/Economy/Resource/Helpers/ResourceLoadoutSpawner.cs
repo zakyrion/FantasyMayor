@@ -1,5 +1,5 @@
 using System;
-using DefaultEcs;
+using Friflo.Engine.ECS;
 using Domains.Economy.Resource.Components;
 using Domains.Economy.Resource.Data;
 
@@ -14,10 +14,10 @@ namespace Domains.Economy.Resource.Helpers
     // created regardless of what startingAmounts contains.
     public static class ResourceLoadoutSpawner
     {
-        public static void SpawnLoadout<TOwnerId, TResourceTag>(World world, in TOwnerId owner,
+        public static void SpawnLoadout<TOwnerId, TResourceTag>(EntityStore store, in TOwnerId owner,
             ReadOnlySpan<ResourceAmount> startingAmounts = default)
-            where TOwnerId : struct
-            where TResourceTag : struct
+            where TOwnerId : struct, IComponent
+            where TResourceTag : struct, ITag
         {
             foreach (ResourceType type in Enum.GetValues(typeof(ResourceType)))
             {
@@ -25,20 +25,20 @@ namespace Domains.Economy.Resource.Helpers
                 if (type == ResourceType.Unknown)
                     continue;
 
-                SpawnResource<TOwnerId, TResourceTag>(world, owner, type, AmountFor(type, startingAmounts));
+                SpawnResource<TOwnerId, TResourceTag>(store, owner, type, AmountFor(type, startingAmounts));
             }
         }
 
         // Creates a single SoA resource stack (owner FK + ResourceComponent + owner-scoped resource tag).
-        public static void SpawnResource<TOwnerId, TResourceTag>(World world, in TOwnerId owner,
+        public static void SpawnResource<TOwnerId, TResourceTag>(EntityStore store, in TOwnerId owner,
             ResourceType type, int amount)
-            where TOwnerId : struct
-            where TResourceTag : struct
+            where TOwnerId : struct, IComponent
+            where TResourceTag : struct, ITag
         {
-            var entity = world.CreateEntity();
-            entity.Set(owner);
-            entity.Set(new ResourceComponent { Type = type, Amount = amount });
-            entity.Set(new TResourceTag());
+            var entity = store.CreateEntity();
+            entity.AddComponent(owner);
+            entity.AddComponent(new ResourceComponent { Type = type, Amount = amount });
+            entity.AddTag<TResourceTag>();
         }
 
         private static int AmountFor(ResourceType type, ReadOnlySpan<ResourceAmount> startingAmounts)

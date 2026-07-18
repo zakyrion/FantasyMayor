@@ -1,5 +1,6 @@
-using System;
 using Domains.Economy.Resource.Data;
+using Friflo.Engine.ECS;
+using System;
 
 namespace Domains.Economy.Resource.Components
 {
@@ -7,7 +8,7 @@ namespace Domains.Economy.Resource.Components
     // separately to the same entity (CityIdFKComponent | MayorIdFKComponent); the owner-scoped resource tag
     // (CityResourceTag | MayorResourceTag) is the table discriminator.
     [Serializable]
-    public struct ResourceComponent
+    public struct ResourceComponent : IComponent
     {
         public ResourceType Type;
         public int Amount;

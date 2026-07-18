@@ -1,3 +1,4 @@
+using Friflo.Engine.ECS;
 using Modules.UserInput.Configs;
 
 namespace Modules.UserInput.Components
@@ -6,7 +7,7 @@ namespace Modules.UserInput.Components
     ///     Flattened ECS snapshot of <see cref="CameraMovementConfig" />.
     ///     Carries camera pan, drag-pan, and zoom tuning used by <see cref="Systems.CameraMovementSystem" />.
     /// </summary>
-    public struct CameraMovementConfigComponent
+    public struct CameraMovementConfigComponent : IComponent
     {
         /// <summary>World-units per second applied while the move action is held.</summary>
         public float PanSpeed;

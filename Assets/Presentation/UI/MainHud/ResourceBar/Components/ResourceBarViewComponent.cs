@@ -1,3 +1,4 @@
+using Friflo.Engine.ECS;
 using Presentation.UI.MainHud.ResourceBar.Views;
 
 namespace Presentation.UI.MainHud.ResourceBar.Components
@@ -6,7 +7,7 @@ namespace Presentation.UI.MainHud.ResourceBar.Components
     ///     Singleton-entity component holding the resolved resource-strip view. The instance lifetime is owned by
     ///     the shared Main UI prefab (MainHudSpawnSystem holds the addressable Box); this only references it.
     /// </summary>
-    public readonly struct ResourceBarViewComponent
+    public readonly struct ResourceBarViewComponent : IComponent
     {
         public readonly ResourceBarView View;
 

@@ -1,6 +1,6 @@
 using System;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using Presentation.UI.MainHud.ContextTabs.Components;
 using Presentation.UI.MainHud.ContextTabs.Data;
 using Presentation.UI.MainHud.ContextTabs.Events;
@@ -36,7 +36,7 @@ namespace Presentation.UI.MainHud.ContextTabs.Views
 
         [SerializeField] private PanelRenderer _renderer;
 
-        private World _world;
+        private EntityStore _world;
         private VisualElement _root;
         private Toggle _tabOverview;
         private Toggle _tabBuildings;
@@ -58,7 +58,7 @@ namespace Presentation.UI.MainHud.ContextTabs.Views
         private bool _actionsEnabled = true;
 
         [Inject]
-        public void Construct(World world)
+        public void Construct(EntityStore world)
         {
             _world = world;
         }
@@ -175,11 +175,8 @@ namespace Presentation.UI.MainHud.ContextTabs.Views
         {
             // Record the selection in the world state, then raise a payload-less pulse — ContextTabSelectionSystem
             // reconciles the group against ActiveContextTabComponent (the pulse carries no data by design).
-            _world.Set(new ActiveContextTabComponent(tab));
-
-            var entity = _world.CreateEntity();
-            entity.Set(new ContextTabChangedEvent());
-            entity.Set(new EventTag());
+            _world.SetWorldComponent(new ActiveContextTabComponent(tab));
+            _world.CreateEvent(new ContextTabChangedEvent());
         }
 
         private Toggle Resolve(ContextTab tab)

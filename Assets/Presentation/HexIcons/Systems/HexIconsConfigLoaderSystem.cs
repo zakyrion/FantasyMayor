@@ -2,8 +2,8 @@ using System;
 using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using Presentation.HexIcons.Components;
@@ -17,7 +17,7 @@ namespace Presentation.HexIcons.Systems
         private const string HEX_ICONS_CONFIG = "HexIconsConfig";
         private const string HEX_RESOURCE_ICON_CONFIG = "HexResourceIconConfig";
 
-        public HexIconsConfigLoaderSystem(IAddressable addressable, World world)
+        public HexIconsConfigLoaderSystem(IAddressable addressable, EntityStore world)
             : base(addressable, world) { }
 
         protected override async UniTask LoadConfigsAsync(CancellationToken cancellationToken)
@@ -39,8 +39,8 @@ namespace Presentation.HexIcons.Systems
                 ValidateConfig(iconsConfig.Value);
                 ValidateResourceIconConfig(resourceIconConfig.Value);
 
-                World.Set(new HexIconsConfigComponent(iconsConfig));
-                World.Set(new HexResourceIconConfigComponent(resourceIconConfig));
+                World.SetWorldComponent(new HexIconsConfigComponent(iconsConfig));
+                World.SetWorldComponent(new HexResourceIconConfigComponent(resourceIconConfig));
                 iconsConfig = Box<HexIconsConfig>.Empty();
                 resourceIconConfig = Box<HexResourceIconConfig>.Empty();
                 MarkAsLoaded();

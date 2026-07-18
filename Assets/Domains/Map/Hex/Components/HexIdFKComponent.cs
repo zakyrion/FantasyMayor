@@ -1,15 +1,13 @@
-using System;
+using Friflo.Engine.ECS;
 using Modules.AxialSystem;
 
 namespace Domains.Map.Hex.Components
 {
-    // FK into the Hex key space: carried by rows of other tables, keys their AsMultiMap indexes.
-    public struct HexIdFKComponent : IEquatable<HexIdFKComponent>
+    // FK into the Hex key space: carried by rows of other tables, keys their ComponentIndex.
+    public struct HexIdFKComponent : IIndexedComponent<HexCoord>
     {
         public HexCoord Coords;
 
-        public bool Equals(HexIdFKComponent other) => Coords.Equals(other.Coords);
-        public override bool Equals(object obj) => obj is HexIdFKComponent other && Equals(other);
-        public override int GetHashCode() => Coords.GetHashCode();
+        public HexCoord GetIndexedValue() => Coords;
     }
 }

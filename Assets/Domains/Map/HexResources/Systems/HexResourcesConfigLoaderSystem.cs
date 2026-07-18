@@ -1,14 +1,14 @@
-using System;
-using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
-using JetBrains.Annotations;
-using Modules.Addressable.Core;
 using Domains.Map.HexResources.Components;
 using Domains.Map.HexResources.Configs;
 using Domains.Map.HexResources.Data;
+using EcsExtensions;
+using Friflo.Engine.ECS;
+using JetBrains.Annotations;
+using Modules.Addressable.Core;
+using System.Threading;
+using System;
 using Unity.Collections;
 
 namespace Domains.Map.HexResources.Systems
@@ -20,7 +20,7 @@ namespace Domains.Map.HexResources.Systems
 
         private Box<HexResourcesConfig> _config = Box<HexResourcesConfig>.Empty();
 
-        public HexResourcesConfigLoaderSystem(IAddressable addressable, World world)
+        public HexResourcesConfigLoaderSystem(IAddressable addressable, EntityStore world)
             : base(addressable, world)
         {
         }
@@ -40,7 +40,7 @@ namespace Domains.Map.HexResources.Systems
                 _config = loadedConfig;
                 loadedConfig = Box<HexResourcesConfig>.Empty();
 
-                World.Set(new HexResourcesConfigComponent { Value = _config.Value });
+                World.SetWorldComponent(new HexResourcesConfigComponent { Value = _config.Value });
                 MarkAsLoaded();
             }
             finally

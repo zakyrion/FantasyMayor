@@ -1,5 +1,5 @@
-﻿using DefaultEcs;
-using DefaultECSExtensions;
+﻿using Friflo.Engine.ECS;
+using EcsExtensions;
 using JetBrains.Annotations;
 using Domains.Map.Hex.Components;
 using Domains.Map.Generation.Components;
@@ -27,8 +27,8 @@ namespace Domains.Map.Generation.Systems
         private const float CohesionWeight = 1.5f;
         private const float GrowthJitter = 0.5f;
 
-        private readonly World _world;
-        private readonly EntitySet _hexSet;
+        private readonly EntityStore _world;
+        private readonly ArchetypeQuery _hexSet;
 
         /// <inheritdoc />
         public override int Priority => SystemPriorities.SubSystems.Generation.Mountain;
@@ -37,31 +37,21 @@ namespace Domains.Map.Generation.Systems
         ///     Creates a mountain generation system bound to the shared ECS world.
         /// </summary>
         /// <param name="world">World used to query mountain config and generated hexes.</param>
-        public MountainGenerationSubSystem(World world)
+        public MountainGenerationSubSystem(EntityStore world)
         {
             _world = world;
-            _hexSet = world.GetEntities()
-                .With<HexIdComponent>()
-                .With<HexLevelComponent>().With<HexTag>()
-                .AsSet();
+            _hexSet = world.Query<HexIdComponent, HexLevelComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
         }
 
         /// <inheritdoc />
         public override void Update(GameState state)
         {
-            if (!_world.Has<MountainConfigComponent>())
+            if (!_world.HasWorldComponent<MountainConfigComponent>())
                 return;
 
-            ref readonly var config = ref _world.Get<MountainConfigComponent>();
+            var config = _world.GetWorldComponent<MountainConfigComponent>();
 
             Generate(in config);
-        }
-
-        /// <inheritdoc />
-        public override void Dispose()
-        {
-            base.Dispose();
-            _hexSet.Dispose();
         }
 
         /// <summary>
@@ -73,11 +63,11 @@ namespace Domains.Map.Generation.Systems
             ref NativeList<int2> mapCoords,
             ref NativeParallelHashMap<int2, int> levelMap)
         {
-            foreach (ref readonly var entity in _hexSet.GetEntities())
+            foreach (var entity in _hexSet.Entities)
             {
-                var coord = entity.Get<HexIdComponent>().Coords.Value;
+                var coord = entity.GetComponent<HexIdComponent>().Coords.Value;
                 mapCoords.Add(coord);
-                levelMap.TryAdd(coord, entity.Get<HexLevelComponent>().Level);
+                levelMap.TryAdd(coord, entity.GetComponent<HexLevelComponent>().Level);
             }
         }
 
@@ -417,24 +407,24 @@ namespace Domains.Map.Generation.Systems
             int minFoothillCount,
             int minFoothillDistance)
         {
-            var entities = _hexSet.GetEntities();
+            var entities = _hexSet.Entities;
 
             // Pass 1: mountain body
-            foreach (ref readonly var entity in entities)
+            foreach (var entity in entities)
             {
-                var coord = entity.Get<HexIdComponent>().Coords.Value;
+                var coord = entity.GetComponent<HexIdComponent>().Coords.Value;
 
                 if (!mountainCoords.Contains(coord))
                     continue;
 
-                entity.Set(new HexLevelComponent { Level = MountainLevel });
+                entity.AddComponent(new HexLevelComponent { Level = MountainLevel });
                 SetLevel(ref levelMap, coord, MountainLevel);
             }
 
             // Pass 2: enclosed rule
-            foreach (ref readonly var entity in entities)
+            foreach (var entity in entities)
             {
-                var coord = entity.Get<HexIdComponent>().Coords.Value;
+                var coord = entity.GetComponent<HexIdComponent>().Coords.Value;
 
                 if (levelMap[coord] != 0)
                     continue;
@@ -444,7 +434,7 @@ namespace Domains.Map.Generation.Systems
 
                 if (existingNeighbors > 0 && mountainNeighbors == existingNeighbors)
                 {
-                    entity.Set(new HexLevelComponent { Level = MountainLevel });
+                    entity.AddComponent(new HexLevelComponent { Level = MountainLevel });
                     SetLevel(ref levelMap, coord, MountainLevel);
                 }
             }
@@ -453,9 +443,9 @@ namespace Domains.Map.Generation.Systems
             PlaceMandatoryFoothills(mapCoords, ref levelMap, ref waterCoords, minFoothillCount, minFoothillDistance);
 
             // Pass 4: general foothills rule
-            foreach (ref readonly var entity in entities)
+            foreach (var entity in entities)
             {
-                var coord = entity.Get<HexIdComponent>().Coords.Value;
+                var coord = entity.GetComponent<HexIdComponent>().Coords.Value;
 
                 if (levelMap[coord] != 0)
                     continue;
@@ -465,7 +455,7 @@ namespace Domains.Map.Generation.Systems
                 if (mountainNeighbors >= minFoothillNeighbors &&
                     !IsAdjacentToWater(coord, ref waterCoords))
                 {
-                    entity.Set(new HexLevelComponent { Level = FoothillLevel });
+                    entity.AddComponent(new HexLevelComponent { Level = FoothillLevel });
                     SetLevel(ref levelMap, coord, FoothillLevel);
                 }
             }
@@ -694,14 +684,14 @@ namespace Domains.Map.Generation.Systems
                             UpdateContourDistances(anchors[bestIdx], ref contour, ref contourDist);
                         }
 
-                        foreach (ref readonly var entity in _hexSet.GetEntities())
+                        foreach (var entity in _hexSet.Entities)
                         {
-                            var coord = entity.Get<HexIdComponent>().Coords.Value;
+                            var coord = entity.GetComponent<HexIdComponent>().Coords.Value;
 
                             if (!selected.Contains(coord))
                                 continue;
 
-                            entity.Set(new HexLevelComponent { Level = FoothillLevel });
+                            entity.AddComponent(new HexLevelComponent { Level = FoothillLevel });
                             SetLevel(ref levelMap, coord, FoothillLevel);
                         }
                     }
@@ -729,8 +719,8 @@ namespace Domains.Map.Generation.Systems
         /// <param name="config">Mountain-specific config.</param>
         private void Generate(in MountainConfigComponent config)
         {
-            var entities = _hexSet.GetEntities();
-            var mapCapacity = math.max(1, entities.Length);
+            var entities = _hexSet.Entities;
+            var mapCapacity = math.max(1, entities.Count);
             var mapCoords = new NativeList<int2>(mapCapacity, Allocator.Temp);
             var levelMap = new NativeParallelHashMap<int2, int>(mapCapacity, Allocator.Temp);
 

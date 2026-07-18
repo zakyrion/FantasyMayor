@@ -1,4 +1,4 @@
-using DefaultEcs;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
 using Domains.Map.Hex.Components;
@@ -15,11 +15,11 @@ namespace Domains.Map.Pathfinding
     public sealed class HexPathfindingUtility : IHexPathfindingUtility
     {
         /// <inheritdoc />
-        public bool TryFindPath(EntitySet hexSet, HexCoord start, HexCoord end, Allocator allocator, out NativeList<HexCoord> path)
+        public bool TryFindPath(ArchetypeQuery hexQuery, HexCoord start, HexCoord end, Allocator allocator, out NativeList<HexCoord> path)
         {
             path = default;
 
-            var capacity = math.max(1, hexSet.Count);
+            var capacity = math.max(1, hexQuery.Count);
             var domain = new NativeParallelHashSet<int2>(capacity, allocator);
             var frontier = new NativeQueue<int2>(allocator);
             var visited = new NativeParallelHashSet<int2>(capacity, allocator);
@@ -27,7 +27,7 @@ namespace Domains.Map.Pathfinding
 
             try
             {
-                BuildDomain(hexSet, ref domain);
+                BuildDomain(hexQuery, ref domain);
 
                 if (!domain.Contains(start.Value) || !domain.Contains(end.Value))
                     return false;
@@ -67,16 +67,14 @@ namespace Domains.Map.Pathfinding
         }
 
         /// <summary>
-        ///     Copies all currently existing hex coordinates from the provided ECS entity set into the native domain set.
+        ///     Copies all currently existing hex coordinates from the provided ECS query into the native domain set.
         /// </summary>
-        /// <param name="hexSet">Entity set used as the pathfinding domain source.</param>
+        /// <param name="hexQuery">Query used as the pathfinding domain source.</param>
         /// <param name="domain">Target native set to populate.</param>
-        private void BuildDomain(EntitySet hexSet, ref NativeParallelHashSet<int2> domain)
+        private void BuildDomain(ArchetypeQuery hexQuery, ref NativeParallelHashSet<int2> domain)
         {
-            var entities = hexSet.GetEntities();
-
-            foreach (var entity in entities)
-                domain.Add(entity.Get<HexIdComponent>().Coords.Value);
+            foreach (var entity in hexQuery.Entities)
+                domain.Add(entity.GetComponent<HexIdComponent>().Coords.Value);
         }
 
         /// <summary>

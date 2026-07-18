@@ -2,8 +2,8 @@ using System;
 using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using Presentation.UI.MainHud.HexInfoPanel.Components;
@@ -20,7 +20,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
     {
         private const string HEX_TERRAIN_ICON_CONFIG = "HexTerrainIconConfig";
 
-        public HexTerrainIconConfigLoaderSystem(IAddressable addressable, World world)
+        public HexTerrainIconConfigLoaderSystem(IAddressable addressable, EntityStore world)
             : base(addressable, world) { }
 
         protected override async UniTask LoadConfigsAsync(CancellationToken cancellationToken)
@@ -34,7 +34,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
 
                 ValidateConfig(terrainIconConfig.Value);
 
-                World.Set(new HexTerrainIconConfigComponent(terrainIconConfig));
+                World.SetWorldComponent(new HexTerrainIconConfigComponent(terrainIconConfig));
                 terrainIconConfig = Box<HexTerrainIconConfig>.Empty();
                 MarkAsLoaded();
             }

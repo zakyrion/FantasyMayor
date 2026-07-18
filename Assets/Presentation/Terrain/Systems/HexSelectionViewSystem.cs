@@ -1,6 +1,6 @@
 using System;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
 using Domains.Map.Hex.Utils;
@@ -24,9 +24,9 @@ namespace Presentation.Terrain.Systems
         private const int BorderBfsDepth = 3;
         private const float BorderLift = 0.08f;
 
-        private readonly EntitySet _selectedHexSet;
-        private readonly EntitySet _viewSet;
-        private readonly World _world;
+        private readonly ArchetypeQuery _selectedHexSet;
+        private readonly ArchetypeQuery _viewSet;
+        private readonly EntityStore _world;
 
         private bool _hadSelection;
         private HexSelectedComponent _lastSelection;
@@ -35,30 +35,32 @@ namespace Presentation.Terrain.Systems
         /// <inheritdoc />
         public override int Priority => SystemPriorities.RuntimeTick.HexSelectionView;
 
-        public HexSelectionViewSystem(World world)
-            : base(world.GetEntities()
-                .With<SelectedHexChangedEvent>().With<EventTag>().AsSet())
+        public HexSelectionViewSystem(EntityStore world)
+            : base(world.Query<SelectedHexChangedEvent>())
         {
             _world = world;
-            _viewSet = world.GetEntities()
-                .With<HexSelectionViewComponent>().With<HexSelectionViewTag>()
-                .AsSet();
-            _selectedHexSet = world.GetEntities()
-                .With<HexSelectedComponent>().With<HexSelectionTag>()
-                .AsSet();
+            _viewSet = world.Query<HexSelectionViewComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexSelectionViewTag>());
+            _selectedHexSet = world.Query<HexSelectedComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexSelectionTag>());
         }
 
         /// <inheritdoc />
         protected override void Update(GameState state, in Entity entity)
         {
-            var view = _viewSet.GetEntities()[0].Get<HexSelectionViewComponent>().ObjectRef;
+            if (!EcsEventExtensions.IsRipe(entity))
+                return;
+
+            if (!_viewSet.TryGetFirst(out var viewEntity))
+                throw new InvalidOperationException(
+                    "HexSelectionViewSystem: no HexSelectionView entity — HexSelectionViewLoadingSystem must run first.");
+
+            var view = viewEntity.GetComponent<HexSelectionViewComponent>().ObjectRef;
 
             if (view == null)
                 return;
 
             var viewChanged = _lastView != view;
 
-            if (_selectedHexSet.Count == 0)
+            if (!_selectedHexSet.TryGetFirst(out var selectedEntity))
             {
                 if (_hadSelection || viewChanged)
                     view.HideSelectionMesh();
@@ -68,16 +70,16 @@ namespace Presentation.Terrain.Systems
                 return;
             }
 
-            if (!_world.Has<VertexGridComponent>())
+            if (!_world.HasWorldComponent<VertexGridComponent>())
                 throw new InvalidOperationException("HexSelectionViewSystem: VertexGridComponent world component is missing.");
 
-            var selected = _selectedHexSet.GetEntities()[0].Get<HexSelectedComponent>();
+            var selected = selectedEntity.GetComponent<HexSelectedComponent>();
             if (!viewChanged && _hadSelection && _lastSelection.Coords == selected.Coords)
             {
                 return;
             }
 
-            VertexGrid vertexGrid = _world.Get<VertexGridComponent>().Grid;
+            VertexGrid vertexGrid = _world.GetWorldComponent<VertexGridComponent>().Grid;
             ComputeSelectionRings(selected.Coords, vertexGrid, out var outerRing, out var innerRing);
 
             view.ShowSelectionBorder(outerRing, innerRing);
@@ -163,13 +165,6 @@ namespace Presentation.Terrain.Systems
             visited.Dispose();
             current.Dispose();
             next.Dispose();
-        }
-
-        /// <inheritdoc />
-        public override void Dispose()
-        {
-            _selectedHexSet.Dispose();
-            base.Dispose();
         }
     }
 }

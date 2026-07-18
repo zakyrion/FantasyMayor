@@ -1,14 +1,14 @@
-using System;
-using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
 using Domains.Economy.DistrictBuild.Components;
 using Domains.Economy.DistrictBuild.Configs;
 using Domains.Kernel.Data;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
+using System.Threading;
+using System;
 
 namespace Domains.Economy.DistrictBuild.Systems
 {
@@ -23,7 +23,7 @@ namespace Domains.Economy.DistrictBuild.Systems
 
         private Box<DistrictBuildsConfig> _config = Box<DistrictBuildsConfig>.Empty();
 
-        public DistrictsBuildConfigLoaderSystem(IAddressable addressable, World world) : base(addressable, world)
+        public DistrictsBuildConfigLoaderSystem(IAddressable addressable, EntityStore world) : base(addressable, world)
         {
         }
 
@@ -39,7 +39,7 @@ namespace Domains.Economy.DistrictBuild.Systems
             ValidateConfig(box.Value);
 
             _config = box;
-            World.Set(new DistrictBuildsConfigComponent(box.Value));
+            World.SetWorldComponent(new DistrictBuildsConfigComponent(box.Value));
             MarkAsLoaded();
         }
 
