@@ -34,10 +34,8 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
             if (cancellationToken.IsCancellationRequested)
                 return;
 
-            // Phases compute off the main thread; every world write goes back on the main thread (the Turn
-            // engine's hard invariant: the pool computes, the main thread writes).
-            //await UniTask.SwitchToMainThread(cancellationToken);
-
+            // No main-thread hop: this family only Sets EXISTING components (state columns), a VALUE write
+            // legal off-thread under ECS_CONVENTIONS Law 1 — hopping here would cost a frame for nothing.
             for (var i = 0; i < _subSystems.Count; i++)
             {
                 if (_subSystems[i].IsEnabled)

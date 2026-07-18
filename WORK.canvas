@@ -1,6 +1,6 @@
 {
 	"nodes":[
-		{"id":"0ca12b9165d9928c","x":-700,"y":100,"width":664,"height":220,"type":"group","label":"Колись на потім"},
+		{"id":"0ca12b9165d9928c","type":"group","x":-720,"y":-40,"width":664,"height":220,"label":"Колись на потім"},
 		{"id":"2d7927a7b4e76c01","type":"text","text":"Tech Tree","x":-714,"y":880,"width":250,"height":60},
 		{"id":"f674f67c2b2953a5","type":"text","text":"Population","x":-714,"y":500,"width":250,"height":60},
 		{"id":"79e00755f5757d07","type":"text","text":"District","x":-713,"y":631,"width":250,"height":60},
@@ -8,13 +8,13 @@
 		{"id":"8ac8df7799bcded6","type":"text","text":"Upkeep","x":-215,"y":674,"width":250,"height":60},
 		{"id":"b3c2829b27b994e3","type":"text","text":"Building","x":-713,"y":734,"width":250,"height":60},
 		{"id":"701ac9ad8d4706cb","type":"text","text":"DistrictActions","x":-714,"y":1000,"width":250,"height":60},
-		{"id":"5ba865c55ba8191d","type":"text","text":"ResourceCategory","x":-306,"y":120,"width":250,"height":60},
-		{"id":"20dc569c0437c6f6","type":"text","text":"ResourceTier","x":-306,"y":240,"width":250,"height":60},
-		{"id":"242b2b9e230229cb","type":"text","text":"Resource","x":-680,"y":180,"width":250,"height":60},
-		{"id":"7469f0fb2eff1f42","x":-714,"y":378,"width":250,"height":60,"type":"text","text":"Service"},
-		{"id":"bade774d705cf9b0","x":-215,"y":353,"width":269,"height":110,"type":"text","text":"Non-consumable resources like, households or tavern places, etc"},
-		{"id":"9acaaac7b55b5216","x":-215,"y":601,"width":250,"height":60,"type":"text","text":"DistrictEffects"},
-		{"id":"7202fc993c028dac","x":-215,"y":764,"width":250,"height":60,"type":"text","text":"BuildingEffects"}
+		{"id":"7469f0fb2eff1f42","type":"text","text":"Service","x":-714,"y":378,"width":250,"height":60},
+		{"id":"9acaaac7b55b5216","type":"text","text":"DistrictEffects","x":-215,"y":601,"width":250,"height":60},
+		{"id":"7202fc993c028dac","type":"text","text":"BuildingEffects","x":-215,"y":764,"width":250,"height":60},
+		{"id":"bade774d705cf9b0","type":"text","text":"Non-consumable resources like, households or tavern places, etc","x":-215,"y":353,"width":269,"height":110},
+		{"id":"242b2b9e230229cb","type":"text","text":"Resource","x":-700,"y":40,"width":250,"height":60},
+		{"id":"5ba865c55ba8191d","type":"text","text":"ResourceCategory","x":-326,"y":-20,"width":250,"height":60},
+		{"id":"20dc569c0437c6f6","type":"text","text":"ResourceTier","x":-326,"y":100,"width":250,"height":60}
 	],
 	"edges":[
 		{"id":"03587d14f4ddf9f0","fromNode":"242b2b9e230229cb","fromSide":"right","toNode":"5ba865c55ba8191d","toSide":"left"},

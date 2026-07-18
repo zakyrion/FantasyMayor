@@ -6,6 +6,7 @@ using DefaultECSExtensions;
 using Domains.Actions.BuildDistrictAction.Systems;
 using Modules.Boot.Core;
 using Modules.Boot.Implementation.States;
+using Domains.Economy.DistrictOpenCondition.Systems;
 using Presentation.Districts.Systems;
 using Presentation.HexIcons.Systems;
 using Presentation.HexResources.Systems;
@@ -94,6 +95,7 @@ namespace Modules.Boot.Implementation
             BuildDistrictActionSystem buildDistrictAction,
             BuildDistrictActionCancelSystem buildDistrictActionCancel,
             BuildDistrictCompletionSystem buildDistrictCompletion,
+            DistrictOpenConditionEvaluatorTableChangedSystem districtOpenConditionEvaluatorTableChanged,
             ResourceBarSystem resourceBar,
             TurnPanelViewSystem turnPanelViewSystem,
             ContextTabSelectionSystem contextTabSelection,
@@ -119,7 +121,7 @@ namespace Modules.Boot.Implementation
                     hexSelection, hexSelectionView, forestSpawn, forestDespawn, districtViewSpawn, hexIconsVisibility,
                     hexInfoPanel, hexInfoPanelHeader, hexInfoPanelResources, hexInfoPanelDistrict,
                     districtBuildUI, buildDistrictAction, districtBuildProgressViewSpawn, buildDistrictActionCancel,
-                    buildDistrictCompletion, districtBuildProgressViewDespawn,
+                    buildDistrictCompletion, districtBuildProgressViewDespawn, districtOpenConditionEvaluatorTableChanged,
                     resourceBar, turnPanelViewSystem, contextTabSelection,
                     contextTabsAvailability, turnProcessor, turnCount, eventCleanup
                 },

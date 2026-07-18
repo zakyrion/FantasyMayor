@@ -11,7 +11,9 @@ using Domains.Actors.Mayor.Components;
 using Domains.Actors.Mayor.Tags;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
+using Domains.Economy.District.Events;
 using Domains.Economy.District.Helpers;
+using Domains.Economy.District.Tags;
 using Domains.Economy.DistrictBuildCost.Components;
 using Domains.Economy.DistrictBuildCost.Configs;
 using Domains.Economy.Resource.Data;
@@ -24,19 +26,20 @@ namespace Domains.Actions.BuildDistrictAction.Systems
 {
     /// <summary>
     ///     Reactive: on the <see cref="DistrictBuildConfirmedEvent" /> pulse SPENDS the district's price then creates
-    ///     the IN-PROGRESS build entity. Spend (R2) runs first and all-or-nothing: the payer's resource stockpile is
-    ///     charged the <c>DistrictBuildCostConfig.DistrictPrices</c> (via <c>ResourceLedger</c>) and the Mayor's
-    ///     <c>MayorAPComponent</c> pool is charged the <c>ApPrice</c> (AP is always Mayor-paid). Affordability is
-    ///     checked across the WHOLE price before any deduction, and a shortfall throws — the confirm is UI-gated
-    ///     (<c>DistrictBuildPriceUISubSystem</c> disables «Збудувати» when unaffordable), so a shortfall here is a
-    ///     broken invariant, not a normal path. Only after a successful spend is the entity stamped with
-    ///     <c>HexIdFKComponent</c> + <c>DistrictTypeFKComponent</c> from the pulse, a unique <c>ActionIdComponent</c>
-    ///     (shared <c>ActionIdAllocatorComponent</c> counter, seeded here), the turn countdown
-    ///     (<c>BuildDistrictTurnsComponent</c> = the district's <c>TurnsToBuild</c>, twice), the chosen payer
-    ///     (<c>ActorTypeComponent</c>), and <c>BuildDistrictInProgressTag</c>. There is no draft: the build is
-    ///     committed directly on confirm. Hex, district, and payer come from the pulse (the Actions assembly can't read
-    ///     the Presentation selection). <c>BuildDistrictTurnTickSystem</c> counts the entity down each turn and
-    ///     <c>BuildDistrictCompletionSystem</c> materialises the District fact at zero. See
+    ///     the UNIFIED district row: the Economy <c>District</c> fact (<c>DistrictTag</c> + allocated
+    ///     <c>DistrictIdComponent</c> PK, seeded here — <c>DistrictIdAllocatorComponent</c> — + <c>HexIdFKComponent</c>
+    ///     + <c>DistrictTypeComponent</c>) staged <c>DistrictBuildState.Planned</c>, and the pure-verb in-progress
+    ///     row (<c>BuildDistrictInProgressTag</c> + <c>DistrictIdFKComponent</c> back into that row, a unique
+    ///     <c>ActionIdComponent</c>, the turn countdown, the payer) — the verb row carries NO district attribute
+    ///     (FLOW_DISTRICT_BUILD unification, 2026-07-17). Spend (R2) runs first and all-or-nothing: the payer's
+    ///     resource stockpile is charged the <c>DistrictBuildCostConfig.DistrictPrices</c> (via
+    ///     <c>ResourceLedger</c>) and the Mayor's <c>MayorAPComponent</c> pool is charged the <c>ApPrice</c> (AP is
+    ///     always Mayor-paid). Affordability is checked across the WHOLE price before any deduction, and a
+    ///     shortfall throws — the confirm is UI-gated (<c>DistrictBuildPriceUISubSystem</c> disables «Збудувати»
+    ///     when unaffordable), so a shortfall here is a broken invariant, not a normal path. There is no draft: the
+    ///     build is committed directly on confirm. Hex, district, and payer come from the pulse (the Actions
+    ///     assembly can't read the Presentation selection). <c>BuildDistrictTurnTickSystem</c> counts the verb row
+    ///     down each turn and <c>BuildDistrictCompletionSystem</c> flips the District row to Built at zero. See
     ///     <c>Patterns/PATTERN_REACTIVE_SYSTEM.md</c> and <c>Flows/FLOW_DISTRICT_BUILD.md</c>.
     /// </summary>
     [UsedImplicitly]
@@ -71,6 +74,11 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             // Seed the shared action-id counter once; ids start at 1 (0 = unset).
             if (!world.Has<ActionIdAllocatorComponent>())
                 world.Set(new ActionIdAllocatorComponent { Next = 1 });
+
+            // Seed the district-id counter once; ids start at 1 (0 = unset). Moved here from
+            // BuildDistrictCompletionSystem (FLOW_DISTRICT_BUILD unification): the PK is allocated at CONFIRM now.
+            if (!world.Has<DistrictIdAllocatorComponent>())
+                world.Set(new DistrictIdAllocatorComponent { Next = 1 });
         }
 
         protected override void Update(GameState state, in Entity pulse)
@@ -78,16 +86,28 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             var confirmed = pulse.Get<DistrictBuildConfirmedEvent>();
             var cost = ResolveCost(confirmed.Type);
 
-            // Charge the price BEFORE committing the entity: a shortfall throws, so a half-built state can never exist.
+            // Charge the price BEFORE committing any row: a shortfall throws, so a half-built state can never exist.
             SpendCost(confirmed.Payer, cost);
 
+            var districtId = AllocateDistrictId();
+
+            var district = _world.CreateEntity();
+            district.Set(new DistrictTag());
+            district.Set(new DistrictIdComponent { Value = districtId });
+            district.Set(new HexIdFKComponent { Coords = confirmed.Coords });
+            district.Set(new DistrictTypeComponent { Value = confirmed.Type });
+            district.Set(new DistrictBuildStateComponent { Value = DistrictBuildState.Planned });
+
             var entity = _world.CreateEntity();
-            entity.Set(new HexIdFKComponent { Coords = confirmed.Coords });
-            entity.Set(new DistrictTypeFKComponent { Value = confirmed.Type });
+            entity.Set(new DistrictIdFKComponent { Value = districtId });
             entity.Set(new ActionIdComponent { Value = AllocateId() });
             entity.Set(new BuildDistrictTurnsComponent { TurnsLeft = cost.TurnsToBuild, TurnsToBuild = cost.TurnsToBuild });
             entity.Set(new ActorTypeComponent { Type = confirmed.Payer });
             entity.Set(new BuildDistrictInProgressTag());
+
+            var changeEntity = _world.CreateEntity();
+            changeEntity.Set(new DistrictTableChangedEvent { Change = DistrictTableChange.Planned });
+            changeEntity.Set(new EventTag());
 
             if (cost.TurnsToBuild == 0)
             {
@@ -177,6 +197,14 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         {
             var id = _world.Get<ActionIdAllocatorComponent>().Next;
             _world.Set(new ActionIdAllocatorComponent { Next = id + 1 });
+            return id;
+        }
+
+        // Hands out the next unique district id and advances the shared counter (write via Set).
+        private int AllocateDistrictId()
+        {
+            var id = _world.Get<DistrictIdAllocatorComponent>().Next;
+            _world.Set(new DistrictIdAllocatorComponent { Next = id + 1 });
             return id;
         }
 

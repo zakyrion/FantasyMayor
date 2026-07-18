@@ -1,10 +1,11 @@
-﻿using System;
+using System;
 using DefaultEcs;
 using DefaultECSExtensions;
 using Domains.Actions.BuildDistrictAction.Components;
 using Domains.Actions.BuildDistrictAction.Events;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
+using Domains.Economy.District.Events;
 using Domains.Economy.District.Tags;
 using Domains.Map.Hex.Components;
 using JetBrains.Annotations;
@@ -25,16 +26,13 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
     ///     Drives the District block's state for the selected hex. Reactive on EITHER
     ///     <see cref="SelectedHexChangedEvent" /> (a new hex is selected), <see cref="TurnCompletedEvent" />
     ///     (turns-left on an in-progress build advances while the same hex stays selected), OR
-    ///     <see cref="DistrictBuildConfirmedEvent" /> (the player just confirmed a build on the still-selected
-    ///     hex — without this trigger the block would keep showing the build prompt until a reselect or the next
-    ///     turn boundary), OR <see cref="BuildDistrictCancelEvent" /> (the player just cancelled the still-selected
-    ///     hex's build — same reasoning as confirm) — <c>Priority</c> is deliberately set above ALL FOUR producers
+    ///     <see cref="DistrictTableChangedEvent" /> (a District row entered a new stage — confirm, completion, and
+    ///     cancel all fold into this one pulse) — <c>Priority</c> is deliberately set above ALL THREE producers
     ///     (see SystemPriorities.RuntimeTick.HexInfoPanelDistrict) so any pulse is visible the same frame it is
-    ///     raised. With no selection it hides every district block; otherwise it checks — in order — whether the
-    ///     hex has an in-progress build (shows type + icon + turns-left + cancel), then whether a district FACT
-    ///     exists (District table — key <see cref="HexIdComponent" /> + discriminator <see cref="DistrictTag" />,
-    ///     still SCAFFOLD: no backing economy components yet, so this branch is currently unreachable), else the
-    ///     build-prompt block.
+    ///     raised. With no selection it hides every district block; otherwise it resolves the selected hex's
+    ///     District row (FLOW_DISTRICT_BUILD unification, 2026-07-17): no row → build-prompt block; row staged
+    ///     <c>DistrictBuildState.Planned</c> → in-progress block (type + icon + turns-left, read off the matching
+    ///     verb row via <c>DistrictIdFKComponent</c> + cancel); row staged <c>Built</c> → district-details block.
     /// </summary>
     [UsedImplicitly]
     public sealed class HexInfoPanelDistrictSystem : UpdatedSystem
@@ -42,8 +40,12 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
         private readonly World _world;
         private readonly EntitySet _viewSet;
         private readonly EntitySet _selectedHexSet;
-        private readonly EntitySet _districtSet;
-        private readonly EntitySet _inProgressSet;
+
+        // District rows indexed by hex — one district per hex, so the first match is the answer.
+        private readonly EntityMultiMap<HexIdFKComponent> _districtsByHex;
+
+        // In-progress verb rows indexed by their FK into the District PK space.
+        private readonly EntityMultiMap<DistrictIdFKComponent> _inProgressByDistrictId;
 
         private bool _cancelHooked;
         private HexInfoPanelView _cancelHookedView;
@@ -52,23 +54,24 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
 
         public HexInfoPanelDistrictSystem(World world)
             : base(world.GetEntities()
-                .WithEither<SelectedHexChangedEvent>().Or<TurnCompletedEvent>().Or<DistrictBuildConfirmedEvent>()
-                .Or<BuildDistrictCancelEvent>()
+                .WithEither<SelectedHexChangedEvent>().Or<TurnCompletedEvent>().Or<DistrictTableChangedEvent>()
                 .AsSet())
         {
             _world = world;
             _viewSet = world.GetEntities().With<HexInfoPanelViewComponent>().With<UITag>().AsSet();
             _selectedHexSet = world.GetEntities().With<HexSelectedComponent>().With<HexSelectionTag>().AsSet();
-            _districtSet = world.GetEntities()
-                .With<HexIdComponent>()
+            _districtsByHex = world.GetEntities()
                 .With<DistrictTag>()
-                .AsSet();
-            _inProgressSet = world.GetEntities()
-                .With<BuildDistrictInProgressTag>()
                 .With<HexIdFKComponent>()
-                .With<DistrictTypeFKComponent>()
+                .With<DistrictIdComponent>()
+                .With<DistrictTypeComponent>()
+                .With<DistrictBuildStateComponent>()
+                .AsMultiMap<HexIdFKComponent>();
+            _inProgressByDistrictId = world.GetEntities()
+                .With<BuildDistrictInProgressTag>()
+                .With<DistrictIdFKComponent>()
                 .With<BuildDistrictTurnsComponent>()
-                .AsSet();
+                .AsMultiMap<DistrictIdFKComponent>();
         }
 
         protected override void Update(GameState state, in Entity entity)
@@ -90,43 +93,43 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
 
             var coords = _selectedHexSet.GetEntities()[0].Get<HexSelectedComponent>().Coords;
 
-            if (TryGetInProgress(coords, out var districtType, out var turnsLeft))
-                ShowInProgress(view, districtType, turnsLeft);
-            else if (HasDistrict(coords))
-                view.ShowDistrictDetails();
-            else
-                view.ShowDistrictBuildPrompt();
-        }
-
-        // Click-frequency lookup → a linear scan over the (currently empty) District table, no maintained index.
-        // One district per hex, so the first coordinate match is the answer.
-        private bool HasDistrict(HexCoord coords)
-        {
-            foreach (var districtEntity in _districtSet.GetEntities())
+            if (!TryGetDistrict(coords, out var district))
             {
-                if (districtEntity.Get<HexIdComponent>().Coords == coords)
-                    return true;
+                view.ShowDistrictBuildPrompt();
+                return;
             }
 
-            return false;
+            if (district.Get<DistrictBuildStateComponent>().Value == DistrictBuildState.Planned)
+            {
+                var turnsLeft = ResolveTurnsLeft(district.Get<DistrictIdComponent>().Value);
+                ShowInProgress(view, district.Get<DistrictTypeComponent>().Value, turnsLeft);
+            }
+            else
+            {
+                view.ShowDistrictDetails();
+            }
         }
 
-        // One in-progress build per hex, so the first coordinate match is the answer.
-        private bool TryGetInProgress(HexCoord coords, out DistrictType districtType, out int turnsLeft)
+        private bool TryGetDistrict(HexCoord coords, out Entity district)
         {
-            foreach (var inProgressEntity in _inProgressSet.GetEntities())
+            if (_districtsByHex.TryGetEntities(new HexIdFKComponent { Coords = coords }, out var matches) && matches.Length > 0)
             {
-                if (inProgressEntity.Get<HexIdFKComponent>().Coords != coords)
-                    continue;
-
-                districtType = inProgressEntity.Get<DistrictTypeFKComponent>().Value;
-                turnsLeft = inProgressEntity.Get<BuildDistrictTurnsComponent>().TurnsLeft;
+                district = matches[0];
                 return true;
             }
 
-            districtType = default;
-            turnsLeft = default;
+            district = default;
             return false;
+        }
+
+        // A Planned District row always has exactly one matching verb row — a miss is a broken invariant.
+        private int ResolveTurnsLeft(int districtId)
+        {
+            if (!_inProgressByDistrictId.TryGetEntities(new DistrictIdFKComponent { Value = districtId }, out var matches) || matches.Length == 0)
+                throw new InvalidOperationException(
+                    $"HexInfoPanelDistrictSystem: no in-progress verb row for Planned district {districtId}.");
+
+            return matches[0].Get<BuildDistrictTurnsComponent>().TurnsLeft;
         }
 
         private void ShowInProgress(HexInfoPanelView view, DistrictType districtType, int turnsLeft)
@@ -181,7 +184,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
                 return;
 
             var coords = _selectedHexSet.GetEntities()[0].Get<HexSelectedComponent>().Coords;
-            if (!TryGetInProgress(coords, out _, out _))
+            if (!TryGetDistrict(coords, out var district) || district.Get<DistrictBuildStateComponent>().Value != DistrictBuildState.Planned)
                 return;
 
             var pulse = _world.CreateEntity();
@@ -196,8 +199,8 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
 
             _viewSet.Dispose();
             _selectedHexSet.Dispose();
-            _districtSet.Dispose();
-            _inProgressSet.Dispose();
+            _districtsByHex.Dispose();
+            _inProgressByDistrictId.Dispose();
             base.Dispose();
         }
     }
