@@ -1,25 +1,23 @@
-using System;
-using EcsExtensions;
-using Friflo.Engine.ECS;
+﻿using System;
 using Domains.Actions.BuildDistrictAction.Components;
 using Domains.Actions.BuildDistrictAction.Events;
-using Domains.Actions.Components;
+using Domains.Actors.Archetypes;
 using Domains.Actors.City.Components;
-using Domains.Actors.City.Tags;
 using Domains.Actors.Components;
 using Domains.Actors.Mayor.Components;
-using Domains.Actors.Mayor.Tags;
+using Domains.Economy.Archetypes;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
 using Domains.Economy.District.Events;
 using Domains.Economy.District.Helpers;
-using Domains.Economy.District.Tags;
 using Domains.Economy.DistrictBuildCost.Components;
 using Domains.Economy.DistrictBuildCost.Configs;
 using Domains.Economy.Resource.Data;
 using Domains.Economy.Resource.Helpers;
 using Domains.Kernel.Data;
 using Domains.Map.Hex.Components;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
 
@@ -44,14 +42,14 @@ namespace Domains.Actions.BuildDistrictAction.Systems
     {
         // District rows: HexIdFKComponent is shared by every hex-anchored entity kind (views, containers,
         // resources), so a bare ComponentIndex over it is ambiguous across kinds — scope to the archetype.
-        private readonly ArchetypeQuery _districts;
+        private readonly Archetype _districts;
 
         // In-progress verb rows indexed by their FK into the District PK space.
         private readonly ComponentIndex<DistrictIdFKComponent, int> _inProgressByDistrictId;
 
         // Actor rows (Table Rule), same resolution as BuildDistrictActionSystem's spend side.
-        private readonly ArchetypeQuery _mayorActor;
-        private readonly ArchetypeQuery _cityActor;
+        private readonly Archetype _mayorActor;
+        private readonly Archetype _cityActor;
         private readonly ComponentIndex<MayorIdFKComponent, int> _mayorResources;
         private readonly ComponentIndex<CityIdFKComponent, int> _cityResources;
 
@@ -60,17 +58,15 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         public override int Priority => SystemPriorities.RuntimeTick.BuildDistrictActionCancel;
 
         public BuildDistrictActionCancelSystem(EntityStore world)
-            : base(world.Query<BuildDistrictCancelEvent>())
+            : base(world, EventArchetypes.Of<BuildDistrictCancelEvent>(world))
         {
             _world = world;
 
-            _districts = world.Query<HexIdFKComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<DistrictTag>());
+            _districts = EconomyArchetypes.District(world);
             _inProgressByDistrictId = world.ComponentIndex<DistrictIdFKComponent, int>();
 
-            _mayorActor = world.Query<MayorIdComponent, MayorAPComponent, ActorTypeComponent>()
-                .AllTags(Friflo.Engine.ECS.Tags.Get<MayorTag>());
-            _cityActor = world.Query<CityIdComponent, ActorTypeComponent>()
-                .AllTags(Friflo.Engine.ECS.Tags.Get<CityTag>());
+            _mayorActor = ActorsArchetypes.Mayor(world);
+            _cityActor = ActorsArchetypes.City(world);
             _mayorResources = world.ComponentIndex<MayorIdFKComponent, int>();
             _cityResources = world.ComponentIndex<CityIdFKComponent, int>();
         }

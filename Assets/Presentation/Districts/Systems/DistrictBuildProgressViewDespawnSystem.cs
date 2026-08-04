@@ -1,14 +1,14 @@
-using EcsExtensions;
-using Friflo.Engine.ECS;
+﻿using Domains.Economy.Archetypes;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
 using Domains.Economy.District.Events;
-using Domains.Economy.District.Tags;
 using Domains.Map.Hex.Components;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
+using Presentation.Archetypes;
 using Presentation.Districts.Components;
-using Presentation.Districts.Tags;
 using Unity.Collections;
 using Object = UnityEngine.Object;
 
@@ -27,25 +27,24 @@ namespace Presentation.Districts.Systems
     public sealed class DistrictBuildProgressViewDespawnSystem : UpdatedSystem
     {
         // District rows: one per hex, carrying the hex FK and its build stage.
-        private readonly ArchetypeQuery _districts;
+        private readonly Archetype _districts;
 
         // Progress-view entities -> candidates for despawn once their hex stops building. HexIdFKComponent is
         // shared by every hex-anchored entity kind (the District row itself included) — a bare ComponentIndex
         // over it would offer the District row up for despawn too (NRE: no DistrictBuildProgressViewComponent
         // on it) — scope the query to the view archetype.
-        private readonly ArchetypeQuery _views;
+        private readonly Archetype _views;
 
         private readonly EntityStore _world;
 
         public override int Priority => SystemPriorities.RuntimeTick.DistrictBuildProgressViewDespawn;
 
         public DistrictBuildProgressViewDespawnSystem(EntityStore world)
-            : base(world.Query<DistrictTableChangedEvent>())
+            : base(world, EventArchetypes.Of<DistrictTableChangedEvent>(world))
         {
             _world = world;
-            _districts = world.Query<HexIdFKComponent, DistrictBuildStateComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<DistrictTag>());
-            _views = world.Query<HexIdFKComponent, DistrictBuildProgressViewComponent>()
-                .AllTags(Friflo.Engine.ECS.Tags.Get<DistrictBuildProgressViewTag>());
+            _districts = EconomyArchetypes.District(world);
+            _views = PresentationArchetypes.DistrictBuildProgressView(world);
         }
 
         // The pulse entity itself is ignored — reconciliation is global over current state.

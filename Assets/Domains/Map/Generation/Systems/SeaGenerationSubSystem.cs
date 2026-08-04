@@ -1,7 +1,7 @@
-﻿using Domains.Map.Generation.Components;
+﻿using Domains.Map.Archetypes;
+using Domains.Map.Generation.Components;
 using Domains.Map.Generation.Data;
 using Domains.Map.Hex.Components;
-using Domains.Map.Hex.Tags;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
@@ -24,7 +24,7 @@ namespace Domains.Map.Generation.Systems
         private const float NeighbourWeight = 1f;
         private const float NoiseAmplitude = 0.5f;
         private const int SeaLevel = -1;
-        private readonly ArchetypeQuery _hexSet;
+        private readonly Archetype _hexSet;
 
         private readonly EntityStore _world;
 
@@ -38,7 +38,7 @@ namespace Domains.Map.Generation.Systems
         public SeaGenerationSubSystem(EntityStore world)
         {
             _world = world;
-            _hexSet = world.Query<HexIdComponent, HexLevelComponent>().AllTags(Tags.Get<HexTag>());
+            _hexSet = MapArchetypes.Hex(world);
         }
 
         /// <summary>

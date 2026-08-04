@@ -1,12 +1,12 @@
-using System;
-using EcsExtensions;
-using Friflo.Engine.ECS;
+﻿using System;
+using Domains.Actions.Archetypes;
 using Domains.Actions.BuildDistrictAction.Components;
 using Domains.Actions.BuildDistrictAction.Events;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
 using Domains.Economy.District.Events;
-using Domains.Economy.District.Tags;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Unity.Collections;
 
@@ -32,8 +32,8 @@ namespace Domains.Actions.BuildDistrictAction.Systems
     public sealed class BuildDistrictCompletionSystem : IUpdatedSystem
     {
         private readonly EntityStore _world;
-        private readonly ArchetypeQuery _completePulses;
-        private readonly ArchetypeQuery _buildDistrictsInProgress;
+        private readonly Archetype _completePulses;
+        private readonly Archetype _buildDistrictsInProgress;
         private readonly ComponentIndex<DistrictIdComponent, int> _districtsById;
 
         public int Priority => SystemPriorities.RuntimeTick.BuildDistrictCompletion;
@@ -41,9 +41,8 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         public BuildDistrictCompletionSystem(EntityStore world)
         {
             _world = world;
-            _completePulses = world.Query<BuildDistrictCompleteEvent>();
-            _buildDistrictsInProgress = world.Query<BuildDistrictTurnsComponent, DistrictIdFKComponent>()
-                .AllTags(Friflo.Engine.ECS.Tags.Get<BuildDistrictInProgressTag>());
+            _completePulses = EventArchetypes.Of<BuildDistrictCompleteEvent>(world);
+            _buildDistrictsInProgress = ActionsArchetypes.BuildDistrictInProgress(world);
             _districtsById = world.ComponentIndex<DistrictIdComponent, int>();
         }
 

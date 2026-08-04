@@ -1,20 +1,18 @@
-using System;
+﻿using System;
+using Domains.Map.Archetypes;
+using Domains.Map.Hex.Components;
+using Domains.Map.HexResources.Components;
+using Domains.Map.HexResources.Data;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
-using Domains.Map.Hex.Components;
-using Domains.Map.Hex.Tags;
 using Modules.AxialSystem;
-using Domains.Map.HexResources.Components;
-using Domains.Map.HexResources.Data;
 using Presentation.HexResources.Components;
 using Presentation.HexResources.Events;
 using Presentation.HexResources.Helpers;
 using Presentation.Terrain.Components;
 using Unity.Collections;
 using UnityEngine;
-using Presentation.HexResources.Tags;
-using Domains.Map.HexResources.Tags;
 
 namespace Presentation.HexResources.Systems
 {
@@ -35,7 +33,7 @@ namespace Presentation.HexResources.Systems
         // ResourceView (forest) table indexed by the hex FK -> N tree entities per coordinate.
         private readonly ComponentIndex<HexIdFKComponent, HexCoord> _forestViewsByHex;
 
-        private readonly ArchetypeQuery _hexSet;
+        private readonly Archetype _hexSet;
         private readonly ForestPlanter _planter = new();
         private readonly EntityStore _world;
 
@@ -44,12 +42,12 @@ namespace Presentation.HexResources.Systems
         public override int Priority => SystemPriorities.RuntimeTick.ForestSpawn;
 
         public ForestSpawnSystem(EntityStore world)
-            : base(world.Query<ForestHexAppearedEvent>())
+            : base(world, EventArchetypes.Of<ForestHexAppearedEvent>(world))
         {
             _world = world;
             _resourcesByType = world.ComponentIndex<HexResourceComponent, HexResourceType>();
             _forestViewsByHex = world.ComponentIndex<HexIdFKComponent, HexCoord>();
-            _hexSet = world.Query<HexIdComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
+            _hexSet = MapArchetypes.Hex(world);
         }
 
         // The pulse entity itself is ignored — reconciliation is global over current state.

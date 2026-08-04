@@ -1,23 +1,20 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Core;
-using EcsExtensions;
-using Friflo.Engine.ECS;
 using Domains.Actions.BuildDistrictAction.Events;
 using Domains.Economy.District.Data;
 using Domains.Kernel.Data;
-using Domains.Map.Hex.Components;
+using EcsExtensions;
 using Flows.DistrictBuild.Events;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
+using Presentation.Archetypes;
 using Presentation.Terrain.Components;
 using Presentation.UI.Archetypes;
 using Presentation.UI.DistrictBuild.Components;
-using Presentation.UI.DistrictBuild.Tags;
 using Presentation.UI.DistrictBuild.Views;
-using Presentation.Terrain.Tags;
-using Presentation.UI.Tags;
 
 namespace Presentation.UI.DistrictBuild.Systems
 {
@@ -41,9 +38,8 @@ namespace Presentation.UI.DistrictBuild.Systems
         [StateAllowed]
         private readonly IReadOnlyList<DistrictBuildUISubSystem> _subSystems;
 
-        private readonly ArchetypeQuery _requestedSet;
-        private readonly ArchetypeQuery _selectedHexSet;
-        private readonly ArchetypeQuery _selectionSet;
+        private readonly Archetype _requestedSet;
+        private readonly Archetype _selectedHexSet;
         private readonly Archetype _selectionArchetype;
 
         private DistrictBuildUIView _view;
@@ -52,7 +48,7 @@ namespace Presentation.UI.DistrictBuild.Systems
         public override int Priority => SystemPriorities.RuntimeTick.DistrictBuildUi;
 
         public DistrictBuildUISystem(EntityStore world, IReadOnlyList<DistrictBuildUISubSystem> subSystems)
-            : base(world.Query<DistrictBuildUIViewComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<UITag>()))
+            : base(world, PresentationUIArchetypes.DistrictBuildUI(world))
         {
             _world = world;
             _subSystems = subSystems
@@ -64,9 +60,8 @@ namespace Presentation.UI.DistrictBuild.Systems
             for (var i = 0; i < _subSystems.Count; i++)
                 _subSystems[i].Repopulate = PopulateSections;
 
-            _requestedSet = world.Query<DistrictBuildUIRequestedEvent>();
-            _selectedHexSet = world.Query<HexSelectedComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexSelectionTag>());
-            _selectionSet = world.Query().AllTags(Friflo.Engine.ECS.Tags.Get<DistrictBuildSelectionTag>());
+            _requestedSet = EventArchetypes.Of<DistrictBuildUIRequestedEvent>(world);
+            _selectedHexSet = PresentationArchetypes.HexSelection(world);
             _selectionArchetype = PresentationUIArchetypes.DistrictBuildSelection(world);
         }
 
@@ -122,7 +117,7 @@ namespace Presentation.UI.DistrictBuild.Systems
         {
             if (!_selectedHexSet.TryGetFirst(out var hexEntity))
                 throw new InvalidOperationException("DistrictBuildUISystem: confirm with no selected hex.");
-            if (!_selectionSet.TryGetFirst(out var selectionEntity))
+            if (!_selectionArchetype.TryGetFirst(out var selectionEntity))
                 throw new InvalidOperationException("DistrictBuildUISystem: confirm with no selected district.");
 
             var coords = hexEntity.GetComponent<HexSelectedComponent>().Coords;
@@ -163,7 +158,7 @@ namespace Presentation.UI.DistrictBuild.Systems
         // list subsystem overwrites it with a real default the moment it populates.
         private void CreateSelection()
         {
-            if (_selectionSet.Count > 0)
+            if (_selectionArchetype.Count > 0)
                 return;
 
             _selectionArchetype.CreateEntity();
@@ -171,7 +166,7 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         private void DestroySelection()
         {
-            if (_selectionSet.TryGetFirst(out var entity))
+            if (_selectionArchetype.TryGetFirst(out var entity))
                 entity.DeleteEntity();
         }
 

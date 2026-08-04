@@ -1,13 +1,13 @@
-using System;
-using EcsExtensions;
-using Friflo.Engine.ECS;
+﻿using System;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
 using Domains.Economy.DistrictOpenCondition.Components;
 using Domains.Economy.DistrictOpenCondition.Data;
-using Domains.Economy.DistrictOpenCondition.Tags;
+using EcsExtensions;
 using Flows.DistrictBuild.Events;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
+using Presentation.UI.Archetypes;
 using Presentation.UI.DistrictBuild.Components;
 using Presentation.UI.DistrictBuild.Tags;
 using UnityEngine;
@@ -24,8 +24,8 @@ namespace Presentation.UI.DistrictBuild.Systems
     public sealed class DistrictBuildListUISubSystem : DistrictBuildUISubSystem
     {
         private readonly ComponentIndex<DistrictOpenStateComponent, DistrictOpenState> _buildable;
-        private readonly ArchetypeQuery _requestedSet;
-        private readonly ArchetypeQuery _selectionSet;
+        private readonly Archetype _requestedSet;
+        private readonly Archetype _selectionSet;
         private bool _hooked;
 
         public override int Priority => SystemPriorities.SubSystems.DistrictBuildUi.List;
@@ -33,8 +33,8 @@ namespace Presentation.UI.DistrictBuild.Systems
         public DistrictBuildListUISubSystem(EntityStore world) : base(world)
         {
             _buildable = world.ComponentIndex<DistrictOpenStateComponent, DistrictOpenState>();
-            _requestedSet = world.Query<DistrictBuildUIRequestedEvent>();
-            _selectionSet = world.Query().AllTags(Friflo.Engine.ECS.Tags.Get<DistrictBuildSelectionTag>());
+            _requestedSet = EventArchetypes.Of<DistrictBuildUIRequestedEvent>(world);
+            _selectionSet = PresentationUIArchetypes.DistrictBuildSelection(world);
         }
 
         public override void Populate(GameObject root)

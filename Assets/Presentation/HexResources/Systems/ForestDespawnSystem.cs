@@ -1,17 +1,14 @@
-using System;
+﻿using Domains.Map.Hex.Components;
+using Domains.Map.HexResources.Components;
+using Domains.Map.HexResources.Data;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
-using Domains.Map.Hex.Components;
-using Domains.Map.HexResources.Components;
-using Domains.Map.HexResources.Data;
 using Presentation.HexResources.Components;
 using Presentation.HexResources.Events;
 using Unity.Collections;
 using Object = UnityEngine.Object;
-using Presentation.HexResources.Tags;
-using Domains.Map.HexResources.Tags;
 
 namespace Presentation.HexResources.Systems
 {
@@ -38,7 +35,7 @@ namespace Presentation.HexResources.Systems
         public override int Priority => SystemPriorities.RuntimeTick.ForestDespawn;
 
         public ForestDespawnSystem(EntityStore world)
-            : base(world.Query<ForestHexRemovedEvent>())
+            : base(world, EventArchetypes.Of<ForestHexRemovedEvent>(world))
         {
             _world = world;
             _resourcesByType = world.ComponentIndex<HexResourceComponent, HexResourceType>();

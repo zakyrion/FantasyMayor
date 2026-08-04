@@ -339,10 +339,35 @@ purge and the archetype model together instead of gating twice.
   :skip   "EventCleanupSystem keeps its EventTag sweep — that filter IS cross-archetype by design"}
 
  {:task :a4-filters
+  :status :done                                 ;; 2026-08-04 — TryGetFirst(Archetype) overload added;
+                                                 ;; UpdatedSystem/LateUpdatedSystem gained an
+                                                 ;; (EntityStore, Archetype) constructor alongside the
+                                                 ;; existing ArchetypeQuery one; every exact-archetype
+                                                 ;; site (driving queries + lookup fields, ~50 files)
+                                                 ;; converted to the matching holder call; the one
+                                                 ;; genuinely cross-archetype driving query
+                                                 ;; (HexInfoPanelDistrictSystem, AnyComponents over 3
+                                                 ;; event types) stayed on ArchetypeQuery by design;
+                                                 ;; roslyn clean (0 errors)
   :listen :a1-holders
   :where "the Query<> / tag-filter sites"
   :do    "per `filter-mode`: exact archetype where the target is one archetype, plain tag/component
           filter where the query genuinely spans archetypes"
+  :decided {:exact-archetype-mechanism
+                  "VERIFIED against the 3.6.0 assembly 2026-08-04 (roslyn get_symbol_info against the
+                   real metadata — Archetype.Entities has no XML doc comment, so it is invisible to a
+                   docs-only search): Archetype.Entities and ArchetypeQuery.Entities both return the SAME
+                   QueryEntities type. So an exact-archetype filter site needs NO query at all — resolve
+                   the Archetype via the SAME holder method already used for that archetype's creation
+                   (one field, one holder call, composition written once), and iterate/Count/TryGetFirst
+                   on it exactly like an ArchetypeQuery today. ArchetypeQuery stays reserved for
+                   genuinely cross-archetype filters (fluent AllTags/AnyTags/HasValue/ValueInRange,
+                   multi-archetype Archetypes span) — unchanged by this decision."
+            :tryfirst-gap
+                  "QueryResultExtensions.TryGetFirst (Assets/Scripts/EcsExtensions/QueryResultExtensions.cs)
+                   currently overloads ArchetypeQuery and the ComponentIndex<T,V> indexer's Entities type
+                   only — needs a third overload (Archetype, or QueryEntities directly) before
+                   exact-archetype sites can drop ArchetypeQuery."}
   :must-not "decide a cross-archetype case alone — surface it to the user and decide together"
   :skip   "ComponentIndex lookups — keyed access, not an archetype filter; unchanged"}
 

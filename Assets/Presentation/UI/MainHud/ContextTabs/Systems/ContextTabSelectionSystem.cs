@@ -22,7 +22,7 @@ namespace Presentation.UI.MainHud.ContextTabs.Systems
         public override int Priority => SystemPriorities.RuntimeTick.ContextTabSelection;
 
         public ContextTabSelectionSystem(EntityStore world)
-            : base(world.Query<ContextTabChangedEvent>())
+            : base(world, EventArchetypes.Of<ContextTabChangedEvent>(world))
         {
             _world = world;
         }

@@ -1,14 +1,13 @@
-using System.Threading;
+﻿using System.Threading;
 using Cysharp.Threading.Tasks;
+using Domains.Map.Archetypes;
+using Domains.Map.Hex.Components;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
-using Modules.AxialSystem;
 using Modules.Boot.Core;
-using Domains.Map.Hex.Components;
 using Presentation.Terrain.Components;
 using UnityEngine;
-using Domains.Map.Hex.Tags;
 
 namespace Presentation.Terrain.Systems
 {
@@ -23,7 +22,7 @@ namespace Presentation.Terrain.Systems
         private const float RayDuration = 5f;
 
         private readonly EntityStore _world;
-        private readonly ArchetypeQuery _hexSet;
+        private readonly Archetype _hexSet;
 
         /// <inheritdoc />
         public int Priority => SystemPriorities.WorldInit.TerrainViewDebug;
@@ -31,7 +30,7 @@ namespace Presentation.Terrain.Systems
         public TerrainViewDebugSystem(EntityStore world)
         {
             _world = world;
-            _hexSet = world.Query<HexIdComponent, HexLevelComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
+            _hexSet = MapArchetypes.Hex(world);
         }
 
         /// <inheritdoc />

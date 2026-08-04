@@ -1,13 +1,13 @@
-using System;
+﻿using System;
+using Domains.Actors.Archetypes;
+using Domains.Actors.Mayor.Components;
 using EcsExtensions;
 using Friflo.Engine.ECS;
-using Domains.Actors.Mayor.Components;
 using JetBrains.Annotations;
 using Modules.Turn.Components;
+using Presentation.UI.Archetypes;
 using Presentation.UI.MainHud.TurnPanel.Components;
 using Presentation.UI.MainHud.TurnPanel.Views;
-using Domains.Actors.Mayor.Tags;
-using Presentation.UI.Tags;
 
 namespace Presentation.UI.MainHud.TurnPanel.Systems
 {
@@ -27,17 +27,17 @@ namespace Presentation.UI.MainHud.TurnPanel.Systems
     {
         // Declarative query cache (a self-maintaining view, not system state): the single Mayor row carrying the
         // live AP and the per-turn restore rule.
-        private readonly ArchetypeQuery _mayors;
+        private readonly Archetype _mayors;
 
         private readonly EntityStore _world;
 
         public override int Priority => SystemPriorities.RuntimeTick.TurnPanelView;
 
         public TurnPanelViewSystem(EntityStore world)
-            : base(world.Query<TurnPanelViewComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<UITag>()))
+            : base(world, PresentationUIArchetypes.TurnPanel(world))
         {
             _world = world;
-            _mayors = world.Query<MayorIdComponent, MayorAPComponent, MayorAPRestoreComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<MayorTag>());
+            _mayors = ActorsArchetypes.Mayor(world);
         }
 
         protected override void Update(GameState state, in Entity entity)

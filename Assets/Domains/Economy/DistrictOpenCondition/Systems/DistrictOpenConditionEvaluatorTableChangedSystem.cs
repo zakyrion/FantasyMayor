@@ -22,7 +22,7 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
 
         public DistrictOpenConditionEvaluatorTableChangedSystem(
             EntityStore world, IReadOnlyList<DistrictOpenConditionEvaluatorSubSystem> subSystems)
-            : base(world.Query<DistrictTableChangedEvent>())
+            : base(world, EventArchetypes.Of<DistrictTableChangedEvent>(world))
         {
             _subSystems = subSystems
                 .OrderBy(system => system.Priority)

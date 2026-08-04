@@ -1,14 +1,13 @@
-using Friflo.Engine.ECS;
-using EcsExtensions;
-using JetBrains.Annotations;
-using Modules.AxialSystem;
-using Domains.Map.Archetypes;
+﻿using Domains.Map.Archetypes;
 using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Data;
-using Domains.Map.Hex.Tags;
 using Domains.Map.HexResources.Components;
 using Domains.Map.HexResources.Configs;
 using Domains.Map.HexResources.Data;
+using EcsExtensions;
+using Friflo.Engine.ECS;
+using JetBrains.Annotations;
+using Modules.AxialSystem;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
@@ -20,7 +19,7 @@ namespace Domains.Map.HexResources.Systems
     internal sealed class FishResourceGenerationSubSystem : HexResourcesSubSystem
     {
         private readonly EntityStore _world;
-        private readonly ArchetypeQuery _hexSet;
+        private readonly Archetype _hexSet;
         private readonly ComponentIndex<HexTypeComponent, HexType> _hexesByType;
         private readonly Archetype _hexResourceArchetype;
 
@@ -30,7 +29,7 @@ namespace Domains.Map.HexResources.Systems
         public FishResourceGenerationSubSystem(EntityStore world) : base(world)
         {
             _world = world;
-            _hexSet = world.Query<HexIdComponent, HexLevelComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
+            _hexSet = MapArchetypes.Hex(world);
             _hexesByType = world.ComponentIndex<HexTypeComponent, HexType>();
             _hexResourceArchetype = MapArchetypes.HexResource(world);
         }

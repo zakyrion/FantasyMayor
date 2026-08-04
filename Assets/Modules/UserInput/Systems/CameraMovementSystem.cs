@@ -1,14 +1,14 @@
+﻿using Domains.Map.Archetypes;
+using Domains.Map.Hex.Components;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Cameras.Components;
-using Domains.Map.Hex.Components;
-using Domains.Map.Hex.Tags;
-using Presentation.Terrain.Components;
+using Modules.UserInput.Archetypes;
 using Modules.UserInput.Components;
+using Presentation.Terrain.Components;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using Modules.UserInput.Tags;
 
 namespace Modules.UserInput.Systems
 {
@@ -27,8 +27,8 @@ namespace Modules.UserInput.Systems
         /// <summary>Below this |forward.y| the camera looks too flat to change height by dollying — skip.</summary>
         private const float MinForwardPitch = 1e-4f;
 
-        private readonly ArchetypeQuery _hexIdQuery;
-        private readonly ArchetypeQuery _playerInputQuery;
+        private readonly Archetype _hexArchetype;
+        private readonly Archetype _playerInputArchetype;
         private readonly EntityStore _world;
 
         private Rect _bounds;
@@ -49,11 +49,11 @@ namespace Modules.UserInput.Systems
         public CameraMovementSystem(EntityStore world)
             // Anchored on the single PlayerInputComponent entity so Update ticks once per frame;
             // the camera itself is a world component (CameraComponent), read via world.Get below.
-            : base(world.Query<PlayerInputComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<PlayerInputTag>()))
+            : base(world, UserInputArchetypes.PlayerInput(world))
         {
             _world = world;
-            _playerInputQuery = world.Query<PlayerInputComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<PlayerInputTag>());
-            _hexIdQuery = world.Query<HexIdComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
+            _playerInputArchetype = UserInputArchetypes.PlayerInput(world);
+            _hexArchetype = MapArchetypes.Hex(world);
 
             TryBindInputActions();
         }
@@ -89,7 +89,7 @@ namespace Modules.UserInput.Systems
         /// <returns><c>true</c> when bounds were successfully computed and cached.</returns>
         private bool TryComputeBounds()
         {
-            if (!_world.HasWorldComponent<TerrainViewConfigComponent>() || _hexIdQuery.Count == 0)
+            if (!_world.HasWorldComponent<TerrainViewConfigComponent>() || _hexArchetype.Count == 0)
                 return false;
 
             var cellSize = _world.GetWorldComponent<TerrainViewConfigComponent>().CellSize;
@@ -99,7 +99,7 @@ namespace Modules.UserInput.Systems
             var minZ = float.MaxValue;
             var maxZ = float.MinValue;
 
-            foreach (var hexEntity in _hexIdQuery.Entities)
+            foreach (var hexEntity in _hexArchetype.Entities)
             {
                 var coord = hexEntity.GetComponent<HexIdComponent>().Coords.Value;
                 var world = AxialMath.AxialToWorldPointTop(coord, cellSize);
@@ -273,7 +273,7 @@ namespace Modules.UserInput.Systems
             if (_moveAction != null && _zoomAction != null && _rightClickAction != null && _lookAction != null)
                 return true;
 
-            if (!_playerInputQuery.TryGetFirst(out var playerInputEntity))
+            if (!_playerInputArchetype.TryGetFirst(out var playerInputEntity))
                 return false;
 
             var playerInput = playerInputEntity.GetComponent<PlayerInputComponent>().PlayerInput;

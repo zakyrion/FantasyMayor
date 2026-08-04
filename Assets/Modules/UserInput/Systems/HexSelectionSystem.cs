@@ -1,18 +1,17 @@
-using EcsExtensions;
+﻿using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
 using Modules.Cameras.Components;
+using Modules.UserInput.Archetypes;
+using Modules.UserInput.Components;
 using Presentation.Archetypes;
 using Presentation.Terrain.Components;
 using Presentation.Terrain.Events;
-using Modules.UserInput.Components;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
-using Unity.Mathematics;
-using Presentation.Terrain.Tags;
-using Modules.UserInput.Tags;
 
 namespace Modules.UserInput.Systems
 {
@@ -25,8 +24,7 @@ namespace Modules.UserInput.Systems
     {
         private const float SelectionPlaneHeight = 0f;
 
-        private readonly ArchetypeQuery _playerInputQuery;
-        private readonly ArchetypeQuery _selectedHexQuery;
+        private readonly Archetype _playerInputArchetype;
         private readonly Archetype _hexSelectionArchetype;
         private readonly EntityStore _world;
 
@@ -40,11 +38,10 @@ namespace Modules.UserInput.Systems
         public HexSelectionSystem(EntityStore world)
             // Anchored on the single PlayerInputComponent entity so Update ticks once per frame;
             // the camera itself is a world component (CameraComponent), read via world.Get below.
-            : base(world.Query<PlayerInputComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<PlayerInputTag>()))
+            : base(world, UserInputArchetypes.PlayerInput(world))
         {
             _world = world;
-            _playerInputQuery = world.Query<PlayerInputComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<PlayerInputTag>());
-            _selectedHexQuery = world.Query<HexSelectedComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexSelectionTag>());
+            _playerInputArchetype = UserInputArchetypes.PlayerInput(world);
             _hexSelectionArchetype = PresentationArchetypes.HexSelection(world);
 
             TryBindInputActions();
@@ -94,7 +91,7 @@ namespace Modules.UserInput.Systems
         /// <param name="coord">Hex that was clicked.</param>
         private void ApplySelection(HexCoord coord)
         {
-            if (!_selectedHexQuery.TryGetFirst(out var selectedEntity))
+            if (!_hexSelectionArchetype.TryGetFirst(out var selectedEntity))
             {
                 var entity = _hexSelectionArchetype.CreateEntity();
                 entity.AddComponent(new HexSelectedComponent { Coords = coord });
@@ -152,7 +149,7 @@ namespace Modules.UserInput.Systems
             if (_clickAction != null && _pointAction != null)
                 return true;
 
-            if (!_playerInputQuery.TryGetFirst(out var playerInputEntity))
+            if (!_playerInputArchetype.TryGetFirst(out var playerInputEntity))
                 return false;
 
             var playerInput = playerInputEntity.GetComponent<PlayerInputComponent>().PlayerInput;

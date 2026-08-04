@@ -1,14 +1,14 @@
-using System.Threading;
+﻿using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
+using Domains.Map.Archetypes;
+using Domains.Map.Hex.Components;
+using Domains.Map.Hex.Data;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using Modules.AxialSystem;
-using Domains.Map.Hex.Components;
-using Domains.Map.Hex.Data;
-using Domains.Map.Hex.Tags;
 using Presentation.Archetypes;
 using Presentation.Terrain.Components;
 using Presentation.Terrain.Views;
@@ -29,7 +29,7 @@ namespace Presentation.Terrain.Systems
         private const string WATER_VIEW_ADDRESS = "WaterView";
 
         private readonly IAddressable _addressable;
-        private readonly ArchetypeQuery _hexSet;
+        private readonly Archetype _hexSet;
         private readonly ComponentIndex<HexTypeComponent, HexType> _hexesByType;
         private readonly EntityStore _world;
         private readonly Archetype _waterViewArchetype;
@@ -47,7 +47,7 @@ namespace Presentation.Terrain.Systems
             _world = world;
             _addressable = addressable;
             _waterViewBox = Box<WaterView>.Empty();
-            _hexSet = world.Query<HexIdComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
+            _hexSet = MapArchetypes.Hex(world);
             _hexesByType = world.ComponentIndex<HexTypeComponent, HexType>();
             _waterViewArchetype = PresentationArchetypes.WaterView(world);
         }

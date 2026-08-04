@@ -2,16 +2,15 @@
 using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using Domains.Map.Archetypes;
+using Domains.Map.Generation.Components;
+using Domains.Map.Hex.Components;
+using Domains.Map.Hex.Data;
+using Domains.Map.Hex.Utils;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Boot.Core;
-using Domains.Map.Archetypes;
-using Domains.Map.Hex.Components;
-using Domains.Map.Hex.Data;
-using Domains.Map.Hex.Tags;
-using Domains.Map.Hex.Utils;
-using Domains.Map.Generation.Components;
 
 namespace Domains.Map.Generation.Systems
 {
@@ -29,7 +28,6 @@ namespace Domains.Map.Generation.Systems
         private const int WaterLevel = -1;
 
         private readonly IReadOnlyList<GenerationSubSystem> _generationSubSystems;
-        private readonly ArchetypeQuery _hexQuery;
         private readonly Archetype _hexArchetype;
         private readonly EntityStore _world;
 
@@ -41,7 +39,6 @@ namespace Domains.Map.Generation.Systems
         public GenerationSystem(EntityStore world, IReadOnlyList<GenerationSubSystem> generationSubSystems)
         {
             _world = world;
-            _hexQuery = world.Query<HexIdComponent, HexLevelComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
             _hexArchetype = MapArchetypes.Hex(world);
 
             _generationSubSystems = generationSubSystems
@@ -106,7 +103,7 @@ namespace Domains.Map.Generation.Systems
         /// </summary>
         private void AssignHexTypes()
         {
-            foreach (var entity in _hexQuery.Entities)
+            foreach (var entity in _hexArchetype.Entities)
             {
                 var level = entity.GetComponent<HexLevelComponent>().Level;
                 entity.AddComponent(new HexTypeComponent { Type = LevelToType(level) });

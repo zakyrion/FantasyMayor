@@ -15,7 +15,7 @@ namespace Modules.Boot.Implementation.States
     public sealed class MainMenuState : IAppState
     {
         private readonly ShowHexesUISystem _ui;
-        private readonly ArchetypeQuery _generateRequests;
+        private readonly Archetype _generateRequests;
 
         private GameMode? _requestedMode;
 
@@ -25,7 +25,7 @@ namespace Modules.Boot.Implementation.States
         public MainMenuState(EntityStore world, ShowHexesUISystem ui)
         {
             _ui = ui;
-            _generateRequests = world.Query<TerrainGenerationGenerateEventComponent>();
+            _generateRequests = EventArchetypes.Of<TerrainGenerationGenerateEventComponent>(world);
         }
 
         public async UniTask EnterAsync(CancellationToken cancellationToken)

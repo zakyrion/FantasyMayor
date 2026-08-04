@@ -1,16 +1,16 @@
-using System;
+﻿using System;
 using Core;
+using Domains.Map.Hex.Components;
+using Domains.Map.Hex.Utils;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Cameras.Components;
-using Domains.Map.Hex.Components;
-using Domains.Map.Hex.Utils;
+using Presentation.Archetypes;
 using Presentation.HexIcons.Components;
 using Presentation.Terrain.Components;
 using UnityEngine;
 using UnityEngine.UIElements;
-using Presentation.HexIcons.Tags;
 
 namespace Presentation.HexIcons.Systems
 {
@@ -36,7 +36,7 @@ namespace Presentation.HexIcons.Systems
     public sealed class HexIconsContainerPositionSystem : ILateUpdatedSystem, IDisposable
     {
         private readonly EntityStore _world;
-        private readonly ArchetypeQuery _containerSet;
+        private readonly Archetype _containerSet;
 
         // The frame's shared projection inputs — panel/camera/grid, the world Y offset, and the focus depth —
         // computed once in PreUpdate and read by the per-entity Update. Held in a frame-stamped FrameBox so the
@@ -51,7 +51,7 @@ namespace Presentation.HexIcons.Systems
         public HexIconsContainerPositionSystem(EntityStore world)
         {
             _world = world;
-            _containerSet = world.Query<HexIdFKComponent, HexIconContainerComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexIconContainerTag>());
+            _containerSet = PresentationArchetypes.HexIconContainer(world);
         }
 
         public void Update(GameState state)

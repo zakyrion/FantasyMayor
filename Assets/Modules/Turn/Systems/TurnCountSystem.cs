@@ -21,7 +21,7 @@ namespace Modules.Turn.Systems
         public override int Priority => SystemPriorities.RuntimeTick.TurnCount;
 
         public TurnCountSystem(EntityStore world)
-            : base(world.Query<TurnCompletedEvent>())
+            : base(world, EventArchetypes.Of<TurnCompletedEvent>(world))
         {
             _world = world;
         }

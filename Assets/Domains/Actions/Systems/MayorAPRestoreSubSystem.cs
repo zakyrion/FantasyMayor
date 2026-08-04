@@ -1,12 +1,12 @@
-using System.Threading;
+﻿using System.Threading;
 using Cysharp.Threading.Tasks;
-using Friflo.Engine.ECS;
+using Domains.Actors.Archetypes;
 using Domains.Actors.Mayor.Components;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Turn.Data;
 using Modules.Turn.Systems;
-using EcsExtensions;
-using Domains.Actors.Mayor.Tags;
 using Unity.Collections;
 
 namespace Domains.Actions.Systems
@@ -20,7 +20,7 @@ namespace Domains.Actions.Systems
     {
         // Declarative query cache (a self-maintaining view, not system state): the Mayor rows that carry a
         // restore rule and hold the AP component to reset.
-        private readonly ArchetypeQuery _mayors;
+        private readonly Archetype _mayors;
         private readonly EntityStore _world;
 
         public override int Priority => SystemPriorities.TurnPhase.MayorApRestore;
@@ -28,8 +28,7 @@ namespace Domains.Actions.Systems
         public MayorAPRestoreSubSystem(EntityStore world)
         {
             _world = world;
-            _mayors = world.Query<MayorIdComponent, MayorAPRestoreComponent, MayorAPComponent>()
-                .AllTags(Friflo.Engine.ECS.Tags.Get<MayorTag>());
+            _mayors = ActorsArchetypes.Mayor(world);
         }
 
         public override UniTask Update(TurnPhaseStep state, CancellationToken cancellationToken)

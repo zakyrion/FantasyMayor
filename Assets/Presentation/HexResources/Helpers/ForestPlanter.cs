@@ -1,8 +1,8 @@
-using Friflo.Engine.ECS;
-using Modules.AxialSystem;
-using Domains.Map.Hex.Components;
+﻿using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Utils;
 using Domains.Map.HexResources.Data;
+using Friflo.Engine.ECS;
+using Modules.AxialSystem;
 using Presentation.Archetypes;
 using Presentation.HexResources.Components;
 using Presentation.HexResources.Configs;
@@ -97,7 +97,7 @@ namespace Presentation.HexResources.Helpers
         ///     delta rather than cached. Append-only — blends over current pixels, never reverts.
         /// </summary>
         public void Paint(
-            ArchetypeQuery hexSet,
+            Archetype hexSet,
             float cellSize,
             NativeList<ForestGroundPainter.Splat> splats,
             Texture2D texture)

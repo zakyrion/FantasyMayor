@@ -22,7 +22,7 @@ namespace Modules.Turn.Systems
     [UsedImplicitly]
     public sealed class TurnProcessorSystem : IUpdatedSystem
     {
-        private readonly ArchetypeQuery _nextTurnPulses;
+        private readonly Archetype _nextTurnPulses;
         private readonly IReadOnlyList<TurnPhaseSubSystem> _phases;
         private readonly TurnPhaseRunner _runner = new();
         private readonly EntityStore _world;
@@ -35,7 +35,7 @@ namespace Modules.Turn.Systems
         {
             _world = world;
             _phases = phases;
-            _nextTurnPulses = world.Query<NextTurnEvent>();
+            _nextTurnPulses = EventArchetypes.Of<NextTurnEvent>(world);
         }
 
         public void Update(GameState state)

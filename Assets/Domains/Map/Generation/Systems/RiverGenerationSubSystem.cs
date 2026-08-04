@@ -1,17 +1,17 @@
 ﻿using System;
-using Friflo.Engine.ECS;
-using JetBrains.Annotations;
-using Modules.AxialSystem;
+using Domains.Map.Archetypes;
+using Domains.Map.Generation.Components;
+using Domains.Map.Generation.Data;
 using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Utils;
 using Domains.Map.Pathfinding;
-using Domains.Map.Generation.Components;
-using Domains.Map.Generation.Data;
+using EcsExtensions;
+using Friflo.Engine.ECS;
+using JetBrains.Annotations;
+using Modules.AxialSystem;
 using Unity.Collections;
 using UnityEngine;
 using Random = UnityEngine.Random;
-using EcsExtensions;
-using Domains.Map.Hex.Tags;
 
 namespace Domains.Map.Generation.Systems
 {
@@ -38,7 +38,7 @@ namespace Domains.Map.Generation.Systems
         }
 
         private readonly EntityStore _world;
-        private readonly ArchetypeQuery _hexSet;
+        private readonly Archetype _hexSet;
         private readonly IHexPathfindingUtility _pathfindingUtility;
 
         public override int Priority => SystemPriorities.SubSystems.Generation.River;
@@ -47,7 +47,7 @@ namespace Domains.Map.Generation.Systems
         {
             _pathfindingUtility = pathfindingUtility;
             _world = world;
-            _hexSet = world.Query<HexIdComponent, HexLevelComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
+            _hexSet = MapArchetypes.Hex(world);
         }
 
         public override void Update(EcsExtensions.GameState state)

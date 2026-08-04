@@ -1,11 +1,10 @@
-using EcsExtensions;
+﻿using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
+using Presentation.Archetypes;
+using Presentation.Terrain.Events;
 using Presentation.UI.MainHud.ContextTabs.Components;
 using Presentation.UI.MainHud.ContextTabs.Data;
-using Presentation.Terrain.Components;
-using Presentation.Terrain.Events;
-using Presentation.Terrain.Tags;
 
 namespace Presentation.UI.MainHud.ContextTabs.Systems
 {
@@ -22,15 +21,15 @@ namespace Presentation.UI.MainHud.ContextTabs.Systems
     public sealed class ContextTabsAvailabilitySystem : UpdatedSystem
     {
         private readonly EntityStore _world;
-        private readonly ArchetypeQuery _selectedHexSet;
+        private readonly Archetype _selectedHexSet;
 
         public override int Priority => SystemPriorities.RuntimeTick.ContextTabsAvailability;
 
         public ContextTabsAvailabilitySystem(EntityStore world)
-            : base(world.Query<SelectedHexChangedEvent>())
+            : base(world, EventArchetypes.Of<SelectedHexChangedEvent>(world))
         {
             _world = world;
-            _selectedHexSet = world.Query<HexSelectedComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexSelectionTag>());
+            _selectedHexSet = PresentationArchetypes.HexSelection(world);
         }
 
         protected override void Update(GameState state, in Entity entity)

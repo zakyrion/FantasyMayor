@@ -1,16 +1,16 @@
+﻿using Domains.Map.Archetypes;
+using Domains.Map.Hex.Components;
+using Domains.Map.HexResources.Data;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
-using Domains.Map.Hex.Components;
-using Domains.Map.Hex.Tags;
-using Domains.Map.HexResources.Data;
+using Presentation.Archetypes;
 using Presentation.HexResources.Components;
 using Presentation.HexResources.Helpers;
 using Presentation.Terrain.Components;
 using Unity.Collections;
 using UnityEngine;
-using Presentation.Terrain.Tags;
 
 namespace Presentation.HexResources.Systems
 {
@@ -26,11 +26,11 @@ namespace Presentation.HexResources.Systems
     internal sealed class ClayHexResourceViewSubSystem : HexResourcesViewSubSystem
     {
         private readonly EntityStore _world;
-        private readonly ArchetypeQuery _hexSet;
+        private readonly Archetype _hexSet;
         private readonly ClayGroundPainter _painter = new();
 
         private readonly ClayDepressionShaper _shaper = new();
-        private readonly ArchetypeQuery _terrainViewSet;
+        private readonly Archetype _terrainViewSet;
 
         public override int Priority => SystemPriorities.SubSystems.HexResourceView.Clay;
         protected override HexResourceType TargetHexResourceType => HexResourceType.Clay;
@@ -39,8 +39,8 @@ namespace Presentation.HexResources.Systems
             : base(world)
         {
             _world = world;
-            _terrainViewSet = world.Query<TerrainViewComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<TerrainViewTag>());
-            _hexSet = world.Query<HexIdComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
+            _terrainViewSet = PresentationArchetypes.TerrainView(world);
+            _hexSet = MapArchetypes.Hex(world);
         }
 
         public override void Update(GameState state)

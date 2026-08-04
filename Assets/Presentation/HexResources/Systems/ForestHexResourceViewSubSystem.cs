@@ -1,10 +1,10 @@
-using System;
+﻿using System;
+using Domains.Map.Archetypes;
+using Domains.Map.Hex.Components;
+using Domains.Map.HexResources.Data;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
-using Domains.Map.Hex.Components;
-using Domains.Map.Hex.Tags;
-using Domains.Map.HexResources.Data;
 using Presentation.HexResources.Components;
 using Presentation.HexResources.Helpers;
 using Presentation.Terrain.Components;
@@ -24,7 +24,7 @@ namespace Presentation.HexResources.Systems
     [UsedImplicitly]
     internal sealed class ForestHexResourceViewSubSystem : HexResourcesViewSubSystem
     {
-        private readonly ArchetypeQuery _hexSet;
+        private readonly Archetype _hexSet;
         private readonly EntityStore _world;
 
         private UnityEngine.Transform _root;
@@ -36,7 +36,7 @@ namespace Presentation.HexResources.Systems
             : base(world)
         {
             _world = world;
-            _hexSet = world.Query<HexIdComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
+            _hexSet = MapArchetypes.Hex(world);
         }
 
         public override void Update(GameState state)

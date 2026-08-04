@@ -1,16 +1,15 @@
-using System;
+﻿using System;
+using Domains.Map.Hex.Utils;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
-using Domains.Map.Hex.Utils;
+using Presentation.Archetypes;
 using Presentation.Terrain.Components;
 using Presentation.Terrain.Events;
 using Presentation.Terrain.Views;
 using Unity.Collections;
 using Unity.Mathematics;
-using Presentation.Terrain.Tags;
-using UnityEngine;
 
 namespace Presentation.Terrain.Systems
 {
@@ -24,8 +23,8 @@ namespace Presentation.Terrain.Systems
         private const int BorderBfsDepth = 3;
         private const float BorderLift = 0.08f;
 
-        private readonly ArchetypeQuery _selectedHexSet;
-        private readonly ArchetypeQuery _viewSet;
+        private readonly Archetype _selectedHexSet;
+        private readonly Archetype _viewSet;
         private readonly EntityStore _world;
 
         private bool _hadSelection;
@@ -36,11 +35,11 @@ namespace Presentation.Terrain.Systems
         public override int Priority => SystemPriorities.RuntimeTick.HexSelectionView;
 
         public HexSelectionViewSystem(EntityStore world)
-            : base(world.Query<SelectedHexChangedEvent>())
+            : base(world, EventArchetypes.Of<SelectedHexChangedEvent>(world))
         {
             _world = world;
-            _viewSet = world.Query<HexSelectionViewComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexSelectionViewTag>());
-            _selectedHexSet = world.Query<HexSelectedComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexSelectionTag>());
+            _viewSet = PresentationArchetypes.HexSelectionView(world);
+            _selectedHexSet = PresentationArchetypes.HexSelection(world);
         }
 
         /// <inheritdoc />

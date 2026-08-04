@@ -2,6 +2,7 @@
 using Cysharp.Threading.Tasks;
 using Friflo.Engine.ECS;
 using EcsExtensions;
+using Domains.Actions.Archetypes;
 using Domains.Actions.BuildDistrictAction.Components;
 using Domains.Actions.BuildDistrictAction.Events;
 using JetBrains.Annotations;
@@ -21,7 +22,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
     internal sealed class BuildDistrictTurnTickSystem : TurnPhaseSubSystem
     {
         // Self-maintaining view of the in-progress builds to count down (not system state).
-        private readonly ArchetypeQuery _inProgress;
+        private readonly Archetype _inProgress;
         private readonly EntityStore _world;
 
         public override int Priority => SystemPriorities.TurnPhase.BuildDistrictTurnTick;
@@ -30,8 +31,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         {
             _world = world;
 
-            _inProgress = _world.Query<BuildDistrictTurnsComponent>()
-                .AllTags(Friflo.Engine.ECS.Tags.Get<BuildDistrictInProgressTag>());
+            _inProgress = ActionsArchetypes.BuildDistrictInProgress(world);
         }
 
         public override UniTask Update(TurnPhaseStep state, CancellationToken cancellationToken)

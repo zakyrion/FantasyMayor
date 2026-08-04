@@ -1,24 +1,24 @@
-using System;
-using Friflo.Engine.ECS;
+﻿using System;
 using Domains.Economy.District.Data;
 using Domains.Economy.District.Helpers;
 using Domains.Economy.DistrictBuild.Components;
 using Domains.Economy.DistrictBuild.Configs;
+using Domains.Map.Archetypes;
 using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Data;
-using Domains.Map.Hex.Tags;
 using Domains.Map.HexResources.Components;
 using Domains.Map.HexResources.Data;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
+using Presentation.Archetypes;
 using Presentation.Terrain.Components;
+using Presentation.UI.Archetypes;
 using Presentation.UI.DistrictBuild.Components;
 using Presentation.UI.DistrictBuild.Tags;
 using Presentation.UI.DistrictBuild.Views;
 using UnityEngine;
-using EcsExtensions;
-using Presentation.Terrain.Tags;
-using Domains.Map.HexResources.Tags;
 
 namespace Presentation.UI.DistrictBuild.Systems
 {
@@ -29,21 +29,21 @@ namespace Presentation.UI.DistrictBuild.Systems
     [UsedImplicitly]
     public sealed class DistrictBuildHexResourcesUISubSystem : DistrictBuildUISubSystem
     {
-        private readonly ArchetypeQuery _selectionSet;
-        private readonly ArchetypeQuery _selectedHexSet;
-        private readonly ArchetypeQuery _hexSet;
+        private readonly Archetype _selectionSet;
+        private readonly Archetype _selectedHexSet;
+        private readonly Archetype _hexSet;
         // HexIdFKComponent is shared by every hex-anchored entity kind (views, containers, districts) — a bare
         // ComponentIndex over it is ambiguous across kinds; scope the query to the resource archetype itself.
-        private readonly ArchetypeQuery _hexResources;
+        private readonly Archetype _hexResources;
 
         public override int Priority => SystemPriorities.SubSystems.DistrictBuildUi.HexResources;
 
         public DistrictBuildHexResourcesUISubSystem(EntityStore world) : base(world)
         {
-            _selectionSet = world.Query().AllTags(Friflo.Engine.ECS.Tags.Get<DistrictBuildSelectionTag>());
-            _selectedHexSet = world.Query<HexSelectedComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexSelectionTag>());
-            _hexSet = world.Query<HexIdComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
-            _hexResources = world.Query<HexIdFKComponent, HexResourceComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexResourceTag>());
+            _selectionSet = PresentationUIArchetypes.DistrictBuildSelection(world);
+            _selectedHexSet = PresentationArchetypes.HexSelection(world);
+            _hexSet = MapArchetypes.Hex(world);
+            _hexResources = MapArchetypes.HexResource(world);
         }
 
         public override void Populate(GameObject root)

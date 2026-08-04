@@ -1,15 +1,13 @@
-using EcsExtensions;
-using Friflo.Engine.ECS;
+﻿using Domains.Actors.Archetypes;
 using Domains.Actors.City.Components;
-using Domains.Actors.Components;
 using Domains.Actors.Mayor.Components;
 using Domains.Economy.Resource.Components;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
+using Presentation.UI.Archetypes;
 using Presentation.UI.MainHud.ResourceBar.Components;
 using Presentation.UI.MainHud.ResourceBar.Views;
-using Domains.Actors.City.Tags;
-using Domains.Actors.Mayor.Tags;
-using Presentation.UI.Tags;
 
 namespace Presentation.UI.MainHud.ResourceBar.Systems
 {
@@ -25,8 +23,8 @@ namespace Presentation.UI.MainHud.ResourceBar.Systems
     public sealed class ResourceBarSystem : UpdatedSystem
     {
         // Actor rows (Table Rule): id PK + ActorTypeComponent discriminator — never a bare key.
-        private readonly ArchetypeQuery _mayorActor;
-        private readonly ArchetypeQuery _cityActor;
+        private readonly Archetype _mayorActor;
+        private readonly Archetype _cityActor;
         // FK 1:N indexes (Table Rule): owner id is a PK on the actor AND a FK on the resource stack.
         private readonly ComponentIndex<CityIdFKComponent, int> _cityResources;
         private readonly ComponentIndex<MayorIdFKComponent, int> _mayorResources;
@@ -34,10 +32,10 @@ namespace Presentation.UI.MainHud.ResourceBar.Systems
         public override int Priority => SystemPriorities.RuntimeTick.ResourceBar;
 
         public ResourceBarSystem(EntityStore world)
-            : base(world.Query<ResourceBarViewComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<UITag>()))
+            : base(world, PresentationUIArchetypes.ResourceBar(world))
         {
-            _mayorActor = world.Query<MayorIdComponent, ActorTypeComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<MayorTag>());
-            _cityActor = world.Query<CityIdComponent, ActorTypeComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<CityTag>());
+            _mayorActor = ActorsArchetypes.Mayor(world);
+            _cityActor = ActorsArchetypes.City(world);
             _cityResources = world.ComponentIndex<CityIdFKComponent, int>();
             _mayorResources = world.ComponentIndex<MayorIdFKComponent, int>();
         }

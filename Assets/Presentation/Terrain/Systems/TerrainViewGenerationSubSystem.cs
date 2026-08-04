@@ -1,14 +1,14 @@
-using System;
+﻿using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using Domains.Map.Archetypes;
+using Domains.Map.Hex.Components;
+using Domains.Map.Hex.Data;
+using Domains.Map.Hex.Utils;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
-using Domains.Map.Hex.Components;
-using Domains.Map.Hex.Data;
-using Domains.Map.Hex.Tags;
-using Domains.Map.Hex.Utils;
 using Presentation.Terrain.Components;
 using Presentation.Terrain.CurveBuilders;
 using Presentation.Terrain.Data;
@@ -29,7 +29,7 @@ namespace Presentation.Terrain.Systems
     [UsedImplicitly]
     internal sealed class TerrainViewGenerationSubSystem : ViewSubSystem
     {
-        private readonly ArchetypeQuery _hexSet;
+        private readonly Archetype _hexSet;
         private readonly ComponentIndex<HexTypeComponent, HexType> _hexesByType;
         private readonly EntityStore _world;
 
@@ -43,7 +43,7 @@ namespace Presentation.Terrain.Systems
         public TerrainViewGenerationSubSystem(EntityStore world)
         {
             _world = world;
-            _hexSet = world.Query<HexIdComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
+            _hexSet = MapArchetypes.Hex(world);
             _hexesByType = world.ComponentIndex<HexTypeComponent, HexType>();
         }
 

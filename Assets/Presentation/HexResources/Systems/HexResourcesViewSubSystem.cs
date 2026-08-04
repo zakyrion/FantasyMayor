@@ -1,22 +1,21 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
-using EcsExtensions;
-using Friflo.Engine.ECS;
-using Domains.Map.Hex.Components;
+using Domains.Map.Archetypes;
 using Domains.Map.Hex.Utils;
 using Domains.Map.HexResources.Components;
 using Domains.Map.HexResources.Data;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using Presentation.HexResources.Components;
 using Presentation.Terrain.Components;
 using UnityEngine;
-using Domains.Map.HexResources.Tags;
 
 namespace Presentation.HexResources.Systems
 {
     internal abstract class HexResourcesViewSubSystem : ISystem<GameState>
     {
         private readonly EntityStore _world;
-        private readonly ArchetypeQuery _resourceSet;
+        private readonly Archetype _resourceSet;
 
         public bool IsEnabled { get; set; } = true;
 
@@ -26,7 +25,7 @@ namespace Presentation.HexResources.Systems
         protected HexResourcesViewSubSystem(EntityStore world)
         {
             _world = world;
-            _resourceSet = world.Query<HexIdFKComponent, HexResourceComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexResourceTag>());
+            _resourceSet = MapArchetypes.HexResource(world);
         }
 
         public abstract void Update(GameState state);

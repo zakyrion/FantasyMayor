@@ -1,13 +1,13 @@
-﻿using Friflo.Engine.ECS;
-using EcsExtensions;
-using JetBrains.Annotations;
-using Domains.Map.Hex.Components;
+﻿using Domains.Map.Archetypes;
 using Domains.Map.Generation.Components;
+using Domains.Map.Hex.Components;
+using EcsExtensions;
+using Friflo.Engine.ECS;
+using JetBrains.Annotations;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 using Random = UnityEngine.Random;
-using Domains.Map.Hex.Tags;
 
 namespace Domains.Map.Generation.Systems
 {
@@ -28,7 +28,7 @@ namespace Domains.Map.Generation.Systems
         private const float GrowthJitter = 0.5f;
 
         private readonly EntityStore _world;
-        private readonly ArchetypeQuery _hexSet;
+        private readonly Archetype _hexSet;
 
         /// <inheritdoc />
         public override int Priority => SystemPriorities.SubSystems.Generation.Mountain;
@@ -40,7 +40,7 @@ namespace Domains.Map.Generation.Systems
         public MountainGenerationSubSystem(EntityStore world)
         {
             _world = world;
-            _hexSet = world.Query<HexIdComponent, HexLevelComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
+            _hexSet = MapArchetypes.Hex(world);
         }
 
         /// <inheritdoc />

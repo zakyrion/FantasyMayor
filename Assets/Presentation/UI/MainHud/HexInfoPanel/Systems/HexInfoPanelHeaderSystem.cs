@@ -1,18 +1,18 @@
-using System;
+﻿using System;
+using Domains.Map.Archetypes;
+using Domains.Map.Hex.Components;
+using Domains.Map.Hex.Data;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
-using Domains.Map.Hex.Components;
-using Domains.Map.Hex.Data;
-using Domains.Map.Hex.Tags;
-using Presentation.UI.MainHud.HexInfoPanel.Components;
-using Presentation.UI.MainHud.HexInfoPanel.Configs;
+using Presentation.Archetypes;
 using Presentation.Terrain.Components;
 using Presentation.Terrain.Events;
+using Presentation.UI.Archetypes;
+using Presentation.UI.MainHud.HexInfoPanel.Components;
+using Presentation.UI.MainHud.HexInfoPanel.Configs;
 using UnityEngine;
-using Presentation.Terrain.Tags;
-using Presentation.UI.Tags;
 
 namespace Presentation.UI.MainHud.HexInfoPanel.Systems
 {
@@ -26,19 +26,19 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
     public sealed class HexInfoPanelHeaderSystem : UpdatedSystem
     {
         private readonly EntityStore _world;
-        private readonly ArchetypeQuery _viewSet;
-        private readonly ArchetypeQuery _selectedHexSet;
-        private readonly ArchetypeQuery _hexSet;
+        private readonly Archetype _viewSet;
+        private readonly Archetype _selectedHexSet;
+        private readonly Archetype _hexSet;
 
         public override int Priority => SystemPriorities.RuntimeTick.HexInfoPanelHeader;
 
         public HexInfoPanelHeaderSystem(EntityStore world)
-            : base(world.Query<SelectedHexChangedEvent>())
+            : base(world, EventArchetypes.Of<SelectedHexChangedEvent>(world))
         {
             _world = world;
-            _viewSet = world.Query<HexInfoPanelViewComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<UITag>());
-            _selectedHexSet = world.Query<HexSelectedComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexSelectionTag>());
-            _hexSet = world.Query<HexIdComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
+            _viewSet = PresentationUIArchetypes.HexInfoPanel(world);
+            _selectedHexSet = PresentationArchetypes.HexSelection(world);
+            _hexSet = MapArchetypes.Hex(world);
         }
 
         protected override void Update(GameState state, in Entity entity)

@@ -1,15 +1,12 @@
 ﻿using System;
-using EcsExtensions;
-using Friflo.Engine.ECS;
 using Domains.Actions.Archetypes;
 using Domains.Actions.BuildDistrictAction.Components;
 using Domains.Actions.BuildDistrictAction.Events;
 using Domains.Actions.Components;
+using Domains.Actors.Archetypes;
 using Domains.Actors.City.Components;
-using Domains.Actors.City.Tags;
 using Domains.Actors.Components;
 using Domains.Actors.Mayor.Components;
-using Domains.Actors.Mayor.Tags;
 using Domains.Economy.Archetypes;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
@@ -21,6 +18,8 @@ using Domains.Economy.Resource.Data;
 using Domains.Economy.Resource.Helpers;
 using Domains.Kernel.Data;
 using Domains.Map.Hex.Components;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 
 namespace Domains.Actions.BuildDistrictAction.Systems
@@ -49,8 +48,8 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         private readonly EntityStore _world;
 
         // Actor rows (Table Rule): id PK + tag + ActorTypeComponent discriminator; the Mayor also carries the AP pool.
-        private readonly ArchetypeQuery _mayorActor;
-        private readonly ArchetypeQuery _cityActor;
+        private readonly Archetype _mayorActor;
+        private readonly Archetype _cityActor;
 
         // Resource stacks grouped by owner id — the payer's stockpile handed to ResourceLedger for the spend.
         private readonly ComponentIndex<MayorIdFKComponent, int> _mayorResources;
@@ -62,14 +61,12 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         public override int Priority => SystemPriorities.RuntimeTick.BuildDistrictAction;
 
         public BuildDistrictActionSystem(EntityStore world)
-            : base(world.Query<DistrictBuildConfirmedEvent>())
+            : base(world, EventArchetypes.Of<DistrictBuildConfirmedEvent>(world))
         {
             _world = world;
 
-            _mayorActor = world.Query<MayorIdComponent, MayorAPComponent, ActorTypeComponent>()
-                .AllTags(Friflo.Engine.ECS.Tags.Get<MayorTag>());
-            _cityActor = world.Query<CityIdComponent, ActorTypeComponent>()
-                .AllTags(Friflo.Engine.ECS.Tags.Get<CityTag>());
+            _mayorActor = ActorsArchetypes.Mayor(world);
+            _cityActor = ActorsArchetypes.City(world);
             _mayorResources = world.ComponentIndex<MayorIdFKComponent, int>();
             _cityResources = world.ComponentIndex<CityIdFKComponent, int>();
             _districtArchetype = EconomyArchetypes.District(world);

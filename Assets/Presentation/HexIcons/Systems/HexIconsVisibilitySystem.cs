@@ -1,19 +1,19 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
+using Domains.Map.Archetypes;
+using Domains.Map.Hex.Components;
+using Domains.Map.HexResources.Components;
+using Domains.Map.HexResources.Data;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
-using Domains.Map.Hex.Components;
+using Presentation.Archetypes;
 using Presentation.HexIcons.Components;
 using Presentation.HexIcons.Configs;
 using Presentation.HexIcons.Events;
 using Presentation.HexIcons.Views;
-using Domains.Map.HexResources.Components;
-using Domains.Map.HexResources.Data;
 using UnityEngine;
 using UnityEngine.UIElements;
-using Presentation.HexIcons.Tags;
-using Domains.Map.HexResources.Tags;
 
 namespace Presentation.HexIcons.Systems
 {
@@ -29,17 +29,17 @@ namespace Presentation.HexIcons.Systems
     public sealed class HexIconsVisibilitySystem : UpdatedSystem
     {
         private readonly EntityStore _world;
-        private readonly ArchetypeQuery _containerSet;
-        private readonly ArchetypeQuery _resourceSet;
+        private readonly Archetype _containerSet;
+        private readonly Archetype _resourceSet;
 
         public override int Priority => SystemPriorities.RuntimeTick.HexIconsVisibility;
 
         public HexIconsVisibilitySystem(EntityStore world)
-            : base(world.Query<HexIconsVisibilityChangedEvent>())
+            : base(world, EventArchetypes.Of<HexIconsVisibilityChangedEvent>(world))
         {
             _world = world;
-            _containerSet = world.Query<HexIdFKComponent, HexIconContainerComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexIconContainerTag>());
-            _resourceSet = world.Query<HexIdFKComponent, HexResourceComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexResourceTag>());
+            _containerSet = PresentationArchetypes.HexIconContainer(world);
+            _resourceSet = MapArchetypes.HexResource(world);
         }
 
         // Fires once per event (normally one per frame). Resolves prerequisites fail-loud, then clears and —

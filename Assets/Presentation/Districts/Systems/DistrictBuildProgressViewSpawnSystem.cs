@@ -1,19 +1,18 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
-using EcsExtensions;
-using Friflo.Engine.ECS;
+using Domains.Economy.Archetypes;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
 using Domains.Economy.District.Events;
 using Domains.Economy.District.Helpers;
-using Domains.Economy.District.Tags;
 using Domains.Map.Hex.Components;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
 using Presentation.Archetypes;
 using Presentation.Districts.Components;
 using Presentation.Districts.Configs;
-using Presentation.Districts.Tags;
 using Presentation.Districts.Views;
 using Presentation.Terrain.Components;
 using UnityEngine;
@@ -35,14 +34,13 @@ namespace Presentation.Districts.Systems
     public sealed class DistrictBuildProgressViewSpawnSystem : UpdatedSystem
     {
         // District rows: one per hex, carrying the hex FK, its type, and its build stage.
-        private readonly ArchetypeQuery _districts;
-
-        // Progress-view entities -> lets the reconcile skip hexes already viewed. HexIdFKComponent is shared by
-        // every hex-anchored entity kind (the District row itself included), so a bare ComponentIndex over it
-        // would always see the District row and never spawn a view — scope the query to the view archetype.
-        private readonly ArchetypeQuery _views;
+        private readonly Archetype _districts;
 
         private readonly EntityStore _world;
+
+        // Progress-view entities -> lets the reconcile skip hexes already viewed; also the birth archetype for
+        // new views. HexIdFKComponent is shared by every hex-anchored entity kind (the District row itself
+        // included), so a bare ComponentIndex over it would always see the District row and never spawn a view.
         private readonly Archetype _viewArchetype;
 
         private UnityEngine.Transform _root;
@@ -50,14 +48,11 @@ namespace Presentation.Districts.Systems
         public override int Priority => SystemPriorities.RuntimeTick.DistrictBuildProgressViewSpawn;
 
         public DistrictBuildProgressViewSpawnSystem(EntityStore world)
-            : base(world.Query<DistrictTableChangedEvent>())
+            : base(world, EventArchetypes.Of<DistrictTableChangedEvent>(world))
         {
             _world = world;
 
-            _districts = world.Query<HexIdFKComponent, DistrictTypeComponent, DistrictBuildStateComponent>()
-                .AllTags(Friflo.Engine.ECS.Tags.Get<DistrictTag>());
-
-            _views = world.Query<HexIdFKComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<DistrictBuildProgressViewTag>());
+            _districts = EconomyArchetypes.District(world);
             _viewArchetype = PresentationArchetypes.DistrictBuildProgressView(world);
         }
 
@@ -123,7 +118,7 @@ namespace Presentation.Districts.Systems
 
         private bool HasView(HexCoord coords)
         {
-            foreach (var view in _views.Entities)
+            foreach (var view in _viewArchetype.Entities)
                 if (view.GetComponent<HexIdFKComponent>().Coords.Equals(coords))
                     return true;
 

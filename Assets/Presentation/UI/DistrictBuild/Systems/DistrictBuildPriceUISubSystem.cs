@@ -1,26 +1,24 @@
-using System;
-using Friflo.Engine.ECS;
+﻿using System;
+using Domains.Actors.Archetypes;
 using Domains.Actors.City.Components;
-using Domains.Actors.Components;
 using Domains.Actors.Mayor.Components;
 using Domains.Economy.District.Data;
 using Domains.Economy.District.Helpers;
+using Domains.Economy.DistrictBuild.Components;
+using Domains.Economy.DistrictBuild.Configs;
+using Domains.Economy.DistrictBuildCost.Components;
+using Domains.Economy.DistrictBuildCost.Configs;
 using Domains.Economy.Resource.Components;
 using Domains.Economy.Resource.Data;
+using Domains.Kernel.Data;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
+using Presentation.UI.Archetypes;
 using Presentation.UI.DistrictBuild.Components;
 using Presentation.UI.DistrictBuild.Tags;
 using Presentation.UI.DistrictBuild.Views;
 using UnityEngine;
-using Domains.Economy.DistrictBuildCost.Configs;
-using Domains.Economy.DistrictBuildCost.Components;
-using Domains.Economy.DistrictBuild.Configs;
-using Domains.Economy.DistrictBuild.Components;
-using Domains.Kernel.Data;
-using EcsExtensions;
-using Domains.Actors.City.Tags;
-using Domains.Actors.Mayor.Tags;
-using Presentation.UI.Tags;
 
 namespace Presentation.UI.DistrictBuild.Systems
 {
@@ -32,16 +30,16 @@ namespace Presentation.UI.DistrictBuild.Systems
     [UsedImplicitly]
     public sealed class DistrictBuildPriceUISubSystem : DistrictBuildUISubSystem
     {
-        private readonly ArchetypeQuery _selectionSet;
+        private readonly Archetype _selectionSet;
 
         // Actor rows (Table Rule): id PK + ActorTypeComponent discriminator — never a bare key.
-        private readonly ArchetypeQuery _mayorActor;
-        private readonly ArchetypeQuery _cityActor;
+        private readonly Archetype _mayorActor;
+        private readonly Archetype _cityActor;
         private readonly ComponentIndex<MayorIdFKComponent, int> _mayorResources;
         private readonly ComponentIndex<CityIdFKComponent, int> _cityResources;
 
         // The chrome view lives on an ENTITY (UITag), not as a world component — resolve it the way the orchestrator does.
-        private readonly ArchetypeQuery _chrome;
+        private readonly Archetype _chrome;
 
         private bool _hooked;
 
@@ -49,12 +47,12 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public DistrictBuildPriceUISubSystem(EntityStore world) : base(world)
         {
-            _selectionSet = world.Query().AllTags(Friflo.Engine.ECS.Tags.Get<DistrictBuildSelectionTag>());
-            _mayorActor = world.Query<MayorIdComponent, MayorAPComponent, ActorTypeComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<MayorTag>());
-            _cityActor = world.Query<CityIdComponent, ActorTypeComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<CityTag>());
+            _selectionSet = PresentationUIArchetypes.DistrictBuildSelection(world);
+            _mayorActor = ActorsArchetypes.Mayor(world);
+            _cityActor = ActorsArchetypes.City(world);
             _mayorResources = world.ComponentIndex<MayorIdFKComponent, int>();
             _cityResources = world.ComponentIndex<CityIdFKComponent, int>();
-            _chrome = world.Query<DistrictBuildUIViewComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<UITag>());
+            _chrome = PresentationUIArchetypes.DistrictBuildUI(world);
         }
 
         public override void Populate(GameObject root)

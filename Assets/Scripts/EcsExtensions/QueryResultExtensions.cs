@@ -22,6 +22,18 @@ namespace EcsExtensions
             return false;
         }
 
+        public static bool TryGetFirst(this Archetype archetype, out Entity entity)
+        {
+            foreach (var candidate in archetype.Entities)
+            {
+                entity = candidate;
+                return true;
+            }
+
+            entity = default;
+            return false;
+        }
+
         public static bool TryGetFirst(this Entities entities, out Entity entity)
         {
             foreach (var candidate in entities)

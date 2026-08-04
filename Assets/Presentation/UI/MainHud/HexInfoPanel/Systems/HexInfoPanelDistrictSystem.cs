@@ -1,23 +1,23 @@
-using System;
-using EcsExtensions;
-using Friflo.Engine.ECS;
+﻿using System;
 using Domains.Actions.BuildDistrictAction.Components;
 using Domains.Actions.BuildDistrictAction.Events;
+using Domains.Economy.Archetypes;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
 using Domains.Economy.District.Events;
-using Domains.Economy.District.Tags;
 using Domains.Map.Hex.Components;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
 using Modules.Turn.Events;
+using Presentation.Archetypes;
 using Presentation.Terrain.Components;
 using Presentation.Terrain.Events;
+using Presentation.UI.Archetypes;
 using Presentation.UI.MainHud.HexInfoPanel.Components;
 using Presentation.UI.MainHud.HexInfoPanel.Configs;
 using Presentation.UI.MainHud.HexInfoPanel.Views;
-using Presentation.Terrain.Tags;
-using Presentation.UI.Tags;
 using UnityEngine;
 
 namespace Presentation.UI.MainHud.HexInfoPanel.Systems
@@ -38,12 +38,12 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
     public sealed class HexInfoPanelDistrictSystem : UpdatedSystem, IDisposable
     {
         private readonly EntityStore _world;
-        private readonly ArchetypeQuery _viewSet;
-        private readonly ArchetypeQuery _selectedHexSet;
+        private readonly Archetype _viewSet;
+        private readonly Archetype _selectedHexSet;
 
         // District rows: HexIdFKComponent is shared by every hex-anchored entity kind (views, containers,
         // resources), so a bare ComponentIndex over it is ambiguous across kinds — scope to the archetype.
-        private readonly ArchetypeQuery _districts;
+        private readonly Archetype _districts;
 
         // In-progress verb rows indexed by their FK into the District PK space.
         private readonly ComponentIndex<DistrictIdFKComponent, int> _inProgressByDistrictId;
@@ -58,9 +58,9 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
                 .AnyComponents(ComponentTypes.Get<SelectedHexChangedEvent, TurnCompletedEvent, DistrictTableChangedEvent>()))
         {
             _world = world;
-            _viewSet = world.Query<HexInfoPanelViewComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<UITag>());
-            _selectedHexSet = world.Query<HexSelectedComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexSelectionTag>());
-            _districts = world.Query<HexIdFKComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<DistrictTag>());
+            _viewSet = PresentationUIArchetypes.HexInfoPanel(world);
+            _selectedHexSet = PresentationArchetypes.HexSelection(world);
+            _districts = EconomyArchetypes.District(world);
             _inProgressByDistrictId = world.ComponentIndex<DistrictIdFKComponent, int>();
         }
 
