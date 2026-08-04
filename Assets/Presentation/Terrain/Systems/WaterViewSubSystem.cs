@@ -9,11 +9,11 @@ using Modules.AxialSystem;
 using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Data;
 using Domains.Map.Hex.Tags;
+using Presentation.Archetypes;
 using Presentation.Terrain.Components;
 using Presentation.Terrain.Views;
 using Unity.Collections;
 using UnityEngine;
-using Presentation.Terrain.Tags;
 
 namespace Presentation.Terrain.Systems
 {
@@ -32,6 +32,7 @@ namespace Presentation.Terrain.Systems
         private readonly ArchetypeQuery _hexSet;
         private readonly ComponentIndex<HexTypeComponent, HexType> _hexesByType;
         private readonly EntityStore _world;
+        private readonly Archetype _waterViewArchetype;
 
         private Box<WaterView> _waterViewBox;
         private Entity? _waterViewEntity;
@@ -48,6 +49,7 @@ namespace Presentation.Terrain.Systems
             _waterViewBox = Box<WaterView>.Empty();
             _hexSet = world.Query<HexIdComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
             _hexesByType = world.ComponentIndex<HexTypeComponent, HexType>();
+            _waterViewArchetype = PresentationArchetypes.WaterView(world);
         }
 
         /// <inheritdoc />
@@ -103,9 +105,8 @@ namespace Presentation.Terrain.Systems
             component.ApplyConfig(in waterConfig);
 
             DestroyWaterViewEntity();
-            var entity = _world.CreateEntity();
+            var entity = _waterViewArchetype.CreateEntity();
             entity.AddComponent(new WaterViewComponent { ObjectRef = component });
-            entity.AddTag<WaterViewTag>();
             _waterViewEntity = entity;
         }
 

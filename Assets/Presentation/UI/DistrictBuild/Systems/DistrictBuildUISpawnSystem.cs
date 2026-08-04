@@ -8,9 +8,9 @@ using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using Modules.Boot.Core;
 using Modules.MainCanvas.Core;
+using Presentation.UI.Archetypes;
 using Presentation.UI.DistrictBuild.Components;
 using Presentation.UI.DistrictBuild.Views;
-using Presentation.UI.Tags;
 
 namespace Presentation.UI.DistrictBuild.Systems
 {
@@ -29,6 +29,7 @@ namespace Presentation.UI.DistrictBuild.Systems
         private readonly IAddressable _addressable;
         private readonly IMainCanvasProvider _canvasProvider;
         private readonly EntityStore _world;
+        private readonly Archetype _archetype;
 
         public int Priority => SystemPriorities.WorldInit.DistrictBuildUiSpawn;
 
@@ -39,6 +40,7 @@ namespace Presentation.UI.DistrictBuild.Systems
             _addressable = addressable;
             _canvasProvider = canvasProvider;
             _world = world;
+            _archetype = PresentationUIArchetypes.DistrictBuildUI(world);
         }
 
         public async UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
@@ -96,9 +98,8 @@ namespace Presentation.UI.DistrictBuild.Systems
             _world.SetWorldComponent(new DistrictBuildPriceUIViewComponent(priceView));
             _world.SetWorldComponent(new DistrictBuildActionsUIViewComponent(actionsView));
 
-            var entity = _world.CreateEntity();
+            var entity = _archetype.CreateEntity();
             entity.AddComponent(new DistrictBuildUIViewComponent(view));
-            entity.AddTag<UITag>();
 
             // Spawned hidden so it never flashes during map creation; DistrictBuildUISystem shows it on the
             // build request and hides it on close.

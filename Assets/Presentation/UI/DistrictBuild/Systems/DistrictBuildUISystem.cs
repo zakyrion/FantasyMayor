@@ -12,6 +12,7 @@ using Flows.DistrictBuild.Events;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
 using Presentation.Terrain.Components;
+using Presentation.UI.Archetypes;
 using Presentation.UI.DistrictBuild.Components;
 using Presentation.UI.DistrictBuild.Tags;
 using Presentation.UI.DistrictBuild.Views;
@@ -43,6 +44,7 @@ namespace Presentation.UI.DistrictBuild.Systems
         private readonly ArchetypeQuery _requestedSet;
         private readonly ArchetypeQuery _selectedHexSet;
         private readonly ArchetypeQuery _selectionSet;
+        private readonly Archetype _selectionArchetype;
 
         private DistrictBuildUIView _view;
         private bool _chromeHooked;
@@ -65,6 +67,7 @@ namespace Presentation.UI.DistrictBuild.Systems
             _requestedSet = world.Query<DistrictBuildUIRequestedEvent>();
             _selectedHexSet = world.Query<HexSelectedComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexSelectionTag>());
             _selectionSet = world.Query().AllTags(Friflo.Engine.ECS.Tags.Get<DistrictBuildSelectionTag>());
+            _selectionArchetype = PresentationUIArchetypes.DistrictBuildSelection(world);
         }
 
         protected override void Update(GameState state, in Entity entity)
@@ -156,13 +159,14 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         // The selection lives on a single local entity for the lifetime of the open overlay: created here on open
         // (the section subsystems write/read DistrictBuildSelectionComponent onto it), destroyed on close.
+        // DistrictBuildSelectionComponent is a birth column at DistrictType.Unknown ("nothing picked yet") — the
+        // list subsystem overwrites it with a real default the moment it populates.
         private void CreateSelection()
         {
             if (_selectionSet.Count > 0)
                 return;
 
-            var entity = _world.CreateEntity();
-            entity.AddTag<DistrictBuildSelectionTag>();
+            _selectionArchetype.CreateEntity();
         }
 
         private void DestroySelection()

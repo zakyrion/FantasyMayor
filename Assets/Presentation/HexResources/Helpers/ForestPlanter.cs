@@ -3,6 +3,7 @@ using Modules.AxialSystem;
 using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Utils;
 using Domains.Map.HexResources.Data;
+using Presentation.Archetypes;
 using Presentation.HexResources.Components;
 using Presentation.HexResources.Configs;
 using Presentation.HexResources.Data;
@@ -12,7 +13,6 @@ using Unity.Mathematics;
 using UnityEngine;
 using Object = UnityEngine.Object;
 using Random = UnityEngine.Random;
-using Presentation.HexResources.Tags;
 
 namespace Presentation.HexResources.Helpers
 {
@@ -48,6 +48,8 @@ namespace Presentation.HexResources.Helpers
                 return;
             }
 
+            var forestViewArchetype = PresentationArchetypes.ForestView(world);
+
             ShufflePartial(owned, owned.Length);
 
             var maxTrees = math.min(Random.Range(MinTrees, MaxTrees + 1), owned.Length);
@@ -75,10 +77,9 @@ namespace Presentation.HexResources.Helpers
                 if (view == null)
                     Debug.LogWarning($"[ForestPlanter] Prefab '{entry.Prefab.name}' is missing ForestView component.");
 
-                var viewEntity = world.CreateEntity();
+                var viewEntity = forestViewArchetype.CreateEntity();
                 viewEntity.AddComponent(new HexIdFKComponent { Coords = hex });
                 viewEntity.AddComponent(new ForestViewComponent { Type = HexResourceType.Forest, View = view });
-                viewEntity.AddTag<ForestViewTag>();
 
                 if (entry.GroundTint.a > 0f)
                     splats.Add(new ForestGroundPainter.Splat(worldPos, entry.Radius, entry.GroundTint));

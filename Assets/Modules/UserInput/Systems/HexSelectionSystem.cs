@@ -3,6 +3,7 @@ using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
 using Modules.Cameras.Components;
+using Presentation.Archetypes;
 using Presentation.Terrain.Components;
 using Presentation.Terrain.Events;
 using Modules.UserInput.Components;
@@ -26,6 +27,7 @@ namespace Modules.UserInput.Systems
 
         private readonly ArchetypeQuery _playerInputQuery;
         private readonly ArchetypeQuery _selectedHexQuery;
+        private readonly Archetype _hexSelectionArchetype;
         private readonly EntityStore _world;
 
         private InputAction _clickAction;
@@ -43,6 +45,7 @@ namespace Modules.UserInput.Systems
             _world = world;
             _playerInputQuery = world.Query<PlayerInputComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<PlayerInputTag>());
             _selectedHexQuery = world.Query<HexSelectedComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexSelectionTag>());
+            _hexSelectionArchetype = PresentationArchetypes.HexSelection(world);
 
             TryBindInputActions();
         }
@@ -93,9 +96,8 @@ namespace Modules.UserInput.Systems
         {
             if (!_selectedHexQuery.TryGetFirst(out var selectedEntity))
             {
-                var entity = _world.CreateEntity();
+                var entity = _hexSelectionArchetype.CreateEntity();
                 entity.AddComponent(new HexSelectedComponent { Coords = coord });
-                entity.AddTag<HexSelectionTag>();
 
                 RaiseSelectionChanged();
                 return;

@@ -1,10 +1,10 @@
 using System;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
+using Presentation.UI.Archetypes;
 using Presentation.UI.MainHud.ResourceBar.Components;
 using Presentation.UI.MainHud.ResourceBar.Views;
 using Presentation.UI.MainHud.Systems;
-using Presentation.UI.Tags;
 using UnityEngine;
 using EcsExtensions;
 
@@ -19,12 +19,14 @@ namespace Presentation.UI.MainHud.ResourceBar.Systems
     internal sealed class ResourceBarSpawnSubSystem : MainHudSpawnSubSystem
     {
         private readonly EntityStore _world;
+        private readonly Archetype _archetype;
 
         public override int Priority => SystemPriorities.SubSystems.MainHudSpawn.ResourceBar;
 
         public ResourceBarSpawnSubSystem(EntityStore world)
         {
             _world = world;
+            _archetype = PresentationUIArchetypes.ResourceBar(world);
         }
 
         public override void Prepare(GameObject mainUi)
@@ -42,9 +44,8 @@ namespace Presentation.UI.MainHud.ResourceBar.Systems
             view.Build(_world.GetWorldComponent<InventoryResourceIconConfigComponent>().Value.Entries);
             view.Hide();
 
-            var entity = _world.CreateEntity();
+            var entity = _archetype.CreateEntity();
             entity.AddComponent(new ResourceBarViewComponent(view));
-            entity.AddTag<UITag>();
         }
     }
 }

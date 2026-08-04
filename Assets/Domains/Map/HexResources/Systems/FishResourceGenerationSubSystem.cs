@@ -2,13 +2,13 @@ using Friflo.Engine.ECS;
 using EcsExtensions;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
+using Domains.Map.Archetypes;
 using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Data;
 using Domains.Map.Hex.Tags;
 using Domains.Map.HexResources.Components;
 using Domains.Map.HexResources.Configs;
 using Domains.Map.HexResources.Data;
-using Domains.Map.HexResources.Tags;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
@@ -22,6 +22,7 @@ namespace Domains.Map.HexResources.Systems
         private readonly EntityStore _world;
         private readonly ArchetypeQuery _hexSet;
         private readonly ComponentIndex<HexTypeComponent, HexType> _hexesByType;
+        private readonly Archetype _hexResourceArchetype;
 
         public override int Priority => SystemPriorities.SubSystems.HexResourceGeneration.Fish;
         protected override HexResourceType TargetHexResourceType => HexResourceType.Fish;
@@ -31,6 +32,7 @@ namespace Domains.Map.HexResources.Systems
             _world = world;
             _hexSet = world.Query<HexIdComponent, HexLevelComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
             _hexesByType = world.ComponentIndex<HexTypeComponent, HexType>();
+            _hexResourceArchetype = MapArchetypes.HexResource(world);
         }
 
         public override void Update(GameState state)
@@ -175,10 +177,9 @@ namespace Domains.Map.HexResources.Systems
 
             for (var i = 0; i < count; i++)
             {
-                var entity = _world.CreateEntity();
+                var entity = _hexResourceArchetype.CreateEntity();
                 entity.AddComponent(new HexIdFKComponent { Coords = new HexCoord(eligible[i]) });
                 entity.AddComponent(new HexResourceComponent { Type = HexResourceType.Fish });
-                entity.AddTag<HexResourceTag>();
             }
         }
 

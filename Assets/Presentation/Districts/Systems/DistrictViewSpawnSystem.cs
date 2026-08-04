@@ -9,6 +9,7 @@ using Domains.Economy.District.Tags;
 using Domains.Map.Hex.Components;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
+using Presentation.Archetypes;
 using Presentation.Districts.Components;
 using Presentation.Districts.Configs;
 using Presentation.Districts.Views;
@@ -41,6 +42,7 @@ namespace Presentation.Districts.Systems
         private readonly ArchetypeQuery _views;
 
         private readonly EntityStore _world;
+        private readonly Archetype _viewArchetype;
 
         private UnityEngine.Transform _root;
 
@@ -55,6 +57,7 @@ namespace Presentation.Districts.Systems
                 .AllTags(Friflo.Engine.ECS.Tags.Get<DistrictTag>());
 
             _views = world.Query<HexIdFKComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<DistrictViewTag>());
+            _viewArchetype = PresentationArchetypes.DistrictView(world);
         }
 
         // The pulse entity itself is ignored — reconciliation is global over current state.
@@ -105,7 +108,7 @@ namespace Presentation.Districts.Systems
                 var instance = Object.Instantiate(prefab, worldPos, Quaternion.identity, _root);
                 var view = instance.GetComponent<DistrictView>();
 
-                var viewEntity = _world.CreateEntity();
+                var viewEntity = _viewArchetype.CreateEntity();
                 pending.Add((viewEntity.Id, hexId.Coords, districtType, view));
             }
 
@@ -114,7 +117,6 @@ namespace Presentation.Districts.Systems
                 _world.TryGetEntityById(id, out var viewEntity);
                 viewEntity.AddComponent(new HexIdFKComponent { Coords = coords });
                 viewEntity.AddComponent(new DistrictViewComponent { Type = type, View = view });
-                viewEntity.AddTag<DistrictViewTag>();
             }
         }
 

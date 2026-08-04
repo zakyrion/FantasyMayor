@@ -1,10 +1,10 @@
 using System;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
+using Presentation.UI.Archetypes;
 using Presentation.UI.MainHud.TurnPanel.Components;
 using Presentation.UI.MainHud.TurnPanel.Views;
 using Presentation.UI.MainHud.Systems;
-using Presentation.UI.Tags;
 using UnityEngine;
 using EcsExtensions;
 
@@ -19,12 +19,14 @@ namespace Presentation.UI.MainHud.TurnPanel.Systems
     internal sealed class TurnPanelSpawnSubSystem : MainHudSpawnSubSystem
     {
         private readonly EntityStore _world;
+        private readonly Archetype _archetype;
 
         public override int Priority => SystemPriorities.SubSystems.MainHudSpawn.TurnPanel;
 
         public TurnPanelSpawnSubSystem(EntityStore world)
         {
             _world = world;
+            _archetype = PresentationUIArchetypes.TurnPanel(world);
         }
 
         public override void Prepare(GameObject mainUi)
@@ -36,9 +38,8 @@ namespace Presentation.UI.MainHud.TurnPanel.Systems
                 throw new InvalidOperationException(
                     "TurnPanelSpawnSubSystem: TurnPanelView is missing from the Main UI prefab.");
 
-            var entity = _world.CreateEntity();
+            var entity = _archetype.CreateEntity();
             entity.AddComponent(new TurnPanelViewComponent(view));
-            entity.AddTag<UITag>();
 
             // Whole bottom panel hidden until Gameplay; TurnPanelViewSystem reveals it.
             view.Hide();

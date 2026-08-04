@@ -6,9 +6,9 @@ using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using Modules.Boot.Core;
+using Presentation.Archetypes;
 using Presentation.Terrain.Components;
 using Presentation.Terrain.Views;
-using Presentation.Terrain.Tags;
 
 namespace Presentation.Terrain.Systems
 {
@@ -24,6 +24,7 @@ namespace Presentation.Terrain.Systems
 
         private readonly IAddressable _addressable;
         private readonly EntityStore _world;
+        private readonly Archetype _archetype;
 
         private Box<HexSelectionView> _hexSelectionViewBox;
         private Entity? _hexSelectionViewEntity;
@@ -36,6 +37,7 @@ namespace Presentation.Terrain.Systems
             _world = world;
             _addressable = addressable;
             _hexSelectionViewBox = Box<HexSelectionView>.Empty();
+            _archetype = PresentationArchetypes.HexSelectionView(world);
         }
 
         /// <inheritdoc />
@@ -87,9 +89,8 @@ namespace Presentation.Terrain.Systems
             var view = _hexSelectionViewBox.Value;
             view.HideSelectionMesh();
 
-            var entity = _world.CreateEntity();
+            var entity = _archetype.CreateEntity();
             entity.AddComponent(new HexSelectionViewComponent { ObjectRef = view });
-            entity.AddTag<HexSelectionViewTag>();
             _hexSelectionViewEntity = entity;
         }
     }

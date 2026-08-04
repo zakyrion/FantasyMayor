@@ -6,12 +6,12 @@ using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Boot.Core;
+using Domains.Map.Archetypes;
 using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Data;
 using Domains.Map.Hex.Tags;
 using Domains.Map.Hex.Utils;
 using Domains.Map.Generation.Components;
-using Unity.Collections;
 
 namespace Domains.Map.Generation.Systems
 {
@@ -30,6 +30,7 @@ namespace Domains.Map.Generation.Systems
 
         private readonly IReadOnlyList<GenerationSubSystem> _generationSubSystems;
         private readonly ArchetypeQuery _hexQuery;
+        private readonly Archetype _hexArchetype;
         private readonly EntityStore _world;
 
         /// <inheritdoc />
@@ -41,6 +42,7 @@ namespace Domains.Map.Generation.Systems
         {
             _world = world;
             _hexQuery = world.Query<HexIdComponent, HexLevelComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
+            _hexArchetype = MapArchetypes.Hex(world);
 
             _generationSubSystems = generationSubSystems
                 .OrderBy(system => system.Priority)
@@ -77,10 +79,9 @@ namespace Domains.Map.Generation.Systems
             {
                 var hexCoords = HexesUtil.IndexToAxialCoords(index);
 
-                var entity = _world.CreateEntity();
+                var entity = _hexArchetype.CreateEntity();
                 entity.AddComponent(new HexIdComponent { Coords = hexCoords });
                 entity.AddComponent(new HexLevelComponent { Level = 0 });
-                entity.AddTag<HexTag>();
             }
         }
 
@@ -99,25 +100,17 @@ namespace Domains.Map.Generation.Systems
         }
 
         /// <summary>
-        ///     Assigns each hex its terrain type — a single <see cref="HexTypeComponent" /> column — from
-        ///     the final generated level. HexTypeComponent is a NEW component type on first assignment, so
-        ///     adding it is a structural change; snapshot ids first (adding mid-enumeration throws
-        ///     StructuralChangeException), then re-fetch by id to write.
+        ///     Assigns each hex its terrain type from the final generated level. HexTypeComponent is a
+        ///     birth column (default <see cref="HexType.Unknown" />) on every hex, so this is a plain value
+        ///     upsert into an existing column — never a structural change — and needs no snapshot.
         /// </summary>
         private void AssignHexTypes()
         {
-            var ids = new NativeList<int>(64, Allocator.Temp);
             foreach (var entity in _hexQuery.Entities)
-                ids.Add(entity.Id);
-
-            for (var i = 0; i < ids.Length; i++)
             {
-                _world.TryGetEntityById(ids[i], out var entity);
                 var level = entity.GetComponent<HexLevelComponent>().Level;
                 entity.AddComponent(new HexTypeComponent { Type = LevelToType(level) });
             }
-
-            ids.Dispose();
         }
 
         // Unmapped/unexpected levels fall back to Plain (matches the old "no terrain tag → Plain" default).

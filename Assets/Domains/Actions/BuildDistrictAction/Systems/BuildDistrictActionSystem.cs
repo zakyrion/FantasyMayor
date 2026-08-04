@@ -1,6 +1,7 @@
 ﻿using System;
 using EcsExtensions;
 using Friflo.Engine.ECS;
+using Domains.Actions.Archetypes;
 using Domains.Actions.BuildDistrictAction.Components;
 using Domains.Actions.BuildDistrictAction.Events;
 using Domains.Actions.Components;
@@ -9,11 +10,11 @@ using Domains.Actors.City.Tags;
 using Domains.Actors.Components;
 using Domains.Actors.Mayor.Components;
 using Domains.Actors.Mayor.Tags;
+using Domains.Economy.Archetypes;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
 using Domains.Economy.District.Events;
 using Domains.Economy.District.Helpers;
-using Domains.Economy.District.Tags;
 using Domains.Economy.DistrictBuildCost.Components;
 using Domains.Economy.DistrictBuildCost.Configs;
 using Domains.Economy.Resource.Data;
@@ -55,6 +56,9 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         private readonly ComponentIndex<MayorIdFKComponent, int> _mayorResources;
         private readonly ComponentIndex<CityIdFKComponent, int> _cityResources;
 
+        private readonly Archetype _districtArchetype;
+        private readonly Archetype _buildInProgressArchetype;
+
         public override int Priority => SystemPriorities.RuntimeTick.BuildDistrictAction;
 
         public BuildDistrictActionSystem(EntityStore world)
@@ -68,6 +72,8 @@ namespace Domains.Actions.BuildDistrictAction.Systems
                 .AllTags(Friflo.Engine.ECS.Tags.Get<CityTag>());
             _mayorResources = world.ComponentIndex<MayorIdFKComponent, int>();
             _cityResources = world.ComponentIndex<CityIdFKComponent, int>();
+            _districtArchetype = EconomyArchetypes.District(world);
+            _buildInProgressArchetype = ActionsArchetypes.BuildDistrictInProgress(world);
 
             // Seed the shared action-id counter once; ids start at 1 (0 = unset).
             if (!world.HasWorldComponent<ActionIdAllocatorComponent>())
@@ -92,19 +98,17 @@ namespace Domains.Actions.BuildDistrictAction.Systems
 
             var districtId = AllocateDistrictId();
 
-            var district = _world.CreateEntity();
-            district.AddTag<DistrictTag>();
+            var district = _districtArchetype.CreateEntity();
             district.AddComponent(new DistrictIdComponent { Value = districtId });
             district.AddComponent(new HexIdFKComponent { Coords = confirmed.Coords });
             district.AddComponent(new DistrictTypeComponent { Value = confirmed.Type });
             district.AddComponent(new DistrictBuildStateComponent { Value = DistrictBuildState.Planned });
 
-            var entity = _world.CreateEntity();
+            var entity = _buildInProgressArchetype.CreateEntity();
             entity.AddComponent(new DistrictIdFKComponent { Value = districtId });
             entity.AddComponent(new ActionIdComponent { Value = AllocateId() });
             entity.AddComponent(new BuildDistrictTurnsComponent { TurnsLeft = cost.TurnsToBuild, TurnsToBuild = cost.TurnsToBuild });
             entity.AddComponent(new ActorTypeComponent { Type = confirmed.Payer });
-            entity.AddTag<BuildDistrictInProgressTag>();
 
             _world.CreateEvent(new DistrictTableChangedEvent { Change = DistrictTableChange.Planned });
 

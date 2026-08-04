@@ -304,6 +304,8 @@ purge and the archetype model together instead of gating twice.
   :result "every entity kind has exactly one declared archetype"}
 
  {:task :a2-birth
+  :status :done                                 ;; 2026-08-04 — 25 sites/22 files ported; every AddTag<> call
+                                                 ;; eliminated repo-wide (0 remaining); roslyn clean
   :listen :a1-holders
   :where "the 26 bare-CreateEntity sites"
   :do    "the ARCHETYPE creates the entity, then values are written into its columns"

@@ -1,12 +1,12 @@
 using Friflo.Engine.ECS;
 using EcsExtensions;
+using Domains.Map.Archetypes;
 using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Data;
 using Domains.Map.Hex.Tags;
 using Domains.Map.HexResources.Components;
 using Domains.Map.HexResources.Configs;
 using Domains.Map.HexResources.Data;
-using Domains.Map.HexResources.Tags;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
 using Unity.Collections;
@@ -23,6 +23,7 @@ namespace Domains.Map.HexResources.Systems
         private const float WindBonusWeight = 1.5f;
         private readonly ComponentIndex<HexTypeComponent, HexType> _hexesByType;
         private readonly ArchetypeQuery _hexSet;
+        private readonly Archetype _hexResourceArchetype;
 
         private readonly EntityStore _world;
 
@@ -34,6 +35,7 @@ namespace Domains.Map.HexResources.Systems
             _world = world;
             _hexSet = world.Query<HexIdComponent, HexLevelComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
             _hexesByType = world.ComponentIndex<HexTypeComponent, HexType>();
+            _hexResourceArchetype = MapArchetypes.HexResource(world);
         }
 
         public override void Update(GameState state)
@@ -215,10 +217,9 @@ namespace Domains.Map.HexResources.Systems
 
                 foreach (var coord in zoneSet)
                 {
-                    var entity = _world.CreateEntity();
+                    var entity = _hexResourceArchetype.CreateEntity();
                     entity.AddComponent(new HexIdFKComponent { Coords = new HexCoord(coord) });
                     entity.AddComponent(new HexResourceComponent { Type = HexResourceType.Forest });
-                    entity.AddTag<HexResourceTag>();
                 }
             }
             finally

@@ -3,13 +3,14 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using EcsExtensions;
 using Friflo.Engine.ECS;
+using Domains.Actors.Archetypes;
 using Domains.Actors.City.Components;
+using Domains.Actors.City.Tags;
 using Domains.Actors.Components;
 using Domains.Kernel.Data;
 using Domains.Economy.Resource.Helpers;
 using JetBrains.Annotations;
 using Modules.Boot.Core;
-using Domains.Actors.City.Tags;
 
 namespace Domains.Actors.City.Systems
 {
@@ -20,12 +21,14 @@ namespace Domains.Actors.City.Systems
     internal sealed class CitySpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
         private readonly EntityStore _world;
+        private readonly Archetype _cityArchetype;
 
         public int Priority => SystemPriorities.WorldInit.CitySpawn;
 
         public CitySpawnSystem(EntityStore world)
         {
             _world = world;
+            _cityArchetype = ActorsArchetypes.City(world);
         }
 
         public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
@@ -51,9 +54,8 @@ namespace Domains.Actors.City.Systems
             _world.SetWorldComponent(new CityIdAllocatorComponent { Next = cityId + 1 });
 
             var cityIdComponent = new CityIdComponent { Value = cityId };
-            var city = _world.CreateEntity();
+            var city = _cityArchetype.CreateEntity();
             city.AddComponent(cityIdComponent);
-            city.AddTag<CityTag>();
             city.AddComponent(new ActorTypeComponent { Type = ActorType.City });
 
             ResourceLoadoutSpawner.SpawnLoadout<CityIdFKComponent, CityResourceTag>(

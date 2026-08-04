@@ -1,5 +1,6 @@
 using System;
 using Friflo.Engine.ECS;
+using Domains.Economy.Archetypes;
 using Domains.Economy.Resource.Components;
 using Domains.Economy.Resource.Data;
 
@@ -35,10 +36,9 @@ namespace Domains.Economy.Resource.Helpers
             where TOwnerId : struct, IComponent
             where TResourceTag : struct, ITag
         {
-            var entity = store.CreateEntity();
+            var entity = EconomyArchetypes.Resource<TOwnerId, TResourceTag>(store).CreateEntity();
             entity.AddComponent(owner);
             entity.AddComponent(new ResourceComponent { Type = type, Amount = amount });
-            entity.AddTag<TResourceTag>();
         }
 
         private static int AmountFor(ResourceType type, ReadOnlySpan<ResourceAmount> startingAmounts)

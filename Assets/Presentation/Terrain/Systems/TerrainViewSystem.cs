@@ -8,6 +8,7 @@ using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using Modules.AxialSystem;
 using Modules.Boot.Core;
+using Presentation.Archetypes;
 using Presentation.Terrain.Components;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,7 +16,6 @@ using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Tags;
 using Unity.Collections;
 using UnityEngine;
-using Presentation.Terrain.Tags;
 
 namespace Presentation.Terrain.Systems
 {
@@ -35,6 +35,7 @@ namespace Presentation.Terrain.Systems
         private readonly ArchetypeQuery _hexSet;
         private readonly IReadOnlyList<ViewSubSystem> _viewSubSystems;
         private readonly EntityStore _world;
+        private readonly Archetype _terrainViewArchetype;
 
         private Box<Views.TerrainView> _terrainViewBox;
         private Entity? _terrainViewEntity;
@@ -51,6 +52,7 @@ namespace Presentation.Terrain.Systems
             _addressable = addressable;
             _terrainViewBox = Box<Views.TerrainView>.Empty();
             _hexSet = world.Query<HexIdComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
+            _terrainViewArchetype = PresentationArchetypes.TerrainView(world);
             _viewSubSystems = viewSubSystems
                 .OrderBy(s => s.Priority)
                 .ToArray();
@@ -163,9 +165,8 @@ namespace Presentation.Terrain.Systems
             terrainView.ApplyHeightsFromVertexGrid(vertexGrid);
 
             DestroyTerrainViewEntity();
-            var entity = _world.CreateEntity();
+            var entity = _terrainViewArchetype.CreateEntity();
             entity.AddComponent(new TerrainViewComponent { ObjectRef = _terrainViewBox.Value });
-            entity.AddTag<TerrainViewTag>();
             _terrainViewEntity = entity;
         }
 

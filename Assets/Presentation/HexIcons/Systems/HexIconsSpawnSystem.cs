@@ -9,12 +9,12 @@ using Modules.AxialSystem;
 using Modules.Boot.Core;
 using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Tags;
+using Presentation.Archetypes;
 using Presentation.HexIcons.Components;
 using Presentation.HexIcons.Views;
 using Unity.Mathematics;
 using UnityEngine.UIElements;
 using Object = UnityEngine.Object;
-using Presentation.HexIcons.Tags;
 
 namespace Presentation.HexIcons.Systems
 {
@@ -22,6 +22,7 @@ namespace Presentation.HexIcons.Systems
     internal sealed class HexIconsSpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
         private readonly EntityStore _world;
+        private readonly Archetype _containerArchetype;
 
         // Cached at spawn for the container builders.
         private HexIconsView _view;
@@ -31,6 +32,7 @@ namespace Presentation.HexIcons.Systems
         public HexIconsSpawnSystem(EntityStore world)
         {
             _world = world;
+            _containerArchetype = PresentationArchetypes.HexIconContainer(world);
         }
 
         public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
@@ -89,7 +91,7 @@ namespace Presentation.HexIcons.Systems
                 var hexId = hexEntity.GetComponent<HexIdComponent>();
                 var container = CreateContainerElement(hexId.Coords.Value);
 
-                var containerEntity = _world.CreateEntity();
+                var containerEntity = _containerArchetype.CreateEntity();
                 pending.Add((containerEntity.Id, hexId.Coords, container));
             }
 
@@ -98,7 +100,6 @@ namespace Presentation.HexIcons.Systems
                 _world.TryGetEntityById(id, out var containerEntity);
                 containerEntity.AddComponent(new HexIdFKComponent { Coords = coords });
                 containerEntity.AddComponent(new HexIconContainerComponent(container));
-                containerEntity.AddTag<HexIconContainerTag>();
             }
         }
 

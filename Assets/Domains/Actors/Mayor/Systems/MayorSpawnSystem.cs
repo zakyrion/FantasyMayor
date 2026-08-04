@@ -3,13 +3,14 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using EcsExtensions;
 using Friflo.Engine.ECS;
+using Domains.Actors.Archetypes;
 using Domains.Actors.Components;
 using Domains.Kernel.Data;
 using Domains.Actors.Mayor.Components;
+using Domains.Actors.Mayor.Tags;
 using Domains.Economy.Resource.Helpers;
 using JetBrains.Annotations;
 using Modules.Boot.Core;
-using Domains.Actors.Mayor.Tags;
 
 namespace Domains.Actors.Mayor.Systems
 {
@@ -22,12 +23,14 @@ namespace Domains.Actors.Mayor.Systems
     internal sealed class MayorSpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
         private readonly EntityStore _world;
+        private readonly Archetype _mayorArchetype;
 
         public int Priority => SystemPriorities.WorldInit.MayorSpawn;
 
         public MayorSpawnSystem(EntityStore world)
         {
             _world = world;
+            _mayorArchetype = ActorsArchetypes.Mayor(world);
         }
 
         public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
@@ -53,9 +56,8 @@ namespace Domains.Actors.Mayor.Systems
             _world.SetWorldComponent(new MayorIdAllocatorComponent { Next = mayorId + 1 });
 
             var mayorIdComponent = new MayorIdComponent { Value = mayorId };
-            var mayor = _world.CreateEntity();
+            var mayor = _mayorArchetype.CreateEntity();
             mayor.AddComponent(mayorIdComponent);
-            mayor.AddTag<MayorTag>();
             mayor.AddComponent(new ActorTypeComponent { Type = ActorType.Mayor });
             mayor.AddComponent(new MayorAPRestoreComponent { Value = config.StartActionPoints });
             mayor.AddComponent(new MayorAPComponent { Value = config.StartActionPoints });

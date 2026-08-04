@@ -1,11 +1,11 @@
 using Friflo.Engine.ECS;
+using Domains.Economy.Archetypes;
 using Domains.Economy.District.Components;
 using Domains.Economy.DistrictOpenCondition.Components;
 using Domains.Economy.DistrictOpenCondition.Configs;
 using Domains.Economy.DistrictOpenCondition.Data;
-using Domains.Economy.DistrictOpenCondition.Tags;
-using JetBrains.Annotations;
 using EcsExtensions;
+using JetBrains.Annotations;
 
 namespace Domains.Economy.DistrictOpenCondition.Systems
 {
@@ -16,8 +16,11 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
     {
         public override int Priority => SystemPriorities.SubSystems.DistrictOpenConditionSpawn.Exist;
 
+        private readonly Archetype _archetype;
+
         public DistrictExistConditionSpawnSubSystem(EntityStore world) : base(world)
         {
+            _archetype = EconomyArchetypes.OpenConditionExist(world);
         }
 
         public override bool TrySpawn(DistrictOpenConditionConfig config)
@@ -25,10 +28,9 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
             if (config is not DistrictExistConditionConfig existConfig)
                 return false;
 
-            var entity = World.CreateEntity();
+            var entity = _archetype.CreateEntity();
             entity.AddComponent(new DistrictTypeFKComponent { Value = existConfig.DistrictType });
             entity.AddComponent(new DistrictExistConditionComponent { RequiredDistrict = existConfig.RequiredDistrict });
-            entity.AddTag<DistrictOpenConditionTag>();
             entity.AddComponent(new DistrictOpenConditionKindComponent { Value = DistrictOpenConditionKind.Exist });
             entity.AddComponent(new DistrictOpenStateComponent { Value = DistrictOpenState.Closed });
 
