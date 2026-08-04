@@ -7,6 +7,7 @@ using Modules.Turn.Data;
 using Modules.Turn.Systems;
 using EcsExtensions;
 using Domains.Actors.Mayor.Tags;
+using Unity.Collections;
 
 namespace Domains.Actions.Systems
 {
@@ -20,11 +21,13 @@ namespace Domains.Actions.Systems
         // Declarative query cache (a self-maintaining view, not system state): the Mayor rows that carry a
         // restore rule and hold the AP component to reset.
         private readonly ArchetypeQuery _mayors;
+        private readonly EntityStore _world;
 
         public override int Priority => SystemPriorities.TurnPhase.MayorApRestore;
 
         public MayorAPRestoreSubSystem(EntityStore world)
         {
+            _world = world;
             _mayors = world.Query<MayorIdComponent, MayorAPRestoreComponent, MayorAPComponent>()
                 .AllTags(Friflo.Engine.ECS.Tags.Get<MayorTag>());
         }
@@ -40,10 +43,26 @@ namespace Domains.Actions.Systems
 
         private void RestoreActionPoints()
         {
-            foreach (var mayor in _mayors.Entities)
+            var entities = _mayors.Entities;
+
+            // AddComponent inside Entities enumeration is a structural change (StructuralChangeException) —
+            // snapshot ids first, then re-fetch by id to write.
+            var ids = new NativeList<int>(entities.Count, Allocator.Temp);
+            try
             {
-                var restore = mayor.GetComponent<MayorAPRestoreComponent>().Value;
-                mayor.AddComponent(new MayorAPComponent { Value = restore });
+                foreach (var mayor in entities)
+                    ids.Add(mayor.Id);
+
+                for (var i = 0; i < ids.Length; i++)
+                {
+                    _world.TryGetEntityById(ids[i], out var mayor);
+                    var restore = mayor.GetComponent<MayorAPRestoreComponent>().Value;
+                    mayor.AddComponent(new MayorAPComponent { Value = restore });
+                }
+            }
+            finally
+            {
+                ids.Dispose();
             }
         }
     }

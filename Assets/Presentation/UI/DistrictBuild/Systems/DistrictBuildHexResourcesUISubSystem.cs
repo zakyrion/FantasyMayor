@@ -32,7 +32,9 @@ namespace Presentation.UI.DistrictBuild.Systems
         private readonly ArchetypeQuery _selectionSet;
         private readonly ArchetypeQuery _selectedHexSet;
         private readonly ArchetypeQuery _hexSet;
-        private readonly ComponentIndex<HexIdFKComponent, HexCoord> _hexResources;
+        // HexIdFKComponent is shared by every hex-anchored entity kind (views, containers, districts) — a bare
+        // ComponentIndex over it is ambiguous across kinds; scope the query to the resource archetype itself.
+        private readonly ArchetypeQuery _hexResources;
 
         public override int Priority => SystemPriorities.SubSystems.DistrictBuildUi.HexResources;
 
@@ -41,7 +43,7 @@ namespace Presentation.UI.DistrictBuild.Systems
             _selectionSet = world.Query().AllTags(Friflo.Engine.ECS.Tags.Get<DistrictBuildSelectionTag>());
             _selectedHexSet = world.Query<HexSelectedComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexSelectionTag>());
             _hexSet = world.Query<HexIdComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
-            _hexResources = world.ComponentIndex<HexIdFKComponent, HexCoord>();
+            _hexResources = world.Query<HexIdFKComponent, HexResourceComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexResourceTag>());
         }
 
         public override void Populate(GameObject root)
@@ -114,13 +116,26 @@ namespace Presentation.UI.DistrictBuild.Systems
             return false;
         }
 
-        private int HexResourceCount(HexCoord coords) => _hexResources[coords].Count;
+        private int HexResourceCount(HexCoord coords)
+        {
+            var count = 0;
+            foreach (var resource in _hexResources.Entities)
+                if (resource.GetComponent<HexIdFKComponent>().Coords.Equals(coords))
+                    count++;
+
+            return count;
+        }
 
         private bool HexHasResource(HexCoord coords, HexResourceType type)
         {
-            foreach (var resource in _hexResources[coords])
+            foreach (var resource in _hexResources.Entities)
+            {
+                if (!resource.GetComponent<HexIdFKComponent>().Coords.Equals(coords))
+                    continue;
+
                 if (resource.GetComponent<HexResourceComponent>().Type == type)
                     return true;
+            }
 
             return false;
         }

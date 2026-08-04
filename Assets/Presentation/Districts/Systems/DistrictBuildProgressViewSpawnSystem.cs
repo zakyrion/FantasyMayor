@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using Domains.Economy.District.Components;
@@ -35,8 +36,10 @@ namespace Presentation.Districts.Systems
         // District rows: one per hex, carrying the hex FK, its type, and its build stage.
         private readonly ArchetypeQuery _districts;
 
-        // Progress-view entities indexed by the hex FK -> lets the reconcile skip hexes already viewed.
-        private readonly ComponentIndex<HexIdFKComponent, HexCoord> _viewsByHex;
+        // Progress-view entities -> lets the reconcile skip hexes already viewed. HexIdFKComponent is shared by
+        // every hex-anchored entity kind (the District row itself included), so a bare ComponentIndex over it
+        // would always see the District row and never spawn a view — scope the query to the view archetype.
+        private readonly ArchetypeQuery _views;
 
         private readonly EntityStore _world;
 
@@ -52,7 +55,7 @@ namespace Presentation.Districts.Systems
             _districts = world.Query<HexIdFKComponent, DistrictTypeComponent, DistrictBuildStateComponent>()
                 .AllTags(Friflo.Engine.ECS.Tags.Get<DistrictTag>());
 
-            _viewsByHex = world.ComponentIndex<HexIdFKComponent, HexCoord>();
+            _views = world.Query<HexIdFKComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<DistrictBuildProgressViewTag>());
         }
 
         // The pulse entity itself is ignored — reconciliation is global over current state.
@@ -72,13 +75,20 @@ namespace Presentation.Districts.Systems
             var viewsConfig = _world.GetWorldComponent<DistrictBuildProgressViewsConfigComponent>().Value;
             var vertexGrid = _world.GetWorldComponent<VertexGridComponent>().Grid;
 
+            // AddComponent/AddTag on the freshly spawned view entity is a structural change while
+            // _districts.Entities is enumerating (StructuralChangeException, store-wide) — collect spawn
+            // data first, wire components after the query loop closes. Managed exception to the
+            // "Unity.Collections in ECS systems" rule: View is a MonoBehaviour reference, which a
+            // NativeContainer cannot hold. See ARCHITECTURE.md (collections rule).
+            var pending = new List<(int Id, HexCoord Coords, DistrictType Type, DistrictBuildProgressView View)>();
+
             foreach (var district in _districts.Entities)
             {
                 if (district.GetComponent<DistrictBuildStateComponent>().Value != DistrictBuildState.Planned)
                     continue;
 
                 var hexId = district.GetComponent<HexIdFKComponent>();
-                if (_viewsByHex[hexId.Coords].Count > 0)
+                if (HasView(hexId.Coords))
                     continue;
 
                 var districtType = district.GetComponent<DistrictTypeComponent>().Value;
@@ -97,10 +107,25 @@ namespace Presentation.Districts.Systems
                 var view = instance.GetComponent<DistrictBuildProgressView>();
 
                 var viewEntity = _world.CreateEntity();
-                viewEntity.AddComponent(new HexIdFKComponent { Coords = hexId.Coords });
-                viewEntity.AddComponent(new DistrictBuildProgressViewComponent { Type = districtType, View = view });
+                pending.Add((viewEntity.Id, hexId.Coords, districtType, view));
+            }
+
+            foreach (var (id, coords, type, view) in pending)
+            {
+                _world.TryGetEntityById(id, out var viewEntity);
+                viewEntity.AddComponent(new HexIdFKComponent { Coords = coords });
+                viewEntity.AddComponent(new DistrictBuildProgressViewComponent { Type = type, View = view });
                 viewEntity.AddTag<DistrictBuildProgressViewTag>();
             }
+        }
+
+        private bool HasView(HexCoord coords)
+        {
+            foreach (var view in _views.Entities)
+                if (view.GetComponent<HexIdFKComponent>().Coords.Equals(coords))
+                    return true;
+
+            return false;
         }
 
         // Fail loud: an in-progress build with no configured progress prefab is an authoring gap, not a benign skip.

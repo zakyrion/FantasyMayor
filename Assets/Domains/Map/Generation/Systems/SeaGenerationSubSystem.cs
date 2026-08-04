@@ -1,14 +1,14 @@
-﻿using Friflo.Engine.ECS;
-using EcsExtensions;
-using JetBrains.Annotations;
-using Domains.Map.Hex.Components;
-using Domains.Map.Generation.Components;
+﻿using Domains.Map.Generation.Components;
 using Domains.Map.Generation.Data;
+using Domains.Map.Hex.Components;
+using Domains.Map.Hex.Tags;
+using EcsExtensions;
+using Friflo.Engine.ECS;
+using JetBrains.Annotations;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 using Random = UnityEngine.Random;
-using Domains.Map.Hex.Tags;
 
 namespace Domains.Map.Generation.Systems
 {
@@ -20,13 +20,13 @@ namespace Domains.Map.Generation.Systems
     [UsedImplicitly]
     internal sealed class SeaGenerationSubSystem : GenerationSubSystem
     {
-        private const int SeaLevel = -1;
         private const float EdgeWeight = 2f;
         private const float NeighbourWeight = 1f;
         private const float NoiseAmplitude = 0.5f;
+        private const int SeaLevel = -1;
+        private readonly ArchetypeQuery _hexSet;
 
         private readonly EntityStore _world;
-        private readonly ArchetypeQuery _hexSet;
 
         /// <inheritdoc />
         public override int Priority => SystemPriorities.SubSystems.Generation.Sea;
@@ -38,7 +38,7 @@ namespace Domains.Map.Generation.Systems
         public SeaGenerationSubSystem(EntityStore world)
         {
             _world = world;
-            _hexSet = world.Query<HexIdComponent, HexLevelComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
+            _hexSet = world.Query<HexIdComponent, HexLevelComponent>().AllTags(Tags.Get<HexTag>());
         }
 
         /// <summary>
@@ -68,30 +68,27 @@ namespace Domains.Map.Generation.Systems
         {
             var entities = _hexSet.Entities;
 
-            foreach (var entity in entities)
+            // AddComponent inside Entities enumeration is a structural change (StructuralChangeException) —
+            // snapshot (id, level) first, then re-fetch by id to write.
+            var levelById = new NativeList<int2>(entities.Count, Allocator.Temp);
+            try
             {
-                var coord = entity.GetComponent<HexIdComponent>().Coords.Value;
-                var level = seaCoords.Contains(coord) ? SeaLevel : 0;
-                entity.AddComponent(new HexLevelComponent { Level = level });
+                foreach (var entity in entities)
+                {
+                    var coord = entity.GetComponent<HexIdComponent>().Coords.Value;
+                    var level = seaCoords.Contains(coord) ? SeaLevel : 0;
+                    levelById.Add(new int2(entity.Id, level));
+                }
+
+                for (var i = 0; i < levelById.Length; i++)
+                {
+                    _world.TryGetEntityById(levelById[i].x, out var entity);
+                    entity.AddComponent(new HexLevelComponent { Level = levelById[i].y });
+                }
             }
-        }
-
-        /// <summary>
-        ///     Copies all map coordinates from the ECS world into native collections.
-        /// </summary>
-        /// <param name="mapCoords">Ordered coordinate list to populate.</param>
-        /// <param name="mapDomain">Coordinate membership set used during sea growth.</param>
-        private void BuildMapCoords(
-            ref NativeList<int2> mapCoords,
-            ref NativeParallelHashSet<int2> mapDomain)
-        {
-            var entities = _hexSet.Entities;
-
-            foreach (var entity in entities)
+            finally
             {
-                var coord = entity.GetComponent<HexIdComponent>().Coords.Value;
-                mapDomain.Add(coord);
-                mapCoords.Add(coord);
+                levelById.Dispose();
             }
         }
 
@@ -119,6 +116,25 @@ namespace Domains.Map.Generation.Systems
                 edgeDomain.Add(coord);
 
             return edgeDomain;
+        }
+
+        /// <summary>
+        ///     Copies all map coordinates from the ECS world into native collections.
+        /// </summary>
+        /// <param name="mapCoords">Ordered coordinate list to populate.</param>
+        /// <param name="mapDomain">Coordinate membership set used during sea growth.</param>
+        private void BuildMapCoords(
+            ref NativeList<int2> mapCoords,
+            ref NativeParallelHashSet<int2> mapDomain)
+        {
+            var entities = _hexSet.Entities;
+
+            foreach (var entity in entities)
+            {
+                var coord = entity.GetComponent<HexIdComponent>().Coords.Value;
+                mapDomain.Add(coord);
+                mapCoords.Add(coord);
+            }
         }
 
         /// <summary>
@@ -295,7 +311,7 @@ namespace Domains.Map.Generation.Systems
             var hasCandidate = false;
             var bestScore = float.MinValue;
             var bestHex = int2.zero;
-            var radiusF = mapRadius > 0 ? (float)mapRadius : 1f;
+            var radiusF = mapRadius > 0 ? mapRadius : 1f;
 
             foreach (var candidate in frontier)
             {

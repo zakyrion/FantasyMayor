@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
+using Modules.AxialSystem;
 using Modules.Boot.Core;
 using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Tags;
@@ -74,13 +76,27 @@ namespace Presentation.HexIcons.Systems
         private void CreateContainers()
         {
             var hexSet = _world.Query<HexIdComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
+
+            // AddComponent/AddTag on the freshly spawned container entity is a structural change while
+            // hexSet.Entities is enumerating (StructuralChangeException, store-wide) — collect spawn data
+            // first, wire components after the query loop closes. Managed exception to the "Unity.Collections
+            // in ECS systems" rule: VisualElement is a managed UI Toolkit reference. See ARCHITECTURE.md
+            // (collections rule).
+            var pending = new List<(int Id, HexCoord Coords, VisualElement Container)>();
+
             foreach (var hexEntity in hexSet.Entities)
             {
                 var hexId = hexEntity.GetComponent<HexIdComponent>();
                 var container = CreateContainerElement(hexId.Coords.Value);
 
                 var containerEntity = _world.CreateEntity();
-                containerEntity.AddComponent(new HexIdFKComponent { Coords = hexId.Coords });
+                pending.Add((containerEntity.Id, hexId.Coords, container));
+            }
+
+            foreach (var (id, coords, container) in pending)
+            {
+                _world.TryGetEntityById(id, out var containerEntity);
+                containerEntity.AddComponent(new HexIdFKComponent { Coords = coords });
                 containerEntity.AddComponent(new HexIconContainerComponent(container));
                 containerEntity.AddTag<HexIconContainerTag>();
             }

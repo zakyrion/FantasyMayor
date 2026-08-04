@@ -409,55 +409,65 @@ namespace Domains.Map.Generation.Systems
         {
             var entities = _hexSet.Entities;
 
-            // Pass 1: mountain body
-            foreach (var entity in entities)
+            // AddComponent inside Entities enumeration is a structural change (StructuralChangeException) —
+            // snapshot (coord -> id) once, re-fetch by id to write in every pass below (incl. PlaceMandatoryFoothills).
+            var idByCoord = new NativeParallelHashMap<int2, int>(math.max(1, entities.Count), Allocator.Temp);
+            try
             {
-                var coord = entity.GetComponent<HexIdComponent>().Coords.Value;
+                foreach (var entity in entities)
+                    idByCoord.TryAdd(entity.GetComponent<HexIdComponent>().Coords.Value, entity.Id);
 
-                if (!mountainCoords.Contains(coord))
-                    continue;
-
-                entity.AddComponent(new HexLevelComponent { Level = MountainLevel });
-                SetLevel(ref levelMap, coord, MountainLevel);
-            }
-
-            // Pass 2: enclosed rule
-            foreach (var entity in entities)
-            {
-                var coord = entity.GetComponent<HexIdComponent>().Coords.Value;
-
-                if (levelMap[coord] != 0)
-                    continue;
-
-                var existingNeighbors = CountExistingNeighbors(coord, ref levelMap);
-                var mountainNeighbors = CountNeighborsAtLevel(coord, MountainLevel, ref levelMap);
-
-                if (existingNeighbors > 0 && mountainNeighbors == existingNeighbors)
+                // Pass 1: mountain body
+                foreach (var coord in mapCoords)
                 {
+                    if (!mountainCoords.Contains(coord))
+                        continue;
+
+                    _world.TryGetEntityById(idByCoord[coord], out var entity);
                     entity.AddComponent(new HexLevelComponent { Level = MountainLevel });
                     SetLevel(ref levelMap, coord, MountainLevel);
                 }
-            }
 
-            // Pass 3: mandatory foothills with contour-distance spacing
-            PlaceMandatoryFoothills(mapCoords, ref levelMap, ref waterCoords, minFoothillCount, minFoothillDistance);
-
-            // Pass 4: general foothills rule
-            foreach (var entity in entities)
-            {
-                var coord = entity.GetComponent<HexIdComponent>().Coords.Value;
-
-                if (levelMap[coord] != 0)
-                    continue;
-
-                var mountainNeighbors = CountNeighborsAtLevel(coord, MountainLevel, ref levelMap);
-
-                if (mountainNeighbors >= minFoothillNeighbors &&
-                    !IsAdjacentToWater(coord, ref waterCoords))
+                // Pass 2: enclosed rule
+                foreach (var coord in mapCoords)
                 {
-                    entity.AddComponent(new HexLevelComponent { Level = FoothillLevel });
-                    SetLevel(ref levelMap, coord, FoothillLevel);
+                    if (levelMap[coord] != 0)
+                        continue;
+
+                    var existingNeighbors = CountExistingNeighbors(coord, ref levelMap);
+                    var mountainNeighbors = CountNeighborsAtLevel(coord, MountainLevel, ref levelMap);
+
+                    if (existingNeighbors > 0 && mountainNeighbors == existingNeighbors)
+                    {
+                        _world.TryGetEntityById(idByCoord[coord], out var entity);
+                        entity.AddComponent(new HexLevelComponent { Level = MountainLevel });
+                        SetLevel(ref levelMap, coord, MountainLevel);
+                    }
                 }
+
+                // Pass 3: mandatory foothills with contour-distance spacing
+                PlaceMandatoryFoothills(mapCoords, ref levelMap, ref waterCoords, ref idByCoord, minFoothillCount, minFoothillDistance);
+
+                // Pass 4: general foothills rule
+                foreach (var coord in mapCoords)
+                {
+                    if (levelMap[coord] != 0)
+                        continue;
+
+                    var mountainNeighbors = CountNeighborsAtLevel(coord, MountainLevel, ref levelMap);
+
+                    if (mountainNeighbors >= minFoothillNeighbors &&
+                        !IsAdjacentToWater(coord, ref waterCoords))
+                    {
+                        _world.TryGetEntityById(idByCoord[coord], out var entity);
+                        entity.AddComponent(new HexLevelComponent { Level = FoothillLevel });
+                        SetLevel(ref levelMap, coord, FoothillLevel);
+                    }
+                }
+            }
+            finally
+            {
+                idByCoord.Dispose();
             }
         }
 
@@ -614,12 +624,14 @@ namespace Domains.Map.Generation.Systems
         /// <param name="mapCoords">All map coordinates.</param>
         /// <param name="levelMap">Current coordinate-to-level map — updated in place.</param>
         /// <param name="waterCoords">Water coordinates used for adjacency checks.</param>
+        /// <param name="idByCoord">Snapshot of hex entity ids by coordinate — see <see cref="ApplyMountainAndFoothills" />.</param>
         /// <param name="minCount">Minimum number of mandatory foothills to place.</param>
         /// <param name="minDistance">Minimum contour distance between any two mandatory foothills.</param>
         private void PlaceMandatoryFoothills(
             NativeList<int2> mapCoords,
             ref NativeParallelHashMap<int2, int> levelMap,
             ref NativeParallelHashSet<int2> waterCoords,
+            ref NativeParallelHashMap<int2, int> idByCoord,
             int minCount,
             int minDistance)
         {
@@ -684,13 +696,12 @@ namespace Domains.Map.Generation.Systems
                             UpdateContourDistances(anchors[bestIdx], ref contour, ref contourDist);
                         }
 
-                        foreach (var entity in _hexSet.Entities)
+                        foreach (var coord in mapCoords)
                         {
-                            var coord = entity.GetComponent<HexIdComponent>().Coords.Value;
-
                             if (!selected.Contains(coord))
                                 continue;
 
+                            _world.TryGetEntityById(idByCoord[coord], out var entity);
                             entity.AddComponent(new HexLevelComponent { Level = FoothillLevel });
                             SetLevel(ref levelMap, coord, FoothillLevel);
                         }

@@ -41,8 +41,9 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
         private readonly ArchetypeQuery _viewSet;
         private readonly ArchetypeQuery _selectedHexSet;
 
-        // District rows indexed by hex — one district per hex, so the first match is the answer.
-        private readonly ComponentIndex<HexIdFKComponent, HexCoord> _districtsByHex;
+        // District rows: HexIdFKComponent is shared by every hex-anchored entity kind (views, containers,
+        // resources), so a bare ComponentIndex over it is ambiguous across kinds — scope to the archetype.
+        private readonly ArchetypeQuery _districts;
 
         // In-progress verb rows indexed by their FK into the District PK space.
         private readonly ComponentIndex<DistrictIdFKComponent, int> _inProgressByDistrictId;
@@ -59,7 +60,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
             _world = world;
             _viewSet = world.Query<HexInfoPanelViewComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<UITag>());
             _selectedHexSet = world.Query<HexSelectedComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexSelectionTag>());
-            _districtsByHex = world.ComponentIndex<HexIdFKComponent, HexCoord>();
+            _districts = world.Query<HexIdFKComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<DistrictTag>());
             _inProgressByDistrictId = world.ComponentIndex<DistrictIdFKComponent, int>();
         }
 
@@ -102,7 +103,20 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
             }
         }
 
-        private bool TryGetDistrict(HexCoord coords, out Entity district) => _districtsByHex[coords].TryGetFirst(out district);
+        private bool TryGetDistrict(HexCoord coords, out Entity district)
+        {
+            foreach (var candidate in _districts.Entities)
+            {
+                if (!candidate.GetComponent<HexIdFKComponent>().Coords.Equals(coords))
+                    continue;
+
+                district = candidate;
+                return true;
+            }
+
+            district = default;
+            return false;
+        }
 
         // A Planned District row always has exactly one matching verb row — a miss is a broken invariant.
         private int ResolveTurnsLeft(int districtId)

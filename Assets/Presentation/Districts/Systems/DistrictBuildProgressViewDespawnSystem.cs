@@ -29,8 +29,11 @@ namespace Presentation.Districts.Systems
         // District rows: one per hex, carrying the hex FK and its build stage.
         private readonly ArchetypeQuery _districts;
 
-        // Progress-view entities indexed by the hex FK -> candidates for despawn once their hex stops building.
-        private readonly ComponentIndex<HexIdFKComponent, HexCoord> _viewsByHex;
+        // Progress-view entities -> candidates for despawn once their hex stops building. HexIdFKComponent is
+        // shared by every hex-anchored entity kind (the District row itself included) — a bare ComponentIndex
+        // over it would offer the District row up for despawn too (NRE: no DistrictBuildProgressViewComponent
+        // on it) — scope the query to the view archetype.
+        private readonly ArchetypeQuery _views;
 
         private readonly EntityStore _world;
 
@@ -41,7 +44,8 @@ namespace Presentation.Districts.Systems
         {
             _world = world;
             _districts = world.Query<HexIdFKComponent, DistrictBuildStateComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<DistrictTag>());
-            _viewsByHex = world.ComponentIndex<HexIdFKComponent, HexCoord>();
+            _views = world.Query<HexIdFKComponent, DistrictBuildProgressViewComponent>()
+                .AllTags(Friflo.Engine.ECS.Tags.Get<DistrictBuildProgressViewTag>());
         }
 
         // The pulse entity itself is ignored — reconciliation is global over current state.
@@ -56,14 +60,12 @@ namespace Presentation.Districts.Systems
                     plannedHexes.Add(district.GetComponent<HexIdFKComponent>().Coords);
 
             // Snapshot ids first, not entities: Friflo's Entity carries a store reference (not unmanaged), and
-            // deleting mid-enumeration of the index throws StructuralChangeException.
+            // deleting mid-enumeration of the query throws StructuralChangeException.
             var staleViewIds = new NativeList<int>(8, Allocator.Temp);
-            foreach (var coords in _viewsByHex.Values)
+            foreach (var view in _views.Entities)
             {
-                if (plannedHexes.Contains(coords))
-                    continue;
-
-                foreach (var view in _viewsByHex[coords])
+                var coords = view.GetComponent<HexIdFKComponent>().Coords;
+                if (!plannedHexes.Contains(coords))
                     staleViewIds.Add(view.Id);
             }
 

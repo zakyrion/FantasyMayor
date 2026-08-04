@@ -68,11 +68,27 @@ namespace Domains.Map.Generation.Systems
         {
             var entities = _hexSet.Entities;
 
-            foreach (var entity in entities)
+            // AddComponent inside Entities enumeration is a structural change (StructuralChangeException) —
+            // snapshot (id, level) first, then re-fetch by id to write.
+            var levelById = new NativeList<int2>(entities.Count, Allocator.Temp);
+            try
             {
-                var coord = entity.GetComponent<HexIdComponent>().Coords.Value;
-                var level = lakeCoords.Contains(coord) ? LakeLevel : 0;
-                entity.AddComponent(new HexLevelComponent { Level = level });
+                foreach (var entity in entities)
+                {
+                    var coord = entity.GetComponent<HexIdComponent>().Coords.Value;
+                    var level = lakeCoords.Contains(coord) ? LakeLevel : 0;
+                    levelById.Add(new int2(entity.Id, level));
+                }
+
+                for (var i = 0; i < levelById.Length; i++)
+                {
+                    _world.TryGetEntityById(levelById[i].x, out var entity);
+                    entity.AddComponent(new HexLevelComponent { Level = levelById[i].y });
+                }
+            }
+            finally
+            {
+                levelById.Dispose();
             }
         }
 
@@ -122,8 +138,24 @@ namespace Domains.Map.Generation.Systems
         {
             var entities = _hexSet.Entities;
 
-            foreach (var entity in entities)
-                entity.AddComponent(new HexLevelComponent { Level = 0 });
+            // AddComponent inside Entities enumeration is a structural change (StructuralChangeException) —
+            // snapshot ids first, then re-fetch by id to write.
+            var ids = new NativeList<int>(entities.Count, Allocator.Temp);
+            try
+            {
+                foreach (var entity in entities)
+                    ids.Add(entity.Id);
+
+                for (var i = 0; i < ids.Length; i++)
+                {
+                    _world.TryGetEntityById(ids[i], out var entity);
+                    entity.AddComponent(new HexLevelComponent { Level = 0 });
+                }
+            }
+            finally
+            {
+                ids.Dispose();
+            }
         }
 
         /// <summary>

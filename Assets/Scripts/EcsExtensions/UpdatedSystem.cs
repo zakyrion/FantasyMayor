@@ -1,4 +1,5 @@
 using Friflo.Engine.ECS;
+using Unity.Collections;
 
 namespace EcsExtensions
 {
@@ -25,8 +26,28 @@ namespace EcsExtensions
         /// <inheritdoc />
         public void Update(GameState state)
         {
-            foreach (var entity in _query.Entities)
-                Update(state, entity);
+            var entities = _query.Entities;
+
+            // Dispatching Update(state, entity) while _query.Entities is enumerating is a structural change
+            // (StructuralChangeException, store-wide — thrown by AddComponent/AddTag/RemoveComponent/RemoveTag
+            // anywhere inside the dispatched call, even on an unrelated entity) — snapshot ids first, dispatch
+            // via re-fetch.
+            var ids = new NativeList<int>(entities.Count, Allocator.Temp);
+            try
+            {
+                foreach (var entity in entities)
+                    ids.Add(entity.Id);
+
+                for (var i = 0; i < ids.Length; i++)
+                {
+                    if (_query.Store.TryGetEntityById(ids[i], out var entity))
+                        Update(state, entity);
+                }
+            }
+            finally
+            {
+                ids.Dispose();
+            }
         }
 
         /// <summary>Called once per matching entity, every frame.</summary>

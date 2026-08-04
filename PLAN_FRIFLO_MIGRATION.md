@@ -28,8 +28,8 @@ Closed-spec plan: DefaultEcs 0.17.2 → Friflo.Engine.ECS 3.6.0. Executor = Sonn
               Do NOT reopen any entry of `decided` — reopening = process violation."
    :phases   [:s0-package :s1-core :s2-components :s3-domains :s4-presentation
               :s5-purge :s6-gate :s7-graphs :s8-docs]
-   :status   {:s0 :done :s1 :done :s2 :done :s3 :done :s4 :done
-              :s5 :todo :s6 :todo :s7 :todo :s8 :todo}   ;; executor flips an entry to :done only after its :accept reads green
+   :status   {:s0 :done :s1 :done :s2 :done :s3 :done :s4 :done :s5 :done
+              :s6 :todo :s7 :todo :s8 :todo}   ;; executor flips an entry to :done only after its :accept reads green
    :session-rule "ONE phase per session. Open the session by restating the phase's task maps, ask
                   open questions if any, WAIT for explicit GO (HARD GATE unchanged), then execute."})
 ```

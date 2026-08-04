@@ -42,8 +42,9 @@ namespace Domains.Actions.BuildDistrictAction.Systems
     [UsedImplicitly]
     public sealed class BuildDistrictActionCancelSystem : UpdatedSystem
     {
-        // District rows indexed by hex — the pulse's identifying payload resolves straight to the row.
-        private readonly ComponentIndex<HexIdFKComponent, HexCoord> _districtsByHex;
+        // District rows: HexIdFKComponent is shared by every hex-anchored entity kind (views, containers,
+        // resources), so a bare ComponentIndex over it is ambiguous across kinds — scope to the archetype.
+        private readonly ArchetypeQuery _districts;
 
         // In-progress verb rows indexed by their FK into the District PK space.
         private readonly ComponentIndex<DistrictIdFKComponent, int> _inProgressByDistrictId;
@@ -63,7 +64,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         {
             _world = world;
 
-            _districtsByHex = world.ComponentIndex<HexIdFKComponent, HexCoord>();
+            _districts = world.Query<HexIdFKComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<DistrictTag>());
             _inProgressByDistrictId = world.ComponentIndex<DistrictIdFKComponent, int>();
 
             _mayorActor = world.Query<MayorIdComponent, MayorAPComponent, ActorTypeComponent>()
@@ -81,7 +82,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
 
             var coords = pulse.GetComponent<BuildDistrictCancelEvent>().Coords;
 
-            if (!_districtsByHex[coords].TryGetFirst(out var district))
+            if (!TryGetDistrict(coords, out var district))
                 throw new InvalidOperationException(
                     $"BuildDistrictActionCancelSystem: no District row at {coords} to cancel.");
 
@@ -128,6 +129,21 @@ namespace Domains.Actions.BuildDistrictAction.Systems
                 var mayorAp = mayor.GetComponent<MayorAPComponent>().Value;
                 mayor.AddComponent(new MayorAPComponent { Value = mayorAp + cost.ApPrice });
             }
+        }
+
+        private bool TryGetDistrict(HexCoord coords, out Entity district)
+        {
+            foreach (var candidate in _districts.Entities)
+            {
+                if (!candidate.GetComponent<HexIdFKComponent>().Coords.Equals(coords))
+                    continue;
+
+                district = candidate;
+                return true;
+            }
+
+            district = default;
+            return false;
         }
 
         // The single Mayor actor that holds the AP pool. Missing it here is the same broken-world case

@@ -7,6 +7,7 @@ using Domains.Actions.BuildDistrictAction.Events;
 using JetBrains.Annotations;
 using Modules.Turn.Data;
 using Modules.Turn.Systems;
+using Unity.Collections;
 
 namespace Domains.Actions.BuildDistrictAction.Systems
 {
@@ -45,17 +46,33 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         private void Tick()
         {
             var raiseEvent = false;
-            foreach (var entity in _inProgress.Entities)
+            var entities = _inProgress.Entities;
+
+            // AddComponent inside Entities enumeration is a structural change (StructuralChangeException) —
+            // snapshot ids first, then re-fetch by id to write.
+            var ids = new NativeList<int>(entities.Count, Allocator.Temp);
+            try
             {
-                var turns = entity.GetComponent<BuildDistrictTurnsComponent>();
-                var turnsLeft = turns.TurnsLeft-1;
+                foreach (var entity in entities)
+                    ids.Add(entity.Id);
 
-                if (turnsLeft <= 0)
+                for (var i = 0; i < ids.Length; i++)
                 {
-                    raiseEvent = true;
-                }
+                    _world.TryGetEntityById(ids[i], out var entity);
+                    var turns = entity.GetComponent<BuildDistrictTurnsComponent>();
+                    var turnsLeft = turns.TurnsLeft-1;
 
-                entity.AddComponent(new BuildDistrictTurnsComponent { TurnsLeft = turnsLeft, TurnsToBuild = turns.TurnsToBuild });
+                    if (turnsLeft <= 0)
+                    {
+                        raiseEvent = true;
+                    }
+
+                    entity.AddComponent(new BuildDistrictTurnsComponent { TurnsLeft = turnsLeft, TurnsToBuild = turns.TurnsToBuild });
+                }
+            }
+            finally
+            {
+                ids.Dispose();
             }
 
             if (raiseEvent)
