@@ -30,7 +30,9 @@ Closed-spec plan: DefaultEcs 0.17.2 → Friflo.Engine.ECS 3.6.0. Executor = Sonn
               :s5-purge :s5b-archetypes :s6-gate :s7-graphs :s8-docs]
    :status   {:s0 :done :s1 :done :s2 :done :s3 :done :s4 :done :s5 :done
               :s5b :done                       ;; 2026-08-04 — a1-a5 all landed
-              :s6 :todo :s7 :todo :s8 :todo}   ;; executor flips an entry to :done only after its :accept reads green
+              :s6 :done                        ;; 2026-08-04 — playtest checklist confirmed clean by user
+              :s7 :done                        ;; 2026-08-04 — ecs-graph rewritten + verified, di-graph rebuilt clean
+              :s8 :todo}                       ;; executor flips an entry to :done only after its :accept reads green
    :session-rule "ONE phase per session. Open the session by restating the phase's task maps, ask
                   open questions if any, WAIT for explicit GO (HARD GATE unchanged), then execute."})
 ```
@@ -408,11 +410,46 @@ purge and the archetype model together instead of gating twice.
 
 ```clojure
 [{:task :s7-ecs-graph
+  :status :done                                 ;; 2026-08-04 — build_graph.py rewritten; curated true, 456
+                                                 ;; nodes, 673 edges, 7 warnings (all legitimate multi-archetype
+                                                 ;; dispose ambiguity — a class binding >1 archetype where the
+                                                 ;; deleted local's provenance isn't traced — honest per-system
+                                                 ;; limit, not an extraction bug)
   :where "~/.claude/skills/ecs-graph/ (build/extract scripts)"
   :do    "extractor learns Friflo surface: CreateEntity(components, Tags.Get<>), AddComponent, Query<> + AllTags/WithoutAnyTags, ComponentIndex, IIndexedComponent (PK/FK/IDX), ITag/IComponent decls, store.On* subscriptions, CreateEvent helper; drop DefaultEcs patterns"
-  :accept {:meter "ecsg.py stats after full rebuild" :target "curated true · archetypes ≈23 · tables ≈31 · events 14 · warnings ≤ baseline(5)"}}
+  :decided {:archetype-source "archetypes are DECLARED (parsed from *Archetypes.cs holder methods:
+                               store.GetArchetype(ComponentTypes.Get<...>(), Tags.Get<...>())), never
+                               inferred from CreateEntity call sites — curate()'s old dedup/promote
+                               passes are gone, not rewritten"
+            :generic-holders "multi-hop template-forwarding worklist resolves BOTH a directly-generic
+                              holder (EventArchetypes.Of<T>) and a holder reached through a RELAY generic
+                              helper using its own type params (ResourceLoadoutSpawner.SpawnLoadout<T1,T2>
+                              -> SpawnResource<T1,T2> -> EconomyArchetypes.Resource<T1,T2>), keyed by
+                              (owner class, method name) so two same-shaped generic methods on one class
+                              never collide"
+            :on-star        "OnEntityCreate/OnEntityDelete added (feed the same creates/disposes edges as
+                              direct CreateEntity/DeleteEntity, distinguished only by `via`);
+                              OnComponentAdded/OnComponentRemoved/OnTagsChanged explicitly OUT OF SCOPE —
+                              user: no foreseen use in this project — 0 call sites either way today"
+            :fk-cross-ref   "TWO independent fk_of signals kept as SEPARATE edges (same src/dst, different
+                              via, never merged): naming-suffix (pass 7, unchanged law) and ComponentIndex
+                              TValue cross-reference (a real `ComponentIndex<FK,TValue>` usage site whose
+                              TValue matches the PK's own value type — from IIndexedComponent<TValue> when
+                              indexed, else the PK's sole-field type as fallback, since not every PK is
+                              itself indexed — e.g. MayorIdComponent/CityIdComponent never are). `references`
+                              edges (Archetype->Archetype, one per fk_of signal) derived on top for one-hop
+                              explain/neighbors/bfs queries — user: «2 окремі графи»"
+            :index-usage    "ComponentIndex field DECLARATION and actual `_field[key]` LOOKUP sites are
+                              tracked separately (`tables` vs `index_usages`, the latter never deduped —
+                              every real site keeps its own location) — declaring an index is not evidence
+                              it's used; explain surfaces both"}
+  :accept {:meter "ecsg.py stats after full rebuild" :target "curated true · archetypes 38 · tables 23 · warnings 7 (all explained, no bugs)"}}
 
  {:task :s7-di-graph
+  :status :done                                 ;; 2026-08-04 — rebuilt clean: curated true, 0 warnings;
+                                                 ;; one stale docstring line reworded (DefaultEcs World ->
+                                                 ;; Friflo EntityStore) — extractor logic untouched, it was
+                                                 ;; already variable-name-based (RegisterInstance(world)), not type-based
   :do    "DI wiring unchanged by migration; rebuild and verify only"
   :accept {:meter "dig.py stats" :target "curated true, no new unresolved"}}]
 ```

@@ -7,6 +7,7 @@ using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
+using Presentation.Archetypes;
 using Presentation.HexResources.Components;
 using Presentation.HexResources.Events;
 using Presentation.HexResources.Helpers;
@@ -30,9 +31,7 @@ namespace Presentation.HexResources.Systems
         // HexResource table indexed by its discriminator value -> the Forest bucket is the wanted set.
         private readonly ComponentIndex<HexResourceComponent, HexResourceType> _resourcesByType;
 
-        // ResourceView (forest) table indexed by the hex FK -> N tree entities per coordinate.
-        private readonly ComponentIndex<HexIdFKComponent, HexCoord> _forestViewsByHex;
-
+        private readonly Archetype _forestViews;
         private readonly Archetype _hexSet;
         private readonly ForestPlanter _planter = new();
         private readonly EntityStore _world;
@@ -46,7 +45,7 @@ namespace Presentation.HexResources.Systems
         {
             _world = world;
             _resourcesByType = world.ComponentIndex<HexResourceComponent, HexResourceType>();
-            _forestViewsByHex = world.ComponentIndex<HexIdFKComponent, HexCoord>();
+            _forestViews = PresentationArchetypes.ForestView(world);
             _hexSet = MapArchetypes.Hex(world);
         }
 
@@ -70,8 +69,8 @@ namespace Presentation.HexResources.Systems
             if (!_world.HasWorldComponent<TerrainViewConfigComponent>() || !_world.HasWorldComponent<HexResourcesViewConfigComponent>())
                 return;
 
-            var forestHexes = _resourcesByType[HexResourceType.Forest];
-            if (forestHexes.Count == 0)
+            var forestResources = _resourcesByType[HexResourceType.Forest];
+            if (forestResources.Count == 0)
                 return;
 
             var vertexGrid = _world.GetWorldComponent<VertexGridComponent>().Grid;
@@ -82,18 +81,34 @@ namespace Presentation.HexResources.Systems
                 _root = new GameObject("ForestViewRoot").transform;
 
             var newSplats = new NativeList<ForestGroundPainter.Splat>(64, Allocator.Temp);
+            var forestHexes = new NativeHashSet<HexCoord>(Math.Max(1, forestResources.Count), Allocator.Temp);
+            var viewedHexes = new NativeHashSet<HexCoord>(Math.Max(1, _forestViews.Count), Allocator.Temp);
 
-            // Forested but not yet viewed -> plant trees and collect their ground splats.
-            foreach (var hex in forestHexes)
+            try
             {
-                var coords = hex.GetComponent<HexIdFKComponent>().Coords;
-                if (_forestViewsByHex[coords].Count == 0)
-                    _planter.PlantHex(_world, _root, coords, vertexGrid, viewConfig, ref newSplats);
-            }
+                // Snapshot both table scopes before PlantHex structurally creates ForestView entities.
+                foreach (var resource in forestResources)
+                    forestHexes.Add(resource.GetComponent<HexIdFKComponent>().Coords);
 
-            // Append-only: paint just the new patches over the current pixels.
-            _planter.Paint(_hexSet, cellSize, newSplats, texture);
-            newSplats.Dispose();
+                foreach (var view in _forestViews.Entities)
+                    viewedHexes.Add(view.GetComponent<HexIdFKComponent>().Coords);
+
+                // Forested but not yet viewed -> plant trees and collect their ground splats.
+                foreach (var coords in forestHexes)
+                {
+                    if (!viewedHexes.Contains(coords))
+                        _planter.PlantHex(_world, _root, coords, vertexGrid, viewConfig, ref newSplats);
+                }
+
+                // Append-only: paint just the new patches over the current pixels.
+                _planter.Paint(_hexSet, cellSize, newSplats, texture);
+            }
+            finally
+            {
+                viewedHexes.Dispose();
+                forestHexes.Dispose();
+                newSplats.Dispose();
+            }
         }
     }
 }

@@ -1,10 +1,12 @@
-﻿using Domains.Map.Hex.Components;
+﻿using System;
+using Domains.Map.Hex.Components;
 using Domains.Map.HexResources.Components;
 using Domains.Map.HexResources.Data;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
+using Presentation.Archetypes;
 using Presentation.HexResources.Components;
 using Presentation.HexResources.Events;
 using Unity.Collections;
@@ -27,9 +29,7 @@ namespace Presentation.HexResources.Systems
         // HexResource table indexed by its discriminator value -> the Forest bucket is the current truth.
         private readonly ComponentIndex<HexResourceComponent, HexResourceType> _resourcesByType;
 
-        // ResourceView (forest) table indexed by the hex FK -> N tree entities per coordinate.
-        private readonly ComponentIndex<HexIdFKComponent, HexCoord> _forestViewsByHex;
-
+        private readonly Archetype _forestViews;
         private readonly EntityStore _world;
 
         public override int Priority => SystemPriorities.RuntimeTick.ForestDespawn;
@@ -39,7 +39,7 @@ namespace Presentation.HexResources.Systems
         {
             _world = world;
             _resourcesByType = world.ComponentIndex<HexResourceComponent, HexResourceType>();
-            _forestViewsByHex = world.ComponentIndex<HexIdFKComponent, HexCoord>();
+            _forestViews = PresentationArchetypes.ForestView(world);
         }
 
         // The pulse entity itself is ignored — reconciliation is global over current state.
@@ -48,28 +48,32 @@ namespace Presentation.HexResources.Systems
             if (!EcsEventExtensions.IsRipe(pulse))
                 return;
 
-            var forestHexes = new NativeHashSet<HexCoord>(64, Allocator.Temp);
-            foreach (var resource in _resourcesByType[HexResourceType.Forest])
-                forestHexes.Add(resource.GetComponent<HexIdFKComponent>().Coords);
+            var forestResources = _resourcesByType[HexResourceType.Forest];
+            var forestHexes = new NativeHashSet<HexCoord>(Math.Max(1, forestResources.Count), Allocator.Temp);
+            var staleViewIds = new NativeList<int>(Math.Max(1, _forestViews.Count), Allocator.Temp);
 
-            // Snapshot ids first, not entities: Friflo's Entity carries a store reference (not unmanaged), and
-            // deleting mid-enumeration of the index throws StructuralChangeException.
-            var staleViewIds = new NativeList<int>(8, Allocator.Temp);
-            foreach (var coords in _forestViewsByHex.Values)
+            try
             {
-                if (forestHexes.Contains(coords))
-                    continue;
+                foreach (var resource in forestResources)
+                    forestHexes.Add(resource.GetComponent<HexIdFKComponent>().Coords);
 
-                foreach (var view in _forestViewsByHex[coords])
-                    staleViewIds.Add(view.Id);
+                // Snapshot only ForestView ids before their deletion mutates the archetype.
+                foreach (var view in _forestViews.Entities)
+                {
+                    var coords = view.GetComponent<HexIdFKComponent>().Coords;
+                    if (!forestHexes.Contains(coords))
+                        staleViewIds.Add(view.Id);
+                }
+
+                for (var i = 0; i < staleViewIds.Length; i++)
+                    if (_world.TryGetEntityById(staleViewIds[i], out var view))
+                        DestroyView(view);
             }
-
-            for (var i = 0; i < staleViewIds.Length; i++)
-                if (_world.TryGetEntityById(staleViewIds[i], out var view))
-                    DestroyView(view);
-
-            staleViewIds.Dispose();
-            forestHexes.Dispose();
+            finally
+            {
+                staleViewIds.Dispose();
+                forestHexes.Dispose();
+            }
         }
 
         private void DestroyView(Entity entity)
