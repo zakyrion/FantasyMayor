@@ -13,8 +13,12 @@ related:
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Working Contract: Research → Plan → Execute
-Every engineering task runs in three phases. Each is already backed by an existing
-gate — this names the discipline, it adds no new rule:
+Every engineering task runs in three phases — ENTERED only through a confirmed task
+statement (the HARD GATE): confirming the statement is what opens Research and Plan
+for that task; Execute opens only on its own fresh `go` for the implementation map.
+The precise gate semantics are `go-contract` / `done-contract` (Engineering Task
+Template below). Each phase is already backed by an existing gate — this names the
+discipline, it adds no new rule:
 1. **Research** — gather facts, do not accumulate source. **Tool-first + code**: structure
    via the bounded `mcp__roslyn__*` tools and the ECS/DI graph CLIs (`ecsg.py` / `dig.py`);
    targeted code reads (a file's header comment is its contract) — read the files you will
@@ -96,6 +100,29 @@ gate — this names the discipline, it adds no new rule:
 
 ## Engineering Task Template
 - **HARD GATE — no actions before a confirmed task statement. For any engineering task you MUST first restate the task using the template below AND, if you have any doubt that you understood the task correctly, ask me your own clarifying questions in the same message. Then STOP and wait for my explicit confirmation. Only AFTER I confirm the statement may you create a plan or do any work. Forming a plan, entering plan mode, reading-for-implementation, or editing anything before that confirmation is a process violation. The duty to ask is yours: when in doubt, ask me — do not assume, and do not wait for me to question you. This overrides any default "just start planning" behavior.**
+
+What a confirmation ("go") authorizes, and what "done" means — explicit since 2026-08-05
+(this is the long-standing two-gate practice written down, not a new rule):
+
+```clojure
+(def go-contract
+  {:authorizes "only the actions needed for the :result of the CURRENT confirmed task map"
+   :research-go "a task whose :result is findings/a plan authorizes research and planning — NEVER implementation"
+   :implementation-go "implementation born from research = a NEW task map + a NEW go"
+   :expires "on completion of the confirmed task, or when its scope materially changes"
+   :revoked-by "an interrupt or a user question — answer only, zero actions until a fresh go"})
+```
+
+```clojure
+(def done-contract
+  {:result :required                    ;; the stated :result is met
+   :accept :when-present                ;; every :accept meter reads its :target — "almost" does not exist
+   :diagnostic :when-code-changed       ;; roslyn pre-check clean on the edited scope
+   :runtime :when-only-user-can-verify  ;; Unity-side check stays the user's authority
+   :commit :only-when-requested
+   :never "a checked checkbox or the mere fact of editing files"})
+```
+
 - Use the following template for engineering tasks by default. Engineering tasks include coding, architecture changes, refactors, documentation, config-flow work, and other repository changes.
 - Do not require this template for casual conversation or pure Q&A that does not ask for repository changes.
 - Show this template to the user when they are defining an engineering task so they can see and reuse it.
@@ -186,6 +213,19 @@ Field ↔ template-block mapping: `:where` = «Працюй тільки в», `
   the sole archetype/event registry. Likewise refresh the di-graph (`build_di_graph.py` / `/di-graph`) after
   changing DI wiring (registrations, `[Inject]`, Boot composition). Both builds are deterministic — run them yourself.
 - `DOC_STANDARD.md` governs the surviving doc genres (Flows, Patterns, root policy docs).
+
+## OpenSpec Policy
+Evaluated 2026-08-05: the generated OpenSpec skills over-triggered and duplicated the
+task-map workflow (proposal/design/tasks ≈ task map; checkbox-done ≠ `:accept`-done), and
+its main specs would compete with `Flows/FLOW_*.md`. Full evaluation record: the removal commit.
+
+```clojure
+(def openspec-policy  ;; 2026-08-05 — removed from the active workflow of BOTH agents
+  {:project-integration :removed        ;; skills (.claude/.codex) + openspec/ deleted
+   :cli :available                      ;; global `openspec` CLI stays installed
+   :future-use :explicit-only           ;; never triggers by itself — only by the user's direct ask
+   :reconsider-only-when "довготривала capability spec із реальними delta requirements"})
+```
 
 ## Unity Build Policy
 - This is a Unity project.

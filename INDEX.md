@@ -13,7 +13,7 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 25 docs — 2 always · 22 trigger · 1 reference · 3 canvas.
+Totals: 26 docs — 2 always · 22 trigger · 2 reference · 3 canvas.
 
 ## Read at start (always)
 
@@ -57,6 +57,7 @@ Reference docs read on demand.
 
 | Doc | Cat | Status | What it is |
 |---|---|---|---|
+| [AGENTS.md](AGENTS.md) | C | — | Codex bootstrap: full FantasyMayor process contract, Codex-native — HARD GATE, go/done, notation ext, tools, policies. |
 | [Як читати і писати Clojure-інструкції](CLOJURE_GUIDE.md) | B | — | Людський підручник до Clojure-нотації задач і правил: реальний синтаксис Clojure як мова |
 
 ## Canvas map (on demand)
