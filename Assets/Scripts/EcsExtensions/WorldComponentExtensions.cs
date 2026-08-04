@@ -20,7 +20,5 @@ namespace EcsExtensions
         public static void SetWorldComponent<T>(this EntityStore store, in T component) where T : struct, IComponent =>
             store.GetUniqueEntity(WorldEntityName).AddComponent(component);
 
-        public static void RemoveWorldComponent<T>(this EntityStore store) where T : struct, IComponent =>
-            store.GetUniqueEntity(WorldEntityName).RemoveComponent<T>();
     }
 }

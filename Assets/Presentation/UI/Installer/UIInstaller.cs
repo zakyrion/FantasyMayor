@@ -1,4 +1,5 @@
 using EcsExtensions;
+using Friflo.Engine.ECS;
 using Modules.Boot.Core;
 using Presentation.UI.MainHud.ContextTabs.Systems;
 using Presentation.UI.DistrictBuild.Systems;
@@ -7,6 +8,8 @@ using Presentation.UI.GeneratorMenu.Systems;
 using Presentation.UI.MainHud.HexInfoPanel.Systems;
 using Presentation.UI.MainHud.ResourceBar.Systems;
 using Presentation.UI.MainHud.Systems;
+using Presentation.UI.MainHud.Components;
+using Presentation.UI.DistrictBuild.Components;
 using VContainer;
 using VContainer.Unity;
 
@@ -21,6 +24,13 @@ namespace Presentation.UI.Installer
     {
         public void Install(IContainerBuilder builder)
         {
+            builder.RegisterBuildCallback(container =>
+            {
+                var world = container.Resolve<EntityStore>();
+                world.SetWorldComponent(new MainHudComponent());
+                world.SetWorldComponent(new DistrictBuildUIRootComponent());
+            });
+
             builder.Register<ShowHexesUISystem>(Lifetime.Scoped)
                 .As<ShowHexesUISystem>();
 

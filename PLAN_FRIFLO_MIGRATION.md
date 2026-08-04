@@ -29,7 +29,7 @@ Closed-spec plan: DefaultEcs 0.17.2 → Friflo.Engine.ECS 3.6.0. Executor = Sonn
    :phases   [:s0-package :s1-core :s2-components :s3-domains :s4-presentation
               :s5-purge :s5b-archetypes :s6-gate :s7-graphs :s8-docs]
    :status   {:s0 :done :s1 :done :s2 :done :s3 :done :s4 :done :s5 :done
-              :s5b :current                    ;; user 2026-08-04 — inserted BEFORE the gate, ahead of :s6
+              :s5b :done                       ;; 2026-08-04 — a1-a5 all landed
               :s6 :todo :s7 :todo :s8 :todo}   ;; executor flips an entry to :done only after its :accept reads green
    :session-rule "ONE phase per session. Open the session by restating the phase's task maps, ask
                   open questions if any, WAIT for explicit GO (HARD GATE unchanged), then execute."})
@@ -372,6 +372,16 @@ purge and the archetype model together instead of gating twice.
   :skip   "ComponentIndex lookups — keyed access, not an archetype filter; unchanged"}
 
  {:task :a5-transitions
+  :status :done                                 ;; 2026-08-04 — the only mid-life composition churn in the
+                                                 ;; codebase was 3 world components toggled via Set/RemoveWorldComponent
+                                                 ;; (TurnProcessorComponent, MainHudComponent, DistrictBuildUIRootComponent);
+                                                 ;; the "world" singleton has no declared archetype (pre-existing
+                                                 ;; one-shot exception, s5b-scope), so delete+recreate does not apply —
+                                                 ;; resolved via birth-completeness instead: all 3 now always-present
+                                                 ;; (set once at DI build, before "world" is read), toggled by a
+                                                 ;; sentinel value (TurnProcessorStatus.Idle / empty RootBox) rather
+                                                 ;; than presence. RemoveComponent/RemoveTag/RemoveWorldComponent now
+                                                 ;; 0 hits repo-wide. Roslyn clean.
   :goal  "the consequence of `composition-change`"
   :do    "where composition changes mid-life today (first-time AddComponent of a new column, or
           RemoveComponent), delete the old entity and create a new one in its archetype; PK/FK carry over"

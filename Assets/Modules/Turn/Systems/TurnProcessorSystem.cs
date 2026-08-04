@@ -15,9 +15,10 @@ namespace Modules.Turn.Systems
     /// <summary>
     ///     Drives turn processing in the Gameplay state. On a <see cref="NextTurnEvent" /> pulse it marks the
     ///     turn in progress (<see cref="TurnProcessorComponent" />) and runs the ordered phase set inline on the
-    ///     main thread; it polls completion each frame and removes the component when the run finishes.
-    ///     Deliberately a per-frame system (not a reactive entity-set system): it must tick every frame to poll
-    ///     the in-flight task, which a pulse-anchored set cannot do. Law 1: store I/O is main-thread only.
+    ///     main thread; it polls completion each frame and resets the component to <see cref="TurnProcessorStatus.Idle" />
+    ///     when the run finishes. Deliberately a per-frame system (not a reactive entity-set system): it must tick
+    ///     every frame to poll the in-flight task, which a pulse-anchored set cannot do. Law 1: store I/O is
+    ///     main-thread only.
     /// </summary>
     [UsedImplicitly]
     public sealed class TurnProcessorSystem : IUpdatedSystem
@@ -40,7 +41,7 @@ namespace Modules.Turn.Systems
 
         public void Update(GameState state)
         {
-            if (!_world.HasWorldComponent<TurnProcessorComponent>())
+            if (_world.GetWorldComponent<TurnProcessorComponent>().Status == TurnProcessorStatus.Idle)
             {
                 if (!HasRipePulse())
                     return;
@@ -53,7 +54,7 @@ namespace Modules.Turn.Systems
 
             if (_world.GetWorldComponent<TurnProcessorComponent>().Status == TurnProcessorStatus.Completed)
             {
-                _world.RemoveWorldComponent<TurnProcessorComponent>();
+                _world.SetWorldComponent(new TurnProcessorComponent { Status = TurnProcessorStatus.Idle });
                 Debug.Log("[TurnProcessorSystem] Turn completed.");
 
                 // Announce the turn boundary so the counter (and future turn-boundary reactors) advance,

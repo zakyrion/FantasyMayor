@@ -1,11 +1,11 @@
 namespace Modules.Turn.Data
 {
     /// <summary>
-    ///     Lifecycle of the turn currently being processed. Default is <see cref="Running" />, so a freshly
-    ///     set <c>TurnProcessorComponent</c> represents an in-flight turn.
+    ///     Lifecycle of the turn processor. Default is <see cref="Idle" />.
     /// </summary>
     public enum TurnProcessorStatus
     {
+        Idle,
         Running,
         Completed
     }

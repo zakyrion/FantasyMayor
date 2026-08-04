@@ -47,7 +47,7 @@ namespace Presentation.UI.MainHud.Systems
 
         public async UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
         {
-            if (_world.HasWorldComponent<MainHudComponent>())
+            if (_world.GetWorldComponent<MainHudComponent>().RootBox.Exist)
                 return;
 
             var canvas = _canvasProvider.RootGO;
@@ -86,10 +86,10 @@ namespace Presentation.UI.MainHud.Systems
 
         public void Dispose()
         {
-            if (_world != null && _world.HasWorldComponent<MainHudComponent>())
+            if (_world != null && _world.GetWorldComponent<MainHudComponent>().RootBox.Exist)
             {
                 _world.GetWorldComponent<MainHudComponent>().RootBox.Dispose();
-                _world.RemoveWorldComponent<MainHudComponent>();
+                _world.SetWorldComponent(new MainHudComponent());
             }
         }
     }

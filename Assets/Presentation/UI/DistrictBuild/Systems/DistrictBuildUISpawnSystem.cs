@@ -45,7 +45,7 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public async UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
         {
-            if (_world.HasWorldComponent<DistrictBuildUIRootComponent>())
+            if (_world.GetWorldComponent<DistrictBuildUIRootComponent>().RootBox.Exist)
                 return;
 
             var canvas = _canvasProvider.RootGO;
@@ -108,10 +108,10 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public void Dispose()
         {
-            if (_world != null && _world.HasWorldComponent<DistrictBuildUIRootComponent>())
+            if (_world != null && _world.GetWorldComponent<DistrictBuildUIRootComponent>().RootBox.Exist)
             {
                 _world.GetWorldComponent<DistrictBuildUIRootComponent>().RootBox.Dispose();
-                _world.RemoveWorldComponent<DistrictBuildUIRootComponent>();
+                _world.SetWorldComponent(new DistrictBuildUIRootComponent());
             }
         }
     }

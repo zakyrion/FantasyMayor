@@ -5,6 +5,7 @@ using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Turn.Components;
+using Modules.Turn.Data;
 using Presentation.UI.Archetypes;
 using Presentation.UI.MainHud.TurnPanel.Components;
 using Presentation.UI.MainHud.TurnPanel.Views;
@@ -14,7 +15,7 @@ namespace Presentation.UI.MainHud.TurnPanel.Systems
     /// <summary>
     ///     Drives the turn corner each Gameplay frame and owns the bottom-panel shell reveal: reveals the whole
     ///     panel (it spawns hidden) since the turn corner is its always-present part, reflects whether a turn is
-    ///     running — Processing while a <see cref="TurnProcessorComponent" /> exists, Ready otherwise — pushes the
+    ///     running — Processing while <see cref="TurnProcessorComponent" /> is Running, Ready otherwise — pushes the
     ///     current turn number from <see cref="TurnCountComponent" /> into "Хід N", and feeds the two AP tiles:
     ///     «ДІЇ ЗАРАЗ» from <see cref="MayorAPComponent" /> (the Mayor's Action Points; reset to full each turn,
     ///     not yet decremented on spend), «НАСТ. ХІД» from <see cref="MayorAPRestoreComponent" />. The
@@ -51,7 +52,7 @@ namespace Presentation.UI.MainHud.TurnPanel.Systems
                     "TurnPanelViewSystem: TurnCountComponent is missing — it must be seeded on Gameplay enter.");
 
             view.Show();
-            view.SetProcessing(_world.HasWorldComponent<TurnProcessorComponent>());
+            view.SetProcessing(_world.GetWorldComponent<TurnProcessorComponent>().Status == TurnProcessorStatus.Running);
             view.SetTurnNumber(_world.GetWorldComponent<TurnCountComponent>().Value);
 
             PushActionPoints(view);
