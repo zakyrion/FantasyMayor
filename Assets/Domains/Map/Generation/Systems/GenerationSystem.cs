@@ -11,6 +11,7 @@ using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Boot.Core;
+using Unity.Collections;
 
 namespace Domains.Map.Generation.Systems
 {
@@ -97,17 +98,26 @@ namespace Domains.Map.Generation.Systems
         }
 
         /// <summary>
-        ///     Assigns each hex its terrain type from the final generated level. HexTypeComponent is a
-        ///     birth column (default <see cref="HexType.Unknown" />) on every hex, so this is a plain value
-        ///     upsert into an existing column — never a structural change — and needs no snapshot.
+        ///     Assigns each hex its terrain type from the final generated level. HexTypeComponent is a birth
+        ///     column (default <see cref="HexType.Unknown" />) on every hex, but Friflo still throws
+        ///     <see cref="StructuralChangeException" /> on any <c>AddComponent</c> call while enumerating the
+        ///     query it is called from — value-only upsert included — so this snapshots ids first, same idiom
+        ///     as <c>ForestDespawnSystem</c>.
         /// </summary>
         private void AssignHexTypes()
         {
+            var hexIds = new NativeList<int>(_hexArchetype.Count, Allocator.Temp);
             foreach (var entity in _hexArchetype.Entities)
-            {
-                var level = entity.GetComponent<HexLevelComponent>().Level;
-                entity.AddComponent(new HexTypeComponent { Type = LevelToType(level) });
-            }
+                hexIds.Add(entity.Id);
+
+            for (var i = 0; i < hexIds.Length; i++)
+                if (_world.TryGetEntityById(hexIds[i], out var entity))
+                {
+                    var level = entity.GetComponent<HexLevelComponent>().Level;
+                    entity.AddComponent(new HexTypeComponent { Type = LevelToType(level) });
+                }
+
+            hexIds.Dispose();
         }
 
         // Unmapped/unexpected levels fall back to Plain (matches the old "no terrain tag → Plain" default).
