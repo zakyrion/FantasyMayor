@@ -11,13 +11,17 @@ namespace EcsExtensions
     /// </summary>
     public static class EcsEventExtensions
     {
-        /// <summary>Creates a one-frame event entity, stamped with the current frame.</summary>
-        public static Entity CreateEvent<T>(this EntityStore store, in T payload) where T : struct, IComponent
-        {
-            var e = store.CreateEntity(new EventFrameComponent { Frame = Time.frameCount }, Tags.Get<EventTag>());
-            e.AddComponent(payload);
-            return e;
-        }
+        /// <summary>
+        ///     Creates a one-frame event entity, stamped with the current frame. Stamp, payload and tag are
+        ///     supplied in the creating call, so the row lands directly in the archetype
+        ///     <see cref="EventArchetypes.Of{T}" /> describes — no component is ever added to a live entity
+        ///     and nothing migrates.
+        /// </summary>
+        public static Entity CreateEvent<T>(this EntityStore store, in T payload) where T : struct, IComponent =>
+            store.CreateEntity(
+                new EventFrameComponent { Frame = Time.frameCount },
+                payload,
+                Tags.Get<EventTag>());
 
         /// <summary>True exactly one full frame after the event's creation — the frame it must be consumed.</summary>
         public static bool IsRipe(in Entity eventEntity) =>

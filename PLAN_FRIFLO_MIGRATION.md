@@ -27,8 +27,9 @@ Closed-spec plan: DefaultEcs 0.17.2 → Friflo.Engine.ECS 3.6.0. Executor = Sonn
               Do NOT re-research the Friflo API — the API Map is verified against Friflo 3.6.0 docs.
               Do NOT reopen any entry of `decided` — reopening = process violation."
    :phases   [:s0-package :s1-core :s2-components :s3-domains :s4-presentation
-              :s5-purge :s6-gate :s7-graphs :s8-docs]
+              :s5-purge :s5b-archetypes :s6-gate :s7-graphs :s8-docs]
    :status   {:s0 :done :s1 :done :s2 :done :s3 :done :s4 :done :s5 :done
+              :s5b :current                    ;; user 2026-08-04 — inserted BEFORE the gate, ahead of :s6
               :s6 :todo :s7 :todo :s8 :todo}   ;; executor flips an entry to :done only after its :accept reads green
    :session-rule "ONE phase per session. Open the session by restating the phase's task maps, ask
                   open questions if any, WAIT for explicit GO (HARD GATE unchanged), then execute."})
@@ -46,7 +47,31 @@ Closed-spec plan: DefaultEcs 0.17.2 → Friflo.Engine.ECS 3.6.0. Executor = Sonn
    :world-components "one UniqueEntity(\"world\") singleton entity carries all former world components (spec below)"
    :folder-rename    {:from "Assets/Scripts/DefaultECSExtensions" :to "Assets/Scripts/EcsExtensions"
                       :asmdef-name {:from "DefaultECS.Extensions" :to "Ecs.Extensions"}
-                      :namespace   {:from "DefaultECSExtensions"  :to "EcsExtensions"}}})
+                      :namespace   {:from "DefaultECSExtensions"  :to "EcsExtensions"}}
+
+   ;; ── :s5b-archetypes — user-confirmed 2026-08-04 ──────────────────────────
+   :archetype-model  "DECLARED archetypes, not just one-shot CreateEntity overloads: every entity kind
+                      is a NAMED archetype in code, used both to create the row and to build its filter"
+   :archetype-home   "one static ArchetypeHolder per domain — <Domain>Archetypes"
+   :holder-shape     "the holder RESOLVES archetypes, it does not describe them. Each member returns the live
+                      Archetype: `public static Archetype Hex(EntityStore store) => store.GetArchetype(…)`.
+                      ComponentTypes/Tags are the method BODY, never public surface — user 2026-08-04:
+                      «список тегів і компонентів це не архетип». The holder stores NOTHING, so it never
+                      binds to an EntityStore; the store arrives as a parameter."
+   :archetype-owner  "each SYSTEM caches the Archetype it uses in its own field, resolved once in the
+                      constructor — same idiom as the stored ArchetypeQuery fields already in place"
+   :birth-completeness "an entity is born with EVERY column it will ever carry, defaults included
+                        (precedent: HexTypeComponent moves from a late AddComponent to a birth column
+                        with its default value) — a column's PRESENCE stops being a predicate; where
+                        presence WAS the predicate it becomes a value/sentinel check"
+   :composition-change "different composition = a DIFFERENT entity: the old one is deleted and a new one
+                        is created in its archetype; PK/FK carry over. No optional columns."
+   :filter-mode      "BY NEED, not dogma: exact archetype where the target IS one archetype; plain
+                      tag/component filter where the query is genuinely cross-archetype (e.g.
+                      EventCleanupSystem sweeps every event by EventTag). Cross-entity queries are rare —
+                      each one is reviewed WITH the user, never decided unilaterally by the executor"
+   :runtime-writes   "UNCHANGED: AddComponent-upsert stays the write law for a value into an existing
+                      column — :s5b changes composition-at-birth, not the write path"})
 ```
 
 ## Scope snapshot (2026-07-18, informational — re-grep if in doubt)
@@ -249,6 +274,89 @@ public static class EcsEventExtensions
   :where "Assets/packages.config + repo-wide"
   :do    "delete the DefaultEcs package entry; user-side Unity pass removes Assets/Packages/DefaultEcs.0.17.2; purge per the remove-completely rule: reword passing mentions in comments, no deferred tails"
   :accept {:meter "grep -ri defaultecs Assets Tools --include=*.cs --include=*.asmdef --include=*.config | wc -l" :target "0"}}]
+```
+
+### :s5b-archetypes — declared archetypes for birth AND filtering
+
+Sits BEFORE the gate deliberately: it rewrites every creation site, so one `:s6` playtest covers the
+purge and the archetype model together instead of gating twice.
+
+```clojure
+(def s5b-scope  ;; measured 2026-08-04, informational — re-grep if in doubt
+  {:tags 22                    ;; EventTag and UITag are CATEGORY tags (Tag Law) — 14 event types under
+                               ;; EventTag, several panels under UITag; each is its own archetype
+   :birth-sites 26             ;; bare CreateEntity() + AddComponent chain
+   :one-shot-already 2         ;; WorldInstaller (world singleton, PlayerInput)
+   :filter-sites {:query 91 :tag-filter 75 :component-index 64}
+   :store {:instances 1 :where WorldInstaller}})   ;; one store for the whole app run
+```
+
+```clojure
+[{:task :a1-holders
+  :status :done                                 ;; 2026-08-04 — 8 holders, one per owning assembly, roslyn clean
+  :goal  "the archetype becomes a NAMED thing in code — one source for both birth and filter"
+  :where "one per domain under Assets/Domains/<D>/, Assets/Presentation/<S>/, Assets/Modules/<M>/"
+  :do    "static <Domain>Archetypes holder per `holder-shape`: static readonly ComponentTypes + Tags
+          per archetype, plus field-less accessors over store.GetArchetype(types, tags)"
+  :decided {:static-exception "allowed — the holder has NO state fields, so it stays a stateless
+                               field-less helper (the project's only static exemption)"
+            :naming :by-naming-policy}   ;; self-sufficient without namespace: HexArchetypes, DistrictArchetypes
+  :result "every entity kind has exactly one declared archetype"}
+
+ {:task :a2-birth
+  :listen :a1-holders
+  :where "the 26 bare-CreateEntity sites"
+  :do    "the ARCHETYPE creates the entity, then values are written into its columns"
+  :decided {:birth-call "archetype.CreateEntity() — the entity is born BY its archetype, already carrying
+                         every column at default; the following AddComponent calls are value upserts into
+                         existing columns, so none of them migrates the entity.
+                         REJECTED 2026-08-04: store.CreateEntity(values…, tags) — it lands in the right
+                         archetype but never uses the Archetype object, which is the point of the phase."
+            :defaults "birth-completeness comes free: CreateEntity() gives every column default(T), and the
+                       two sentinels we need (HexType.Unknown, DistrictType.Unknown) are already 0"
+            :archetype-cannot-carry-values
+                  "VERIFIED against the 3.6.0 assembly 2026-08-04: Archetype offers CreateEntity() and
+                   CreateEntities(int) — BOTH produce rows with default values only. Friflo has no
+                   value-carrying creation on Archetype, so 'the archetype creates the entity' and 'no
+                   AddComponent' cannot both hold. Values must come from the creating call instead.
+                   (The package XML docs omit ArchetypeExtensions/CreateEntities — an earlier entry here
+                   claimed CreateEntities did not exist; that was wrong, the DLL has it.)"
+            :bulk "Archetype.CreateEntities(int) for default-valued bulk rows; EnsureCapacity(n) first when
+                   the count is known."
+            :arity-cap "ComponentTypes.Get/Tags.Get cap at 5 type args — our widest archetype carries 4"}
+  :decided "apply `birth-completeness` — a column added later today becomes a birth column with its default"
+  :accept {:meter "grep -rn 'CreateEntity()' Assets --include=*.cs" :target "0 outside the holders"}}
+
+ {:task :a3-events
+  :status :done                                 ;; 2026-08-04 — landed with :a1; CreateEvent is now a single creating call
+  :listen :a1-holders
+  :where EcsEventExtensions "+ the CreateEvent call sites"
+  :do    "each event type gets its archetype [EventTag EventFrameComponent payload]; CreateEvent<T>
+          creates directly in it — the payload is no longer a second AddComponent"
+  :decided "Event Lifecycle (frame stamp, IsRipe gate, cleanup slot) is NOT reopened — only birth changes"
+  :skip   "EventCleanupSystem keeps its EventTag sweep — that filter IS cross-archetype by design"}
+
+ {:task :a4-filters
+  :listen :a1-holders
+  :where "the Query<> / tag-filter sites"
+  :do    "per `filter-mode`: exact archetype where the target is one archetype, plain tag/component
+          filter where the query genuinely spans archetypes"
+  :must-not "decide a cross-archetype case alone — surface it to the user and decide together"
+  :skip   "ComponentIndex lookups — keyed access, not an archetype filter; unchanged"}
+
+ {:task :a5-transitions
+  :goal  "the consequence of `composition-change`"
+  :do    "where composition changes mid-life today (first-time AddComponent of a new column, or
+          RemoveComponent), delete the old entity and create a new one in its archetype; PK/FK carry over"
+  :decided "Table Rule unchanged"}]
+```
+
+```clojure
+(def s5b-off-limits
+  {:runtime-writes "AddComponent-upsert into an existing column — the FM-13 write law, untouched"
+   :s6-fixes       "the uncommitted snapshot-before-iterate fixes in the working tree — neither rewritten nor reverted"
+   :ecs-graph      "teaching the extractor the archetype surface is :s7, not here"
+   :architecture   "ARCHITECTURE.md stays FROZEN — :s8 produces the proposed diff"})
 ```
 
 ### :s6-gate — Unity compile + playtest parity (user-side)
