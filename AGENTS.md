@@ -40,8 +40,8 @@ The precise gate semantics are `go-contract` / `done-contract` below.
    references (or run `Tools/asmdef_reach.py`) BEFORE asking for GO.
    Persist the plan as an on-disk artifact **only for multi-session programs**;
    single-session tasks stay in the chat.
-3. **Execute** — edit under the standing invariants (ECS writes via `Set()`,
-   instance-by-default, zero-allocation systems).
+3. **Execute** — edit under the standing invariants (ECS writes via `entity.AddComponent(value)` — the
+   Friflo upsert path, never `ref`-mutation; instance-by-default, zero-allocation systems).
 
 ## Start Working
 - **Read `INDEX.md` first — and by default ONLY `INDEX.md`.** It is the generated doc map

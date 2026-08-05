@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using Domains.Economy.Archetypes;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
@@ -14,6 +13,7 @@ using Presentation.Districts.Components;
 using Presentation.Districts.Configs;
 using Presentation.Districts.Views;
 using Presentation.Terrain.Components;
+using Unity.Collections;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -72,46 +72,51 @@ namespace Presentation.Districts.Systems
             var viewsConfig = _world.GetWorldComponent<DistrictViewsConfigComponent>().Value;
             var vertexGrid = _world.GetWorldComponent<VertexGridComponent>().Grid;
 
-            // AddComponent/AddTag on the freshly spawned view entity is a structural change while
-            // _districts.Entities is enumerating (StructuralChangeException, store-wide) — collect spawn
-            // data first, wire components after the query loop closes. Managed exception to the
-            // "Unity.Collections in ECS systems" rule: View is a MonoBehaviour reference, which a
-            // NativeContainer cannot hold. See ARCHITECTURE.md (collections rule).
-            var pending = new List<(int Id, HexCoord Coords, DistrictType Type, DistrictView View)>();
-
-            foreach (var district in _districts.Entities)
+            // Snapshot-before-iterate: birth via _viewArchetype.CreateEntity() is NOT a structural change,
+            // but the AddComponent writes that follow it are, and they would throw while _districts.Entities
+            // enumerates (ECS_CONVENTIONS → Structural changes during iteration). Snapshotting the District
+            // ids closes that enumeration, so spawn and wiring both happen in one pass — no managed buffer.
+            var districtIds = new NativeList<int>(Math.Max(1, _districts.Count), Allocator.Temp);
+            try
             {
-                if (district.GetComponent<DistrictBuildStateComponent>().Value != DistrictBuildState.Built)
-                    continue;
+                foreach (var district in _districts.Entities)
+                    districtIds.Add(district.Id);
 
-                var hexId = district.GetComponent<HexIdFKComponent>();
-                if (HasView(hexId.Coords))
-                    continue;
+                for (var i = 0; i < districtIds.Length; i++)
+                {
+                    if (!_world.TryGetEntityById(districtIds[i], out var district))
+                        continue;
 
-                var districtType = district.GetComponent<DistrictTypeComponent>().Value;
-                var prefab = ResolvePrefab(viewsConfig, districtType);
+                    if (district.GetComponent<DistrictBuildStateComponent>().Value != DistrictBuildState.Built)
+                        continue;
 
-                var centerCoord = vertexGrid.GetCenterVertexCoord(hexId.Coords);
-                if (!vertexGrid.TryGet(centerCoord, out var centerVertex))
-                    throw new InvalidOperationException(
-                        $"DistrictViewSpawnSystem: hex {hexId.Coords} has no centre vertex on the grid.");
+                    var hexId = district.GetComponent<HexIdFKComponent>();
+                    if (HasView(hexId.Coords))
+                        continue;
 
-                if (_root == null)
-                    _root = new GameObject("DistrictViewRoot").transform;
+                    var districtType = district.GetComponent<DistrictTypeComponent>().Value;
+                    var prefab = ResolvePrefab(viewsConfig, districtType);
 
-                Vector3 worldPos = centerVertex.Position;
-                var instance = Object.Instantiate(prefab, worldPos, Quaternion.identity, _root);
-                var view = instance.GetComponent<DistrictView>();
+                    var centerCoord = vertexGrid.GetCenterVertexCoord(hexId.Coords);
+                    if (!vertexGrid.TryGet(centerCoord, out var centerVertex))
+                        throw new InvalidOperationException(
+                            $"DistrictViewSpawnSystem: hex {hexId.Coords} has no centre vertex on the grid.");
 
-                var viewEntity = _viewArchetype.CreateEntity();
-                pending.Add((viewEntity.Id, hexId.Coords, districtType, view));
+                    if (_root == null)
+                        _root = new GameObject("DistrictViewRoot").transform;
+
+                    Vector3 worldPos = centerVertex.Position;
+                    var instance = Object.Instantiate(prefab, worldPos, Quaternion.identity, _root);
+                    var view = instance.GetComponent<DistrictView>();
+
+                    var viewEntity = _viewArchetype.CreateEntity();
+                    viewEntity.AddComponent(new HexIdFKComponent { Coords = hexId.Coords });
+                    viewEntity.AddComponent(new DistrictViewComponent { Type = districtType, View = view });
+                }
             }
-
-            foreach (var (id, coords, type, view) in pending)
+            finally
             {
-                _world.TryGetEntityById(id, out var viewEntity);
-                viewEntity.AddComponent(new HexIdFKComponent { Coords = coords });
-                viewEntity.AddComponent(new DistrictViewComponent { Type = type, View = view });
+                districtIds.Dispose();
             }
         }
 

@@ -112,7 +112,7 @@ keyword називає РОЛЬ вузла, payload читається, але �
 
 ```clojure
 [(:step-1 "на початку ходу зменшити лічильник будівництва")
- (:step-2 (-> NextTurnEvent BuildDistrictTurnsComponent "decrement via Set()"))
+ (:step-2 (-> NextTurnEvent BuildDistrictTurnsComponent "decrement via AddComponent"))
  (:flow-1 "лічильник дійшов нуля?")
  (:conclusion-1 (cond (zero? turns) DistrictBuildConfirmedEvent
                       :else         :wait-next-turn))
@@ -280,7 +280,7 @@ Rules-блоки `ARCHITECTURE.md`, `Patterns/*`, `Flows/*` — ті самі ф
   :listen :relocate-selection-command
   :pattern PATTERN_REACTIVE_SYSTEM
   :name :by-naming-policy                       ;; пропозиція: BuildDistrictTemplateSelectSystem
-  :do "маленька реактивна система в Actions: Set() DistrictTypeComponent на draft-сутності"
+  :do "маленька реактивна система в Actions: AddComponent DistrictTypeComponent на draft-сутності"
   :result "draft = єдине джерело правди вибору (PATTERN_TRANSACTION_ENTITY :state)"}
 
  {:task :ui-reads-draft
@@ -374,7 +374,7 @@ carve-out'ом). ECS-специфіка живе в проєкті, не в гл
    :pk        "власна ідентичність рядка в СВОЄМУ ключовому просторі (…IdComponent)"
    :fk        "посилання в ЧУЖИЙ ключовий простір (…FKComponent); #{} якщо їх декілька"
    :kind      "enum-компонент-підтип (self-index дискримінатор), не другий tag"
-   :state     "enum-компонент-стан (лічильник стадії), change-only Set()"
+   :state     "enum-компонент-стан (лічильник стадії), change-only AddComponent"
    :data      "прості значення-атрибути → #{} (порядок не важливий)"})
 ```
 

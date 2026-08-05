@@ -220,13 +220,27 @@ Three binding consequences:
 - A late `AddComponent` of a column the archetype does not name is a bug, not an extension: it migrates
   the entity out of the archetype every filter names it by.
 
-**Structural changes during iteration.** Creating or deleting an entity, or adding/removing a component
-or tag, while a query or archetype is being enumerated throws `StructuralChangeException` — and the
-guard is store-wide, so the throw also fires for a structural call on an unrelated entity inside the
-dispatched work. The idiom is **snapshot-before-iterate**: collect `entity.Id` values into a
-`NativeList<int>`, then re-fetch each via `store.TryGetEntityById`. An `Entity` carries a store
-reference, so it is not `unmanaged` and cannot live in a native container — snapshot ids, never
-entities. `UpdatedSystem` already does this for its subclasses.
+**Structural changes during iteration.** The engine's own definition governs here — this section restates
+`Friflo.Engine.ECS` 3.6 (`StructuralChangeException`), it does not extend it:
+
+```clojure
+(def structural-change  ;; FM-13 review, 2026-08-05 — Friflo XML docs are the authority, this doc follows them
+  {:is        #{AddComponent RemoveComponent AddTag RemoveTag}  ;; "A structural change is adding / removing components or tags" — these throw StructuralChangeException inside a query loop
+   :is-not    archetype.CreateEntity                            ;; birth BY an archetype migrates nothing; the store-extension CreateEntity(components…, tags) overloads are documented as "without any structural change"
+   :value-upsert-included "an AddComponent into a column the archetype ALREADY names still throws — the guard is on the call, not on whether the row moves"
+   :guard     :store-wide                                       ;; the throw also fires for a structural call on an UNRELATED entity inside the dispatched work
+   :delete    "not documented as a structural change, but it mutates the set being enumerated — snapshot anyway"})
+```
+
+So a row may be BORN inside an enumeration, but nothing may be written into it there. The idiom is
+**snapshot-before-iterate**: collect `entity.Id` values into a `NativeList<int>`, close the enumeration,
+then re-fetch each via `store.TryGetEntityById` and do the spawning and the writes in that second pass.
+An `Entity` carries a store reference, so it is not `unmanaged` and cannot live in a native container —
+snapshot ids, never entities. `UpdatedSystem` already does this for its subclasses.
+
+Snapshotting the SOURCE ids (rather than buffering freshly-created entities plus their managed payload)
+is what keeps the second pass allocation-free: `DistrictViewSpawnSystem` and `HexIconsSpawnSystem` are the
+worked examples — one `NativeList<int>`, no managed side-buffer, archetype birth still at the call site.
 
 ## Event Lifecycle
 

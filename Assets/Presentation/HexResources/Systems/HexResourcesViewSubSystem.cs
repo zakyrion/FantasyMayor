@@ -60,7 +60,8 @@ namespace Presentation.HexResources.Systems
             var viewConfig = _world.GetWorldComponent<HexResourcesViewConfigComponent>().Value;
 
             // Managed exception to the "Unity.Collections in ECS systems" rule: the elements are GameObject
-            // (managed), which a NativeContainer cannot hold. See ARCHITECTURE.md (collections rule).
+            // (managed), which a NativeContainer cannot hold. See ECS_CONVENTIONS.md → Statelessness And
+            // Collections (Ban 2, "Exception — managed elements").
             var result = new List<GameObject>();
 
             foreach (var resource in viewConfig.Resources)

@@ -23,7 +23,7 @@ related:
 > in every agent's context); the authoring spec is `DOC_STANDARD.md` → Rule Style.
 
 ## Stack
-- Engine: Unity · ECS: `DefaultEcs` (DoD style, not Unity DOTS) · DI: `VContainer` · Async: `UniTask`
+- Engine: Unity · ECS: `Friflo.Engine.ECS` 3.6 (DoD style, not Unity DOTS) · DI: `VContainer` · Async: `UniTask`
 - Assets: `Addressables` · Input: `InputSystem` · Rendering: URP · UI: `UI Toolkit` (UXML/USS) with
   `Unity App UI` (`com.unity.dt.app-ui`) as the component foundation — see `GENERAL_UI_STYLE.md` §15
 
@@ -54,7 +54,7 @@ its OO **tactical** patterns (aggregates/repositories), which ECS expresses as t
 ```clojure
 (def shared-kernel
   {Core                    "Assets/Scripts/Core"                 ;; shared primitives: Box<T>, Result<T>, FrameBox<T>, StateAllowedAttribute — enumerate members via roslyn
-   DefaultECS.Extensions   "Assets/Scripts/DefaultECSExtensions" ;; ECS loop contracts + base systems: UpdatedSystem/LateUpdatedSystem, ConfigLoaderSystem, IPrioritizedUniTaskSystem<T>, EventCleanupSystem, GameState
+   Ecs.Extensions          "Assets/Scripts/EcsExtensions"       ;; ECS loop contracts + base systems: UpdatedSystem/LateUpdatedSystem, ConfigLoaderSystem, IPrioritizedUniTaskSystem<T>, EventCleanupSystem, GameState; plus the Friflo seams: EventArchetypes, EcsEventExtensions, WorldComponentExtensions, QueryResultExtensions
    Installers.World        "Assets/Scripts/Installers"           ;; app-root DI: root LifetimeScope, world composition, input wiring, installer orchestration
    :authored-config-assets "Assets/Addressables/Configs/*"})
 ```
@@ -109,8 +109,8 @@ in docs, reviews, and design discussions. The concrete skeleton for each role li
 | **Pipeline Stage** | `IPrioritizedUniTaskSystem<MapGenerationStep>` | `MapCreation` state, sequential, ascending `Priority` | one-shot async |
 | **Pipeline Orchestrator** | a Pipeline Stage that fans out into SubSystems | `MapCreation` state | one-shot; NO domain logic of its own |
 | **Pipeline SubSystem** | per-orchestrator abstract base (async `ViewSubSystem : IUniTaskSystem<GameState>` or sync `HexResourcesViewSubSystem : ISystem<GameState>`) | its orchestrator, ascending `Priority`, `IsEnabled` honored | one-shot |
-| **Per-frame System** | `UpdatedSystem` / `LateUpdatedSystem` (`AEntitySetSystem<GameState>`) | the ACTIVE game state only | every frame; must justify why it cannot be reactive |
-| **Reactive System** | `UpdatedSystem` whose base set is `With<SomeEvent>` | a one-frame pulse; zero idle cost | pulse → reconcile against current state, idempotent |
+| **Per-frame System** | `UpdatedSystem` / `LateUpdatedSystem` (dispatch over an `Archetype` or a cross-archetype `ArchetypeQuery`) | the ACTIVE game state only | every frame; must justify why it cannot be reactive |
+| **Reactive System** | `UpdatedSystem` anchored on `EventArchetypes.Of<TEvent>(store)` | a one-frame pulse, consumed while `IsRipe`; zero idle cost | pulse → reconcile against current state, idempotent |
 | **Cleanup** | `EventCleanupSystem`, `Priority = int.MaxValue` | every active state, runs last | disposes all `EventTag` entities each tick |
 
 Role invariants (policy — hold regardless of the template you follow):
@@ -128,11 +128,12 @@ Role invariants (policy — hold regardless of the template you follow):
 ```
 
 **Turn pipeline (module `Turn`) — same roles, different scope.** The Orchestrator/SubSystem roles are
-reused for turn processing, but turn-scoped (re-run every turn on a `NextTurnEvent` pulse) and executed
-OFF the main thread (`UniTask.RunOnThreadPool`), unlike the one-shot, main-thread `MapCreation`
-pipeline. The phase base is `TurnPhaseSubSystem`; the launcher is the per-frame `TurnProcessorSystem`
-(it polls the in-flight run each frame, so it is justified as a Per-frame System, not reactive). Every
-world write stays on the main thread; the pool only computes.
+reused for turn processing, but turn-scoped: re-run every turn on a `NextTurnEvent` pulse, unlike the
+one-shot `MapCreation` pipeline. The phase base is `TurnPhaseSubSystem`; the launcher is the per-frame
+`TurnProcessorSystem` (it polls the in-flight run each frame, so it is justified as a Per-frame System,
+not reactive). The phase set runs **inline on the main thread** — phases do store I/O, and store I/O is
+main-thread only (`ECS_CONVENTIONS.md` → Threading And Native Memory, Law 1). A thread-pool hop is the
+launcher's to introduce, and only for phases that compute without touching the store.
 
 ## Tag Law (entity identity)
 ```clojure
@@ -141,7 +142,7 @@ world write stays on the main thread; the pool only computes.
    :filter {:requires "exactly 1 tag in every With<> chain"}  ;; 2 identity tags = a row that cannot exist = a dead filter
    :category-tag UITag                                        ;; a shared kind-marker satisfies the law (identity rides on the *ViewComponent)
    :event-filter :exempt                                      ;; a reactive base set filters on the *Event component — the event IS the filter
-   :state "…StateComponent (enum) — never a toggled tag"      ;; a runtime marker is a state COLUMN; Set() re-indexes its self-index
+   :state "…StateComponent (enum) — never a toggled tag"      ;; a runtime marker is a state COLUMN; the AddComponent upsert re-indexes its self-index
    :kind  "…KindComponent (enum) — never a second tag"        ;; a subtype marker is a kind COLUMN; per-kind access = self-index lookup
    :why "tag = archetype identity → deterministic archetype attribution in the ecs-graph"})
 ```

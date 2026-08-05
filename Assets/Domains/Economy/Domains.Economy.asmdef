@@ -10,7 +10,8 @@
         "Core",
         "Addressables.Core",
         "UniTask",
-        "Turn"
+        "Turn",
+        "Unity.Collections"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

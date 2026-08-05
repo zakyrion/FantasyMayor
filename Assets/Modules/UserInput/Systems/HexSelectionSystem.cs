@@ -107,7 +107,8 @@ namespace Modules.UserInput.Systems
                 return;
             }
 
-            // Write through AddComponent (publishing path), never in-place ref-mutation — see ARCHITECTURE.md.
+            // Write through AddComponent (the upsert path), never in-place ref-mutation — see
+            // ECS_CONVENTIONS.md → Component Writes.
             selectedEntity.AddComponent(new HexSelectedComponent { Coords = coord });
             RaiseSelectionChanged();
         }

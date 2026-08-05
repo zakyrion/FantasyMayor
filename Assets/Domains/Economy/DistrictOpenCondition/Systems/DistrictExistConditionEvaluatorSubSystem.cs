@@ -1,4 +1,6 @@
+using System;
 using Friflo.Engine.ECS;
+using Unity.Collections;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
 using Domains.Economy.District.Tags;
@@ -32,15 +34,34 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
 
         public override void Evaluate()
         {
-            foreach (var condition in _conditionsByKind[DistrictOpenConditionKind.Exist])
-            {
-                var requiredType = condition.GetComponent<DistrictExistConditionComponent>().RequiredDistrict;
-                var targetState = HasBuiltDistrictOfType(requiredType)
-                    ? DistrictOpenState.Buildable
-                    : DistrictOpenState.Closed;
+            var conditions = _conditionsByKind[DistrictOpenConditionKind.Exist];
 
-                if (condition.GetComponent<DistrictOpenStateComponent>().Value != targetState)
-                    condition.AddComponent(new DistrictOpenStateComponent { Value = targetState });
+            // AddComponent is a structural change and throws StructuralChangeException while the index slice
+            // is enumerating — snapshot ids first, then re-fetch to write (ECS_CONVENTIONS → Structural
+            // changes during iteration).
+            var conditionIds = new NativeList<int>(Math.Max(1, conditions.Count), Allocator.Temp);
+            try
+            {
+                foreach (var condition in conditions)
+                    conditionIds.Add(condition.Id);
+
+                for (var i = 0; i < conditionIds.Length; i++)
+                {
+                    if (!World.TryGetEntityById(conditionIds[i], out var condition))
+                        continue;
+
+                    var requiredType = condition.GetComponent<DistrictExistConditionComponent>().RequiredDistrict;
+                    var targetState = HasBuiltDistrictOfType(requiredType)
+                        ? DistrictOpenState.Buildable
+                        : DistrictOpenState.Closed;
+
+                    if (condition.GetComponent<DistrictOpenStateComponent>().Value != targetState)
+                        condition.AddComponent(new DistrictOpenStateComponent { Value = targetState });
+                }
+            }
+            finally
+            {
+                conditionIds.Dispose();
             }
         }
 

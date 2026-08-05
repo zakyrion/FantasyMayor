@@ -73,8 +73,20 @@ namespace Presentation.UI.DistrictBuild.Systems
 
             HookChrome(view);
 
-            if (_requestedSet.Count > 0)
+            if (HasRipeRequest())
                 Open(view);
+        }
+
+        // Ripeness, not mere presence: the pulse entity lives two frames (the frame it is raised and the ripe
+        // frame EventCleanupSystem deletes it on), so a Count check would open and repopulate the overlay on
+        // both (Event Lifecycle: a consumer acts only while IsRipe).
+        private bool HasRipeRequest()
+        {
+            foreach (var pulse in _requestedSet.Entities)
+                if (EcsEventExtensions.IsRipe(pulse))
+                    return true;
+
+            return false;
         }
 
         // The view outlives this system; subscribe once to its chrome C# events. Handled synchronously in the click

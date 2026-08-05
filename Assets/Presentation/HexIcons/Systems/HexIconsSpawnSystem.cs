@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EcsExtensions;
@@ -12,6 +11,7 @@ using Domains.Map.Hex.Tags;
 using Presentation.Archetypes;
 using Presentation.HexIcons.Components;
 using Presentation.HexIcons.Views;
+using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine.UIElements;
 using Object = UnityEngine.Object;
@@ -79,27 +79,33 @@ namespace Presentation.HexIcons.Systems
         {
             var hexSet = _world.Query<HexIdComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
 
-            // AddComponent/AddTag on the freshly spawned container entity is a structural change while
-            // hexSet.Entities is enumerating (StructuralChangeException, store-wide) — collect spawn data
-            // first, wire components after the query loop closes. Managed exception to the "Unity.Collections
-            // in ECS systems" rule: VisualElement is a managed UI Toolkit reference. See ARCHITECTURE.md
-            // (collections rule).
-            var pending = new List<(int Id, HexCoord Coords, VisualElement Container)>();
-
-            foreach (var hexEntity in hexSet.Entities)
+            // Snapshot-before-iterate: birth via _containerArchetype.CreateEntity() is NOT a structural
+            // change, but the AddComponent writes that follow it are, and they would throw while
+            // hexSet.Entities enumerates (ECS_CONVENTIONS → Structural changes during iteration).
+            // Snapshotting the hex ids closes that enumeration, so spawn and wiring both happen in one pass —
+            // no managed buffer.
+            var hexIds = new NativeList<int>(Math.Max(1, hexSet.Count), Allocator.Temp);
+            try
             {
-                var hexId = hexEntity.GetComponent<HexIdComponent>();
-                var container = CreateContainerElement(hexId.Coords.Value);
+                foreach (var hexEntity in hexSet.Entities)
+                    hexIds.Add(hexEntity.Id);
 
-                var containerEntity = _containerArchetype.CreateEntity();
-                pending.Add((containerEntity.Id, hexId.Coords, container));
+                for (var i = 0; i < hexIds.Length; i++)
+                {
+                    if (!_world.TryGetEntityById(hexIds[i], out var hexEntity))
+                        continue;
+
+                    var hexId = hexEntity.GetComponent<HexIdComponent>();
+                    var container = CreateContainerElement(hexId.Coords.Value);
+
+                    var containerEntity = _containerArchetype.CreateEntity();
+                    containerEntity.AddComponent(new HexIdFKComponent { Coords = hexId.Coords });
+                    containerEntity.AddComponent(new HexIconContainerComponent(container));
+                }
             }
-
-            foreach (var (id, coords, container) in pending)
+            finally
             {
-                _world.TryGetEntityById(id, out var containerEntity);
-                containerEntity.AddComponent(new HexIdFKComponent { Coords = coords });
-                containerEntity.AddComponent(new HexIconContainerComponent(container));
+                hexIds.Dispose();
             }
         }
 

@@ -22,7 +22,8 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
         }
 
         // Reconciles DistrictOpenStateComponent for this subsystem's condition kind against current world state.
-        // Idempotent: a re-run with no real change is a no-op (state Set() only on an actual value change).
+        // Idempotent: a re-run with no real change is a no-op (the state column is written only on an actual
+        // value change).
         public abstract void Evaluate();
 
         public virtual void Dispose()

@@ -56,8 +56,10 @@ namespace Presentation.UI.DistrictBuild.Systems
                     $"{nameof(DistrictBuildSelectionTag)} entity.");
 
             // The window just opened this tick: default-select the first buildable district (None if the list
-            // is empty), before this Populate call (and the other sections') reads it.
-            if (_requestedSet.Count > 0)
+            // is empty), before this Populate call (and the other sections') reads it. Ripeness, not mere
+            // presence: the pulse entity lives two frames (birth + ripe), so a Count check would re-apply the
+            // default on the frame after the open and discard a pick made in between (Event Lifecycle).
+            if (HasRipeRequest())
             {
                 var defaultSelection = buildable.Count > 0
                     ? buildable[0].GetComponent<DistrictTypeFKComponent>().Value
@@ -76,6 +78,15 @@ namespace Presentation.UI.DistrictBuild.Systems
                 var type = entity.GetComponent<DistrictTypeFKComponent>().Value;
                 view.AddDistrict(type, type == selected);
             }
+        }
+
+        private bool HasRipeRequest()
+        {
+            foreach (var pulse in _requestedSet.Entities)
+                if (EcsEventExtensions.IsRipe(pulse))
+                    return true;
+
+            return false;
         }
 
         private void OnSelected(DistrictType district)

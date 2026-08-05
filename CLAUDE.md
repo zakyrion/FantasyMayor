@@ -35,8 +35,8 @@ discipline, it adds no new rule:
    `.asmdef` references (or run `Tools/asmdef_reach.py`) BEFORE asking for GO.
    Persist the plan as an on-disk artifact **only for multi-session programs**
    (a dedicated top-level plan doc); single-session tasks stay in plan-mode / the chat.
-3. **Execute** — edit under the standing invariants (ECS writes via `Set()`,
-   instance-by-default, zero-allocation systems).
+3. **Execute** — edit under the standing invariants (ECS writes via `entity.AddComponent(value)` — the
+   Friflo upsert path, never `ref`-mutation; instance-by-default, zero-allocation systems).
 
 # FantasyMayor: Project Context & Architectural Decisions
 
