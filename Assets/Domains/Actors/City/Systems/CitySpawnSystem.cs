@@ -20,15 +20,15 @@ namespace Domains.Actors.City.Systems
     [UsedImplicitly]
     internal sealed class CitySpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
         private readonly Archetype _cityArchetype;
 
         public int Priority => SystemPriorities.WorldInit.CitySpawn;
 
-        public CitySpawnSystem(EntityStore world)
+        public CitySpawnSystem(EntityStorages storages)
         {
-            _world = world;
-            _cityArchetype = ActorsArchetypes.City(world);
+            _storages = storages;
+            _cityArchetype = ActorsArchetypes.City(storages.World);
         }
 
         public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
@@ -38,20 +38,20 @@ namespace Domains.Actors.City.Systems
 
             // Idempotent one-shot: an existing allocator means the City was already created
             // (or restored by a future load flow) — never spawn a duplicate on pipeline re-entry.
-            if (_world.HasWorldComponent<CityIdAllocatorComponent>())
+            if (_storages.World.HasWorldComponent<CityIdAllocatorComponent>())
                 return UniTask.CompletedTask;
 
-            if (!_world.HasWorldComponent<CityConfigComponent>())
+            if (!_storages.World.HasWorldComponent<CityConfigComponent>())
                 throw new InvalidOperationException(
                     "CitySpawnSystem: CityConfigComponent missing — CityConfigLoaderSystem must run at ConfigLoadStep first.");
 
-            var config = _world.GetWorldComponent<CityConfigComponent>();
+            var config = _storages.World.GetWorldComponent<CityConfigComponent>();
 
-            _world.SetWorldComponent(new CityIdAllocatorComponent { Next = 1 });
+            _storages.World.SetWorldComponent(new CityIdAllocatorComponent { Next = 1 });
 
             // Take the next id, advance the allocator, create the row (PK + discriminator).
-            var cityId = _world.GetWorldComponent<CityIdAllocatorComponent>().Next;
-            _world.SetWorldComponent(new CityIdAllocatorComponent { Next = cityId + 1 });
+            var cityId = _storages.World.GetWorldComponent<CityIdAllocatorComponent>().Next;
+            _storages.World.SetWorldComponent(new CityIdAllocatorComponent { Next = cityId + 1 });
 
             var cityIdComponent = new CityIdComponent { Value = cityId };
             var city = _cityArchetype.CreateEntity();
@@ -59,7 +59,7 @@ namespace Domains.Actors.City.Systems
             city.AddComponent(new ActorTypeComponent { Type = ActorType.City });
 
             ResourceLoadoutSpawner.SpawnLoadout<CityIdFKComponent, CityResourceTag>(
-                _world, new CityIdFKComponent { Value = cityId }, config.Resources);
+                _storages.World, new CityIdFKComponent { Value = cityId }, config.Resources);
 
             return UniTask.CompletedTask;
         }

@@ -22,15 +22,15 @@ namespace Domains.Actors.Mayor.Systems
     [UsedImplicitly]
     internal sealed class MayorSpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
         private readonly Archetype _mayorArchetype;
 
         public int Priority => SystemPriorities.WorldInit.MayorSpawn;
 
-        public MayorSpawnSystem(EntityStore world)
+        public MayorSpawnSystem(EntityStorages storages)
         {
-            _world = world;
-            _mayorArchetype = ActorsArchetypes.Mayor(world);
+            _storages = storages;
+            _mayorArchetype = ActorsArchetypes.Mayor(storages.World);
         }
 
         public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
@@ -40,20 +40,20 @@ namespace Domains.Actors.Mayor.Systems
 
             // Idempotent one-shot: an existing allocator means the Mayor was already created
             // (or restored by a future load flow) — never spawn a duplicate on pipeline re-entry.
-            if (_world.HasWorldComponent<MayorIdAllocatorComponent>())
+            if (_storages.World.HasWorldComponent<MayorIdAllocatorComponent>())
                 return UniTask.CompletedTask;
 
-            if (!_world.HasWorldComponent<MayorConfigComponent>())
+            if (!_storages.World.HasWorldComponent<MayorConfigComponent>())
                 throw new InvalidOperationException(
                     "MayorSpawnSystem: MayorConfigComponent missing — MayorConfigLoaderSystem must run at ConfigLoadStep first.");
 
-            var config = _world.GetWorldComponent<MayorConfigComponent>();
+            var config = _storages.World.GetWorldComponent<MayorConfigComponent>();
 
-            _world.SetWorldComponent(new MayorIdAllocatorComponent { Next = 1 });
+            _storages.World.SetWorldComponent(new MayorIdAllocatorComponent { Next = 1 });
 
             // Single actor (id stays 1); allocate-then-advance for symmetry with City and the save/load contract.
-            var mayorId = _world.GetWorldComponent<MayorIdAllocatorComponent>().Next;
-            _world.SetWorldComponent(new MayorIdAllocatorComponent { Next = mayorId + 1 });
+            var mayorId = _storages.World.GetWorldComponent<MayorIdAllocatorComponent>().Next;
+            _storages.World.SetWorldComponent(new MayorIdAllocatorComponent { Next = mayorId + 1 });
 
             var mayorIdComponent = new MayorIdComponent { Value = mayorId };
             var mayor = _mayorArchetype.CreateEntity();
@@ -63,7 +63,7 @@ namespace Domains.Actors.Mayor.Systems
             mayor.AddComponent(new MayorAPComponent { Value = config.StartActionPoints });
 
             ResourceLoadoutSpawner.SpawnLoadout<MayorIdFKComponent, MayorResourceTag>(
-                _world, new MayorIdFKComponent { Value = mayorId }, config.Resources);
+                _storages.World, new MayorIdFKComponent { Value = mayorId }, config.Resources);
 
             return UniTask.CompletedTask;
         }

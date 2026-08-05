@@ -4,7 +4,6 @@ using Domains.Actors.Mayor.Components;
 using Domains.Actors.Mayor.Configs;
 using Domains.Economy.Resource.Data;
 using EcsExtensions;
-using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using System.Threading;
@@ -20,9 +19,12 @@ namespace Domains.Actors.Mayor.Systems
     internal sealed class MayorConfigLoaderSystem : ConfigLoaderSystem
     {
         private const string MAYOR_CONFIG = "MayorConfig";
+        private readonly EntityStorages _storages;
 
-        public MayorConfigLoaderSystem(IAddressable addressable, EntityStore world) : base(addressable, world)
+        public MayorConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
+            : base(addressable, storages.World)
         {
+            _storages = storages;
         }
 
         protected override async UniTask LoadConfigsAsync(CancellationToken cancellationToken)
@@ -37,7 +39,7 @@ namespace Domains.Actors.Mayor.Systems
 
                 ValidateConfig(configBox.Value);
 
-                World.SetWorldComponent(MayorConfigComponent.FromConfig(configBox.Value));
+                _storages.World.SetWorldComponent(MayorConfigComponent.FromConfig(configBox.Value));
                 MarkAsLoaded();
             }
             finally
