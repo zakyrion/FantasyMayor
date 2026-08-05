@@ -71,7 +71,8 @@ cross-assembly reads above are removed first.
 (def target  ;; every name here is ^:new
   {:alias-type    ^:new EntityStorages        ;; DI singleton; the ONLY thing systems inject to reach a store
    :members       {:World      "the game store — every entity row, every event, every table and index"
-                   :Singletons "the singleton store — exactly ONE row, world-scoped state"}
+                   :Singletons "the singleton store — exactly ONE row: world-scoped runtime state AND every config component (d3)"}
+   :member-count  2                            ;; exactly two, by d3 + split-law; a third member needs a decision, never a drive-by addition
    :registration  "created and registered in WorldInstaller.Configure, before any installer that writes state"
    :old-accessor  WorldComponentExtensions    ;; retargeted onto the singleton storage, then renamed — see stage S3
    :injection     "systems take EntityStorages, not EntityStore"
@@ -124,7 +125,8 @@ Each stage is its own task map and its own `go`. A stage ends compiling and play
   :accept {:meter dig.py :target "consumers EntityStore = 0"}}
 
  {:stage :s3-singleton-storage
-  :do    "add SingletonStorage with its own EntityStore + one row; retarget the world-component accessors onto it; rename them off the World* prefix"
+  :do    "add SingletonStorage with its own EntityStore + one row; retarget the world-component accessors onto it; rename them off the World* prefix; the named \"world\" row on the game store disappears with them"
+  :scope "runtime singleton state AND config components move together — one stage, per d3"
   :note  "the accessor rename is what makes the call sites say WHICH storage they mean (:call-shape)"
   :accept {:meter grep :target "WorldComponentExtensions gone; 0 singleton components on the game store"}}
 
@@ -142,18 +144,26 @@ Each stage is its own task map and its own `go`. A stage ends compiling and play
 ## 7. Open decisions — do not implement past these
 
 ```clojure
-(def open
+(def closed  ;; user, 2026-08-05
   {:d1 {:q "SingletonStorage as a wrapper type, or a bare second EntityStore plus extension methods?"
-        :tradeoff "wrapper hides the row and makes s4 trivial; bare store keeps one concept but leaves the row addressable by anyone"
-        :agent-proposal :wrapper}
-   :d2 {:q "Birth Completeness for the singleton row: can every world-scoped column be named in ONE archetype?"
+        :decided :wrapper
+        :why "hides the row (nothing can query or populate the singleton store by accident) and absorbs a d2 restructure without touching call sites"
+        :cost "the ecs-graph extractor keys on store.GetArchetype in holders — a hidden store may drop out of the graph; budget a build_graph.py fix in s4"}
+   :d3 {:q "Where do config components (loaded once at ConfigLoadStep) live?"
+        :decided :singletons                ;; NOT a third storage — the registry stays at two members
+        :why "config components are written once and read by type; they join against nothing, which is exactly the singleton access shape. They are also the bulk of the world-scoped components, so keeping them here is what actually buys the per-store 256 headroom"
+        :later "if configs ever need their own lifecycle (hot reload), splitting them out stays cheap — the d1 wrapper hides which store backs them"}
+   :d4 {:q "Storage naming"
+        :decided "World + Singletons"
+        :why "the 'world' overload dissolves inside this program: s2 turns the injected `EntityStore world` into `storages.World`, and s3 removes the World* accessor prefix and the named \"world\" row outright"}})
+
+(def open  ;; do not implement past these
+  {:d2 {:q "Birth Completeness for the singleton row: can every world-scoped column be named in ONE archetype?"
         :fact "ComponentTypes.Get / Tags.Get cap at 5 type arguments, and the singleton carries far more columns than that"
         :consequence "if the cap cannot be worked around, step (а) is NOT 'one declared archetype' but something else — resolve BEFORE s4"
+        :blocks :s4
         :agent-proposal :unresolved}
-   :d3 {:q "Do config components (loaded once at ConfigLoadStep) belong in Singletons, or do they earn a third storage?"
-        :agent-proposal :singletons}
-   :d4 {:q "Storage naming: World / Singletons — confirm or veto"
-        :agent-proposal "World + Singletons"}})
+   })
 ```
 
 ## 8. Gap list
