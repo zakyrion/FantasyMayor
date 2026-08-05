@@ -21,6 +21,7 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
     [UsedImplicitly]
     internal sealed class DistrictSingleOpenConditionEvaluatorSubSystem : DistrictOpenConditionEvaluatorSubSystem
     {
+        private readonly EntityStorages _storages;
         // Declarative query caches (Table Rule): every condition row keyed by its kind column, and every
         // District row indexed by its own type (District table's legal self-index) — 1:N, self-maintaining,
         // never a bare-key scan.
@@ -29,10 +30,11 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
 
         public override int Priority => SystemPriorities.SubSystems.DistrictOpenConditionEvaluator.Single;
 
-        public DistrictSingleOpenConditionEvaluatorSubSystem(EntityStore world) : base(world)
+        public DistrictSingleOpenConditionEvaluatorSubSystem(EntityStorages storages) : base(storages.World)
         {
-            _conditionsByKind = world.ComponentIndex<DistrictOpenConditionKindComponent, DistrictOpenConditionKind>();
-            _districtsByType = world.ComponentIndex<DistrictTypeComponent, DistrictType>();
+            _storages = storages;
+            _conditionsByKind = storages.World.ComponentIndex<DistrictOpenConditionKindComponent, DistrictOpenConditionKind>();
+            _districtsByType = storages.World.ComponentIndex<DistrictTypeComponent, DistrictType>();
         }
 
         public override void Evaluate()
@@ -50,7 +52,7 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
 
                 for (var i = 0; i < conditionIds.Length; i++)
                 {
-                    if (!World.TryGetEntityById(conditionIds[i], out var condition))
+                    if (!_storages.World.TryGetEntityById(conditionIds[i], out var condition))
                         continue;
 
                     var districtType = condition.GetComponent<DistrictTypeFKComponent>().Value;

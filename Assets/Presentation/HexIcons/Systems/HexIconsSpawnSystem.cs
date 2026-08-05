@@ -21,7 +21,7 @@ namespace Presentation.HexIcons.Systems
     [UsedImplicitly]
     internal sealed class HexIconsSpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
         private readonly Archetype _containerArchetype;
 
         // Cached at spawn for the container builders.
@@ -29,10 +29,10 @@ namespace Presentation.HexIcons.Systems
 
         public int Priority => SystemPriorities.WorldInit.HexIconsSpawn;
 
-        public HexIconsSpawnSystem(EntityStore world)
+        public HexIconsSpawnSystem(EntityStorages storages)
         {
-            _world = world;
-            _containerArchetype = PresentationArchetypes.HexIconContainer(world);
+            _storages = storages;
+            _containerArchetype = PresentationArchetypes.HexIconContainer(storages.World);
         }
 
         public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
@@ -40,10 +40,10 @@ namespace Presentation.HexIcons.Systems
             if (cancellationToken.IsCancellationRequested)
                 return UniTask.CompletedTask;
 
-            if (!_world.HasWorldComponent<HexIconsConfigComponent>())
+            if (!_storages.World.HasWorldComponent<HexIconsConfigComponent>())
                 throw new InvalidOperationException("HexIconsSpawnSystem: HexIconsConfigComponent is missing.");
 
-            var iconConfig = _world.GetWorldComponent<HexIconsConfigComponent>();
+            var iconConfig = _storages.World.GetWorldComponent<HexIconsConfigComponent>();
 
             var prefab = iconConfig.Value.Prefab;
             if (prefab == null)
@@ -65,7 +65,7 @@ namespace Presentation.HexIcons.Systems
 
             _view = view;
 
-            _world.SetWorldComponent(new HexIconsViewComponent(view));
+            _storages.World.SetWorldComponent(new HexIconsViewComponent(view));
 
             CreateContainers();
 
@@ -77,7 +77,7 @@ namespace Presentation.HexIcons.Systems
         // into the Hex space. Containers are positioned per frame by HexIconsContainerPositionSystem, not here.
         private void CreateContainers()
         {
-            var hexSet = _world.Query<HexIdComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
+            var hexSet = _storages.World.Query<HexIdComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
 
             // Snapshot-before-iterate: birth via _containerArchetype.CreateEntity() is NOT a structural
             // change, but the AddComponent writes that follow it are, and they would throw while
@@ -92,7 +92,7 @@ namespace Presentation.HexIcons.Systems
 
                 for (var i = 0; i < hexIds.Length; i++)
                 {
-                    if (!_world.TryGetEntityById(hexIds[i], out var hexEntity))
+                    if (!_storages.World.TryGetEntityById(hexIds[i], out var hexEntity))
                         continue;
 
                     var hexId = hexEntity.GetComponent<HexIdComponent>();

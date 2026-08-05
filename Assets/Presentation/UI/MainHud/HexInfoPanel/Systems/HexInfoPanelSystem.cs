@@ -29,12 +29,12 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
 
         public override int Priority => SystemPriorities.RuntimeTick.HexInfoPanel;
 
-        public HexInfoPanelSystem(EntityStore world)
-            : base(world, EventArchetypes.Of<SelectedHexChangedEvent>(world))
+        public HexInfoPanelSystem(EntityStorages storages)
+            : base(storages.World, EventArchetypes.Of<SelectedHexChangedEvent>(storages.World))
         {
-            _viewSet = PresentationUIArchetypes.HexInfoPanel(world);
-            _selectedHexSet = PresentationArchetypes.HexSelection(world);
-            _hexSet = MapArchetypes.Hex(world);
+            _viewSet = PresentationUIArchetypes.HexInfoPanel(storages.World);
+            _selectedHexSet = PresentationArchetypes.HexSelection(storages.World);
+            _hexSet = MapArchetypes.Hex(storages.World);
         }
 
         protected override void Update(GameState state, in Entity entity)

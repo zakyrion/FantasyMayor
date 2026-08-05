@@ -23,7 +23,6 @@ namespace Presentation.Terrain.Systems
         private const string HEX_SELECTION_VIEW_ADDRESS = "HexSelectionView";
 
         private readonly IAddressable _addressable;
-        private readonly EntityStore _world;
         private readonly Archetype _archetype;
 
         private Box<HexSelectionView> _hexSelectionViewBox;
@@ -32,12 +31,11 @@ namespace Presentation.Terrain.Systems
         /// <inheritdoc />
         public int Priority => SystemPriorities.WorldInit.HexSelectionViewLoading;
 
-        public HexSelectionViewLoadingSystem(EntityStore world, IAddressable addressable)
+        public HexSelectionViewLoadingSystem(EntityStorages storages, IAddressable addressable)
         {
-            _world = world;
             _addressable = addressable;
             _hexSelectionViewBox = Box<HexSelectionView>.Empty();
-            _archetype = PresentationArchetypes.HexSelectionView(world);
+            _archetype = PresentationArchetypes.HexSelectionView(storages.World);
         }
 
         /// <inheritdoc />

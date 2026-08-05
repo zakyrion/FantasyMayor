@@ -25,18 +25,18 @@ namespace Presentation.HexResources.Systems
     internal sealed class ForestHexResourceViewSubSystem : HexResourcesViewSubSystem
     {
         private readonly Archetype _hexSet;
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
 
         private UnityEngine.Transform _root;
 
         public override int Priority => SystemPriorities.SubSystems.HexResourceView.Forest;
         protected override HexResourceType TargetHexResourceType => HexResourceType.Forest;
 
-        public ForestHexResourceViewSubSystem(EntityStore world)
-            : base(world)
+        public ForestHexResourceViewSubSystem(EntityStorages storages)
+            : base(storages.World)
         {
-            _world = world;
-            _hexSet = MapArchetypes.Hex(world);
+            _storages = storages;
+            _hexSet = MapArchetypes.Hex(storages.World);
         }
 
         public override void Update(GameState state)
@@ -49,15 +49,15 @@ namespace Presentation.HexResources.Systems
                 throw new InvalidOperationException(
                     "ForestHexResourceViewSubSystem: VertexGridComponent world component is missing.");
 
-            if (!_world.HasWorldComponent<TerrainViewConfigComponent>() || !_world.HasWorldComponent<HexResourcesViewConfigComponent>() || !_world.HasWorldComponent<TerrainTextureComponent>())
+            if (!_storages.World.HasWorldComponent<TerrainViewConfigComponent>() || !_storages.World.HasWorldComponent<HexResourcesViewConfigComponent>() || !_storages.World.HasWorldComponent<TerrainTextureComponent>())
                 return;
 
-            var texture = _world.GetWorldComponent<TerrainTextureComponent>().Texture;
+            var texture = _storages.World.GetWorldComponent<TerrainTextureComponent>().Texture;
             if (texture == null)
                 return;
 
-            var viewConfig = _world.GetWorldComponent<HexResourcesViewConfigComponent>().Value;
-            var cellSize = _world.GetWorldComponent<TerrainViewConfigComponent>().CellSize;
+            var viewConfig = _storages.World.GetWorldComponent<HexResourcesViewConfigComponent>().Value;
+            var cellSize = _storages.World.GetWorldComponent<TerrainViewConfigComponent>().CellSize;
 
             if (_root == null)
                 _root = new GameObject("ForestViewRoot").transform;
@@ -68,7 +68,7 @@ namespace Presentation.HexResources.Systems
             foreach (var forestEntity in forestEntities)
             {
                 var hex = forestEntity.GetComponent<HexIdFKComponent>().Coords;
-                planter.PlantHex(_world, _root, hex, vertexGrid, viewConfig, ref splats);
+                planter.PlantHex(_storages.World, _root, hex, vertexGrid, viewConfig, ref splats);
             }
 
             // Append-only: paint the new patches over the current pixels, once.

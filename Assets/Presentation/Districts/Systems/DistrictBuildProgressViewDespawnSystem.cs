@@ -35,16 +35,16 @@ namespace Presentation.Districts.Systems
         // on it) — scope the query to the view archetype.
         private readonly Archetype _views;
 
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
 
         public override int Priority => SystemPriorities.RuntimeTick.DistrictBuildProgressViewDespawn;
 
-        public DistrictBuildProgressViewDespawnSystem(EntityStore world)
-            : base(world, EventArchetypes.Of<DistrictTableChangedEvent>(world))
+        public DistrictBuildProgressViewDespawnSystem(EntityStorages storages)
+            : base(storages.World, EventArchetypes.Of<DistrictTableChangedEvent>(storages.World))
         {
-            _world = world;
-            _districts = EconomyArchetypes.District(world);
-            _views = PresentationArchetypes.DistrictBuildProgressView(world);
+            _storages = storages;
+            _districts = EconomyArchetypes.District(storages.World);
+            _views = PresentationArchetypes.DistrictBuildProgressView(storages.World);
         }
 
         // The pulse entity itself is ignored — reconciliation is global over current state.
@@ -69,7 +69,7 @@ namespace Presentation.Districts.Systems
             }
 
             for (var i = 0; i < staleViewIds.Length; i++)
-                if (_world.TryGetEntityById(staleViewIds[i], out var view))
+                if (_storages.World.TryGetEntityById(staleViewIds[i], out var view))
                     DestroyView(view);
 
             staleViewIds.Dispose();

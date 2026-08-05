@@ -1,5 +1,4 @@
 using EcsExtensions;
-using Friflo.Engine.ECS;
 using Domains.Map.Generation.Components;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -15,7 +14,7 @@ namespace Presentation.UI.GeneratorMenu.Views
         [SerializeField]
         private UIDocument _document;
 
-        private EntityStore _world;
+        private EntityStorages _storages;
 
         private void Start()
         {
@@ -30,14 +29,14 @@ namespace Presentation.UI.GeneratorMenu.Views
         }
 
         [Inject]
-        public void Construct(EntityStore world)
+        public void Construct(EntityStorages storages)
         {
-            _world = world;
+            _storages = storages;
         }
 
         private void GenerateHexes()
         {
-            _world.CreateEvent(new TerrainGenerationGenerateEventComponent());
+            _storages.World.CreateEvent(new TerrainGenerationGenerateEventComponent());
         }
     }
 }

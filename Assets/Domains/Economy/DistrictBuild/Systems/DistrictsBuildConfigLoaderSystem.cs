@@ -4,7 +4,6 @@ using Domains.Economy.DistrictBuild.Components;
 using Domains.Economy.DistrictBuild.Configs;
 using Domains.Kernel.Data;
 using EcsExtensions;
-using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using System.Threading;
@@ -19,12 +18,14 @@ namespace Domains.Economy.DistrictBuild.Systems
     [UsedImplicitly]
     internal sealed class DistrictsBuildConfigLoaderSystem : ConfigLoaderSystem
     {
+        private readonly EntityStorages _storages;
         private const string DISTRICTS_BUILD_CONFIG = "DistrictBuildsConfig";
 
         private Box<DistrictBuildsConfig> _config = Box<DistrictBuildsConfig>.Empty();
 
-        public DistrictsBuildConfigLoaderSystem(IAddressable addressable, EntityStore world) : base(addressable, world)
+        public DistrictsBuildConfigLoaderSystem(IAddressable addressable, EntityStorages storages) : base(addressable, storages.World)
         {
+            _storages = storages;
         }
 
         protected override async UniTask LoadConfigsAsync(CancellationToken cancellationToken)
@@ -39,7 +40,7 @@ namespace Domains.Economy.DistrictBuild.Systems
             ValidateConfig(box.Value);
 
             _config = box;
-            World.SetWorldComponent(new DistrictBuildsConfigComponent(box.Value));
+            _storages.World.SetWorldComponent(new DistrictBuildsConfigComponent(box.Value));
             MarkAsLoaded();
         }
 

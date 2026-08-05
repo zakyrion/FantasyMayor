@@ -1,7 +1,6 @@
 using Core;
 using Cysharp.Threading.Tasks;
 using EcsExtensions;
-using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using Modules.UserInput.Components;
@@ -17,13 +16,15 @@ namespace Modules.UserInput.Systems
     [UsedImplicitly]
     public sealed class CameraMovementConfigLoaderSystem : ConfigLoaderSystem
     {
+        private readonly EntityStorages _storages;
         private const string CAMERA_MOVEMENT_CONFIG = "CameraMovementConfig";
 
         /// <param name="addressable">Addressable loader abstraction.</param>
-        /// <param name="world">World that receives the flattened config entity.</param>
-        public CameraMovementConfigLoaderSystem(IAddressable addressable, EntityStore world)
-            : base(addressable, world)
+        /// <param name="storages">Named ECS storages whose game world receives the flattened config entity.</param>
+        public CameraMovementConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
+            : base(addressable, storages.World)
         {
+            _storages = storages;
         }
 
         /// <inheritdoc />
@@ -37,7 +38,7 @@ namespace Modules.UserInput.Systems
                 if (cancellationToken.IsCancellationRequested)
                     return;
 
-                World.SetWorldComponent(CameraMovementConfigComponent.FromConfig(cameraMovementConfig.Value));
+                _storages.World.SetWorldComponent(CameraMovementConfigComponent.FromConfig(cameraMovementConfig.Value));
                 MarkAsLoaded();
             }
             finally

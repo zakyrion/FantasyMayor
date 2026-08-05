@@ -53,22 +53,22 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         private readonly ComponentIndex<MayorIdFKComponent, int> _mayorResources;
         private readonly ComponentIndex<CityIdFKComponent, int> _cityResources;
 
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
 
         public override int Priority => SystemPriorities.RuntimeTick.BuildDistrictActionCancel;
 
-        public BuildDistrictActionCancelSystem(EntityStore world)
-            : base(world, EventArchetypes.Of<BuildDistrictCancelEvent>(world))
+        public BuildDistrictActionCancelSystem(EntityStorages storages)
+            : base(storages.World, EventArchetypes.Of<BuildDistrictCancelEvent>(storages.World))
         {
-            _world = world;
+            _storages = storages;
 
-            _districts = EconomyArchetypes.District(world);
-            _inProgressByDistrictId = world.ComponentIndex<DistrictIdFKComponent, int>();
+            _districts = EconomyArchetypes.District(storages.World);
+            _inProgressByDistrictId = storages.World.ComponentIndex<DistrictIdFKComponent, int>();
 
-            _mayorActor = ActorsArchetypes.Mayor(world);
-            _cityActor = ActorsArchetypes.City(world);
-            _mayorResources = world.ComponentIndex<MayorIdFKComponent, int>();
-            _cityResources = world.ComponentIndex<CityIdFKComponent, int>();
+            _mayorActor = ActorsArchetypes.Mayor(storages.World);
+            _cityActor = ActorsArchetypes.City(storages.World);
+            _mayorResources = storages.World.ComponentIndex<MayorIdFKComponent, int>();
+            _cityResources = storages.World.ComponentIndex<CityIdFKComponent, int>();
         }
 
         protected override void Update(GameState state, in Entity pulse)
@@ -97,7 +97,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             district.DeleteEntity();
             verb.DeleteEntity();
 
-            _world.CreateEvent(new DistrictTableChangedEvent { Change = DistrictTableChange.Removed });
+            _storages.World.CreateEvent(new DistrictTableChangedEvent { Change = DistrictTableChange.Removed });
         }
 
         // Same-turn (TurnsLeft == TurnsToBuild, nothing ticked since confirm): AP + resources in full. Any later
@@ -172,12 +172,12 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         // The district's cost config, by DistrictType — same shared lookup BuildDistrictActionSystem uses.
         private DistrictBuildCostConfig ResolveCost(DistrictType type)
         {
-            if (!_world.HasWorldComponent<DistrictBuildCostsConfigComponent>())
+            if (!_storages.World.HasWorldComponent<DistrictBuildCostsConfigComponent>())
                 throw new InvalidOperationException(
                     "BuildDistrictActionCancelSystem: DistrictBuildCostsConfigComponent world component is missing.");
 
             if (!DistrictConfigLookup.TryFind(
-                    _world.GetWorldComponent<DistrictBuildCostsConfigComponent>().Value?.Districts, type, c => c.DistrictType, out var cost))
+                    _storages.World.GetWorldComponent<DistrictBuildCostsConfigComponent>().Value?.Districts, type, c => c.DistrictType, out var cost))
                 throw new InvalidOperationException(
                     $"BuildDistrictActionCancelSystem: no DistrictBuildCostConfig for district type '{type}'.");
 

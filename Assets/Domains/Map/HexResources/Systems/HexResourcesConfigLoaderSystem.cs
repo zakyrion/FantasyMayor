@@ -4,7 +4,6 @@ using Domains.Map.HexResources.Components;
 using Domains.Map.HexResources.Configs;
 using Domains.Map.HexResources.Data;
 using EcsExtensions;
-using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using System.Threading;
@@ -16,13 +15,15 @@ namespace Domains.Map.HexResources.Systems
     [UsedImplicitly]
     internal sealed class HexResourcesConfigLoaderSystem : ConfigLoaderSystem
     {
+        private readonly EntityStorages _storages;
         private const string GAME_RESOURCES_CONFIG = "HexResourcesConfig";
 
         private Box<HexResourcesConfig> _config = Box<HexResourcesConfig>.Empty();
 
-        public HexResourcesConfigLoaderSystem(IAddressable addressable, EntityStore world)
-            : base(addressable, world)
+        public HexResourcesConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
+            : base(addressable, storages.World)
         {
+            _storages = storages;
         }
 
         protected override async UniTask LoadConfigsAsync(CancellationToken cancellationToken)
@@ -40,7 +41,7 @@ namespace Domains.Map.HexResources.Systems
                 _config = loadedConfig;
                 loadedConfig = Box<HexResourcesConfig>.Empty();
 
-                World.SetWorldComponent(new HexResourcesConfigComponent { Value = _config.Value });
+                _storages.World.SetWorldComponent(new HexResourcesConfigComponent { Value = _config.Value });
                 MarkAsLoaded();
             }
             finally

@@ -3,7 +3,6 @@ using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
 using EcsExtensions;
-using Friflo.Engine.ECS;
 using Domains.Economy.Resource.Data;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
@@ -22,10 +21,14 @@ namespace Presentation.UI.MainHud.ResourceBar.Systems
     [UsedImplicitly]
     internal sealed class InventoryResourceIconConfigLoaderSystem : ConfigLoaderSystem
     {
+        private readonly EntityStorages _storages;
         private const string INVENTORY_RESOURCE_ICON_CONFIG = "InventoryResourceIconConfig";
 
-        public InventoryResourceIconConfigLoaderSystem(IAddressable addressable, EntityStore world)
-            : base(addressable, world) { }
+        public InventoryResourceIconConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
+            : base(addressable, storages.World)
+        {
+            _storages = storages;
+        }
 
         protected override async UniTask LoadConfigsAsync(CancellationToken cancellationToken)
         {
@@ -39,7 +42,7 @@ namespace Presentation.UI.MainHud.ResourceBar.Systems
 
                 ValidateConfig(config.Value);
 
-                World.SetWorldComponent(new InventoryResourceIconConfigComponent(config));
+                _storages.World.SetWorldComponent(new InventoryResourceIconConfigComponent(config));
                 config = Box<InventoryResourceIconConfig>.Empty();
                 MarkAsLoaded();
             }

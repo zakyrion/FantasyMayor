@@ -30,6 +30,7 @@ namespace Presentation.UI.DistrictBuild.Systems
     [UsedImplicitly]
     public sealed class DistrictBuildPriceUISubSystem : DistrictBuildUISubSystem
     {
+        private readonly EntityStorages _storages;
         private readonly Archetype _selectionSet;
 
         // Actor rows (Table Rule): id PK + ActorTypeComponent discriminator — never a bare key.
@@ -45,19 +46,20 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public override int Priority => SystemPriorities.SubSystems.DistrictBuildUi.Price;
 
-        public DistrictBuildPriceUISubSystem(EntityStore world) : base(world)
+        public DistrictBuildPriceUISubSystem(EntityStorages storages) : base(storages.World)
         {
-            _selectionSet = PresentationUIArchetypes.DistrictBuildSelection(world);
-            _mayorActor = ActorsArchetypes.Mayor(world);
-            _cityActor = ActorsArchetypes.City(world);
-            _mayorResources = world.ComponentIndex<MayorIdFKComponent, int>();
-            _cityResources = world.ComponentIndex<CityIdFKComponent, int>();
-            _chrome = PresentationUIArchetypes.DistrictBuildUI(world);
+            _storages = storages;
+            _selectionSet = PresentationUIArchetypes.DistrictBuildSelection(storages.World);
+            _mayorActor = ActorsArchetypes.Mayor(storages.World);
+            _cityActor = ActorsArchetypes.City(storages.World);
+            _mayorResources = storages.World.ComponentIndex<MayorIdFKComponent, int>();
+            _cityResources = storages.World.ComponentIndex<CityIdFKComponent, int>();
+            _chrome = PresentationUIArchetypes.DistrictBuildUI(storages.World);
         }
 
         public override void Populate(GameObject root)
         {
-            var view = World.GetWorldComponent<DistrictBuildPriceUIViewComponent>().View;
+            var view = _storages.World.GetWorldComponent<DistrictBuildPriceUIViewComponent>().View;
 
             // The view outlives the subsystem; subscribe once to the payer selection.
             if (!_hooked)
@@ -71,7 +73,7 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         private void OnPayerChanged(ActorType owner)
         {
-            Render(World.GetWorldComponent<DistrictBuildPriceUIViewComponent>().View);
+            Render(_storages.World.GetWorldComponent<DistrictBuildPriceUIViewComponent>().View);
         }
 
         private void Render(DistrictBuildPriceUIView view)
@@ -151,11 +153,11 @@ namespace Presentation.UI.DistrictBuild.Systems
                     $"is {DistrictType.Unknown} — the selection must be a real district or {nameof(DistrictType.None)}, " +
                     "never the error marker.");
 
-            if (type == DistrictType.None || !World.HasWorldComponent<DistrictBuildCostsConfigComponent>())
+            if (type == DistrictType.None || !_storages.World.HasWorldComponent<DistrictBuildCostsConfigComponent>())
                 return false;
 
             return DistrictConfigLookup.TryFind(
-                World.GetWorldComponent<DistrictBuildCostsConfigComponent>().Value?.Districts, type, c => c.DistrictType, out cost);
+                _storages.World.GetWorldComponent<DistrictBuildCostsConfigComponent>().Value?.Districts, type, c => c.DistrictType, out cost);
         }
 
         private bool TryGetDistrict(DistrictType type, out DistrictBuildConfig district)
@@ -167,11 +169,11 @@ namespace Presentation.UI.DistrictBuild.Systems
                     $"is {DistrictType.Unknown} — the selection must be a real district or {nameof(DistrictType.None)}, " +
                     "never the error marker.");
 
-            if (type == DistrictType.None || !World.HasWorldComponent<DistrictBuildsConfigComponent>())
+            if (type == DistrictType.None || !_storages.World.HasWorldComponent<DistrictBuildsConfigComponent>())
                 return false;
 
             return DistrictConfigLookup.TryFind(
-                World.GetWorldComponent<DistrictBuildsConfigComponent>().Value?.Districts, type, d => d.DistrictType, out district);
+                _storages.World.GetWorldComponent<DistrictBuildsConfigComponent>().Value?.Districts, type, d => d.DistrictType, out district);
         }
 
         // Default payer when the view has no valid selection yet: first allowed owner in canonical order
@@ -217,9 +219,9 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public override void Dispose()
         {
-            if (_hooked && World.HasWorldComponent<DistrictBuildPriceUIViewComponent>())
+            if (_hooked && _storages.World.HasWorldComponent<DistrictBuildPriceUIViewComponent>())
             {
-                var view = World.GetWorldComponent<DistrictBuildPriceUIViewComponent>().View;
+                var view = _storages.World.GetWorldComponent<DistrictBuildPriceUIViewComponent>().View;
                 if (view != null)
                     view.PayerChanged -= OnPayerChanged;
             }

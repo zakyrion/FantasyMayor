@@ -23,15 +23,15 @@ namespace Domains.Actions.BuildDistrictAction.Systems
     {
         // Self-maintaining view of the in-progress builds to count down (not system state).
         private readonly Archetype _inProgress;
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
 
         public override int Priority => SystemPriorities.TurnPhase.BuildDistrictTurnTick;
 
-        public BuildDistrictTurnTickSystem(EntityStore world)
+        public BuildDistrictTurnTickSystem(EntityStorages storages)
         {
-            _world = world;
+            _storages = storages;
 
-            _inProgress = ActionsArchetypes.BuildDistrictInProgress(world);
+            _inProgress = ActionsArchetypes.BuildDistrictInProgress(storages.World);
         }
 
         public override UniTask Update(TurnPhaseStep state, CancellationToken cancellationToken)
@@ -58,7 +58,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
 
                 for (var i = 0; i < ids.Length; i++)
                 {
-                    _world.TryGetEntityById(ids[i], out var entity);
+                    _storages.World.TryGetEntityById(ids[i], out var entity);
                     var turns = entity.GetComponent<BuildDistrictTurnsComponent>();
                     var turnsLeft = turns.TurnsLeft-1;
 
@@ -76,7 +76,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             }
 
             if (raiseEvent)
-                _world.CreateEvent(new BuildDistrictCompleteEvent());
+                _storages.World.CreateEvent(new BuildDistrictCompleteEvent());
         }
     }
 }

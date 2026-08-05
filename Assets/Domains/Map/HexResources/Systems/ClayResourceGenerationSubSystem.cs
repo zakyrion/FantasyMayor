@@ -23,17 +23,14 @@ namespace Domains.Map.HexResources.Systems
         private readonly Archetype _hexSet;
         private readonly Archetype _hexResourceArchetype;
 
-        private readonly EntityStore _world;
-
         public override int Priority => SystemPriorities.SubSystems.HexResourceGeneration.Clay;
         protected override HexResourceType TargetHexResourceType => HexResourceType.Clay;
 
-        public ClayResourceGenerationSubSystem(EntityStore world) : base(world)
+        public ClayResourceGenerationSubSystem(EntityStorages storages) : base(storages.World)
         {
-            _world = world;
-            _hexSet = MapArchetypes.Hex(world);
-            _hexesByType = world.ComponentIndex<HexTypeComponent, HexType>();
-            _hexResourceArchetype = MapArchetypes.HexResource(world);
+            _hexSet = MapArchetypes.Hex(storages.World);
+            _hexesByType = storages.World.ComponentIndex<HexTypeComponent, HexType>();
+            _hexResourceArchetype = MapArchetypes.HexResource(storages.World);
         }
 
         public override void Update(GameState state)

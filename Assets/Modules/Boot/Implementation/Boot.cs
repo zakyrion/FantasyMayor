@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using Friflo.Engine.ECS;
 using EcsExtensions;
 using Domains.Actions.BuildDistrictAction.Systems;
 using Modules.Boot.Core;
@@ -104,18 +103,18 @@ namespace Modules.Boot.Implementation
             TurnCountSystem turnCount,
             EventCleanupSystem eventCleanup,
             CameraMovementSystem cameraMovement,
-            EntityStore world)
+            EntityStorages storages)
         {
             _configLoadSystems = configLoadSystems;
 
-            var mainMenu = new MainMenuState(world, showHexesUI);
+            var mainMenu = new MainMenuState(storages.World, showHexesUI);
 
             // Forest is built one-shot inside the generation pipeline now; only event cleanup needs to run
             // during the settle frames.
             var mapCreation = new MapCreationState(generationPipeline, eventCleanup);
 
             var gameplay = new GameplayState(
-                world,
+                storages.World,
                 new IUpdatedSystem[]
                 {
                     hexSelection, hexSelectionView, forestSpawn, forestDespawn, districtViewSpawn, hexIconsVisibility,

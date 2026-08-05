@@ -31,19 +31,19 @@ namespace Domains.Actions.BuildDistrictAction.Systems
     [UsedImplicitly]
     public sealed class BuildDistrictCompletionSystem : IUpdatedSystem
     {
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
         private readonly Archetype _completePulses;
         private readonly Archetype _buildDistrictsInProgress;
         private readonly ComponentIndex<DistrictIdComponent, int> _districtsById;
 
         public int Priority => SystemPriorities.RuntimeTick.BuildDistrictCompletion;
 
-        public BuildDistrictCompletionSystem(EntityStore world)
+        public BuildDistrictCompletionSystem(EntityStorages storages)
         {
-            _world = world;
-            _completePulses = EventArchetypes.Of<BuildDistrictCompleteEvent>(world);
-            _buildDistrictsInProgress = ActionsArchetypes.BuildDistrictInProgress(world);
-            _districtsById = world.ComponentIndex<DistrictIdComponent, int>();
+            _storages = storages;
+            _completePulses = EventArchetypes.Of<BuildDistrictCompleteEvent>(storages.World);
+            _buildDistrictsInProgress = ActionsArchetypes.BuildDistrictInProgress(storages.World);
+            _districtsById = storages.World.ComponentIndex<DistrictIdComponent, int>();
         }
 
         // The pulse batch is only the trigger — the work runs over the in-progress set, so however many ripe
@@ -76,7 +76,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
 
             for (var i = 0; i < ready.Length; i++)
             {
-                _world.TryGetEntityById(ready[i], out var entity);
+                _storages.World.TryGetEntityById(ready[i], out var entity);
                 var districtId = entity.GetComponent<DistrictIdFKComponent>().Value;
 
                 if (!_districtsById[districtId].TryGetFirst(out var district))
@@ -97,7 +97,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         // spawned.
         private void RaiseTableChanged()
         {
-            _world.CreateEvent(new DistrictTableChangedEvent { Change = DistrictTableChange.Built });
+            _storages.World.CreateEvent(new DistrictTableChangedEvent { Change = DistrictTableChange.Built });
         }
     }
 }

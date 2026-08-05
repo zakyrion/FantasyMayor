@@ -3,7 +3,6 @@ using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
 using EcsExtensions;
-using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using Presentation.Districts.Components;
@@ -18,13 +17,15 @@ namespace Presentation.Districts.Systems
     [UsedImplicitly]
     internal sealed class DistrictViewsConfigLoaderSystem : ConfigLoaderSystem
     {
+        private readonly EntityStorages _storages;
         private const string DISTRICT_VIEWS_CONFIG = "DistrictViewsConfig";
 
         private Box<DistrictViewsConfig> _config = Box<DistrictViewsConfig>.Empty();
 
-        public DistrictViewsConfigLoaderSystem(IAddressable addressable, EntityStore world)
-            : base(addressable, world)
+        public DistrictViewsConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
+            : base(addressable, storages.World)
         {
+            _storages = storages;
         }
 
         protected override async UniTask LoadConfigsAsync(CancellationToken cancellationToken)
@@ -40,7 +41,7 @@ namespace Presentation.Districts.Systems
             ValidateConfig(box.Value);
 
             _config = box;
-            World.SetWorldComponent(new DistrictViewsConfigComponent(box.Value));
+            _storages.World.SetWorldComponent(new DistrictViewsConfigComponent(box.Value));
             MarkAsLoaded();
         }
 

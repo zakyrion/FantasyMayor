@@ -1,5 +1,4 @@
 using EcsExtensions;
-using Friflo.Engine.ECS;
 using Modules.Turn.Events;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -34,7 +33,7 @@ namespace Presentation.UI.MainHud.TurnPanel.Views
 
         [SerializeField] private PanelRenderer _renderer;
 
-        private EntityStore _world;
+        private EntityStorages _storages;
         private VisualElement _root;
         private VisualElement _panel;
         private Button _button;
@@ -55,9 +54,9 @@ namespace Presentation.UI.MainHud.TurnPanel.Views
         private int _apNextValue;
 
         [Inject]
-        public void Construct(EntityStore world)
+        public void Construct(EntityStorages storages)
         {
-            _world = world;
+            _storages = storages;
         }
 
         private void OnEnable()
@@ -166,7 +165,7 @@ namespace Presentation.UI.MainHud.TurnPanel.Views
             if (_processing)
                 return;
 
-            _world.CreateEvent(new NextTurnEvent());
+            _storages.World.CreateEvent(new NextTurnEvent());
         }
 
         private void ApplyState()

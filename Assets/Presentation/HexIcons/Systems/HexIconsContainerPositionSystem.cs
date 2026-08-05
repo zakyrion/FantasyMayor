@@ -35,7 +35,7 @@ namespace Presentation.HexIcons.Systems
     [UsedImplicitly]
     public sealed class HexIconsContainerPositionSystem : ILateUpdatedSystem, IDisposable
     {
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
         private readonly Archetype _containerSet;
 
         // The frame's shared projection inputs — panel/camera/grid, the world Y offset, and the focus depth —
@@ -48,10 +48,10 @@ namespace Presentation.HexIcons.Systems
 
         public int Priority => SystemPriorities.RuntimeTick.HexIconsContainerPosition;
 
-        public HexIconsContainerPositionSystem(EntityStore world)
+        public HexIconsContainerPositionSystem(EntityStorages storages)
         {
-            _world = world;
-            _containerSet = PresentationArchetypes.HexIconContainer(world);
+            _storages = storages;
+            _containerSet = PresentationArchetypes.HexIconContainer(storages.World);
         }
 
         public void Update(GameState state)
@@ -118,33 +118,33 @@ namespace Presentation.HexIcons.Systems
 
         private void PreUpdate(GameState state)
         {
-            if (!_world.HasWorldComponent<HexIconsViewComponent>())
+            if (!_storages.World.HasWorldComponent<HexIconsViewComponent>())
                 throw new InvalidOperationException(
                     "HexIconsContainerPositionSystem: HexIconsViewComponent is missing.");
-            if (!_world.HasWorldComponent<CameraComponent>())
+            if (!_storages.World.HasWorldComponent<CameraComponent>())
                 throw new InvalidOperationException(
                     "HexIconsContainerPositionSystem: CameraComponent is missing.");
 
-            var panel = _world.GetWorldComponent<HexIconsViewComponent>().View.Root.panel;
+            var panel = _storages.World.GetWorldComponent<HexIconsViewComponent>().View.Root.panel;
             if (panel == null)
                 throw new InvalidOperationException("HexIconsContainerPositionSystem: panel is not ready.");
 
-            var camera = _world.GetWorldComponent<CameraComponent>().Camera;
+            var camera = _storages.World.GetWorldComponent<CameraComponent>().Camera;
             if (camera == null)
                 throw new InvalidOperationException("HexIconsContainerPositionSystem: scene camera is null.");
 
-            if (!_world.HasWorldComponent<VertexGridComponent>())
+            if (!_storages.World.HasWorldComponent<VertexGridComponent>())
                 throw new InvalidOperationException(
                     "HexIconsContainerPositionSystem: VertexGridComponent is missing.");
-            var grid = _world.GetWorldComponent<VertexGridComponent>().Grid;
+            var grid = _storages.World.GetWorldComponent<VertexGridComponent>().Grid;
             if (grid == null)
                 throw new InvalidOperationException("HexIconsContainerPositionSystem: VertexGrid is null.");
 
-            if (!_world.HasWorldComponent<HexIconsConfigComponent>())
+            if (!_storages.World.HasWorldComponent<HexIconsConfigComponent>())
                 throw new InvalidOperationException(
                     "HexIconsContainerPositionSystem: HexIconsConfigComponent is missing.");
 
-            var worldYOffset = _world.GetWorldComponent<HexIconsConfigComponent>().Value.WorldYOffset;
+            var worldYOffset = _storages.World.GetWorldComponent<HexIconsConfigComponent>().Value.WorldYOffset;
             var focusDepth = ComputeFocusDepth(camera);
 
             _pose = FrameBox<FramePose>.OneFrame(

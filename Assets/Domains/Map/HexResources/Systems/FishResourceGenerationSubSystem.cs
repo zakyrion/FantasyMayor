@@ -18,7 +18,6 @@ namespace Domains.Map.HexResources.Systems
     [UsedImplicitly]
     internal sealed class FishResourceGenerationSubSystem : HexResourcesSubSystem
     {
-        private readonly EntityStore _world;
         private readonly Archetype _hexSet;
         private readonly ComponentIndex<HexTypeComponent, HexType> _hexesByType;
         private readonly Archetype _hexResourceArchetype;
@@ -26,12 +25,11 @@ namespace Domains.Map.HexResources.Systems
         public override int Priority => SystemPriorities.SubSystems.HexResourceGeneration.Fish;
         protected override HexResourceType TargetHexResourceType => HexResourceType.Fish;
 
-        public FishResourceGenerationSubSystem(EntityStore world) : base(world)
+        public FishResourceGenerationSubSystem(EntityStorages storages) : base(storages.World)
         {
-            _world = world;
-            _hexSet = MapArchetypes.Hex(world);
-            _hexesByType = world.ComponentIndex<HexTypeComponent, HexType>();
-            _hexResourceArchetype = MapArchetypes.HexResource(world);
+            _hexSet = MapArchetypes.Hex(storages.World);
+            _hexesByType = storages.World.ComponentIndex<HexTypeComponent, HexType>();
+            _hexResourceArchetype = MapArchetypes.HexResource(storages.World);
         }
 
         public override void Update(GameState state)

@@ -4,7 +4,6 @@ using Domains.Map.Generation.Components;
 using Domains.Map.Generation.Configs;
 using Domains.Map.Generation.Data;
 using EcsExtensions;
-using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using System.Threading;
@@ -15,11 +14,13 @@ namespace Domains.Map.Generation.Systems
     [UsedImplicitly]
     internal class TerrainGenerationConfigLoaderSystem : ConfigLoaderSystem
     {
+        private readonly EntityStorages _storages;
         private const string TERRAIN_GENERATION_CONFIG = "TerrainGenerationConfig";
 
-        public TerrainGenerationConfigLoaderSystem(IAddressable addressable, EntityStore world)
-            : base(addressable, world)
+        public TerrainGenerationConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
+            : base(addressable, storages.World)
         {
+            _storages = storages;
         }
 
         protected override async UniTask LoadConfigsAsync(CancellationToken cancellationToken)
@@ -34,7 +35,7 @@ namespace Domains.Map.Generation.Systems
 
                 var config = terrainGenerationConfig.Value;
 
-                World.SetWorldComponent(TerrainGenerationConfigComponent.FromConfig(config));
+                _storages.World.SetWorldComponent(TerrainGenerationConfigComponent.FromConfig(config));
                 CreateMountainConfigComponent(config);
                 CreateWaterConfigComponent(config);
 
@@ -48,7 +49,7 @@ namespace Domains.Map.Generation.Systems
 
         private void CreateMountainConfigComponent(TerrainGenerationConfig config)
         {
-            World.SetWorldComponent(new MountainConfigComponent
+            _storages.World.SetWorldComponent(new MountainConfigComponent
             {
                 SizeFraction         = config.HillSizeFraction,
                 SeedCount            = config.SeedCount,
@@ -89,7 +90,7 @@ namespace Domains.Map.Generation.Systems
             if (riverConfig == null)
                 throw new InvalidOperationException($"{nameof(RiverConfig)} is not assigned in TerrainGenerationConfig but WaterType is River.");
 
-            World.SetWorldComponent(new RiverConfigComponent
+            _storages.World.SetWorldComponent(new RiverConfigComponent
             {
                 CornerOffsetTiles = riverConfig.CornerOffsetTiles
             });
@@ -100,7 +101,7 @@ namespace Domains.Map.Generation.Systems
             if (lakeConfig == null)
                 throw new InvalidOperationException($"{nameof(LakeConfig)} is not assigned in TerrainGenerationConfig but WaterType is Lake.");
 
-            World.SetWorldComponent(new LakeConfigComponent
+            _storages.World.SetWorldComponent(new LakeConfigComponent
             {
                 EdgeMarginTiles = lakeConfig.EdgeMarginTiles,
                 SizeFraction = lakeConfig.SizeFraction
@@ -112,7 +113,7 @@ namespace Domains.Map.Generation.Systems
             if (seaConfig == null)
                 throw new InvalidOperationException($"{nameof(SeaConfig)} is not assigned in TerrainGenerationConfig but WaterType is Sea.");
 
-            World.SetWorldComponent(new SeaConfigComponent
+            _storages.World.SetWorldComponent(new SeaConfigComponent
             {
                 SizeFraction = seaConfig.SizeFraction
             });

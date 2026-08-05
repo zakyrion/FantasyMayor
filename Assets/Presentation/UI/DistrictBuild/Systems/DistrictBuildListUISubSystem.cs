@@ -23,6 +23,7 @@ namespace Presentation.UI.DistrictBuild.Systems
     [UsedImplicitly]
     public sealed class DistrictBuildListUISubSystem : DistrictBuildUISubSystem
     {
+        private readonly EntityStorages _storages;
         private readonly ComponentIndex<DistrictOpenStateComponent, DistrictOpenState> _buildable;
         private readonly Archetype _requestedSet;
         private readonly Archetype _selectionSet;
@@ -30,16 +31,17 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public override int Priority => SystemPriorities.SubSystems.DistrictBuildUi.List;
 
-        public DistrictBuildListUISubSystem(EntityStore world) : base(world)
+        public DistrictBuildListUISubSystem(EntityStorages storages) : base(storages.World)
         {
-            _buildable = world.ComponentIndex<DistrictOpenStateComponent, DistrictOpenState>();
-            _requestedSet = EventArchetypes.Of<DistrictBuildUIRequestedEvent>(world);
-            _selectionSet = PresentationUIArchetypes.DistrictBuildSelection(world);
+            _storages = storages;
+            _buildable = storages.World.ComponentIndex<DistrictOpenStateComponent, DistrictOpenState>();
+            _requestedSet = EventArchetypes.Of<DistrictBuildUIRequestedEvent>(storages.World);
+            _selectionSet = PresentationUIArchetypes.DistrictBuildSelection(storages.World);
         }
 
         public override void Populate(GameObject root)
         {
-            var view = World.GetWorldComponent<DistrictBuildListUIViewComponent>().View;
+            var view = _storages.World.GetWorldComponent<DistrictBuildListUIViewComponent>().View;
 
             // The view outlives the subsystem; subscribe once to the local row-click event.
             if (!_hooked)
@@ -108,9 +110,9 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public override void Dispose()
         {
-            if (_hooked && World.HasWorldComponent<DistrictBuildListUIViewComponent>())
+            if (_hooked && _storages.World.HasWorldComponent<DistrictBuildListUIViewComponent>())
             {
-                var view = World.GetWorldComponent<DistrictBuildListUIViewComponent>().View;
+                var view = _storages.World.GetWorldComponent<DistrictBuildListUIViewComponent>().View;
                 if (view != null)
                     view.SelectionChanged -= OnSelected;
             }

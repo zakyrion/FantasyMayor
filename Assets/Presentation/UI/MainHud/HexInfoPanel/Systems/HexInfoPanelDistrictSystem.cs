@@ -37,7 +37,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
     [UsedImplicitly]
     public sealed class HexInfoPanelDistrictSystem : UpdatedSystem, IDisposable
     {
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
         private readonly Archetype _viewSet;
         private readonly Archetype _selectedHexSet;
 
@@ -53,15 +53,15 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
 
         public override int Priority => SystemPriorities.RuntimeTick.HexInfoPanelDistrict;
 
-        public HexInfoPanelDistrictSystem(EntityStore world)
-            : base(world.Query()
+        public HexInfoPanelDistrictSystem(EntityStorages storages)
+            : base(storages.World.Query()
                 .AnyComponents(ComponentTypes.Get<SelectedHexChangedEvent, TurnCompletedEvent, DistrictTableChangedEvent>()))
         {
-            _world = world;
-            _viewSet = PresentationUIArchetypes.HexInfoPanel(world);
-            _selectedHexSet = PresentationArchetypes.HexSelection(world);
-            _districts = EconomyArchetypes.District(world);
-            _inProgressByDistrictId = world.ComponentIndex<DistrictIdFKComponent, int>();
+            _storages = storages;
+            _viewSet = PresentationUIArchetypes.HexInfoPanel(storages.World);
+            _selectedHexSet = PresentationArchetypes.HexSelection(storages.World);
+            _districts = EconomyArchetypes.District(storages.World);
+            _inProgressByDistrictId = storages.World.ComponentIndex<DistrictIdFKComponent, int>();
         }
 
         protected override void Update(GameState state, in Entity entity)
@@ -130,11 +130,11 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
 
         private void ShowInProgress(HexInfoPanelView view, DistrictType districtType, int turnsLeft)
         {
-            if (!_world.HasWorldComponent<DistrictIconConfigComponent>())
+            if (!_storages.World.HasWorldComponent<DistrictIconConfigComponent>())
                 throw new InvalidOperationException(
                     "HexInfoPanelDistrictSystem: DistrictIconConfigComponent is missing.");
 
-            var config = _world.GetWorldComponent<DistrictIconConfigComponent>().Value;
+            var config = _storages.World.GetWorldComponent<DistrictIconConfigComponent>().Value;
             TryGetDistrictIconEntry(config, districtType, out var sprite, out var displayName);
 
             view.ShowDistrictInProgress(sprite, displayName, turnsLeft);
@@ -183,7 +183,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
             if (!TryGetDistrict(coords, out var district) || district.GetComponent<DistrictBuildStateComponent>().Value != DistrictBuildState.Planned)
                 return;
 
-            _world.CreateEvent(new BuildDistrictCancelEvent { Coords = coords });
+            _storages.World.CreateEvent(new BuildDistrictCancelEvent { Coords = coords });
         }
 
         public void Dispose()

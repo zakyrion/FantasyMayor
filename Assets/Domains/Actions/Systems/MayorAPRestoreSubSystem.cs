@@ -21,14 +21,14 @@ namespace Domains.Actions.Systems
         // Declarative query cache (a self-maintaining view, not system state): the Mayor rows that carry a
         // restore rule and hold the AP component to reset.
         private readonly Archetype _mayors;
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
 
         public override int Priority => SystemPriorities.TurnPhase.MayorApRestore;
 
-        public MayorAPRestoreSubSystem(EntityStore world)
+        public MayorAPRestoreSubSystem(EntityStorages storages)
         {
-            _world = world;
-            _mayors = ActorsArchetypes.Mayor(world);
+            _storages = storages;
+            _mayors = ActorsArchetypes.Mayor(storages.World);
         }
 
         public override UniTask Update(TurnPhaseStep state, CancellationToken cancellationToken)
@@ -54,7 +54,7 @@ namespace Domains.Actions.Systems
 
                 for (var i = 0; i < ids.Length; i++)
                 {
-                    _world.TryGetEntityById(ids[i], out var mayor);
+                    _storages.World.TryGetEntityById(ids[i], out var mayor);
                     var restore = mayor.GetComponent<MayorAPRestoreComponent>().Value;
                     mayor.AddComponent(new MayorAPComponent { Value = restore });
                 }

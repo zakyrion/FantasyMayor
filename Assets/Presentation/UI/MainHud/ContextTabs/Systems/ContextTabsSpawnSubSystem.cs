@@ -1,5 +1,4 @@
 using System;
-using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Presentation.UI.MainHud.ContextTabs.Components;
 using Presentation.UI.MainHud.ContextTabs.Data;
@@ -21,13 +20,13 @@ namespace Presentation.UI.MainHud.ContextTabs.Systems
     {
         private const ContextTab DefaultTab = ContextTab.Overview;
 
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
 
         public override int Priority => SystemPriorities.SubSystems.MainHudSpawn.ContextTabs;
 
-        public ContextTabsSpawnSubSystem(EntityStore world)
+        public ContextTabsSpawnSubSystem(EntityStorages storages)
         {
-            _world = world;
+            _storages = storages;
         }
 
         public override void Prepare(GameObject mainUi)
@@ -40,8 +39,8 @@ namespace Presentation.UI.MainHud.ContextTabs.Systems
                     "ContextTabsSpawnSubSystem: ContextTabsView is missing from the Main UI prefab.");
 
             // The view and the active tab are world singletons (mirror TurnCountComponent) — no entity is created.
-            _world.SetWorldComponent(new ContextTabsViewComponent(view));
-            _world.SetWorldComponent(new ActiveContextTabComponent(DefaultTab));
+            _storages.World.SetWorldComponent(new ContextTabsViewComponent(view));
+            _storages.World.SetWorldComponent(new ActiveContextTabComponent(DefaultTab));
             view.SetActive(DefaultTab);
         }
     }

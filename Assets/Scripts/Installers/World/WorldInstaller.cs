@@ -46,7 +46,6 @@ namespace Installers.World
         {
             var entityStorages = new EntityStorages();
             var world = entityStorages.World;
-            builder.RegisterInstance(world);
             builder.RegisterInstance(entityStorages);
 
             // The "world" singleton must exist before any SetWorldComponent call.

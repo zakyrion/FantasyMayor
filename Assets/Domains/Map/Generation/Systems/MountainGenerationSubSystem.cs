@@ -27,7 +27,7 @@ namespace Domains.Map.Generation.Systems
         private const float CohesionWeight = 1.5f;
         private const float GrowthJitter = 0.5f;
 
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
         private readonly Archetype _hexSet;
 
         /// <inheritdoc />
@@ -36,20 +36,20 @@ namespace Domains.Map.Generation.Systems
         /// <summary>
         ///     Creates a mountain generation system bound to the shared ECS world.
         /// </summary>
-        /// <param name="world">World used to query mountain config and generated hexes.</param>
-        public MountainGenerationSubSystem(EntityStore world)
+        /// <param name="storages">Named ECS storages used to query mountain config and generated hexes.</param>
+        public MountainGenerationSubSystem(EntityStorages storages)
         {
-            _world = world;
-            _hexSet = MapArchetypes.Hex(world);
+            _storages = storages;
+            _hexSet = MapArchetypes.Hex(storages.World);
         }
 
         /// <inheritdoc />
         public override void Update(GameState state)
         {
-            if (!_world.HasWorldComponent<MountainConfigComponent>())
+            if (!_storages.World.HasWorldComponent<MountainConfigComponent>())
                 return;
 
-            var config = _world.GetWorldComponent<MountainConfigComponent>();
+            var config = _storages.World.GetWorldComponent<MountainConfigComponent>();
 
             Generate(in config);
         }
@@ -423,7 +423,7 @@ namespace Domains.Map.Generation.Systems
                     if (!mountainCoords.Contains(coord))
                         continue;
 
-                    _world.TryGetEntityById(idByCoord[coord], out var entity);
+                    _storages.World.TryGetEntityById(idByCoord[coord], out var entity);
                     entity.AddComponent(new HexLevelComponent { Level = MountainLevel });
                     SetLevel(ref levelMap, coord, MountainLevel);
                 }
@@ -439,7 +439,7 @@ namespace Domains.Map.Generation.Systems
 
                     if (existingNeighbors > 0 && mountainNeighbors == existingNeighbors)
                     {
-                        _world.TryGetEntityById(idByCoord[coord], out var entity);
+                        _storages.World.TryGetEntityById(idByCoord[coord], out var entity);
                         entity.AddComponent(new HexLevelComponent { Level = MountainLevel });
                         SetLevel(ref levelMap, coord, MountainLevel);
                     }
@@ -459,7 +459,7 @@ namespace Domains.Map.Generation.Systems
                     if (mountainNeighbors >= minFoothillNeighbors &&
                         !IsAdjacentToWater(coord, ref waterCoords))
                     {
-                        _world.TryGetEntityById(idByCoord[coord], out var entity);
+                        _storages.World.TryGetEntityById(idByCoord[coord], out var entity);
                         entity.AddComponent(new HexLevelComponent { Level = FoothillLevel });
                         SetLevel(ref levelMap, coord, FoothillLevel);
                     }
@@ -701,7 +701,7 @@ namespace Domains.Map.Generation.Systems
                             if (!selected.Contains(coord))
                                 continue;
 
-                            _world.TryGetEntityById(idByCoord[coord], out var entity);
+                            _storages.World.TryGetEntityById(idByCoord[coord], out var entity);
                             entity.AddComponent(new HexLevelComponent { Level = FoothillLevel });
                             SetLevel(ref levelMap, coord, FoothillLevel);
                         }

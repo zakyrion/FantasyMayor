@@ -18,9 +18,9 @@ namespace Domains.Economy.DistrictBuildOutcome.Systems{
 
         private readonly Archetype _archetype;
 
-        public SpawnCityCenterOutcomeSubSystem(EntityStore world) : base(world)
+        public SpawnCityCenterOutcomeSubSystem(EntityStorages storages) : base(storages.World)
         {
-            _archetype = EconomyArchetypes.BuildOutcome(world);
+            _archetype = EconomyArchetypes.BuildOutcome(storages.World);
         }
 
         public override bool TrySpawn(DistrictBuildOutcomeConfig config)

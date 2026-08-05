@@ -20,16 +20,16 @@ namespace Presentation.UI.MainHud.ContextTabs.Systems
     [UsedImplicitly]
     public sealed class ContextTabsAvailabilitySystem : UpdatedSystem
     {
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
         private readonly Archetype _selectedHexSet;
 
         public override int Priority => SystemPriorities.RuntimeTick.ContextTabsAvailability;
 
-        public ContextTabsAvailabilitySystem(EntityStore world)
-            : base(world, EventArchetypes.Of<SelectedHexChangedEvent>(world))
+        public ContextTabsAvailabilitySystem(EntityStorages storages)
+            : base(storages.World, EventArchetypes.Of<SelectedHexChangedEvent>(storages.World))
         {
-            _world = world;
-            _selectedHexSet = PresentationArchetypes.HexSelection(world);
+            _storages = storages;
+            _selectedHexSet = PresentationArchetypes.HexSelection(storages.World);
         }
 
         protected override void Update(GameState state, in Entity entity)
@@ -37,10 +37,10 @@ namespace Presentation.UI.MainHud.ContextTabs.Systems
             if (!EcsEventExtensions.IsRipe(entity))
                 return;
 
-            if (!_world.HasWorldComponent<ContextTabsViewComponent>())
+            if (!_storages.World.HasWorldComponent<ContextTabsViewComponent>())
                 return;
 
-            var view = _world.GetWorldComponent<ContextTabsViewComponent>().View;
+            var view = _storages.World.GetWorldComponent<ContextTabsViewComponent>().View;
             if (view == null)
                 return;
 

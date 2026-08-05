@@ -31,7 +31,7 @@ namespace Presentation.Terrain.Systems
     {
         private readonly Archetype _hexSet;
         private readonly ComponentIndex<HexTypeComponent, HexType> _hexesByType;
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
 
         /// <inheritdoc />
         public override int Priority => SystemPriorities.SubSystems.TerrainView.Generation;
@@ -39,12 +39,12 @@ namespace Presentation.Terrain.Systems
         /// <summary>
         ///     Creates the generation subsystem bound to the shared ECS world.
         /// </summary>
-        /// <param name="world">World used to query terrain configs and hex entities.</param>
-        public TerrainViewGenerationSubSystem(EntityStore world)
+        /// <param name="storages">Named ECS storages used to query terrain configs and hex entities.</param>
+        public TerrainViewGenerationSubSystem(EntityStorages storages)
         {
-            _world = world;
-            _hexSet = MapArchetypes.Hex(world);
-            _hexesByType = world.ComponentIndex<HexTypeComponent, HexType>();
+            _storages = storages;
+            _hexSet = MapArchetypes.Hex(storages.World);
+            _hexesByType = storages.World.ComponentIndex<HexTypeComponent, HexType>();
         }
 
         /// <inheritdoc />
@@ -53,16 +53,16 @@ namespace Presentation.Terrain.Systems
             if (!HasRequiredConfigEntities())
                 return;
 
-            if (!_world.HasWorldComponent<VertexGridComponent>())
+            if (!_storages.World.HasWorldComponent<VertexGridComponent>())
                 throw new InvalidOperationException("TerrainViewGenerationSubSystem: VertexGridComponent world component is missing.");
 
-            var vertexGrid = _world.GetWorldComponent<VertexGridComponent>().Grid;
-            var config = _world.GetWorldComponent<TerrainViewConfigComponent>();
-            var innerConfig = _world.GetWorldComponent<InnerIsolineConfigComponent>();
-            var outerConfig = _world.GetWorldComponent<OuterIsolineConfigComponent>();
-            var heightSmoothingConfig = _world.GetWorldComponent<HeightSmoothingConfigComponent>();
-            var hydraulicConfig = _world.GetWorldComponent<HydraulicErosionConfigComponent>();
-            var windConfig = _world.GetWorldComponent<WindErosionConfigComponent>();
+            var vertexGrid = _storages.World.GetWorldComponent<VertexGridComponent>().Grid;
+            var config = _storages.World.GetWorldComponent<TerrainViewConfigComponent>();
+            var innerConfig = _storages.World.GetWorldComponent<InnerIsolineConfigComponent>();
+            var outerConfig = _storages.World.GetWorldComponent<OuterIsolineConfigComponent>();
+            var heightSmoothingConfig = _storages.World.GetWorldComponent<HeightSmoothingConfigComponent>();
+            var hydraulicConfig = _storages.World.GetWorldComponent<HydraulicErosionConfigComponent>();
+            var windConfig = _storages.World.GetWorldComponent<WindErosionConfigComponent>();
 
             await BuildIsolinesAsync(vertexGrid, config, innerConfig, outerConfig, cancellationToken);
 
@@ -94,10 +94,10 @@ namespace Presentation.Terrain.Systems
         /// <returns><c>true</c> if all config sets are populated; <c>false</c> with a logged error otherwise.</returns>
         private bool HasRequiredConfigEntities()
         {
-            if (_world.HasWorldComponent<TerrainViewConfigComponent>() &&
-                _world.HasWorldComponent<InnerIsolineConfigComponent>() && _world.HasWorldComponent<OuterIsolineConfigComponent>() &&
-                _world.HasWorldComponent<HeightSmoothingConfigComponent>() && _world.HasWorldComponent<HydraulicErosionConfigComponent>() &&
-                _world.HasWorldComponent<WindErosionConfigComponent>())
+            if (_storages.World.HasWorldComponent<TerrainViewConfigComponent>() &&
+                _storages.World.HasWorldComponent<InnerIsolineConfigComponent>() && _storages.World.HasWorldComponent<OuterIsolineConfigComponent>() &&
+                _storages.World.HasWorldComponent<HeightSmoothingConfigComponent>() && _storages.World.HasWorldComponent<HydraulicErosionConfigComponent>() &&
+                _storages.World.HasWorldComponent<WindErosionConfigComponent>())
                 return true;
 
             Debug.LogError("[TerrainViewGenerationSubSystem] One or more required configs are missing.");

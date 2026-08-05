@@ -21,25 +21,25 @@ namespace Presentation.Terrain.Systems
         private const float RayHeight = 5f;
         private const float RayDuration = 5f;
 
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
         private readonly Archetype _hexSet;
 
         /// <inheritdoc />
         public int Priority => SystemPriorities.WorldInit.TerrainViewDebug;
 
-        public TerrainViewDebugSystem(EntityStore world)
+        public TerrainViewDebugSystem(EntityStorages storages)
         {
-            _world = world;
-            _hexSet = MapArchetypes.Hex(world);
+            _storages = storages;
+            _hexSet = MapArchetypes.Hex(storages.World);
         }
 
         /// <inheritdoc />
         public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
         {
-            if (!_world.HasWorldComponent<TerrainViewConfigComponent>())
+            if (!_storages.World.HasWorldComponent<TerrainViewConfigComponent>())
                 return UniTask.CompletedTask;
 
-            var cellSize = _world.GetWorldComponent<TerrainViewConfigComponent>().CellSize;
+            var cellSize = _storages.World.GetWorldComponent<TerrainViewConfigComponent>().CellSize;
 
             foreach (var hexEntity in _hexSet.Entities)
             {

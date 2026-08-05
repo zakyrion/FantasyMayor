@@ -26,7 +26,7 @@ namespace Modules.UserInput.Systems
 
         private readonly Archetype _playerInputArchetype;
         private readonly Archetype _hexSelectionArchetype;
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
 
         private InputAction _clickAction;
         private InputAction _pointAction;
@@ -34,15 +34,15 @@ namespace Modules.UserInput.Systems
         /// <inheritdoc />
         public override int Priority => SystemPriorities.RuntimeTick.HexSelection;
 
-        /// <param name="world">The ECS world used to query camera, config, and selection state.</param>
-        public HexSelectionSystem(EntityStore world)
+        /// <param name="storages">Named ECS storages used to query camera, config, and selection state.</param>
+        public HexSelectionSystem(EntityStorages storages)
             // Anchored on the single PlayerInputComponent entity so Update ticks once per frame;
-            // the camera itself is a world component (CameraComponent), read via world.Get below.
-            : base(world, UserInputArchetypes.PlayerInput(world))
+            // the camera itself is a world component (CameraComponent), read via storages.World below.
+            : base(storages.World, UserInputArchetypes.PlayerInput(storages.World))
         {
-            _world = world;
-            _playerInputArchetype = UserInputArchetypes.PlayerInput(world);
-            _hexSelectionArchetype = PresentationArchetypes.HexSelection(world);
+            _storages = storages;
+            _playerInputArchetype = UserInputArchetypes.PlayerInput(storages.World);
+            _hexSelectionArchetype = PresentationArchetypes.HexSelection(storages.World);
 
             TryBindInputActions();
         }
@@ -56,7 +56,7 @@ namespace Modules.UserInput.Systems
                     return;
             }
 
-            if (!_world.HasWorldComponent<TerrainViewConfigComponent>())
+            if (!_storages.World.HasWorldComponent<TerrainViewConfigComponent>())
                 return;
 
             if (!_clickAction.WasPressedThisFrame())
@@ -65,14 +65,14 @@ namespace Modules.UserInput.Systems
             if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
                 return;
 
-            if (!_world.HasWorldComponent<CameraComponent>())
+            if (!_storages.World.HasWorldComponent<CameraComponent>())
                 return;
 
-            var camera = _world.GetWorldComponent<CameraComponent>().Camera;
+            var camera = _storages.World.GetWorldComponent<CameraComponent>().Camera;
             if (camera == null)
                 return;
 
-            var cellSize = _world.GetWorldComponent<TerrainViewConfigComponent>().CellSize;
+            var cellSize = _storages.World.GetWorldComponent<TerrainViewConfigComponent>().CellSize;
             if (cellSize <= 0f)
                 return;
 
@@ -120,7 +120,7 @@ namespace Modules.UserInput.Systems
         /// </summary>
         private void RaiseSelectionChanged()
         {
-            _world.CreateEvent(new SelectedHexChangedEvent());
+            _storages.World.CreateEvent(new SelectedHexChangedEvent());
         }
 
         /// <summary>

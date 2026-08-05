@@ -3,7 +3,6 @@ using Cysharp.Threading.Tasks;
 using Domains.Economy.DistrictBuildOutcome.Components;
 using Domains.Economy.DistrictBuildOutcome.Configs;
 using EcsExtensions;
-using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using System.Threading;
@@ -17,13 +16,15 @@ namespace Domains.Economy.DistrictBuildOutcome.Systems{
     [UsedImplicitly]
     internal sealed class DistrictBuildOutcomesConfigLoaderSystem : ConfigLoaderSystem
     {
+        private readonly EntityStorages _storages;
         private const string DISTRICT_BUILD_OUTCOMES_CONFIG = "BuildDistrictOutcomesConfig";
 
         private Box<DistrictBuildOutcomesConfig> _config = Box<DistrictBuildOutcomesConfig>.Empty();
 
-        public DistrictBuildOutcomesConfigLoaderSystem(IAddressable addressable, EntityStore world)
-            : base(addressable, world)
+        public DistrictBuildOutcomesConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
+            : base(addressable, storages.World)
         {
+            _storages = storages;
         }
 
         protected override async UniTask LoadConfigsAsync(CancellationToken cancellationToken)
@@ -39,7 +40,7 @@ namespace Domains.Economy.DistrictBuildOutcome.Systems{
             ValidateConfig(box.Value);
 
             _config = box;
-            World.SetWorldComponent(new DistrictBuildOutcomesConfigComponent(box.Value));
+            _storages.World.SetWorldComponent(new DistrictBuildOutcomesConfigComponent(box.Value));
             MarkAsLoaded();
         }
 

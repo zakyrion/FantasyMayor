@@ -25,7 +25,7 @@ namespace Presentation.Terrain.Systems
 
         private readonly Archetype _selectedHexSet;
         private readonly Archetype _viewSet;
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
 
         private bool _hadSelection;
         private HexSelectedComponent _lastSelection;
@@ -34,12 +34,12 @@ namespace Presentation.Terrain.Systems
         /// <inheritdoc />
         public override int Priority => SystemPriorities.RuntimeTick.HexSelectionView;
 
-        public HexSelectionViewSystem(EntityStore world)
-            : base(world, EventArchetypes.Of<SelectedHexChangedEvent>(world))
+        public HexSelectionViewSystem(EntityStorages storages)
+            : base(storages.World, EventArchetypes.Of<SelectedHexChangedEvent>(storages.World))
         {
-            _world = world;
-            _viewSet = PresentationArchetypes.HexSelectionView(world);
-            _selectedHexSet = PresentationArchetypes.HexSelection(world);
+            _storages = storages;
+            _viewSet = PresentationArchetypes.HexSelectionView(storages.World);
+            _selectedHexSet = PresentationArchetypes.HexSelection(storages.World);
         }
 
         /// <inheritdoc />
@@ -69,7 +69,7 @@ namespace Presentation.Terrain.Systems
                 return;
             }
 
-            if (!_world.HasWorldComponent<VertexGridComponent>())
+            if (!_storages.World.HasWorldComponent<VertexGridComponent>())
                 throw new InvalidOperationException("HexSelectionViewSystem: VertexGridComponent world component is missing.");
 
             var selected = selectedEntity.GetComponent<HexSelectedComponent>();
@@ -78,7 +78,7 @@ namespace Presentation.Terrain.Systems
                 return;
             }
 
-            VertexGrid vertexGrid = _world.GetWorldComponent<VertexGridComponent>().Grid;
+            VertexGrid vertexGrid = _storages.World.GetWorldComponent<VertexGridComponent>().Grid;
             ComputeSelectionRings(selected.Coords, vertexGrid, out var outerRing, out var innerRing);
 
             view.ShowSelectionBorder(outerRing, innerRing);

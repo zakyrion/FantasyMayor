@@ -15,15 +15,15 @@ namespace EcsExtensions
     public sealed class EventCleanupSystem : IUpdatedSystem
     {
         private readonly ArchetypeQuery _events;
-        private readonly EntityStore _store;
+        private readonly EntityStorages _storages;
 
         /// <inheritdoc />
         public int Priority => SystemPriorities.RuntimeTick.EventCleanup;
 
-        public EventCleanupSystem(EntityStore store)
+        public EventCleanupSystem(EntityStorages storages)
         {
-            _store = store;
-            _events = store.Query().AllTags(Tags.Get<EventTag>());
+            _storages = storages;
+            _events = storages.World.Query().AllTags(Tags.Get<EventTag>());
         }
 
         /// <inheritdoc />
@@ -36,7 +36,7 @@ namespace EcsExtensions
                     ripeIds.Add(entity.Id);
 
             for (var i = 0; i < ripeIds.Length; i++)
-                if (_store.TryGetEntityById(ripeIds[i], out var entity))
+                if (_storages.World.TryGetEntityById(ripeIds[i], out var entity))
                     entity.DeleteEntity();
 
             ripeIds.Dispose();

@@ -25,7 +25,7 @@ namespace Presentation.HexResources.Systems
     [UsedImplicitly]
     internal sealed class ClayHexResourceViewSubSystem : HexResourcesViewSubSystem
     {
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
         private readonly Archetype _hexSet;
         private readonly ClayGroundPainter _painter = new();
 
@@ -35,12 +35,12 @@ namespace Presentation.HexResources.Systems
         public override int Priority => SystemPriorities.SubSystems.HexResourceView.Clay;
         protected override HexResourceType TargetHexResourceType => HexResourceType.Clay;
 
-        public ClayHexResourceViewSubSystem(EntityStore world)
-            : base(world)
+        public ClayHexResourceViewSubSystem(EntityStorages storages)
+            : base(storages.World)
         {
-            _world = world;
-            _terrainViewSet = PresentationArchetypes.TerrainView(world);
-            _hexSet = MapArchetypes.Hex(world);
+            _storages = storages;
+            _terrainViewSet = PresentationArchetypes.TerrainView(storages.World);
+            _hexSet = MapArchetypes.Hex(storages.World);
         }
 
         public override void Update(GameState state)
@@ -49,18 +49,18 @@ namespace Presentation.HexResources.Systems
             if (clayEntities.Length == 0)
                 return;
 
-            if (!TryGetVertexGrid(out var grid) || !_world.HasWorldComponent<ClayViewConfigComponent>())
+            if (!TryGetVertexGrid(out var grid) || !_storages.World.HasWorldComponent<ClayViewConfigComponent>())
                 return;
 
-            if (!_world.HasWorldComponent<TerrainViewConfigComponent>() || !_world.HasWorldComponent<TerrainTextureComponent>() || _terrainViewSet.Count == 0)
+            if (!_storages.World.HasWorldComponent<TerrainViewConfigComponent>() || !_storages.World.HasWorldComponent<TerrainTextureComponent>() || _terrainViewSet.Count == 0)
             {
                 Debug.LogWarning("[ClayHexResourceViewSubSystem] Missing terrain config, texture, or view — clay skipped.");
                 return;
             }
 
-            var clayConfig = _world.GetWorldComponent<ClayViewConfigComponent>();
-            var cellSize = _world.GetWorldComponent<TerrainViewConfigComponent>().CellSize;
-            var texture = _world.GetWorldComponent<TerrainTextureComponent>().Texture;
+            var clayConfig = _storages.World.GetWorldComponent<ClayViewConfigComponent>();
+            var cellSize = _storages.World.GetWorldComponent<TerrainViewConfigComponent>().CellSize;
+            var texture = _storages.World.GetWorldComponent<TerrainTextureComponent>().Texture;
             _terrainViewSet.TryGetFirst(out var terrainViewEntity);
             var terrainView = terrainViewEntity.GetComponent<TerrainViewComponent>().ObjectRef;
 

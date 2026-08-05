@@ -17,14 +17,14 @@ namespace Presentation.UI.MainHud.ContextTabs.Systems
     [UsedImplicitly]
     public sealed class ContextTabSelectionSystem : UpdatedSystem
     {
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
 
         public override int Priority => SystemPriorities.RuntimeTick.ContextTabSelection;
 
-        public ContextTabSelectionSystem(EntityStore world)
-            : base(world, EventArchetypes.Of<ContextTabChangedEvent>(world))
+        public ContextTabSelectionSystem(EntityStorages storages)
+            : base(storages.World, EventArchetypes.Of<ContextTabChangedEvent>(storages.World))
         {
-            _world = world;
+            _storages = storages;
         }
 
         protected override void Update(GameState state, in Entity entity)
@@ -32,19 +32,19 @@ namespace Presentation.UI.MainHud.ContextTabs.Systems
             if (!EcsEventExtensions.IsRipe(entity))
                 return;
 
-            if (!_world.HasWorldComponent<ContextTabsViewComponent>())
+            if (!_storages.World.HasWorldComponent<ContextTabsViewComponent>())
                 return;
 
-            if (!_world.HasWorldComponent<ActiveContextTabComponent>())
+            if (!_storages.World.HasWorldComponent<ActiveContextTabComponent>())
                 throw new InvalidOperationException(
                     "ContextTabSelectionSystem: ActiveContextTabComponent is missing — it must be seeded on spawn.");
 
-            var active = _world.GetWorldComponent<ActiveContextTabComponent>().Value;
+            var active = _storages.World.GetWorldComponent<ActiveContextTabComponent>().Value;
             if (active == ContextTab.Unknown)
                 throw new InvalidOperationException(
                     "ContextTabSelectionSystem: active tab is Unknown — the view must record a real tab.");
 
-            var view = _world.GetWorldComponent<ContextTabsViewComponent>().View;
+            var view = _storages.World.GetWorldComponent<ContextTabsViewComponent>().View;
             if (view == null)
                 return;
 

@@ -5,7 +5,6 @@ using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
 using EcsExtensions;
-using Friflo.Engine.ECS;
 using Domains.Economy.DistrictOpenCondition.Components;
 using Domains.Economy.DistrictOpenCondition.Configs;
 using JetBrains.Annotations;
@@ -20,7 +19,7 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
     [UsedImplicitly]
     internal sealed class DistrictOpenConditionSpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
 
         [StateAllowed]
         private readonly IReadOnlyList<DistrictOpenConditionSpawnSubSystem> _subSystems;
@@ -28,9 +27,9 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
         public int Priority => SystemPriorities.WorldInit.DistrictOpenConditionSpawn;
 
         public DistrictOpenConditionSpawnSystem(
-            EntityStore world, IReadOnlyList<DistrictOpenConditionSpawnSubSystem> subSystems)
+            EntityStorages storages, IReadOnlyList<DistrictOpenConditionSpawnSubSystem> subSystems)
         {
-            _world = world;
+            _storages = storages;
             _subSystems = subSystems
                 .OrderBy(system => system.Priority)
                 .ToArray();
@@ -38,14 +37,14 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
 
         public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
         {
-            if (!_world.HasWorldComponent<DistrictOpenConditionsConfigComponent>())
+            if (!_storages.World.HasWorldComponent<DistrictOpenConditionsConfigComponent>())
                 throw new InvalidOperationException(
                     "DistrictOpenConditionSpawnSystem: DistrictOpenConditionsConfigComponent is missing.");
 
             if (cancellationToken.IsCancellationRequested)
                 return UniTask.CompletedTask;
 
-            var conditions = _world.GetWorldComponent<DistrictOpenConditionsConfigComponent>().Value.Conditions;
+            var conditions = _storages.World.GetWorldComponent<DistrictOpenConditionsConfigComponent>().Value.Conditions;
 
             for (var index = 0; index < conditions.Length; index++)
             {

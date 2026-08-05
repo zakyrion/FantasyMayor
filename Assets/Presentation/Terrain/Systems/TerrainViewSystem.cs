@@ -34,7 +34,7 @@ namespace Presentation.Terrain.Systems
         private readonly IAddressable _addressable;
         private readonly Archetype _hexSet;
         private readonly IReadOnlyList<ViewSubSystem> _viewSubSystems;
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
         private readonly Archetype _terrainViewArchetype;
 
         private Box<Views.TerrainView> _terrainViewBox;
@@ -43,16 +43,16 @@ namespace Presentation.Terrain.Systems
         /// <inheritdoc />
         public int Priority => SystemPriorities.WorldInit.TerrainView;
 
-        /// <param name="world">The ECS world used for entity creation.</param>
+        /// <param name="storages">Named ECS storages used for game-world entity creation.</param>
         /// <param name="addressable">Addressable loader used to load and instantiate the TerrainView prefab.</param>
         /// <param name="viewSubSystems">View subsystems executed after mesh generation, ordered by priority.</param>
-        public TerrainViewSystem(EntityStore world, IAddressable addressable, IReadOnlyList<ViewSubSystem> viewSubSystems)
+        public TerrainViewSystem(EntityStorages storages, IAddressable addressable, IReadOnlyList<ViewSubSystem> viewSubSystems)
         {
-            _world = world;
+            _storages = storages;
             _addressable = addressable;
             _terrainViewBox = Box<Views.TerrainView>.Empty();
-            _hexSet = MapArchetypes.Hex(world);
-            _terrainViewArchetype = PresentationArchetypes.TerrainView(world);
+            _hexSet = MapArchetypes.Hex(storages.World);
+            _terrainViewArchetype = PresentationArchetypes.TerrainView(storages.World);
             _viewSubSystems = viewSubSystems
                 .OrderBy(s => s.Priority)
                 .ToArray();
@@ -130,13 +130,13 @@ namespace Presentation.Terrain.Systems
             _terrainViewBox = result.Box;
             var terrainView = _terrainViewBox.Value;
 
-            if (!_world.HasWorldComponent<TerrainViewConfigComponent>())
+            if (!_storages.World.HasWorldComponent<TerrainViewConfigComponent>())
             {
                 Debug.LogError("[TerrainViewSystem] TerrainViewConfigComponent is missing.");
                 return;
             }
 
-            var config = _world.GetWorldComponent<TerrainViewConfigComponent>();
+            var config = _storages.World.GetWorldComponent<TerrainViewConfigComponent>();
 
             var hexCoords = CollectHexCoords();
             try
@@ -158,10 +158,10 @@ namespace Presentation.Terrain.Systems
 
             ApplyGeneratedTexture(terrainView);
 
-            if (!_world.HasWorldComponent<VertexGridComponent>())
+            if (!_storages.World.HasWorldComponent<VertexGridComponent>())
                 throw new InvalidOperationException("TerrainViewSystem: VertexGridComponent world component is missing.");
 
-            var vertexGrid = _world.GetWorldComponent<VertexGridComponent>().Grid;
+            var vertexGrid = _storages.World.GetWorldComponent<VertexGridComponent>().Grid;
             terrainView.ApplyHeightsFromVertexGrid(vertexGrid);
 
             DestroyTerrainViewEntity();
@@ -180,10 +180,10 @@ namespace Presentation.Terrain.Systems
         /// <param name="terrainView">Target terrain view that receives the texture.</param>
         private void ApplyGeneratedTexture(Views.TerrainView terrainView)
         {
-            if (!_world.HasWorldComponent<TerrainTextureComponent>())
+            if (!_storages.World.HasWorldComponent<TerrainTextureComponent>())
                 return;
 
-            var texture = _world.GetWorldComponent<TerrainTextureComponent>().Texture;
+            var texture = _storages.World.GetWorldComponent<TerrainTextureComponent>().Texture;
             terrainView.ApplyTexture(texture);
         }
 

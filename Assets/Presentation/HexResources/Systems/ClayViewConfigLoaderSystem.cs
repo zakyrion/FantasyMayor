@@ -2,7 +2,6 @@ using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
 using EcsExtensions;
-using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using Presentation.HexResources.Components;
@@ -13,11 +12,13 @@ namespace Presentation.HexResources.Systems
     [UsedImplicitly]
     internal sealed class ClayViewConfigLoaderSystem : ConfigLoaderSystem
     {
+        private readonly EntityStorages _storages;
         private const string CLAY_VIEW_CONFIG = "ClayViewConfig";
 
-        public ClayViewConfigLoaderSystem(IAddressable addressable, EntityStore world)
-            : base(addressable, world)
+        public ClayViewConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
+            : base(addressable, storages.World)
         {
+            _storages = storages;
         }
 
         protected override async UniTask LoadConfigsAsync(CancellationToken cancellationToken)
@@ -31,7 +32,7 @@ namespace Presentation.HexResources.Systems
                     return;
 
                 // Flattened component owns its data — the ScriptableObject is not retained past load.
-                World.SetWorldComponent(ClayViewConfigComponent.FromConfig(loadedConfig.Value));
+                _storages.World.SetWorldComponent(ClayViewConfigComponent.FromConfig(loadedConfig.Value));
                 MarkAsLoaded();
             }
             finally

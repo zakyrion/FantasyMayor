@@ -18,15 +18,15 @@ namespace Presentation.UI.MainHud.ResourceBar.Systems
     [UsedImplicitly]
     internal sealed class ResourceBarSpawnSubSystem : MainHudSpawnSubSystem
     {
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
         private readonly Archetype _archetype;
 
         public override int Priority => SystemPriorities.SubSystems.MainHudSpawn.ResourceBar;
 
-        public ResourceBarSpawnSubSystem(EntityStore world)
+        public ResourceBarSpawnSubSystem(EntityStorages storages)
         {
-            _world = world;
-            _archetype = PresentationUIArchetypes.ResourceBar(world);
+            _storages = storages;
+            _archetype = PresentationUIArchetypes.ResourceBar(storages.World);
         }
 
         public override void Prepare(GameObject mainUi)
@@ -36,12 +36,12 @@ namespace Presentation.UI.MainHud.ResourceBar.Systems
                 throw new InvalidOperationException(
                     "ResourceBarSpawnSubSystem: ResourceBarView is missing from the Main UI prefab.");
 
-            if (!_world.HasWorldComponent<InventoryResourceIconConfigComponent>())
+            if (!_storages.World.HasWorldComponent<InventoryResourceIconConfigComponent>())
                 throw new InvalidOperationException(
                     "ResourceBarSpawnSubSystem: InventoryResourceIconConfigComponent missing — " +
                     "InventoryResourceIconConfigLoaderSystem must run at ConfigLoadStep first.");
 
-            view.Build(_world.GetWorldComponent<InventoryResourceIconConfigComponent>().Value.Entries);
+            view.Build(_storages.World.GetWorldComponent<InventoryResourceIconConfigComponent>().Value.Entries);
             view.Hide();
 
             var entity = _archetype.CreateEntity();

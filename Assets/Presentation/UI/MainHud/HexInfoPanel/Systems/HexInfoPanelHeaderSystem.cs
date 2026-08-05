@@ -25,20 +25,20 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
     [UsedImplicitly]
     public sealed class HexInfoPanelHeaderSystem : UpdatedSystem
     {
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
         private readonly Archetype _viewSet;
         private readonly Archetype _selectedHexSet;
         private readonly Archetype _hexSet;
 
         public override int Priority => SystemPriorities.RuntimeTick.HexInfoPanelHeader;
 
-        public HexInfoPanelHeaderSystem(EntityStore world)
-            : base(world, EventArchetypes.Of<SelectedHexChangedEvent>(world))
+        public HexInfoPanelHeaderSystem(EntityStorages storages)
+            : base(storages.World, EventArchetypes.Of<SelectedHexChangedEvent>(storages.World))
         {
-            _world = world;
-            _viewSet = PresentationUIArchetypes.HexInfoPanel(world);
-            _selectedHexSet = PresentationArchetypes.HexSelection(world);
-            _hexSet = MapArchetypes.Hex(world);
+            _storages = storages;
+            _viewSet = PresentationUIArchetypes.HexInfoPanel(storages.World);
+            _selectedHexSet = PresentationArchetypes.HexSelection(storages.World);
+            _hexSet = MapArchetypes.Hex(storages.World);
         }
 
         protected override void Update(GameState state, in Entity entity)
@@ -49,7 +49,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
             if (!_viewSet.TryGetFirst(out var viewEntity) || !_selectedHexSet.TryGetFirst(out var selectedHexEntity))
                 return;
 
-            if (!_world.HasWorldComponent<HexTerrainIconConfigComponent>())
+            if (!_storages.World.HasWorldComponent<HexTerrainIconConfigComponent>())
                 throw new InvalidOperationException(
                     "HexInfoPanelHeaderSystem: HexTerrainIconConfigComponent is missing.");
 
@@ -63,7 +63,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
             if (!TryGetHexTerrainType(coords, out var terrainType))
                 return;
 
-            var config = _world.GetWorldComponent<HexTerrainIconConfigComponent>().Value;
+            var config = _storages.World.GetWorldComponent<HexTerrainIconConfigComponent>().Value;
             if (!TryGetTerrainEntry(config, terrainType, out var sprite, out var displayName))
             {
                 // No authored entry yet — the out values already carry the fallback (enum name + null icon,

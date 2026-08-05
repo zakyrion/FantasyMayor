@@ -29,7 +29,7 @@ namespace Modules.UserInput.Systems
 
         private readonly Archetype _hexArchetype;
         private readonly Archetype _playerInputArchetype;
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
 
         private Rect _bounds;
         private bool _boundsValid;
@@ -45,15 +45,15 @@ namespace Modules.UserInput.Systems
         /// <inheritdoc />
         public override int Priority => SystemPriorities.RuntimeTick.Camera;
 
-        /// <param name="world">The ECS world used to build the entity set.</param>
-        public CameraMovementSystem(EntityStore world)
+        /// <param name="storages">Named ECS storages used to build the game-world entity set.</param>
+        public CameraMovementSystem(EntityStorages storages)
             // Anchored on the single PlayerInputComponent entity so Update ticks once per frame;
-            // the camera itself is a world component (CameraComponent), read via world.Get below.
-            : base(world, UserInputArchetypes.PlayerInput(world))
+            // the camera itself is a world component (CameraComponent), read via storages.World below.
+            : base(storages.World, UserInputArchetypes.PlayerInput(storages.World))
         {
-            _world = world;
-            _playerInputArchetype = UserInputArchetypes.PlayerInput(world);
-            _hexArchetype = MapArchetypes.Hex(world);
+            _storages = storages;
+            _playerInputArchetype = UserInputArchetypes.PlayerInput(storages.World);
+            _hexArchetype = MapArchetypes.Hex(storages.World);
 
             TryBindInputActions();
         }
@@ -67,14 +67,14 @@ namespace Modules.UserInput.Systems
                     return;
             }
 
-            if (!_world.HasWorldComponent<CameraMovementConfigComponent>() || !_world.HasWorldComponent<CameraComponent>())
+            if (!_storages.World.HasWorldComponent<CameraMovementConfigComponent>() || !_storages.World.HasWorldComponent<CameraComponent>())
                 return;
 
-            var camera = _world.GetWorldComponent<CameraComponent>().Camera;
+            var camera = _storages.World.GetWorldComponent<CameraComponent>().Camera;
             if (camera == null)
                 return;
 
-            var config = _world.GetWorldComponent<CameraMovementConfigComponent>();
+            var config = _storages.World.GetWorldComponent<CameraMovementConfigComponent>();
             var cameraTransform = camera.transform;
 
             MoveCamera(cameraTransform, config, state.DeltaTime);
@@ -89,10 +89,10 @@ namespace Modules.UserInput.Systems
         /// <returns><c>true</c> when bounds were successfully computed and cached.</returns>
         private bool TryComputeBounds()
         {
-            if (!_world.HasWorldComponent<TerrainViewConfigComponent>() || _hexArchetype.Count == 0)
+            if (!_storages.World.HasWorldComponent<TerrainViewConfigComponent>() || _hexArchetype.Count == 0)
                 return false;
 
-            var cellSize = _world.GetWorldComponent<TerrainViewConfigComponent>().CellSize;
+            var cellSize = _storages.World.GetWorldComponent<TerrainViewConfigComponent>().CellSize;
 
             var minX = float.MaxValue;
             var maxX = float.MinValue;

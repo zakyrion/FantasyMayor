@@ -31,13 +31,13 @@ namespace Presentation.UI.MainHud.ResourceBar.Systems
 
         public override int Priority => SystemPriorities.RuntimeTick.ResourceBar;
 
-        public ResourceBarSystem(EntityStore world)
-            : base(world, PresentationUIArchetypes.ResourceBar(world))
+        public ResourceBarSystem(EntityStorages storages)
+            : base(storages.World, PresentationUIArchetypes.ResourceBar(storages.World))
         {
-            _mayorActor = ActorsArchetypes.Mayor(world);
-            _cityActor = ActorsArchetypes.City(world);
-            _cityResources = world.ComponentIndex<CityIdFKComponent, int>();
-            _mayorResources = world.ComponentIndex<MayorIdFKComponent, int>();
+            _mayorActor = ActorsArchetypes.Mayor(storages.World);
+            _cityActor = ActorsArchetypes.City(storages.World);
+            _cityResources = storages.World.ComponentIndex<CityIdFKComponent, int>();
+            _mayorResources = storages.World.ComponentIndex<MayorIdFKComponent, int>();
         }
 
         protected override void Update(GameState state, in Entity entity)

@@ -2,7 +2,6 @@ using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
 using EcsExtensions;
-using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using Domains.Map.Hex.Utils;
@@ -15,6 +14,7 @@ namespace Presentation.Terrain.Systems
     [UsedImplicitly]
     public class TerrainViewConfigLoaderSystem : ConfigLoaderSystem
     {
+        private readonly EntityStorages _storages;
         private const string HEIGHT_SMOOTH_CONFIG = "HeightSmoothingConfig";
         private const string HYDRAULIC_EROSION_CONFIG = "HydraulicErosionConfig";
         private const string INNER_ISOLINE_CONFIG = "InnerIsolineConfig";
@@ -24,9 +24,10 @@ namespace Presentation.Terrain.Systems
         private const string WATER_VIEW_CONFIG = "WaterViewConfig";
         private const string WIND_EROSION_CONFIG = "WindErosionConfig";
 
-        public TerrainViewConfigLoaderSystem(IAddressable addressable, EntityStore world)
-            : base(addressable, world)
+        public TerrainViewConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
+            : base(addressable, storages.World)
         {
+            _storages = storages;
         }
 
         protected override async UniTask LoadConfigsAsync(CancellationToken cancellationToken)
@@ -56,19 +57,19 @@ namespace Presentation.Terrain.Systems
                 if (cancellationToken.IsCancellationRequested)
                     return;
 
-                World.SetWorldComponent(InnerIsolineConfigComponent.FromConfig(innerIsolineConfig.Value));
-                World.SetWorldComponent(OuterIsolineConfigComponent.FromConfig(outerIsolineConfig.Value));
-                World.SetWorldComponent(HeightSmoothingConfigComponent.FromConfig(heightSmoothingConfig.Value));
-                World.SetWorldComponent(WindErosionConfigComponent.FromConfig(windErosionConfig.Value));
-                World.SetWorldComponent(HydraulicErosionConfigComponent.FromConfig(hydraulicErosionConfig.Value));
-                World.SetWorldComponent(TerrainViewConfigComponent.FromConfig(terrainViewConfig.Value));
-                World.SetWorldComponent(TerrainTextureConfigComponent.FromConfig(terrainTextureConfig.Value));
-                World.SetWorldComponent(WaterViewConfigComponent.FromConfig(waterViewConfig.Value));
+                _storages.World.SetWorldComponent(InnerIsolineConfigComponent.FromConfig(innerIsolineConfig.Value));
+                _storages.World.SetWorldComponent(OuterIsolineConfigComponent.FromConfig(outerIsolineConfig.Value));
+                _storages.World.SetWorldComponent(HeightSmoothingConfigComponent.FromConfig(heightSmoothingConfig.Value));
+                _storages.World.SetWorldComponent(WindErosionConfigComponent.FromConfig(windErosionConfig.Value));
+                _storages.World.SetWorldComponent(HydraulicErosionConfigComponent.FromConfig(hydraulicErosionConfig.Value));
+                _storages.World.SetWorldComponent(TerrainViewConfigComponent.FromConfig(terrainViewConfig.Value));
+                _storages.World.SetWorldComponent(TerrainTextureConfigComponent.FromConfig(terrainTextureConfig.Value));
+                _storages.World.SetWorldComponent(WaterViewConfigComponent.FromConfig(waterViewConfig.Value));
 
                 var vertexGrid = new VertexGrid(
                     terrainViewConfig.Value.CellSize,
                     terrainViewConfig.Value.Subdivisions);
-                World.SetWorldComponent(new VertexGridComponent { Grid = vertexGrid });
+                _storages.World.SetWorldComponent(new VertexGridComponent { Grid = vertexGrid });
 
                 MarkAsLoaded();
             }

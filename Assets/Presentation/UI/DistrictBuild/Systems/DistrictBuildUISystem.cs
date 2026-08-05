@@ -31,7 +31,7 @@ namespace Presentation.UI.DistrictBuild.Systems
     [UsedImplicitly]
     public sealed class DistrictBuildUISystem : UpdatedSystem, IDisposable
     {
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
 
         // DI-collected section populators. Ordered once; fixed composition, not per-frame state — hence
         // [StateAllowed] (mirrors DistrictOpenConditionSpawnSystem).
@@ -47,10 +47,10 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public override int Priority => SystemPriorities.RuntimeTick.DistrictBuildUi;
 
-        public DistrictBuildUISystem(EntityStore world, IReadOnlyList<DistrictBuildUISubSystem> subSystems)
-            : base(world, PresentationUIArchetypes.DistrictBuildUI(world))
+        public DistrictBuildUISystem(EntityStorages storages, IReadOnlyList<DistrictBuildUISubSystem> subSystems)
+            : base(storages.World, PresentationUIArchetypes.DistrictBuildUI(storages.World))
         {
-            _world = world;
+            _storages = storages;
             _subSystems = subSystems
                 .OrderBy(system => system.Priority)
                 .ToArray();
@@ -60,9 +60,9 @@ namespace Presentation.UI.DistrictBuild.Systems
             for (var i = 0; i < _subSystems.Count; i++)
                 _subSystems[i].Repopulate = PopulateSections;
 
-            _requestedSet = EventArchetypes.Of<DistrictBuildUIRequestedEvent>(world);
-            _selectedHexSet = PresentationArchetypes.HexSelection(world);
-            _selectionArchetype = PresentationUIArchetypes.DistrictBuildSelection(world);
+            _requestedSet = EventArchetypes.Of<DistrictBuildUIRequestedEvent>(storages.World);
+            _selectedHexSet = PresentationArchetypes.HexSelection(storages.World);
+            _selectionArchetype = PresentationUIArchetypes.DistrictBuildSelection(storages.World);
         }
 
         protected override void Update(GameState state, in Entity entity)
@@ -109,7 +109,7 @@ namespace Presentation.UI.DistrictBuild.Systems
             var (coords, type) = ReadSelection();
             var payer = ReadPayer();
 
-            _world.CreateEvent(new DistrictBuildConfirmedEvent { Coords = coords, Type = type, Payer = payer });
+            _storages.World.CreateEvent(new DistrictBuildConfirmedEvent { Coords = coords, Type = type, Payer = payer });
 
             _view.Hide();
             DestroySelection();
@@ -143,10 +143,10 @@ namespace Presentation.UI.DistrictBuild.Systems
         // spends the payer's stockpile from it (R2).
         private ActorType ReadPayer()
         {
-            if (!_world.HasWorldComponent<DistrictBuildPriceUIViewComponent>())
+            if (!_storages.World.HasWorldComponent<DistrictBuildPriceUIViewComponent>())
                 throw new InvalidOperationException("DistrictBuildUISystem: confirm with no price section view.");
 
-            var payer = _world.GetWorldComponent<DistrictBuildPriceUIViewComponent>().View.SelectedOwner;
+            var payer = _storages.World.GetWorldComponent<DistrictBuildPriceUIViewComponent>().View.SelectedOwner;
             if (payer == ActorType.Unknown)
                 throw new InvalidOperationException("DistrictBuildUISystem: confirm with no selected payer.");
 
@@ -186,7 +186,7 @@ namespace Presentation.UI.DistrictBuild.Systems
         // sequences them by Priority and hands over the overlay root.
         private void PopulateSections()
         {
-            var root = _world.GetWorldComponent<DistrictBuildUIRootComponent>().RootBox.Value;
+            var root = _storages.World.GetWorldComponent<DistrictBuildUIRootComponent>().RootBox.Value;
 
             for (var i = 0; i < _subSystems.Count; i++)
                 if (_subSystems[i].IsEnabled)

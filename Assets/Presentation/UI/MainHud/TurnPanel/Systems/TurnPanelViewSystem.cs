@@ -30,15 +30,15 @@ namespace Presentation.UI.MainHud.TurnPanel.Systems
         // live AP and the per-turn restore rule.
         private readonly Archetype _mayors;
 
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
 
         public override int Priority => SystemPriorities.RuntimeTick.TurnPanelView;
 
-        public TurnPanelViewSystem(EntityStore world)
-            : base(world, PresentationUIArchetypes.TurnPanel(world))
+        public TurnPanelViewSystem(EntityStorages storages)
+            : base(storages.World, PresentationUIArchetypes.TurnPanel(storages.World))
         {
-            _world = world;
-            _mayors = ActorsArchetypes.Mayor(world);
+            _storages = storages;
+            _mayors = ActorsArchetypes.Mayor(storages.World);
         }
 
         protected override void Update(GameState state, in Entity entity)
@@ -47,13 +47,13 @@ namespace Presentation.UI.MainHud.TurnPanel.Systems
             if (view == null)
                 return;
 
-            if (!_world.HasWorldComponent<TurnCountComponent>())
+            if (!_storages.World.HasWorldComponent<TurnCountComponent>())
                 throw new InvalidOperationException(
                     "TurnPanelViewSystem: TurnCountComponent is missing — it must be seeded on Gameplay enter.");
 
             view.Show();
-            view.SetProcessing(_world.GetWorldComponent<TurnProcessorComponent>().Status == TurnProcessorStatus.Running);
-            view.SetTurnNumber(_world.GetWorldComponent<TurnCountComponent>().Value);
+            view.SetProcessing(_storages.World.GetWorldComponent<TurnProcessorComponent>().Status == TurnProcessorStatus.Running);
+            view.SetTurnNumber(_storages.World.GetWorldComponent<TurnCountComponent>().Value);
 
             PushActionPoints(view);
         }

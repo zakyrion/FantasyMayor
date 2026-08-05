@@ -25,7 +25,7 @@ namespace Domains.Map.Generation.Systems
         private const float NeighbourWeight = 3f;
         private const float NoiseAmplitude = 0.35f;
 
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
         private readonly Archetype _hexSet;
 
         /// <inheritdoc />
@@ -34,11 +34,11 @@ namespace Domains.Map.Generation.Systems
         /// <summary>
         ///     Creates a lake generation system bound to the shared ECS world.
         /// </summary>
-        /// <param name="world">World used to query terrain config, lake config, and generated hexes.</param>
-        public LakeGenerationSubSystem(EntityStore world)
+        /// <param name="storages">Named ECS storages used to query terrain config, lake config, and generated hexes.</param>
+        public LakeGenerationSubSystem(EntityStorages storages)
         {
-            _world = world;
-            _hexSet = MapArchetypes.Hex(world);
+            _storages = storages;
+            _hexSet = MapArchetypes.Hex(storages.World);
         }
 
         /// <summary>
@@ -47,15 +47,15 @@ namespace Domains.Map.Generation.Systems
         /// <param name="state">Current game state.</param>
         public override void Update(GameState state)
         {
-            if (!_world.HasWorldComponent<TerrainGenerationConfigComponent>() || !_world.HasWorldComponent<LakeConfigComponent>())
+            if (!_storages.World.HasWorldComponent<TerrainGenerationConfigComponent>() || !_storages.World.HasWorldComponent<LakeConfigComponent>())
                 return;
 
-            var terrainConfig = _world.GetWorldComponent<TerrainGenerationConfigComponent>();
+            var terrainConfig = _storages.World.GetWorldComponent<TerrainGenerationConfigComponent>();
 
             if (terrainConfig.WaterType != WaterType.Lake)
                 return;
 
-            var config = _world.GetWorldComponent<LakeConfigComponent>();
+            var config = _storages.World.GetWorldComponent<LakeConfigComponent>();
 
             Generate(in terrainConfig, in config);
         }
@@ -82,7 +82,7 @@ namespace Domains.Map.Generation.Systems
 
                 for (var i = 0; i < levelById.Length; i++)
                 {
-                    _world.TryGetEntityById(levelById[i].x, out var entity);
+                    _storages.World.TryGetEntityById(levelById[i].x, out var entity);
                     entity.AddComponent(new HexLevelComponent { Level = levelById[i].y });
                 }
             }
@@ -148,7 +148,7 @@ namespace Domains.Map.Generation.Systems
 
                 for (var i = 0; i < ids.Length; i++)
                 {
-                    _world.TryGetEntityById(ids[i], out var entity);
+                    _storages.World.TryGetEntityById(ids[i], out var entity);
                     entity.AddComponent(new HexLevelComponent { Level = 0 });
                 }
             }

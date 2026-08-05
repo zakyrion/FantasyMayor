@@ -37,33 +37,33 @@ namespace Domains.Map.Generation.Systems
             }
         }
 
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
         private readonly Archetype _hexSet;
         private readonly IHexPathfindingUtility _pathfindingUtility;
 
         public override int Priority => SystemPriorities.SubSystems.Generation.River;
 
-        public RiverGenerationSubSystem(EntityStore world, IHexPathfindingUtility pathfindingUtility)
+        public RiverGenerationSubSystem(EntityStorages storages, IHexPathfindingUtility pathfindingUtility)
         {
             _pathfindingUtility = pathfindingUtility;
-            _world = world;
-            _hexSet = MapArchetypes.Hex(world);
+            _storages = storages;
+            _hexSet = MapArchetypes.Hex(storages.World);
         }
 
         public override void Update(EcsExtensions.GameState state)
         {
-            if (!_world.HasWorldComponent<TerrainGenerationConfigComponent>())
+            if (!_storages.World.HasWorldComponent<TerrainGenerationConfigComponent>())
                 return;
 
-            var config = _world.GetWorldComponent<TerrainGenerationConfigComponent>();
+            var config = _storages.World.GetWorldComponent<TerrainGenerationConfigComponent>();
 
             if (config.WaterType != WaterType.River)
                 return;
 
-            if (!_world.HasWorldComponent<RiverConfigComponent>())
+            if (!_storages.World.HasWorldComponent<RiverConfigComponent>())
                 return;
 
-            var riverConfig = _world.GetWorldComponent<RiverConfigComponent>();
+            var riverConfig = _storages.World.GetWorldComponent<RiverConfigComponent>();
 
             Generate(config.WaveCount, riverConfig.CornerOffsetTiles);
         }
@@ -208,7 +208,7 @@ namespace Domains.Map.Generation.Systems
                     if (!idByCoord.TryGetValue(coord, out var id))
                         continue;
 
-                    _world.TryGetEntityById(id, out var entity);
+                    _storages.World.TryGetEntityById(id, out var entity);
                     entity.AddComponent(new HexLevelComponent { Level = RiverLevel });
                 }
             }

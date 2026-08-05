@@ -18,15 +18,13 @@ namespace Presentation.UI.MainHud.TurnPanel.Systems
     [UsedImplicitly]
     internal sealed class TurnPanelSpawnSubSystem : MainHudSpawnSubSystem
     {
-        private readonly EntityStore _world;
         private readonly Archetype _archetype;
 
         public override int Priority => SystemPriorities.SubSystems.MainHudSpawn.TurnPanel;
 
-        public TurnPanelSpawnSubSystem(EntityStore world)
+        public TurnPanelSpawnSubSystem(EntityStorages storages)
         {
-            _world = world;
-            _archetype = PresentationUIArchetypes.TurnPanel(world);
+            _archetype = PresentationUIArchetypes.TurnPanel(storages.World);
         }
 
         public override void Prepare(GameObject mainUi)

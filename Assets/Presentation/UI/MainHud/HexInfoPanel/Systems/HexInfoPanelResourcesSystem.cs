@@ -29,7 +29,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
     [UsedImplicitly]
     public sealed class HexInfoPanelResourcesSystem : UpdatedSystem
     {
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
         private readonly Archetype _viewSet;
         private readonly Archetype _selectedHexSet;
         private readonly Archetype _resourceSet;
@@ -39,13 +39,13 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
 
         public override int Priority => SystemPriorities.RuntimeTick.HexInfoPanelResources;
 
-        public HexInfoPanelResourcesSystem(EntityStore world)
-            : base(world, EventArchetypes.Of<SelectedHexChangedEvent>(world))
+        public HexInfoPanelResourcesSystem(EntityStorages storages)
+            : base(storages.World, EventArchetypes.Of<SelectedHexChangedEvent>(storages.World))
         {
-            _world = world;
-            _viewSet = PresentationUIArchetypes.HexInfoPanel(world);
-            _selectedHexSet = PresentationArchetypes.HexSelection(world);
-            _resourceSet = MapArchetypes.HexResource(world);
+            _storages = storages;
+            _viewSet = PresentationUIArchetypes.HexInfoPanel(storages.World);
+            _selectedHexSet = PresentationArchetypes.HexSelection(storages.World);
+            _resourceSet = MapArchetypes.HexResource(storages.World);
         }
 
         protected override void Update(GameState state, in Entity entity)
@@ -66,12 +66,12 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
                 return;
             }
 
-            if (!_world.HasWorldComponent<HexResourceIconConfigComponent>())
+            if (!_storages.World.HasWorldComponent<HexResourceIconConfigComponent>())
                 throw new InvalidOperationException(
                     "HexInfoPanelResourcesSystem: HexResourceIconConfigComponent is missing.");
 
             var coords = selectedHexEntity.GetComponent<HexSelectedComponent>().Coords;
-            var entries = _world.GetWorldComponent<HexResourceIconConfigComponent>().Value.Entries;
+            var entries = _storages.World.GetWorldComponent<HexResourceIconConfigComponent>().Value.Entries;
 
             _chips.Clear();
             foreach (var resourceEntity in _resourceSet.Entities)

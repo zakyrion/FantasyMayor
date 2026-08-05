@@ -5,7 +5,6 @@ using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
 using EcsExtensions;
-using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using Modules.Boot.Core;
@@ -28,18 +27,18 @@ namespace Presentation.UI.MainHud.Systems
         private readonly IAddressable _addressable;
         private readonly IMainCanvasProvider _canvasProvider;
         private readonly IReadOnlyList<MainHudSpawnSubSystem> _subSystems;
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
 
         public int Priority => SystemPriorities.WorldInit.MainHudSpawn;
 
-        public MainHudSpawnSystem(EntityStore world,
+        public MainHudSpawnSystem(EntityStorages storages,
             IAddressable addressable,
             IMainCanvasProvider canvasProvider,
             IReadOnlyList<MainHudSpawnSubSystem> subSystems)
         {
             _addressable = addressable;
             _canvasProvider = canvasProvider;
-            _world = world;
+            _storages = storages;
             _subSystems = subSystems
                 .OrderBy(system => system.Priority)
                 .ToArray();
@@ -47,7 +46,7 @@ namespace Presentation.UI.MainHud.Systems
 
         public async UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
         {
-            if (_world.GetWorldComponent<MainHudComponent>().RootBox.Exist)
+            if (_storages.World.GetWorldComponent<MainHudComponent>().RootBox.Exist)
                 return;
 
             var canvas = _canvasProvider.RootGO;
@@ -69,7 +68,7 @@ namespace Presentation.UI.MainHud.Systems
                 throw new InvalidOperationException(
                     $"MainHudSpawnSystem: failed to load Main UI by address '{MainUIPath}'.");
 
-            _world.SetWorldComponent(new MainHudComponent
+            _storages.World.SetWorldComponent(new MainHudComponent
             {
                 RootBox = result.Box
             });
@@ -86,10 +85,10 @@ namespace Presentation.UI.MainHud.Systems
 
         public void Dispose()
         {
-            if (_world != null && _world.GetWorldComponent<MainHudComponent>().RootBox.Exist)
+            if (_storages != null && _storages.World.GetWorldComponent<MainHudComponent>().RootBox.Exist)
             {
-                _world.GetWorldComponent<MainHudComponent>().RootBox.Dispose();
-                _world.SetWorldComponent(new MainHudComponent());
+                _storages.World.GetWorldComponent<MainHudComponent>().RootBox.Dispose();
+                _storages.World.SetWorldComponent(new MainHudComponent());
             }
         }
     }

@@ -19,15 +19,13 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
     [UsedImplicitly]
     internal sealed class HexInfoPanelSpawnSubSystem : MainHudSpawnSubSystem
     {
-        private readonly EntityStore _world;
         private readonly Archetype _archetype;
 
         public override int Priority => SystemPriorities.SubSystems.MainHudSpawn.HexInfoPanel;
 
-        public HexInfoPanelSpawnSubSystem(EntityStore world)
+        public HexInfoPanelSpawnSubSystem(EntityStorages storages)
         {
-            _world = world;
-            _archetype = PresentationUIArchetypes.HexInfoPanel(world);
+            _archetype = PresentationUIArchetypes.HexInfoPanel(storages.World);
         }
 
         public override void Prepare(GameObject mainUi)

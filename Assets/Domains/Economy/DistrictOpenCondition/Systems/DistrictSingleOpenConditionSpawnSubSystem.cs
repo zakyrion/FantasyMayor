@@ -19,9 +19,9 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
 
         private readonly Archetype _archetype;
 
-        public DistrictSingleOpenConditionSpawnSubSystem(EntityStore world) : base(world)
+        public DistrictSingleOpenConditionSpawnSubSystem(EntityStorages storages) : base(storages.World)
         {
-            _archetype = EconomyArchetypes.OpenConditionSingle(world);
+            _archetype = EconomyArchetypes.OpenConditionSingle(storages.World);
         }
 
         public override bool TrySpawn(DistrictOpenConditionConfig config)

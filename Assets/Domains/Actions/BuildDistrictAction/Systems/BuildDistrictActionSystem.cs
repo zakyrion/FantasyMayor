@@ -45,7 +45,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
     [UsedImplicitly]
     public sealed class BuildDistrictActionSystem : UpdatedSystem
     {
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
 
         // Actor rows (Table Rule): id PK + tag + ActorTypeComponent discriminator; the Mayor also carries the AP pool.
         private readonly Archetype _mayorActor;
@@ -60,26 +60,26 @@ namespace Domains.Actions.BuildDistrictAction.Systems
 
         public override int Priority => SystemPriorities.RuntimeTick.BuildDistrictAction;
 
-        public BuildDistrictActionSystem(EntityStore world)
-            : base(world, EventArchetypes.Of<DistrictBuildConfirmedEvent>(world))
+        public BuildDistrictActionSystem(EntityStorages storages)
+            : base(storages.World, EventArchetypes.Of<DistrictBuildConfirmedEvent>(storages.World))
         {
-            _world = world;
+            _storages = storages;
 
-            _mayorActor = ActorsArchetypes.Mayor(world);
-            _cityActor = ActorsArchetypes.City(world);
-            _mayorResources = world.ComponentIndex<MayorIdFKComponent, int>();
-            _cityResources = world.ComponentIndex<CityIdFKComponent, int>();
-            _districtArchetype = EconomyArchetypes.District(world);
-            _buildInProgressArchetype = ActionsArchetypes.BuildDistrictInProgress(world);
+            _mayorActor = ActorsArchetypes.Mayor(storages.World);
+            _cityActor = ActorsArchetypes.City(storages.World);
+            _mayorResources = storages.World.ComponentIndex<MayorIdFKComponent, int>();
+            _cityResources = storages.World.ComponentIndex<CityIdFKComponent, int>();
+            _districtArchetype = EconomyArchetypes.District(storages.World);
+            _buildInProgressArchetype = ActionsArchetypes.BuildDistrictInProgress(storages.World);
 
             // Seed the shared action-id counter once; ids start at 1 (0 = unset).
-            if (!world.HasWorldComponent<ActionIdAllocatorComponent>())
-                world.SetWorldComponent(new ActionIdAllocatorComponent { Next = 1 });
+            if (!storages.World.HasWorldComponent<ActionIdAllocatorComponent>())
+                storages.World.SetWorldComponent(new ActionIdAllocatorComponent { Next = 1 });
 
             // Seed the district-id counter once; ids start at 1 (0 = unset). Moved here from
             // BuildDistrictCompletionSystem (FLOW_DISTRICT_BUILD unification): the PK is allocated at CONFIRM now.
-            if (!world.HasWorldComponent<DistrictIdAllocatorComponent>())
-                world.SetWorldComponent(new DistrictIdAllocatorComponent { Next = 1 });
+            if (!storages.World.HasWorldComponent<DistrictIdAllocatorComponent>())
+                storages.World.SetWorldComponent(new DistrictIdAllocatorComponent { Next = 1 });
         }
 
         protected override void Update(GameState state, in Entity pulse)
@@ -107,10 +107,10 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             entity.AddComponent(new BuildDistrictTurnsComponent { TurnsLeft = cost.TurnsToBuild, TurnsToBuild = cost.TurnsToBuild });
             entity.AddComponent(new ActorTypeComponent { Type = confirmed.Payer });
 
-            _world.CreateEvent(new DistrictTableChangedEvent { Change = DistrictTableChange.Planned });
+            _storages.World.CreateEvent(new DistrictTableChangedEvent { Change = DistrictTableChange.Planned });
 
             if (cost.TurnsToBuild == 0)
-                _world.CreateEvent(new BuildDistrictCompleteEvent());
+                _storages.World.CreateEvent(new BuildDistrictCompleteEvent());
         }
 
         // All-or-nothing spend: resources from the payer's stockpile + AP from the Mayor's pool. Affordability is
@@ -170,12 +170,12 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         // no cost config is a broken invariant (the UI only offers configured districts), not a benign default.
         private DistrictBuildCostConfig ResolveCost(DistrictType type)
         {
-            if (!_world.HasWorldComponent<DistrictBuildCostsConfigComponent>())
+            if (!_storages.World.HasWorldComponent<DistrictBuildCostsConfigComponent>())
                 throw new InvalidOperationException(
                     "BuildDistrictActionSystem: DistrictBuildCostsConfigComponent world component is missing.");
 
             if (!DistrictConfigLookup.TryFind(
-                    _world.GetWorldComponent<DistrictBuildCostsConfigComponent>().Value?.Districts, type, c => c.DistrictType, out var cost))
+                    _storages.World.GetWorldComponent<DistrictBuildCostsConfigComponent>().Value?.Districts, type, c => c.DistrictType, out var cost))
                 throw new InvalidOperationException(
                     $"BuildDistrictActionSystem: no DistrictBuildCostConfig for district type '{type}'.");
 
@@ -185,16 +185,16 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         // Hands out the next unique action id and advances the shared counter (write via AddComponent).
         private int AllocateId()
         {
-            var id = _world.GetWorldComponent<ActionIdAllocatorComponent>().Next;
-            _world.SetWorldComponent(new ActionIdAllocatorComponent { Next = id + 1 });
+            var id = _storages.World.GetWorldComponent<ActionIdAllocatorComponent>().Next;
+            _storages.World.SetWorldComponent(new ActionIdAllocatorComponent { Next = id + 1 });
             return id;
         }
 
         // Hands out the next unique district id and advances the shared counter (write via AddComponent).
         private int AllocateDistrictId()
         {
-            var id = _world.GetWorldComponent<DistrictIdAllocatorComponent>().Next;
-            _world.SetWorldComponent(new DistrictIdAllocatorComponent { Next = id + 1 });
+            var id = _storages.World.GetWorldComponent<DistrictIdAllocatorComponent>().Next;
+            _storages.World.SetWorldComponent(new DistrictIdAllocatorComponent { Next = id + 1 });
             return id;
         }
     }

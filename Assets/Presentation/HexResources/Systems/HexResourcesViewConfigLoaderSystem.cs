@@ -3,7 +3,6 @@ using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
 using EcsExtensions;
-using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using Presentation.HexResources.Components;
@@ -14,13 +13,15 @@ namespace Presentation.HexResources.Systems
     [UsedImplicitly]
     internal sealed class HexResourcesViewConfigLoaderSystem : ConfigLoaderSystem
     {
+        private readonly EntityStorages _storages;
         private const string GAME_RESOURCES_VIEW_CONFIG = "HexResourcesViewConfig";
 
         private Box<HexResourcesViewConfig> _config = Box<HexResourcesViewConfig>.Empty();
 
-        public HexResourcesViewConfigLoaderSystem(IAddressable addressable, EntityStore world)
-            : base(addressable, world)
+        public HexResourcesViewConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
+            : base(addressable, storages.World)
         {
+            _storages = storages;
         }
 
         protected override async UniTask LoadConfigsAsync(CancellationToken cancellationToken)
@@ -38,7 +39,7 @@ namespace Presentation.HexResources.Systems
                 _config = loadedConfig;
                 loadedConfig = Box<HexResourcesViewConfig>.Empty();
 
-                World.SetWorldComponent(new HexResourcesViewConfigComponent { Value = _config.Value });
+                _storages.World.SetWorldComponent(new HexResourcesViewConfigComponent { Value = _config.Value });
                 MarkAsLoaded();
             }
             finally

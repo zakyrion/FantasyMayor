@@ -26,40 +26,40 @@ namespace Modules.Turn.Systems
         private readonly Archetype _nextTurnPulses;
         private readonly IReadOnlyList<TurnPhaseSubSystem> _phases;
         private readonly TurnPhaseRunner _runner = new();
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
 
         public bool IsEnabled { get; set; } = true;
 
         public int Priority => SystemPriorities.RuntimeTick.TurnProcessor;
 
-        public TurnProcessorSystem(EntityStore world, IReadOnlyList<TurnPhaseSubSystem> phases)
+        public TurnProcessorSystem(EntityStorages storages, IReadOnlyList<TurnPhaseSubSystem> phases)
         {
-            _world = world;
+            _storages = storages;
             _phases = phases;
-            _nextTurnPulses = EventArchetypes.Of<NextTurnEvent>(world);
+            _nextTurnPulses = EventArchetypes.Of<NextTurnEvent>(storages.World);
         }
 
         public void Update(GameState state)
         {
-            if (_world.GetWorldComponent<TurnProcessorComponent>().Status == TurnProcessorStatus.Idle)
+            if (_storages.World.GetWorldComponent<TurnProcessorComponent>().Status == TurnProcessorStatus.Idle)
             {
                 if (!HasRipePulse())
                     return;
 
-                _world.SetWorldComponent(new TurnProcessorComponent { Status = TurnProcessorStatus.Running });
+                _storages.World.SetWorldComponent(new TurnProcessorComponent { Status = TurnProcessorStatus.Running });
                 Debug.Log("[TurnProcessorSystem] Turn started.");
                 RunTurnAsync().Forget();
                 return;
             }
 
-            if (_world.GetWorldComponent<TurnProcessorComponent>().Status == TurnProcessorStatus.Completed)
+            if (_storages.World.GetWorldComponent<TurnProcessorComponent>().Status == TurnProcessorStatus.Completed)
             {
-                _world.SetWorldComponent(new TurnProcessorComponent { Status = TurnProcessorStatus.Idle });
+                _storages.World.SetWorldComponent(new TurnProcessorComponent { Status = TurnProcessorStatus.Idle });
                 Debug.Log("[TurnProcessorSystem] Turn completed.");
 
                 // Announce the turn boundary so the counter (and future turn-boundary reactors) advance,
                 // without coupling them to this completion check. One-frame pulse, cleared by EventCleanup.
-                _world.CreateEvent(new TurnCompletedEvent());
+                _storages.World.CreateEvent(new TurnCompletedEvent());
             }
         }
 
@@ -79,7 +79,7 @@ namespace Modules.Turn.Systems
 
             await _runner.RunAsync(_phases, new TurnPhaseStep(), token);
 
-            _world.SetWorldComponent(new TurnProcessorComponent { Status = TurnProcessorStatus.Completed });
+            _storages.World.SetWorldComponent(new TurnProcessorComponent { Status = TurnProcessorStatus.Completed });
         }
     }
 }

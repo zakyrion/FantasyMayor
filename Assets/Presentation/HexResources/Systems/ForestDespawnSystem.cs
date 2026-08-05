@@ -30,16 +30,16 @@ namespace Presentation.HexResources.Systems
         private readonly ComponentIndex<HexResourceComponent, HexResourceType> _resourcesByType;
 
         private readonly Archetype _forestViews;
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
 
         public override int Priority => SystemPriorities.RuntimeTick.ForestDespawn;
 
-        public ForestDespawnSystem(EntityStore world)
-            : base(world, EventArchetypes.Of<ForestHexRemovedEvent>(world))
+        public ForestDespawnSystem(EntityStorages storages)
+            : base(storages.World, EventArchetypes.Of<ForestHexRemovedEvent>(storages.World))
         {
-            _world = world;
-            _resourcesByType = world.ComponentIndex<HexResourceComponent, HexResourceType>();
-            _forestViews = PresentationArchetypes.ForestView(world);
+            _storages = storages;
+            _resourcesByType = storages.World.ComponentIndex<HexResourceComponent, HexResourceType>();
+            _forestViews = PresentationArchetypes.ForestView(storages.World);
         }
 
         // The pulse entity itself is ignored — reconciliation is global over current state.
@@ -66,7 +66,7 @@ namespace Presentation.HexResources.Systems
                 }
 
                 for (var i = 0; i < staleViewIds.Length; i++)
-                    if (_world.TryGetEntityById(staleViewIds[i], out var view))
+                    if (_storages.World.TryGetEntityById(staleViewIds[i], out var view))
                         DestroyView(view);
             }
             finally

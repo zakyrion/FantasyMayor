@@ -31,7 +31,7 @@ namespace Presentation.Terrain.Systems
         private readonly IAddressable _addressable;
         private readonly Archetype _hexSet;
         private readonly ComponentIndex<HexTypeComponent, HexType> _hexesByType;
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
         private readonly Archetype _waterViewArchetype;
 
         private Box<WaterView> _waterViewBox;
@@ -40,16 +40,16 @@ namespace Presentation.Terrain.Systems
         /// <inheritdoc />
         public override int Priority => SystemPriorities.SubSystems.TerrainView.Water;
 
-        /// <param name="world">ECS world used for entity queries and result entity creation.</param>
+        /// <param name="storages">Named ECS storages used for entity queries and result entity creation.</param>
         /// <param name="addressable">Used to load and instantiate the WaterView prefab.</param>
-        public WaterViewSubSystem(EntityStore world, IAddressable addressable)
+        public WaterViewSubSystem(EntityStorages storages, IAddressable addressable)
         {
-            _world = world;
+            _storages = storages;
             _addressable = addressable;
             _waterViewBox = Box<WaterView>.Empty();
-            _hexSet = MapArchetypes.Hex(world);
-            _hexesByType = world.ComponentIndex<HexTypeComponent, HexType>();
-            _waterViewArchetype = PresentationArchetypes.WaterView(world);
+            _hexSet = MapArchetypes.Hex(storages.World);
+            _hexesByType = storages.World.ComponentIndex<HexTypeComponent, HexType>();
+            _waterViewArchetype = PresentationArchetypes.WaterView(storages.World);
         }
 
         /// <inheritdoc />
@@ -60,8 +60,8 @@ namespace Presentation.Terrain.Systems
             if (!HasRequiredConfigEntities())
                 return;
 
-            var terrainConfig = _world.GetWorldComponent<TerrainViewConfigComponent>();
-            var waterConfig = _world.GetWorldComponent<WaterViewConfigComponent>();
+            var terrainConfig = _storages.World.GetWorldComponent<TerrainViewConfigComponent>();
+            var waterConfig = _storages.World.GetWorldComponent<WaterViewConfigComponent>();
 
             var result = await _addressable.LoadAndInstanceAsync(WATER_VIEW_ADDRESS, cancellationToken);
 
@@ -167,7 +167,7 @@ namespace Presentation.Terrain.Systems
         /// <summary>Validates that all singleton config entity sets are populated.</summary>
         private bool HasRequiredConfigEntities()
         {
-            if (_world.HasWorldComponent<TerrainViewConfigComponent>() && _world.HasWorldComponent<WaterViewConfigComponent>())
+            if (_storages.World.HasWorldComponent<TerrainViewConfigComponent>() && _storages.World.HasWorldComponent<WaterViewConfigComponent>())
                 return true;
 
             Debug.LogError("[WaterViewSubSystem] One or more required configs are missing.");

@@ -16,14 +16,14 @@ namespace Modules.Turn.Systems
     [UsedImplicitly]
     public sealed class TurnCountSystem : UpdatedSystem
     {
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
 
         public override int Priority => SystemPriorities.RuntimeTick.TurnCount;
 
-        public TurnCountSystem(EntityStore world)
-            : base(world, EventArchetypes.Of<TurnCompletedEvent>(world))
+        public TurnCountSystem(EntityStorages storages)
+            : base(storages.World, EventArchetypes.Of<TurnCompletedEvent>(storages.World))
         {
-            _world = world;
+            _storages = storages;
         }
 
         protected override void Update(GameState state, in Entity entity)
@@ -31,12 +31,12 @@ namespace Modules.Turn.Systems
             if (!EcsEventExtensions.IsRipe(entity))
                 return;
 
-            if (!_world.HasWorldComponent<TurnCountComponent>())
+            if (!_storages.World.HasWorldComponent<TurnCountComponent>())
                 throw new InvalidOperationException(
                     "TurnCountSystem: TurnCountComponent is missing — it must be seeded on Gameplay enter.");
 
-            var current = _world.GetWorldComponent<TurnCountComponent>().Value;
-            _world.SetWorldComponent(new TurnCountComponent(current + 1));
+            var current = _storages.World.GetWorldComponent<TurnCountComponent>().Value;
+            _storages.World.SetWorldComponent(new TurnCountComponent(current + 1));
         }
     }
 }

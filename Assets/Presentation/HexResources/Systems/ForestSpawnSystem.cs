@@ -34,19 +34,19 @@ namespace Presentation.HexResources.Systems
         private readonly Archetype _forestViews;
         private readonly Archetype _hexSet;
         private readonly ForestPlanter _planter = new();
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
 
         private UnityEngine.Transform _root;
 
         public override int Priority => SystemPriorities.RuntimeTick.ForestSpawn;
 
-        public ForestSpawnSystem(EntityStore world)
-            : base(world, EventArchetypes.Of<ForestHexAppearedEvent>(world))
+        public ForestSpawnSystem(EntityStorages storages)
+            : base(storages.World, EventArchetypes.Of<ForestHexAppearedEvent>(storages.World))
         {
-            _world = world;
-            _resourcesByType = world.ComponentIndex<HexResourceComponent, HexResourceType>();
-            _forestViews = PresentationArchetypes.ForestView(world);
-            _hexSet = MapArchetypes.Hex(world);
+            _storages = storages;
+            _resourcesByType = storages.World.ComponentIndex<HexResourceComponent, HexResourceType>();
+            _forestViews = PresentationArchetypes.ForestView(storages.World);
+            _hexSet = MapArchetypes.Hex(storages.World);
         }
 
         // The pulse entity itself is ignored — reconciliation is global over current state.
@@ -55,27 +55,27 @@ namespace Presentation.HexResources.Systems
             if (!EcsEventExtensions.IsRipe(pulse))
                 return;
 
-            if (!_world.HasWorldComponent<TerrainTextureComponent>())
+            if (!_storages.World.HasWorldComponent<TerrainTextureComponent>())
                 return;
 
-            var texture = _world.GetWorldComponent<TerrainTextureComponent>().Texture;
+            var texture = _storages.World.GetWorldComponent<TerrainTextureComponent>().Texture;
             if (texture == null)
                 return;
 
-            if (!_world.HasWorldComponent<VertexGridComponent>())
+            if (!_storages.World.HasWorldComponent<VertexGridComponent>())
                 throw new InvalidOperationException(
                     "ForestSpawnSystem: VertexGridComponent world component is missing.");
 
-            if (!_world.HasWorldComponent<TerrainViewConfigComponent>() || !_world.HasWorldComponent<HexResourcesViewConfigComponent>())
+            if (!_storages.World.HasWorldComponent<TerrainViewConfigComponent>() || !_storages.World.HasWorldComponent<HexResourcesViewConfigComponent>())
                 return;
 
             var forestResources = _resourcesByType[HexResourceType.Forest];
             if (forestResources.Count == 0)
                 return;
 
-            var vertexGrid = _world.GetWorldComponent<VertexGridComponent>().Grid;
-            var viewConfig = _world.GetWorldComponent<HexResourcesViewConfigComponent>().Value;
-            var cellSize = _world.GetWorldComponent<TerrainViewConfigComponent>().CellSize;
+            var vertexGrid = _storages.World.GetWorldComponent<VertexGridComponent>().Grid;
+            var viewConfig = _storages.World.GetWorldComponent<HexResourcesViewConfigComponent>().Value;
+            var cellSize = _storages.World.GetWorldComponent<TerrainViewConfigComponent>().CellSize;
 
             if (_root == null)
                 _root = new GameObject("ForestViewRoot").transform;
@@ -97,7 +97,7 @@ namespace Presentation.HexResources.Systems
                 foreach (var coords in forestHexes)
                 {
                     if (!viewedHexes.Contains(coords))
-                        _planter.PlantHex(_world, _root, coords, vertexGrid, viewConfig, ref newSplats);
+                        _planter.PlantHex(_storages.World, _root, coords, vertexGrid, viewConfig, ref newSplats);
                 }
 
                 // Append-only: paint just the new patches over the current pixels.

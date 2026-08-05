@@ -35,7 +35,7 @@ namespace Presentation.Districts.Systems
         // District rows: one per hex, carrying the hex FK, its type, and its build stage.
         private readonly Archetype _districts;
 
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
 
         // District view entities -> lets the reconcile skip hexes already viewed; also the birth archetype for
         // new views. HexIdFKComponent is shared by every hex-anchored entity kind (the District row itself
@@ -46,13 +46,13 @@ namespace Presentation.Districts.Systems
 
         public override int Priority => SystemPriorities.RuntimeTick.DistrictViewSpawn;
 
-        public DistrictViewSpawnSystem(EntityStore world)
-            : base(world, EventArchetypes.Of<DistrictTableChangedEvent>(world))
+        public DistrictViewSpawnSystem(EntityStorages storages)
+            : base(storages.World, EventArchetypes.Of<DistrictTableChangedEvent>(storages.World))
         {
-            _world = world;
+            _storages = storages;
 
-            _districts = EconomyArchetypes.District(world);
-            _viewArchetype = PresentationArchetypes.DistrictView(world);
+            _districts = EconomyArchetypes.District(storages.World);
+            _viewArchetype = PresentationArchetypes.DistrictView(storages.World);
         }
 
         // The pulse entity itself is ignored — reconciliation is global over current state.
@@ -61,16 +61,16 @@ namespace Presentation.Districts.Systems
             if (!EcsEventExtensions.IsRipe(pulse))
                 return;
 
-            if (!_world.HasWorldComponent<DistrictViewsConfigComponent>())
+            if (!_storages.World.HasWorldComponent<DistrictViewsConfigComponent>())
                 throw new InvalidOperationException(
                     "DistrictViewSpawnSystem: DistrictViewsConfigComponent world component is missing.");
 
-            if (!_world.HasWorldComponent<VertexGridComponent>())
+            if (!_storages.World.HasWorldComponent<VertexGridComponent>())
                 throw new InvalidOperationException(
                     "DistrictViewSpawnSystem: VertexGridComponent world component is missing.");
 
-            var viewsConfig = _world.GetWorldComponent<DistrictViewsConfigComponent>().Value;
-            var vertexGrid = _world.GetWorldComponent<VertexGridComponent>().Grid;
+            var viewsConfig = _storages.World.GetWorldComponent<DistrictViewsConfigComponent>().Value;
+            var vertexGrid = _storages.World.GetWorldComponent<VertexGridComponent>().Grid;
 
             // Snapshot-before-iterate: birth via _viewArchetype.CreateEntity() is NOT a structural change,
             // but the AddComponent writes that follow it are, and they would throw while _districts.Entities
@@ -84,7 +84,7 @@ namespace Presentation.Districts.Systems
 
                 for (var i = 0; i < districtIds.Length; i++)
                 {
-                    if (!_world.TryGetEntityById(districtIds[i], out var district))
+                    if (!_storages.World.TryGetEntityById(districtIds[i], out var district))
                         continue;
 
                     if (district.GetComponent<DistrictBuildStateComponent>().Value != DistrictBuildState.Built)

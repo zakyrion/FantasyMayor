@@ -21,8 +21,8 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
         public override int Priority => SystemPriorities.RuntimeTick.DistrictOpenConditionEvaluatorTableChanged;
 
         public DistrictOpenConditionEvaluatorTableChangedSystem(
-            EntityStore world, IReadOnlyList<DistrictOpenConditionEvaluatorSubSystem> subSystems)
-            : base(world, EventArchetypes.Of<DistrictTableChangedEvent>(world))
+            EntityStorages storages, IReadOnlyList<DistrictOpenConditionEvaluatorSubSystem> subSystems)
+            : base(storages.World, EventArchetypes.Of<DistrictTableChangedEvent>(storages.World))
         {
             _subSystems = subSystems
                 .OrderBy(system => system.Priority)

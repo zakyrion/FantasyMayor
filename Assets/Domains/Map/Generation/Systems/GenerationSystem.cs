@@ -30,17 +30,17 @@ namespace Domains.Map.Generation.Systems
 
         private readonly IReadOnlyList<GenerationSubSystem> _generationSubSystems;
         private readonly Archetype _hexArchetype;
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
 
         /// <inheritdoc />
         public int Priority => SystemPriorities.WorldInit.Generation;
 
-        /// <param name="world">The ECS world to query and populate.</param>
+        /// <param name="storages">Named ECS storages used to query and populate the game world.</param>
         /// <param name="generationSubSystems">Generation subsystems executed in priority order.</param>
-        public GenerationSystem(EntityStore world, IReadOnlyList<GenerationSubSystem> generationSubSystems)
+        public GenerationSystem(EntityStorages storages, IReadOnlyList<GenerationSubSystem> generationSubSystems)
         {
-            _world = world;
-            _hexArchetype = MapArchetypes.Hex(world);
+            _storages = storages;
+            _hexArchetype = MapArchetypes.Hex(storages.World);
 
             _generationSubSystems = generationSubSystems
                 .OrderBy(system => system.Priority)
@@ -50,10 +50,10 @@ namespace Domains.Map.Generation.Systems
         /// <inheritdoc />
         public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
         {
-            if (!_world.HasWorldComponent<TerrainGenerationConfigComponent>())
+            if (!_storages.World.HasWorldComponent<TerrainGenerationConfigComponent>())
                 return UniTask.CompletedTask;
 
-            var config = _world.GetWorldComponent<TerrainGenerationConfigComponent>();
+            var config = _storages.World.GetWorldComponent<TerrainGenerationConfigComponent>();
 
             Generate(in config);
             RunGenerationSubSystems();
@@ -111,7 +111,7 @@ namespace Domains.Map.Generation.Systems
                 hexIds.Add(entity.Id);
 
             for (var i = 0; i < hexIds.Length; i++)
-                if (_world.TryGetEntityById(hexIds[i], out var entity))
+                if (_storages.World.TryGetEntityById(hexIds[i], out var entity))
                 {
                     var level = entity.GetComponent<HexLevelComponent>().Level;
                     entity.AddComponent(new HexTypeComponent { Type = LevelToType(level) });

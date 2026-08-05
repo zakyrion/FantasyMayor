@@ -29,33 +29,33 @@ namespace Presentation.Terrain.Systems
     internal sealed class TerrainViewTextureSubSystem : ViewSubSystem
     {
         private readonly Archetype _hexSet;
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
 
         /// <inheritdoc />
         public override int Priority => SystemPriorities.SubSystems.TerrainView.Texture;
 
-        /// <param name="world">ECS world used for entity queries and texture component creation.</param>
-        public TerrainViewTextureSubSystem(EntityStore world)
+        /// <param name="storages">Named ECS storages used for entity queries and texture component creation.</param>
+        public TerrainViewTextureSubSystem(EntityStorages storages)
         {
-            _world = world;
-            _hexSet = MapArchetypes.Hex(world);
+            _storages = storages;
+            _hexSet = MapArchetypes.Hex(storages.World);
         }
 
         /// <inheritdoc />
         public override async UniTask Update(GameState state, CancellationToken cancellationToken)
         {
-            if (!_world.HasWorldComponent<VertexGridComponent>())
+            if (!_storages.World.HasWorldComponent<VertexGridComponent>())
                 throw new InvalidOperationException("TerrainViewTextureSubSystem: VertexGridComponent world component is missing.");
 
-            if (!_world.HasWorldComponent<TerrainTextureConfigComponent>() || !_world.HasWorldComponent<TerrainViewConfigComponent>())
+            if (!_storages.World.HasWorldComponent<TerrainTextureConfigComponent>() || !_storages.World.HasWorldComponent<TerrainViewConfigComponent>())
             {
                 Debug.LogError("[TerrainViewTextureSubSystem] Required config is missing.");
                 return;
             }
 
-            var config = _world.GetWorldComponent<TerrainTextureConfigComponent>();
-            var terrainConfig = _world.GetWorldComponent<TerrainViewConfigComponent>();
-            var vertexGrid = _world.GetWorldComponent<VertexGridComponent>().Grid;
+            var config = _storages.World.GetWorldComponent<TerrainTextureConfigComponent>();
+            var terrainConfig = _storages.World.GetWorldComponent<TerrainViewConfigComponent>();
+            var vertexGrid = _storages.World.GetWorldComponent<VertexGridComponent>().Grid;
 
             // Persistent (not Temp): the map is read inside RunOnThreadPool, so it must outlive the await.
             // NativeParallelHashMap is the thread-safe-read container; disposed on every exit path below.
@@ -88,7 +88,7 @@ namespace Presentation.Terrain.Systems
 
                 // Store write sits after the RunOnThreadPool hop back to main (Law 1) — UniTask resumes
                 // on the main thread by default once the background delegate completes.
-                _world.SetWorldComponent(new TerrainTextureComponent { Texture = texture });
+                _storages.World.SetWorldComponent(new TerrainTextureComponent { Texture = texture });
             }
             finally
             {

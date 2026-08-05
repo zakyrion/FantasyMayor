@@ -28,18 +28,18 @@ namespace Presentation.HexIcons.Systems
     [UsedImplicitly]
     public sealed class HexIconsVisibilitySystem : UpdatedSystem
     {
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
         private readonly Archetype _containerSet;
         private readonly Archetype _resourceSet;
 
         public override int Priority => SystemPriorities.RuntimeTick.HexIconsVisibility;
 
-        public HexIconsVisibilitySystem(EntityStore world)
-            : base(world, EventArchetypes.Of<HexIconsVisibilityChangedEvent>(world))
+        public HexIconsVisibilitySystem(EntityStorages storages)
+            : base(storages.World, EventArchetypes.Of<HexIconsVisibilityChangedEvent>(storages.World))
         {
-            _world = world;
-            _containerSet = PresentationArchetypes.HexIconContainer(world);
-            _resourceSet = MapArchetypes.HexResource(world);
+            _storages = storages;
+            _containerSet = PresentationArchetypes.HexIconContainer(storages.World);
+            _resourceSet = MapArchetypes.HexResource(storages.World);
         }
 
         // Fires once per event (normally one per frame). Resolves prerequisites fail-loud, then clears and —
@@ -50,23 +50,23 @@ namespace Presentation.HexIcons.Systems
             if (!EcsEventExtensions.IsRipe(entity))
                 return;
 
-            if (!_world.HasWorldComponent<HexIconsVisibilityComponent>())
+            if (!_storages.World.HasWorldComponent<HexIconsVisibilityComponent>())
                 throw new InvalidOperationException(
                     "HexIconsVisibilitySystem: HexIconsVisibilityComponent is missing.");
-            if (!_world.HasWorldComponent<HexIconsViewComponent>())
+            if (!_storages.World.HasWorldComponent<HexIconsViewComponent>())
                 throw new InvalidOperationException(
                     "HexIconsVisibilitySystem: HexIconsViewComponent is missing.");
-            if (!_world.HasWorldComponent<HexIconsConfigComponent>())
+            if (!_storages.World.HasWorldComponent<HexIconsConfigComponent>())
                 throw new InvalidOperationException(
                     "HexIconsVisibilitySystem: HexIconsConfigComponent is missing.");
-            if (!_world.HasWorldComponent<HexResourceIconConfigComponent>())
+            if (!_storages.World.HasWorldComponent<HexResourceIconConfigComponent>())
                 throw new InvalidOperationException(
                     "HexIconsVisibilitySystem: HexResourceIconConfigComponent is missing.");
 
-            var isVisible = _world.GetWorldComponent<HexIconsVisibilityComponent>().IsVisible;
-            var view = _world.GetWorldComponent<HexIconsViewComponent>().View;
-            var iconSize = _world.GetWorldComponent<HexIconsConfigComponent>().Value.IconSize;
-            var entries = _world.GetWorldComponent<HexResourceIconConfigComponent>().Value.Entries;
+            var isVisible = _storages.World.GetWorldComponent<HexIconsVisibilityComponent>().IsVisible;
+            var view = _storages.World.GetWorldComponent<HexIconsViewComponent>().View;
+            var iconSize = _storages.World.GetWorldComponent<HexIconsConfigComponent>().Value.IconSize;
+            var entries = _storages.World.GetWorldComponent<HexResourceIconConfigComponent>().Value.Entries;
 
             foreach (var containerEntity in _containerSet.Entities)
             {

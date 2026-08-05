@@ -29,6 +29,7 @@ namespace Presentation.UI.DistrictBuild.Systems
     [UsedImplicitly]
     public sealed class DistrictBuildHexResourcesUISubSystem : DistrictBuildUISubSystem
     {
+        private readonly EntityStorages _storages;
         private readonly Archetype _selectionSet;
         private readonly Archetype _selectedHexSet;
         private readonly Archetype _hexSet;
@@ -38,17 +39,18 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public override int Priority => SystemPriorities.SubSystems.DistrictBuildUi.HexResources;
 
-        public DistrictBuildHexResourcesUISubSystem(EntityStore world) : base(world)
+        public DistrictBuildHexResourcesUISubSystem(EntityStorages storages) : base(storages.World)
         {
-            _selectionSet = PresentationUIArchetypes.DistrictBuildSelection(world);
-            _selectedHexSet = PresentationArchetypes.HexSelection(world);
-            _hexSet = MapArchetypes.Hex(world);
-            _hexResources = MapArchetypes.HexResource(world);
+            _storages = storages;
+            _selectionSet = PresentationUIArchetypes.DistrictBuildSelection(storages.World);
+            _selectedHexSet = PresentationArchetypes.HexSelection(storages.World);
+            _hexSet = MapArchetypes.Hex(storages.World);
+            _hexResources = MapArchetypes.HexResource(storages.World);
         }
 
         public override void Populate(GameObject root)
         {
-            var view = World.GetWorldComponent<DistrictBuildHexResourcesUIViewComponent>().View;
+            var view = _storages.World.GetWorldComponent<DistrictBuildHexResourcesUIViewComponent>().View;
 
             if (!_selectionSet.TryGetFirst(out var selectionEntity))
                 throw new InvalidOperationException(
@@ -94,11 +96,11 @@ namespace Presentation.UI.DistrictBuild.Systems
                     $"is {DistrictType.Unknown} — the selection must be a real district or {nameof(DistrictType.None)}, " +
                     "never the error marker.");
 
-            if (type == DistrictType.None || !World.HasWorldComponent<DistrictBuildsConfigComponent>())
+            if (type == DistrictType.None || !_storages.World.HasWorldComponent<DistrictBuildsConfigComponent>())
                 return false;
 
             return DistrictConfigLookup.TryFind(
-                World.GetWorldComponent<DistrictBuildsConfigComponent>().Value?.Districts, type, d => d.DistrictType, out district);
+                _storages.World.GetWorldComponent<DistrictBuildsConfigComponent>().Value?.Districts, type, d => d.DistrictType, out district);
         }
 
         private bool TryGetHexType(HexCoord coords, out HexType type)
