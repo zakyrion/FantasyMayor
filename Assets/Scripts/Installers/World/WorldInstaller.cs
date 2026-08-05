@@ -27,7 +27,7 @@ using Modules.UserInput.Tags;
 
 namespace Installers.World
 {
-    /// <summary>Registers the Friflo <see cref="EntityStore" />, the camera world component, and world-level ECS systems.</summary>
+    /// <summary>Registers the named ECS storages, the camera world component, and world-level ECS systems.</summary>
     public class WorldInstaller : LifetimeScope
     {
         [SerializeField] private Camera _mainCamera;
@@ -44,8 +44,10 @@ namespace Installers.World
         /// <inheritdoc />
         protected override void Configure(IContainerBuilder builder)
         {
-            var world = new EntityStore();
+            var entityStorages = new EntityStorages();
+            var world = entityStorages.World;
             builder.RegisterInstance(world);
+            builder.RegisterInstance(entityStorages);
 
             // The "world" singleton must exist before any SetWorldComponent call.
             world.CreateEntity(new UniqueEntity("world"));
