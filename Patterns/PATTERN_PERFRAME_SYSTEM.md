@@ -21,12 +21,12 @@ pulse cannot replace the tick. Subclass `UpdatedSystem` (or `LateUpdatedSystem`)
 public sealed class [Name]System : UpdatedSystem   // or LateUpdatedSystem
 {
     private const int ExecutionPriority = [N];
-    private readonly World _world;
+    private readonly EntityStore _world;
 
     public override int Priority => ExecutionPriority;
 
-    public [Name]System(World world)
-        : base(world.GetEntities().With<[Anchor]Component>().AsSet())   // work set OR tick anchor
+    public [Name]System(EntityStore world)
+        : base(world, [Domain]Archetypes.[Table](world))   // work table OR tick anchor, resolved from its holder
     {
         _world = world;
     }
@@ -42,7 +42,7 @@ public sealed class [Name]System : UpdatedSystem   // or LateUpdatedSystem
 
 ```clojure
 (def per-frame-rules
-  {:base-set            #{work-set tick-anchor}               ;; the table it processes (Table Rule: key + discriminator) OR a singleton whose presence gates the tick
+  {:driven-by           #{work-table tick-anchor}             ;; the declared archetype it processes (Table Rule) OR a singleton archetype whose presence gates the tick; an ArchetypeQuery only for a genuinely cross-archetype set
    LateUpdatedSystem    {:when "observe final frame state"}   ;; after camera / gameplay writes
    :state               "none across frames"                  ;; persistent → component / world component; this-frame-only → PreUpdate + FrameBox<T>; genuinely unavoidable → [StateAllowed("reason")], a reviewed exception
    :shared-inputs       "PreUpdate(GameState) resolve + fail-loud, carry in FrameBox<T>" ;; frame-stamped: stale reads throw, Dispose drops refs; field carries [StateAllowed]; FORBIDDEN in UniTask systems — await spans frames, the box goes stale

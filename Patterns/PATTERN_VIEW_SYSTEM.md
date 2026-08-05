@@ -27,7 +27,7 @@ section subsystems subscribe directly.
 
 ```clojure
 (def view-system-comms
-  {:in   "view → local C# event → system subscribes"      ;; UI interaction (click/select) → view raises `event Action<T>`; the driving system/subsystem hooks it. The view stays World-free.
+  {:in   "view → local C# event → system subscribes"      ;; UI interaction (click/select) → view raises `event Action<T>`; the driving system/subsystem hooks it. The view stays store-free.
    :out  "system → push-to-view, ONE value at a time"      ;; the ResourceBar pattern — system calls view methods (Set/Add/Clear); never build a managed snapshot in the system (PATTERN_PERFRAME_SYSTEM)
    :ecs  {:only-when #{frame-boundary assembly-boundary}}   ;; a view/system pair in the SAME asmdef, same frame → C# event. An ECS pulse is for a signal that must cross a frame (deferred) or an asmdef the C# call can't reach — and a SYSTEM raises it, never the view (PATTERN_EVENT)
    :why  "every subscription is visible AT the subscriber — no global pulse anyone could listen to"})
@@ -35,7 +35,7 @@ section subsystems subscribe directly.
 
 ## Skeleton
 
-The view never injects `World` and never creates entities — it only raises intent and binds values.
+The view never injects the `EntityStore` and never creates entities — it only raises intent and binds values.
 
 ```csharp
 public sealed class [Feature]View : MonoBehaviour
@@ -58,7 +58,7 @@ if (!_hooked) { view.Picked += OnPicked; _hooked = true; }
 
 private void OnPicked([Payload] value)
 {
-    // React synchronously (main thread, inside the UI callback): write ECS via Set(), push to the view.
+    // React synchronously (main thread, inside the UI callback): write ECS via AddComponent(), push to the view.
 }
 
 public override void Dispose()
@@ -72,11 +72,11 @@ public override void Dispose()
 
 ```clojure
 (def view-system-rules
-  {:view       {:is "MonoBehaviour, dumb" :never #{"inject World" "create entities" "raise an ECS pulse to its own system"}}
+  {:view       {:is "MonoBehaviour, dumb" :never #{"inject the EntityStore" "create entities" "raise an ECS pulse to its own system"}}
    :in         "local C# event (`event Action<T>`); the driving system/subsystem subscribes directly"
    :out        "push-to-view, one value at a time — never a managed snapshot built in the system (PATTERN_PERFRAME_SYSTEM)"
    :subscribe  {:once "guard with a bool — the view outlives the system" :unhook "in Dispose"}
-   :handler    "runs synchronously in the UI callback (main thread): ECS writes via Set(), then push to the view"
+   :handler    "runs synchronously in the UI callback (main thread): ECS writes via AddComponent(), then push to the view"
    :ecs-pulse  {:only-when "the signal crosses a frame or an asmdef boundary the C# call can't reach"}  ;; then a SYSTEM raises the pulse (PATTERN_EVENT), never the view — e.g. a UI command into another domain
    :traceability "subscription lives at the subscriber; grep the C# event → every listener"})
 ```
@@ -85,6 +85,6 @@ public override void Dispose()
 
 | Wrong | Why | Right |
 |---|---|---|
-| View injects `World` and raises an ECS pulse its own system consumes | A global pulse anyone can listen to; the wiring is invisible | View raises a C# event; the system subscribes directly |
+| View injects the `EntityStore` and raises an ECS pulse its own system consumes | A global pulse anyone can listen to; the wiring is invisible | View raises a C# event; the system subscribes directly |
 | System builds a snapshot (list/array) and hands it to the view | Managed allocation in a system (zero-alloc ban); the copy goes stale | Push one value at a time; the view holds the render state |
 | Handler defers the ECS write to the next tick via a flag | Reintroduces a poll; the whole point of the C# event was directness | Handle synchronously in the callback — it is already on the main thread |

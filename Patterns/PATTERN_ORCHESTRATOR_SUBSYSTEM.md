@@ -19,8 +19,8 @@ ordered parts. One approach.
 ```csharp
 public abstract class [Name]SubSystem : IDisposable
 {
-    protected readonly World World;
-    protected [Name]SubSystem(World world) => World = world;
+    protected readonly EntityStore World;
+    protected [Name]SubSystem(EntityStore world) => World = world;
 
     public bool IsEnabled { get; set; } = true;
     public abstract int Priority { get; }
@@ -38,11 +38,11 @@ public sealed class [Feature]SubSystem : [Name]SubSystem
     private const int ExecutionPriority = [N];
     public override int Priority => ExecutionPriority;
 
-    public [Feature]SubSystem(World world) : base(world) { }
+    public [Feature]SubSystem(EntityStore world) : base(world) { }
 
     public override void Run([Args])
     {
-        // This feature's work; build its own query caches in the ctor, dispose them in Dispose.
+        // This feature's work; resolve its own archetypes / indices once in the ctor.
     }
 }
 ```
@@ -53,7 +53,7 @@ public sealed class [Feature]SubSystem : [Name]SubSystem
 [StateAllowed]   // the host IS a system; the list is fixed composition, not per-frame state
 private readonly IReadOnlyList<[Name]SubSystem> _subSystems;
 
-public [Name]System(IReadOnlyList<[Name]SubSystem> subSystems /*, World world ... */)
+public [Name]System(IReadOnlyList<[Name]SubSystem> subSystems /*, EntityStore world ... */)
 {
     _subSystems = subSystems.OrderBy(s => s.Priority).ToArray();
 }
@@ -70,7 +70,7 @@ public [Name]System(IReadOnlyList<[Name]SubSystem> subSystems /*, World world ..
    :di-orchestrator "its host contract"                          ;; pipeline stage → .As<IPrioritizedUniTaskSystem<MapGenerationStep>>; per-frame → concrete + wired in Boot.Construct
    :StateAllowed    {:only-when "orchestrator is a system"}      ;; the list + OrderBy().ToArray() are fixed composition; the subsystem base is plain IDisposable (NOT a system) — arch-check ignores it, state/query caches are free there
    :queries         {:shared "the base owns them + Try… helpers"
-                     :own    "each subsystem owns AND disposes its own"}
+                     :own    "each subsystem resolves its own archetypes / indices in its ctor"}  ;; store-owned, nothing to dispose
    :priority-scope  "children WITHIN the orchestrator only"      ;; unrelated to pipeline-stage priorities
    :routing-variant "bool TrySpawn(config), first match wins, fail loud on none"  ;; DoD polymorphism
    :naming          "no domain prefix on [Name]/[Feature]"})     ;; namespace carries it; [Domain]Installer keeps its prefix (the documented exception; ECS_CONVENTIONS → Naming & Construction)

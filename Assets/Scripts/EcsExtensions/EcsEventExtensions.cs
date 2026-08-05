@@ -5,8 +5,8 @@ namespace EcsExtensions
 {
     /// <summary>
     ///     Stateless helpers for the one-frame Event Lifecycle: every event is delivered to ALL consumers
-    ///     exactly once, one full frame after creation, independent of system priority — see
-    ///     PLAN_FRIFLO_MIGRATION.md → Event Lifecycle spec. <see cref="EventCleanupSystem" /> disposes an
+    ///     exactly once, one full frame after creation, independent of system priority — law:
+    ///     ECS_CONVENTIONS.md → Event Lifecycle. <see cref="EventCleanupSystem" /> disposes an
     ///     event once <see cref="IsRipe" /> is true for it.
     /// </summary>
     public static class EcsEventExtensions

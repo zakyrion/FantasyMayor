@@ -4,7 +4,7 @@ namespace EcsExtensions
 {
     /// <summary>
     ///     Read/write access to the single <c>"world"</c> singleton entity that carries every world-scoped
-    ///     component (see PLAN_FRIFLO_MIGRATION.md → World components spec). The singleton is created once
+    ///     component (storage taxonomy: ECS_CONVENTIONS.md → State Storage Taxonomy). The singleton is created once
     ///     in <c>WorldInstaller</c>, before any world-component write.
     /// </summary>
     public static class WorldComponentExtensions

@@ -101,7 +101,7 @@ Live wiring is the ecs-graph; this doc is diffable against it. Code comments lin
 (def target-event  ;; ^:new — DistrictBuiltEvent folds into it (S3)
   {^:new DistrictTableChangedEvent
      {:home Domains.Economy.District :payload ^:new DistrictTableChange   ;; #{Planned Built Removed}
-      :shape "struct : IEquatable<> — the value IS the multimap key; filter via EntityMultiMap keyed by value"  ;; user 2026-07-17
+      :shape "struct : IIndexedComponent<TValue> — the value IS the index key; slice via ComponentIndex keyed by value"  ;; user 2026-07-17
       :raised-by "Domains.Actions (legal: Actions → Economy) — the owner DECLARES the signal, the mutator pulses it"
       :semantics "FACT: a District row entered this stage"
       :deviation "PATTERN_EVENT prescribes payload-less; the field is a DECIDED filter key, not a payload copy"
@@ -134,9 +134,9 @@ Live wiring is the ecs-graph; this doc is diffable against it. Code comments lin
    :completion-pulse   {:producer "raise EVERY turn while any countdown sits at 0 (level-triggered)"
                         :consumer "reconcile the WHOLE in-progress set off state; never trust single delivery"
                         :why "this is just the decreed reactive contract (ECS_CONVENTIONS → Decomposition Rules): the pulse says «something changed», the system works off CURRENT state. Level-triggering makes the pair robust to a coalesced pulse."
-                        :not-the-reason "«a lost pulse costs a turn of latency» — VERIFIED FALSE 2026-07-17. A turn phase raises its pulse from a SwitchToMainThread continuation, which resumes at PlayerLoopTiming.Update — BEFORE MonoBehaviour.Update, where Boot ticks the ECS loop. The pulse therefore lands OUTSIDE the tick and cannot be cleaned up before its consumer runs; a turn-phase pulse cannot be lost. Do NOT re-derive the old justification from this pairing, and do not treat pulse-loss as a hazard this flow defends against."}
-   :dispose-before-reconcile "a system disposing rows runs BEFORE the views reconciling against them, same tick"
-   :panel-above-producers    "HexInfoPanelDistrictSystem runs ABOVE every producer it reacts to — below them the pulse dies in the same frame"
+                        :not-the-reason "«a lost pulse costs a turn of latency» — FALSE, and doubly so since 2026-08-05: under the Event Lifecycle (ECS_CONVENTIONS) EVERY consumer sees EVERY pulse exactly once, one frame after it is raised, whatever the priorities. A pulse cannot be lost or out-raced. Do NOT re-derive the old timing justification from this pairing, and do not treat pulse-loss as a hazard this flow defends against."}
+   :delete-before-reconcile "a system deleting rows runs BEFORE the views reconciling against them, same tick"  ;; system ORDER inside one tick — unrelated to event delivery, which is priority-independent
+   :panel-above-producers    :DISSOLVED  ;; 2026-08-05 — was a same-tick visibility constraint; event delivery no longer depends on priority, so no consumer needs to sit above its producer
    :evaluator-vs-ui          "NOT a same-tick ordering: the build list projects DistrictOpenState on the window-open pulse only, never every tick, while the evaluator runs on a turn boundary or a table change — earlier frames. They cannot compete in one tick. Do not invent a priority coupling between them."})
 ```
 
@@ -148,8 +148,8 @@ Live wiring is the ecs-graph; this doc is diffable against it. Code comments lin
    :hosts             "ONE DI-collected subsystem family, three hosts — evaluation logic is never duplicated per host"
    :kind-coverage     {:law "every DistrictOpenConditionKind member has exactly ONE evaluator subsystem"
                        :why "a spawned row with no evaluator is stuck at its seeded state forever — silently unbuildable"}
-   :change-only-write "Set() the state only on an actual value change — the family is idempotent by contract"
-   :threading         "the family Sets an EXISTING state column only — legal off-thread (ECS_CONVENTIONS Law 1); the turn host deliberately does NOT hop, because a hop costs a frame and buys nothing here"})
+   :change-only-write "write the state only on an actual value change — the family is idempotent by contract"
+   :threading         "MAIN THREAD, no hop: the turn pipeline runs INLINE on the main thread, so this family — like every store reader/writer — has no thread to come back from (ECS_CONVENTIONS → Law 1). The off-thread value-write loophole this entry once relied on no longer exists; a future parallel variant would go through a CommandBuffer, recorded off-thread and played back on main (ECS_CONVENTIONS → Open Directions), which is NOT in force today."})
 
 (def kind-semantics  ;; user 2026-07-17 — what each kind counts
   {SingleOpen {:closed-when "≥1 District row of the gated type exists in ANY stage" :counts #{:Planned :Built}
@@ -165,11 +165,18 @@ Live wiring is the ecs-graph; this doc is diffable against it. Code comments lin
   {:g1 {:what "hex + type duplicated across the verb row and the fact row" :cost "every consumer picks a source; a third copy was already being proposed" :closed "2026-07-17 (:unify-district-row)"}
    :g2 {:what "the build stage is unreadable from Domains.Economy"          :cost "SingleOpen cannot count in-progress builds without a DAG violation or a mirror" :closed "2026-07-17 (:unify-district-row)"}
    :g3 {:what "Exist-kind conditions are spawned with no evaluator"         :cost "every Exist-gated district is permanently unbuildable; the seeded Closed state never flips" :closed "2026-07-17 (:evaluate-open-conditions)"}
-   :g4 {:what "the turn host's comment declares «every world write goes back on the main thread» — stricter than ECS_CONVENTIONS Law 1, which allows an off-thread write to an EXISTING component"
-        :cost "the commented-out hop below it reads as a missing guard; it is a deliberate optimisation (a hop costs a frame). The comment is rot — it already misled one reader into filing a phantom bug."
-        :closed "2026-07-17 — RETRACTED, not a real gap (:fix-evaluator-comment); comment corrected regardless"}
+   :g4 {:what "the turn host's comment declares «every world write goes back on the main thread» — at the time, stricter than the then-current threading law, which permitted an off-thread write to an already-present component"
+        :cost "the commented-out hop below it read as a missing guard; it was a deliberate optimisation (a hop costs a frame). The comment was rot — it already misled one reader into filing a phantom bug."
+        :closed "2026-07-17 — RETRACTED, not a real gap (:fix-evaluator-comment); comment corrected regardless"
+        :moot-since "2026-08-05 — the FM-13 engine migration made main-thread-only the actual law and the turn pipeline inline, so both the permission this entry argued about and the hop it discussed are gone"}
    :g5 {:what "views react to COMMAND pulses and lean on same-tick system order" :cost "a priority change silently breaks the view; the dependency is invisible at the call site" :closed "2026-07-17 (:rewire-presentation)"}
    :g6 {:what "SingleOpen's header claims the District table is «pure scaffold — nothing spawns it yet»" :cost "false since the build flow landed; a stale premise misleads the next reader" :closed "2026-07-17 (:evaluate-open-conditions)"}})
+```
+
+```clojure
+(def gap-list-note  ;; 2026-08-05
+  {:g7 :never-existed          ;; the FM-13 plan's :s8-flow step named a :g7 — no such gap was ever filed here; the list runs :g1…:g6 and all six are closed
+   :chimera "the district-row chimera class (a row matching two identity tags at once) is GONE — eliminated by the FM-13 engine migration, not by a fix inside this flow. It was never a gap entry; it is recorded here so the next reader stops looking for one"})
 ```
 
 ## Plan
@@ -200,6 +207,13 @@ Every `:resolve` is CLOSED — no step waits on a decision; execute in order.
 ```
 
 <!-- doc-lint: off -->
+
+```clojure
+(def plan-status  ;; 2026-08-05
+  {:state :EXECUTED                ;; every task below landed 2026-07-17; kept as the record of WHAT was decided and why
+   :api-vocabulary :PRE-FM-13      ;; the task bodies speak the pre-migration ECS API (query chains, Set(), multimap keys)
+   :do-not "copy any API shape from here — the engine changed underneath it (FM-13). The living rules are ECS_CONVENTIONS + Patterns/; this section documents decisions, not current mechanics"})
+```
 
 ```clojure
 [{:task :fix-evaluator-comment   ;; S1 — was «restore the commented-out hop»; RETRACTED 2026-07-17

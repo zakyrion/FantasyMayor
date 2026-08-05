@@ -50,7 +50,6 @@ HISTORY_MARKERS = ("remov", "retir", "renam", "привид", "ghost", "вида
 ALLOWLIST = {
     "InputSystem", "EventSystem", "UnityEvent",                    # Unity
     "ChangeEvent", "ScrollView", "ListView", "TreeView", "GridView",  # UI Toolkit / App UI
-    "AEntitySetSystem", "ISystem",                                 # DefaultEcs
     "IInstaller",                                                  # VContainer
 }
 

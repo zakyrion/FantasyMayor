@@ -33,7 +33,7 @@ namespace EcsExtensions
         ///     Gameplay per-frame + reactive tick order. Numeric values are a deterministic execution order only —
         ///     event visibility no longer depends on them: every one-frame event is guaranteed a full frame before
         ///     <see cref="EventCleanup" /> disposes it, regardless of relative priority to its producer (see the
-        ///     Event Lifecycle spec, PLAN_FRIFLO_MIGRATION.md). Every system still gets a distinct value — even two
+        ///     Event Lifecycle law, ECS_CONVENTIONS.md). Every system still gets a distinct value — even two
         ///     systems with no known dependency today — so a same-tick write/read dependency between them (e.g. one
         ///     system reading a world component another wrote this frame) is never silently order-agnostic.
         /// </summary>

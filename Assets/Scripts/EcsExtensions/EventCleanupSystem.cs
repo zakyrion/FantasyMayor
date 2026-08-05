@@ -6,7 +6,7 @@ namespace EcsExtensions
 {
     /// <summary>
     ///     Disposes one-frame event entities once <see cref="EcsEventExtensions.IsRipe" /> — after every
-    ///     consumer had its full frame to react (see PLAN_FRIFLO_MIGRATION.md → Event Lifecycle spec).
+    ///     consumer had its full frame to react (law: ECS_CONVENTIONS.md → Event Lifecycle).
     ///     Snapshots ripe entity ids first: deleting mid-enumeration throws StructuralChangeException, and
     ///     an <see cref="Entity" /> itself is not unmanaged (it carries a store reference), so the scratch
     ///     buffer holds ids, not entities.
