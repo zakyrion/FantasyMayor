@@ -8,11 +8,11 @@ related:
   - "[PATTERN_EVENT](../Patterns/PATTERN_EVENT.md)"
   - "[PATTERN_ORCHESTRATOR_SUBSYSTEM](../Patterns/PATTERN_ORCHESTRATOR_SUBSYSTEM.md)"
   - "[PATTERN_REACTIVE_SYSTEM](../Patterns/PATTERN_REACTIVE_SYSTEM.md)"
-status: complete
+status: implemented
 code_refs:
-  systems:    [BuildDistrictActionSystem, BuildDistrictActionCancelSystem, BuildDistrictTurnTickSystem, BuildDistrictCompletionSystem, DistrictViewSpawnSystem, DistrictBuildProgressViewSpawnSystem, DistrictBuildProgressViewDespawnSystem, HexInfoPanelDistrictSystem, DistrictBuildListUISubSystem, DistrictOpenConditionEvaluatorSystem, DistrictOpenConditionEvaluatorBootstrapSystem, DistrictSingleOpenConditionEvaluatorSubSystem, DistrictExistConditionSpawnSubSystem]
+  systems:    [BuildDistrictActionSystem, BuildDistrictActionCancelSystem, BuildDistrictTurnTickSystem, BuildDistrictCompletionSystem, DistrictViewSpawnSystem, DistrictBuildProgressViewSpawnSystem, DistrictBuildProgressViewDespawnSystem, HexInfoPanelDistrictSystem, DistrictBuildListUISubSystem, DistrictOpenConditionEvaluatorSystem, DistrictOpenConditionEvaluatorBootstrapSystem, DistrictOpenConditionEvaluatorTableChangedSystem, DistrictSingleOpenConditionEvaluatorSubSystem, DistrictExistConditionEvaluatorSubSystem, DistrictExistConditionSpawnSubSystem]
   events:     [DistrictBuildUIRequestedEvent, DistrictBuildConfirmedEvent, BuildDistrictCompleteEvent, DistrictTableChangedEvent, BuildDistrictCancelEvent]
-  components: [DistrictIdComponent, DistrictIdFKComponent, DistrictTypeComponent, DistrictTypeFKComponent, DistrictIdAllocatorComponent, DistrictBuildStateComponent, BuildDistrictTurnsComponent, ActorTypeComponent, DistrictOpenStateComponent, DistrictOpenConditionKindComponent, DistrictExistConditionComponent, HexIdFKComponent]
+  components: [DistrictIdComponent, DistrictIdFKComponent, DistrictTypeComponent, DistrictTypeFKComponent, DistrictIdAllocatorComponent, DistrictBuildStateComponent, ActionIdComponent, BuildDistrictTurnsComponent, ActorTypeComponent, DistrictOpenStateComponent, DistrictOpenConditionKindComponent, DistrictExistConditionComponent, HexIdFKComponent]
   data:       [DistrictBuildState, DistrictTableChange]
   tags:       [DistrictTag, BuildDistrictInProgressTag, DistrictOpenConditionTag, DistrictBuildProgressViewTag]
 ---
@@ -22,11 +22,37 @@ code_refs:
 One row per district from confirm to built; the buildable set is derived from that same table.
 
 This doc owns ONE behavior: the player builds a district, and the districts he MAY build are derived
-from the District table. It states the TARGET contract plus the plan closing `:now` → `:target`.
-Live wiring is the ecs-graph; this doc is diffable against it. Code comments link here, never retell it.
+from the District table. Structure follows `DOC_STANDARD.md` → Rule 2 (three stages). Live wiring is
+the ecs-graph; this doc is diffable against it. Code comments link here, never retell it.
+
+---
+
+# 1 · Request
 
 ```clojure
-(def participants  ;; {assembly role-in-this-flow}
+(def request  ;; Rule 2a
+  {:preserved :no
+   :why "this doc predates the verbatim-request rule (2026-08-06); the 2026-07-17 session was cleared and only the user's ANSWERS survived — they are the decision log below"
+   :verbatim-fragment "«лише якщо він збудований»"   ;; user, on what the Exist kind counts
+   :never "do not reconstruct the request from the answers — a reconstruction is the agent's words wearing the user's date"})
+```
+
+```clojure
+(def decisions  ;; all user calls, 2026-07-17
+  {:unified-row   "District row from confirm + a stage column; a separate planned-tag REJECTED as a third copy"
+   :exist-counts  "Exist counts Built only; SingleOpen counts Planned + Built"
+   :triggers      "re-evaluate on new turn, confirm, completion AND cancel"
+   :fold          "the old completion-only pulse folds into the table-changed event; views leave command pulses"
+   :event-payload "field ON the event + IEquatable + multimap-keyed; NOT a separate component reusing the stage column — Removed has no row to carry it"
+   :doc-rewrite   "this contract rewritten from scratch; the R1–R5 build history dropped — the record is the commit log"})
+```
+
+---
+
+# 2 · Contract
+
+```clojure
+(def participants  ;; {code-home role-in-this-flow} — most keys are namespaces, not assemblies; assembly-level statements are made explicitly (see :why-dag)
   {Presentation.UI.MainHud.HexInfoPanel  "open request; in-progress block (type, turns-left, cancel)"
    Presentation.UI.DistrictBuild         "projection + commands: lists Buildable districts, raises confirm; owns NO transaction state"
    Flows.DistrictBuild                   "UI-navigation event home; leaf assembly the UI references"
@@ -43,33 +69,30 @@ Live wiring is the ecs-graph; this doc is diffable against it. Code comments lin
   {:problem   "ONE real fact «district of type T on hex H» lived in TWO rows — the verb row and the fact row both carried hex + type"
    :symptom   "two near-identical hex-keyed view spawners; a third copy («a planned tag») was proposed and REJECTED"
    :decision  "the District row exists from CONFIRM; the build stage is a STATE COLUMN on it"
-   :verb-row  "shrinks to pure verb state + an FK into the District PK space — it copies NO district attribute"
+   :verb-row  "pure verb state + an FK into the District PK space — it copies NO district attribute"
    :bans      #{"a second tag for the planned stage" "a mirror row in another domain" "a hex/type copy on the verb row"}
    :why-dag   "Domains.Economy must not reference Domains.Actions; an evaluator reading only Economy rows needs no such edge"
    :tag-law   "1 tag per entity holds: the stage is a …StateComponent column, never a toggled tag"})
 ```
 
-## Entity model (target)
-
-<!-- doc-lint: off -->
+## Entity model
 
 ```clojure
 (def District  ;; Domains.Economy.District — the ONE row per district
   {:tag DistrictTag :pk DistrictIdComponent :fk HexIdFKComponent :data DistrictTypeComponent
-   :state ^:new DistrictBuildStateComponent})   ;; #{Planned Built}; PK allocated at CONFIRM (was: at completion)
+   :state DistrictBuildStateComponent})   ;; #{Planned Built}; PK allocated at CONFIRM
 
 (def BuildDistrictAction  ;; Domains.Actions — pure verb, no district attributes
   {:tag BuildDistrictInProgressTag
-   :fk  ^:new DistrictIdFKComponent             ;; → District PK; REPLACES the HexIdFK + DistrictTypeFK copy
+   :pk  ActionIdComponent                       ;; the action's own identity
+   :fk  DistrictIdFKComponent                   ;; → District PK; there is NO HexIdFK/DistrictTypeFK copy on this row
    :data [BuildDistrictTurnsComponent ActorTypeComponent]})
 
-(def DistrictOpenCondition  ;; unchanged by this flow
+(def DistrictOpenCondition
   {:tag DistrictOpenConditionTag :fk DistrictTypeFKComponent   ;; the GATED type
    :kind DistrictOpenConditionKindComponent :state DistrictOpenStateComponent
    :data DistrictExistConditionComponent})                     ;; Exist kind only: the REQUIRED type
 ```
-
-<!-- doc-lint: on -->
 
 ```clojure
 (def lifecycle
@@ -79,7 +102,7 @@ Live wiring is the ecs-graph; this doc is diffable against it. Code comments lin
    :invariant "a District row has exactly 2 exits: Built (terminal) or disposed (cancel) — nothing else removes it"})
 ```
 
-## Event vocabulary (the contract)
+## Event vocabulary
 
 ```clojure
 (def events
@@ -87,29 +110,23 @@ Live wiring is the ecs-graph; this doc is diffable against it. Code comments lin
    DistrictBuildConfirmedEvent   {:home Domains.Actions :payload "HexCoord + DistrictType + ActorType" :semantics :command}
    BuildDistrictCancelEvent      {:home Domains.Actions :payload "HexCoord" :semantics :command}
    BuildDistrictCompleteEvent    {:home Domains.Actions :payload :none
-                                  :semantics "doorbell: ≥1 countdown sits at 0; LEVEL-TRIGGERED — re-raised every turn until consumed"}})
+                                  :semantics "doorbell: ≥1 countdown sits at 0; LEVEL-TRIGGERED — re-raised every turn until consumed"}
+   DistrictTableChangedEvent     {:home Domains.Economy.District :payload DistrictTableChange   ;; #{Planned Built Removed}
+                                  :semantics "FACT: a District row entered this stage"
+                                  :shape "struct : IEquatable<T> + IComponent — the value is a DECIDED payload, not an index key: no consumer slices this event by value, and it is backed by no component index"
+                                  :consumed-by "anchoring on the event archetype, then reconciling globally off current state"
+                                  :raised-by "Domains.Actions (legal: Actions → Economy) — the owner DECLARES the signal, the mutator pulses it"
+                                  :deviation "PATTERN_EVENT prescribes payload-less; the field is a DECIDED filter key, not a payload copy"
+                                  :why-not-a-copy "Removed has no row left to read the stage from — the column cannot express it"
+                                  :note "reconcile stays global + idempotent; a repeat pass in one frame is a no-op, never a correctness case"}})
+```
 
-(def command-vs-fact  ;; the rule the S3 fold enforces
+```clojure
+(def command-vs-fact
   {:command {:consumer "the verb owner ONLY" :never "a view may not react to a command"}
    :fact    {:consumer "anyone deriving state — views, projections, evaluators"
              :why "a view on a command depends on system ORDER inside one tick; a view on a fact does not"}})
 ```
-
-<!-- doc-lint: off -->
-
-```clojure
-(def target-event  ;; ^:new — DistrictBuiltEvent folds into it (S3)
-  {^:new DistrictTableChangedEvent
-     {:home Domains.Economy.District :payload ^:new DistrictTableChange   ;; #{Planned Built Removed}
-      :shape "struct : IIndexedComponent<TValue> — the value IS the index key; slice via ComponentIndex keyed by value"  ;; user 2026-07-17
-      :raised-by "Domains.Actions (legal: Actions → Economy) — the owner DECLARES the signal, the mutator pulses it"
-      :semantics "FACT: a District row entered this stage"
-      :deviation "PATTERN_EVENT prescribes payload-less; the field is a DECIDED filter key, not a payload copy"
-      :why-not-a-copy "Removed has no row left to read the stage from — the column cannot express it"
-      :note "reconcile stays global + idempotent; a repeat pass in one frame is a no-op, never a correctness case"}})
-```
-
-<!-- doc-lint: on -->
 
 > **Not ECS — local C# events.** Close/dismiss, district-selection, payer-switch and cancel-click are
 > view→system C# events (`PATTERN_VIEW_SYSTEM`). Only the events above cross a frame or assembly boundary.
@@ -117,13 +134,10 @@ Live wiring is the ecs-graph; this doc is diffable against it. Code comments lin
 ## State ownership
 
 ```clojure
-(def state-ownership  ;; only the rows this flow CHANGES; selection/payer/selected-hex stay as they are
-  {:district-fact {:now    "Economy District row written at COMPLETION; hex + type duplicated on the verb row meanwhile"
-                   :target "written at CONFIRM, carrying the stage column; the verb row holds NO district attribute"}
-   :build-stage   {:now    "implicit — «planned» = a verb row existing in another domain; unreadable from Economy"
-                   :target "explicit — the stage column on the District row; the single source for every consumer"}
-   :open-state    {:now    "DistrictOpenStateComponent, SingleOpen only — Exist rows are spawned and never evaluated"
-                   :target "every kind evaluated; re-derived on every District-table change, not only per turn"}})
+(def state-ownership  ;; only the rows this flow owns; selection / payer / selected-hex belong elsewhere
+  {:district-fact "written at CONFIRM and carrying the stage column; the verb row holds NO district attribute"
+   :build-stage   "explicit — DistrictBuildStateComponent on the District row; the single source for every consumer"
+   :open-state    "every kind evaluated; re-derived on every District-table change, not only per turn"})
 ```
 
 ## Ordering invariants
@@ -149,7 +163,12 @@ Live wiring is the ecs-graph; this doc is diffable against it. Code comments lin
    :kind-coverage     {:law "every DistrictOpenConditionKind member has exactly ONE evaluator subsystem"
                        :why "a spawned row with no evaluator is stuck at its seeded state forever — silently unbuildable"}
    :change-only-write "write the state only on an actual value change — the family is idempotent by contract"
-   :threading         "MAIN THREAD, no hop: the turn pipeline runs INLINE on the main thread, so this family — like every store reader/writer — has no thread to come back from (ECS_CONVENTIONS → Law 1). The off-thread value-write loophole this entry once relied on no longer exists; a future parallel variant would go through a CommandBuffer, recorded off-thread and played back on main (ECS_CONVENTIONS → Open Directions), which is NOT in force today."})
+   :threading         "MAIN THREAD, no hop: the turn pipeline runs INLINE on the main thread, so this family — like every store reader/writer — has no thread to come back from (ECS_CONVENTIONS → Law 1). A future parallel variant would go through a CommandBuffer, recorded off-thread and played back on main (ECS_CONVENTIONS → Open Directions), which is NOT in force today."})
+
+(def hosts  ;; the three that run the one family
+  {DistrictOpenConditionEvaluatorBootstrapSystem   "world-init — covers turn 1 (no Preview phase runs before it)"
+   DistrictOpenConditionEvaluatorSystem            "turn phase — covers future kinds depending on non-District state (population, tech)"
+   DistrictOpenConditionEvaluatorTableChangedSystem "reactive — covers District-table changes within a turn; per-turn re-derivation is too late, confirm and cancel must re-gate the list inside the same turn"})
 
 (def kind-semantics  ;; user 2026-07-17 — what each kind counts
   {SingleOpen {:closed-when "≥1 District row of the gated type exists in ANY stage" :counts #{:Planned :Built}
@@ -158,167 +177,38 @@ Live wiring is the ecs-graph; this doc is diffable against it. Code comments lin
                :why "a prerequisite only counts once it actually stands"}})   ;; user: «лише якщо він збудований»
 ```
 
-## Gap list (`:now` ≠ `:target`)
+## Gaps
 
 ```clojure
 (def gaps
-  {:g1 {:what "hex + type duplicated across the verb row and the fact row" :cost "every consumer picks a source; a third copy was already being proposed" :closed "2026-07-17 (:unify-district-row)"}
-   :g2 {:what "the build stage is unreadable from Domains.Economy"          :cost "SingleOpen cannot count in-progress builds without a DAG violation or a mirror" :closed "2026-07-17 (:unify-district-row)"}
-   :g3 {:what "Exist-kind conditions are spawned with no evaluator"         :cost "every Exist-gated district is permanently unbuildable; the seeded Closed state never flips" :closed "2026-07-17 (:evaluate-open-conditions)"}
-   :g4 {:what "the turn host's comment declares «every world write goes back on the main thread» — at the time, stricter than the then-current threading law, which permitted an off-thread write to an already-present component"
-        :cost "the commented-out hop below it read as a missing guard; it was a deliberate optimisation (a hop costs a frame). The comment was rot — it already misled one reader into filing a phantom bug."
-        :closed "2026-07-17 — RETRACTED, not a real gap (:fix-evaluator-comment); comment corrected regardless"
-        :moot-since "2026-08-05 — the FM-13 engine migration made main-thread-only the actual law and the turn pipeline inline, so both the permission this entry argued about and the hop it discussed are gone"}
-   :g5 {:what "views react to COMMAND pulses and lean on same-tick system order" :cost "a priority change silently breaks the view; the dependency is invisible at the call site" :closed "2026-07-17 (:rewire-presentation)"}
-   :g6 {:what "SingleOpen's header claims the District table is «pure scaffold — nothing spawns it yet»" :cost "false since the build flow landed; a stale premise misleads the next reader" :closed "2026-07-17 (:evaluate-open-conditions)"}})
+  {:open :none})   ;; 2026-08-06 — the last entry (:g4) was retracted, see phantom-guard; a new gap is filed here when one is found
 ```
 
 ```clojure
-(def gap-list-note  ;; 2026-08-05
-  {:g7 :never-existed          ;; the FM-13 plan's :s8-flow step named a :g7 — no such gap was ever filed here; the list runs :g1…:g6 and all six are closed
-   :chimera "the district-row chimera class (a row matching two identity tags at once) is GONE — eliminated by the FM-13 engine migration, not by a fix inside this flow. It was never a gap entry; it is recorded here so the next reader stops looking for one"})
+(def phantom-guard  ;; dated record — kept ONLY because each entry stops a future reader from re-filing a non-gap
+  {:g4      {:was "the evaluator's «missing» main-thread hop, filed as a bug 2026-07-17"
+             :verdict :RETRACTED   ;; the family Sets an EXISTING column, which the law permitted off-thread; a hop costs a frame
+             :root-cause "the file's own comment declared a stricter rule than the decreed one — the agent trusted the comment over ECS_CONVENTIONS"
+             :moot-since "2026-08-05 — FM-13 made the turn pipeline inline and main-thread-only; both the permission and the hop are gone"}
+   :g7      :never-existed   ;; the FM-13 plan named a :g7 here; no such gap was ever filed — the list ran :g1…:g6
+   :chimera "the district-row chimera (a row matching two identity tags at once) is GONE — eliminated by the FM-13 engine migration, not by a fix inside this flow; stop looking for one"
+   :g1-g3-g5-g6 "closed 2026-07-17 by the plan; what each was and why is the commit log"})
 ```
 
-## Plan
+---
 
-Every `^:new` name is a PROPOSAL pending veto (naming policy: self-sufficient without the namespace).
-`:resolve` legend: `?` = user's call · `:by-code` · `:by-policy` · `:by-naming-policy` · `:decided`.
-Every `:resolve` is CLOSED — no step waits on a decision; execute in order.
+# 3 · Plan
 
 ```clojure
-(def plan-preconditions  ;; checked 2026-07-17 — do not re-derive
-  {:asmdef "NO new asmdef reference is needed: Presentation and Presentation.UI already reference Domains.Economy, and Domains.Actions already references it too — every cross-assembly edge this plan uses exists"
-   :dag    "Domains.Economy gains NO reference to Domains.Actions in any step; if a step seems to need one, the step is wrong"
-   :unity  "one user-side step exists (a new folder's .meta, see :add-table-changed-event); everything else is plain code"})
-```
-
-```clojure
-(def plan-atomicity  ;; READ BEFORE STARTING — the middle of this plan is a knowingly broken world
-  {:band "S2 + S3 + S4 are ONE landing unit; the world is BROKEN between them BY DESIGN"
-   :why  "S2 removes hex + type from the verb row; S4 is what re-points Presentation at the District row. Between them, Presentation reads columns that no longer exist."
-   :broken-after-S2
-     {DistrictBuildProgressViewSpawnSystem "its query still names the dropped columns → EMPTY set → no progress prefab. SILENT."
-      DistrictViewSpawnSystem              "no stage filter yet → on any completion pulse it also spawns prefabs for PLANNED rows → districts appear before they are built. VISIBLE."
-      HexInfoPanelDistrictSystem           "reads hex + type off the verb row → gone → the in-progress block breaks"}
-   :do-not "do NOT playtest between S2 and S4, and do NOT 'fix' any of the three above — S4 repairs each one by design. Patching them in place re-creates the duplication this whole plan removes."
-   :expected-early-win "SingleOpen starts counting in-progress builds correctly the moment S2 lands — that is the mechanic arriving, not a bug to investigate"
-   :independent #{:fix-evaluator-comment}   ;; S1 touches nothing this band touches — land it whenever
-   :verify-at "the end of S4 — the first point where the world is coherent again; S5 then adds the missing evaluators on top"})
-```
-
-<!-- doc-lint: off -->
-
-```clojure
-(def plan-status  ;; 2026-08-05
-  {:state :EXECUTED                ;; every task below landed 2026-07-17; kept as the record of WHAT was decided and why
-   :api-vocabulary :PRE-FM-13      ;; the task bodies speak the pre-migration ECS API (query chains, Set(), multimap keys)
-   :do-not "copy any API shape from here — the engine changed underneath it (FM-13). The living rules are ECS_CONVENTIONS + Patterns/; this section documents decisions, not current mechanics"})
-```
-
-```clojure
-[{:task :fix-evaluator-comment   ;; S1 — was «restore the commented-out hop»; RETRACTED 2026-07-17
-  :closes :g4  :where DistrictOpenConditionEvaluatorSystem
-  :retracted "the missing hop was filed as a bug (:g4) and is NOT one: the family Sets an EXISTING state column, which Law 1 permits off-thread, and a hop would cost a frame"   ;; user 2026-07-17
-  :root-cause "the file's own comment declares a stricter rule than the decreed one — the agent trusted the comment instead of ECS_CONVENTIONS"
-  :do "delete the commented-out SwitchToMainThread line and rewrite the comment to state the REAL reason: this family writes existing components only, so it stays on the pool by design"
-  :skip "the hop itself — restoring it would be a regression"
-  :accept {:meter "code read" :target "no commented-out code; the comment cites Law 1's structural-vs-value line, not a blanket write rule"}
-  :landed "2026-07-17"}
-
- {:task :unify-district-row     ;; S2 — the core; needs nothing
-  :closes #{:g1 :g2}  :where [Domains.Economy.District Domains.Actions.BuildDistrictAction]
-  :decided "row from confirm; stage as a column"   ;; user 2026-07-17
-  :add [{:file ^:new DistrictBuildState :where "Economy/District/Data/" :shape "enum #{Unknown Planned Built}"}   ;; Unknown=0, per the DistrictOpenState precedent
-        {:file ^:new DistrictBuildStateComponent :pattern PATTERN_COMPONENT :shape "stage column; IEquatable — a self-index key"}
-        {:file ^:new DistrictIdFKComponent :pattern PATTERN_COMPONENT :shape "FK into the District PK space; IEquatable — a multimap key"}]
-  :trap "EVERY query over the verb row is invalidated: it loses HexIdFKComponent + DistrictTypeFKComponent, so any With<> chain naming them matches NOTHING. A stale chain does not fail — it yields an EMPTY set and the system silently no-ops. Re-read every verb-row query before assuming it is unchanged."
-  :change {BuildDistrictActionSystem (-> "spend (rule unchanged)" "allocate the PK here — move the DistrictIdAllocatorComponent seed off the completion system"
-                                         "create the District row := Planned" "create the verb row := tag + DistrictIdFK + turns + payer"
-                                         "verb row NO LONGER carries HexIdFKComponent or DistrictTypeFKComponent")
-           BuildDistrictCompletionSystem (-> "REWRITE the base query — its current chain names HexIdFKComponent + DistrictTypeFKComponent, which the verb row no longer has (see :trap); filter on the tag + turns + the new FK instead"
-                                             "reconcile off TurnsLeft<=0 (rule unchanged)"
-                                             "resolve the District row via the FK → Set stage Built"
-                                             "dispose the verb row" "NO LONGER creates the fact row — it already exists")
-           BuildDistrictActionCancelSystem (-> "REWRITE the hex-keyed multimap — it currently indexes the VERB row by HexIdFKComponent, which is gone (see :trap); index the DISTRICT table by hex instead"
-                                               "resolve the District row by hex (the pulse payload) → its PK"
-                                               "resolve the verb row by the FK = that PK"
-                                               "read DistrictType from the District ROW (was: the verb row)" "refund (rule unchanged)" "dispose BOTH rows")
-           BuildDistrictTurnTickSystem "query + logic unchanged — it names only the tag and the turns column, both of which the verb row keeps"}
-  :skip "the refund maths, the AP rule, the level-triggered pulse discipline — all landed, none in scope"
-  :accept [{:meter ecs-graph :target "the BuildDistrictAction archetype carries no HexIdFKComponent and no DistrictTypeFKComponent"}
-           {:meter "playtest" :target "a confirmed build still COMPLETES — the silent-empty-set trap above is the likeliest way this step regresses"}]
-  :landed "2026-07-17 (ecs-graph meter verified; playtest meter is user-side)"}
-
- {:task :add-table-changed-event   ;; S3 — needs :unify-district-row
-  :where Domains.Economy.District   ;; closes nothing on its own — see :enables below
-  :add [{:file ^:new DistrictTableChange :where "Economy/District/Data/" :shape "enum #{Unknown Planned Built Removed}"}
-        {:file ^:new DistrictTableChangedEvent :where "Economy/District/Events/" :pattern PATTERN_EVENT}]  ;; shape + rationale: target-event above
-  :user-side "Events/ does not exist under Economy/District/ — a NEW folder needs a Unity-generated .meta. Agents never hand-write .meta: create the folder Unity-side, or ask. Everything else in this step is plain code."
-  :raise {BuildDistrictActionSystem "{Planned} after the row is created"
-          BuildDistrictCompletionSystem "{Built} once per pass, after the stage writes"
-          BuildDistrictActionCancelSystem "{Removed} after the rows are disposed"}
-  :delete DistrictBuiltEvent   ;; folded; consumers migrate in :rewire-presentation
-  :enables :g5   ;; the pulse this step adds is what lets :rewire-presentation actually close :g5
-  :accept {:meter ecs-graph :target "DistrictBuiltEvent absent; DistrictTableChangedEvent has 3 producers"}
-  :landed "2026-07-17 (ecs-graph meter verified)"}
-
- {:task :rewire-presentation   ;; S4 — needs :add-table-changed-event
-  :closes :g5  :where [Presentation.Districts Presentation.UI.MainHud.HexInfoPanel]
-  :change {DistrictBuildProgressViewSpawnSystem
-             {:trigger "{Planned}"   ;; was DistrictBuildConfirmedEvent — a COMMAND
-              :reconcile "District rows staged Planned with no progress view (keyed by hex)"
-              :gain "kills the same-tick order-dependency its header declares (it ran right after BuildDistrictActionSystem)"}
-           DistrictViewSpawnSystem
-             {:trigger "{Built}" :reconcile "District rows staged Built with no district view"}
-           DistrictBuildProgressViewDespawnSystem
-             {:trigger "#{Built Removed}" :reconcile "progress-view rows whose hex has no Planned District row — covers completion AND cancel with one rule"}
-           HexInfoPanelDistrictSystem
-             {:trigger "WithEither: SelectedHexChangedEvent | TurnCompletedEvent | DistrictTableChangedEvent"   ;; 4 disjuncts → 3: confirm + cancel fold in
-              :data "district type from the District ROW; turns-left from the verb row via the FK"
-              :block-rule "in-progress block ⟺ the selected hex's District row is staged Planned"}}
-  :skip "the panel's other block states, the icon config, the cancel C# event — all landed"
-  :accept {:meter ecs-graph :target "no Presentation system reacts to DistrictBuildConfirmedEvent or BuildDistrictCancelEvent"}
-  :landed "2026-07-17 (ecs-graph meter verified)"}
-
- {:task :evaluate-open-conditions   ;; S5 — needs :unify-district-row + :add-table-changed-event
-  :closes #{:g3 :g6}  :where Domains.Economy.DistrictOpenCondition
-  :change {DistrictSingleOpenConditionEvaluatorSubSystem
-             {:query :unchanged   ;; its multimap over DistrictTag + DistrictTypeComponent ALREADY spans every row
-              :why "after :unify-district-row that map holds Planned AND Built rows — the in-progress case arrives for FREE"
-              :do "correct the stale header (:g6): the table is no longer scaffold, and the query now counts in-progress builds"
-              :dissolves "the proposed in-progress set on this subsystem — no BuildDistrictInProgressTag read, no Economy→Actions edge"}}
-  :add [{:file ^:new DistrictExistConditionEvaluatorSubSystem :name :by-naming-policy
-         :base DistrictOpenConditionEvaluatorSubSystem :pattern PATTERN_ORCHESTRATOR_SUBSYSTEM
-         :do (-> "slice the condition table by kind Exist" "per row read DistrictExistConditionComponent.RequiredDistrict"
-                 "look that type up in the District multimap, keep only rows staged Built"   ;; user: «лише якщо він збудований»
-                 "target := Buildable when ≥1 Built row exists, else Closed" "change-only Set()")
-         :register "the family is DI-collected — add it to the DistrictOpenCondition installer, or BOTH hosts silently skip it"}
-        {:file ^:new DistrictOpenConditionEvaluatorTableChangedSystem :name :by-naming-policy   ;; 3rd host, sibling of …EvaluatorSystem / …EvaluatorBootstrapSystem
-         :role reactive-system :pattern PATTERN_REACTIVE_SYSTEM
-         :trigger "DistrictTableChangedEvent — any stage; every transition can flip a condition"
-         :do "run the same DI-collected family; NO evaluation logic of its own"
-         :why "per-turn re-derivation is too late: confirm and cancel must re-gate the list within the same turn"
-         :wire "a new reactive system is THREE wiring steps, none optional — miss one and it never runs, silently: (1) a SystemPriorities constant; (2) installer registration, CONCRETE + .As<TheSystem>() per ARCHITECTURE di-composition; (3) manual composition into the Gameplay state in Boot. Verify with dig.py after."
-         :unlike "the sibling subsystem below needs only its installer line — the family is DI-collected; a HOST is not"}]
-  :hosts-after {DistrictOpenConditionEvaluatorBootstrapSystem "world-init — covers turn 1 (no Preview phase runs before it)"
-                DistrictOpenConditionEvaluatorSystem "turn phase — covers future kinds depending on non-District state (population, tech)"
-                ^:new DistrictOpenConditionEvaluatorTableChangedSystem "reactive — covers District-table changes within a turn"}
-  :accept [{:meter ecs-graph :target "DistrictExistConditionComponent has ≥1 reader"}
-           {:meter "playtest" :target "building the last SingleOpen district drops it from the list on CONFIRM, not on completion; cancel returns it"}]
-  :landed "2026-07-17 (ecs-graph + di-graph meters verified; playtest meter verified — user confirmed)"
-  :correction "the plan-preconditions :asmdef claim («NO new asmdef reference is needed») was WRONG for this step: Boot.Implementation had never directly referenced Domains.Economy (only reachable transitively via Domains.Actions, which Unity's non-SDK-style generated csproj does NOT expose for compilation). Boot must compose a reactive UpdatedSystem by name (decreed invariant, ARCHITECTURE → Boot flow), so landing forced two changes not in the original plan: Boot.Implementation.asmdef gained a Domains.Economy reference, and DistrictOpenConditionEvaluatorSubSystem (the abstract base) went internal → public (PATTERN_ORCHESTRATOR_SUBSYSTEM's actual default — the internal choice on the first two hosts only worked because neither is Boot-composed by name). User approved both before landing."}]
-```
-
-<!-- doc-lint: on -->
-
-## Decision log
-
-```clojure
-(def decisions  ;; all user calls, 2026-07-17
-  {:unified-row   "District row from confirm + a stage column; a separate planned-tag REJECTED as a third copy"
-   :exist-counts  "Exist counts Built only; SingleOpen counts Planned + Built"
-   :triggers      "re-evaluate on new turn, confirm, completion AND cancel"
-   :fold          "the old completion-only pulse folds into the table-changed event; views leave command pulses"
-   :event-payload "field ON the event + IEquatable + multimap-keyed; NOT a separate component reusing the stage column — Removed has no row to carry it"
-   :doc-rewrite   "this contract rewritten from scratch; the R1–R5 build history dropped — the record is the commit log"})
+(def plan  ;; Rule 2c tombstone
+  {:state     :harvested-and-dropped
+   :on        "2026-08-06"
+   :executed  "2026-07-17 — five tasks, every :accept meter verified (ecs-graph, di-graph, user playtest)"
+   :harvest   {:to-contract   "the evaluator host set, the level-triggered pulse rule, the kind semantics — all above"
+               :to-guard      "the :g4 retraction and the :g7/chimera phantoms — see phantom-guard"
+               :proposed-out  #{"the stale-query trap: a query filter naming a column the row no longer carries matches NOTHING — an empty set, a silent no-op, no compile error and no throw"
+                                "the asmdef fact (Unity's non-SDK csproj does not expose transitive references for compilation, so a Boot-composed system needs a DIRECT asmdef reference)"}}
+   :dropped   "the task bodies, their pre-FM-13 API vocabulary, the S2–S4 atomicity band, the measured blast radius"
+   :record    "the commit log"
+   :never     "re-adding an executed plan to this file"})
 ```

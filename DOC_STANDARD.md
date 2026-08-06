@@ -31,7 +31,7 @@ A doc may hold ONLY content that does not decay when code drifts:
 
 ```clojure
 (def doc-genres
-  {:flow-contract "Flows/FLOW_<NAME>.md"   ;; dated TARGET contract of one cross-domain behavior + gap list; changes by decision, not drift
+  {:flow-contract "Flows/FLOW_<BEHAVIOR>.md | PLAN_<PROGRAM>.md"  ;; ONE genre (Category A) in three staged sections — Rule 2; the prefix encodes the file's FATE, not a second genre
    :recipe        "Patterns/PATTERN_*.md"  ;; one-approach-per-file skeleton for a code role; changes when the convention changes
    :policy        "root *.md"              ;; ARCHITECTURE / ECS_CONVENTIONS / CLAUDE / this file / GENERAL_UI_STYLE / GLOSSARY
    :never         "present-tense mirror of code state"})  ;; current-state prose, rosters, wiring — tools own those
@@ -49,6 +49,81 @@ A doc may hold ONLY content that does not decay when code drifts:
 ```
 
 A live code symbol may appear in a doc only as an ANCHOR (bare name) — doc-lint verifies it exists.
+A symbol that no longer exists in the code may NOT appear as an anchor — state it inside a `"string"`
+as the past fact it now is.
+
+---
+
+## Rule 2 — A Category A doc has THREE stages, and they rot at different rates
+
+The split is not organisational. Each stage has a different **lifetime**, and holding them in one
+undifferentiated file lets the shortest-lived content drag down the longest-lived.
+
+```clojure
+(def stages  ;; user 2026-08-06 — the three named sections of every Category A doc, in this order
+  {:request  {:owns "the user's own statement of the task, plus the dated log of his decisions"
+              :lifetime :immutable                  ;; a dated historical fact — it cannot rot
+              :on-completion "stays, verbatim"}
+   :contract {:owns "what must be TRUE: invariants, semantics, state ownership, open gaps"
+              :lifetime "changes by decision, never by drift"
+              :on-completion "stays — this IS the Category A payload"}
+   :plan     {:owns "what to DO: files, order, traps, meters"
+              :lifetime :dies-on-completion
+              :on-completion :harvest-then-drop}})  ;; Rule 2c
+```
+
+```clojure
+(def stage-boundary  ;; the ONE test that decides where a sentence belongs
+  {:question "does this sentence survive a total rewrite of the implementation?"
+   :yes      :contract
+   :no       :plan                    ;; it names a file, a system, or an order of steps
+   :why "the boundary is the sentence's LIFETIME, not its subject — the same subject appears in both stages"})
+```
+
+### Rule 2a — `:request` is verbatim
+
+```clojure
+(def request-rule
+  {:copy      :verbatim        ;; the user's words, unedited — prose or Clojure, whichever he wrote
+   :dated     :required
+   :alongside "the agent's normalised task map, explicitly marked as the AGENT's restatement"  ;; two forms side by side, never one merged form
+   :why "the request is the only artifact with a zero rot coefficient; a paraphrase is already a lossy read of intent"
+   :never     "reconstructing a request that was not preserved"})   ;; mark its ABSENCE — a reconstruction is the agent's words wearing the user's date
+```
+
+### Rule 2b — `:contract` closes before `:plan` starts
+
+```clojure
+(def contract-closed
+  {:criterion "ZERO open resolutions"   ;; every `?` / `:by-<source>` has become `:decided`
+   :gate      "a plan step may not execute while a decision it depends on is open"
+   :marker    "state the closure IN the doc — either «every resolution is CLOSED, execute in order» or an explicit :blocks edge"
+   :why "validated twice before it was written down: a fully-closed batch executed clean, and an open decision correctly stalled a later stage instead of being stubbed"})
+```
+
+### Rule 2c — `:plan` is harvested, then dropped
+
+```clojure
+(def harvest  ;; what happens to :plan once every stage has landed
+  {:hazard->code        "a trap about ONE system → a comment at distance zero, in the same diff"
+   :invariant->contract "a rule that survives a rewrite → the :contract section of this same doc"
+   :toolchain->policy   "a fact about Unity / asmdef / the build → a PROPOSAL to the user"  ;; ECS_CONVENTIONS and ARCHITECTURE change by user decision only
+   :rest                :drop        ;; the record is the commit log — already decreed
+   :who                 "the agent proposes the split; the user vetoes"
+   :tombstone           "leave 3 lines: harvested on <date>, what went where, record = commit log"  ;; stops the next reader re-adding it
+   :never               "an executed plan left inside a live contract"})
+```
+
+### Rule 2d — the filename prefix encodes the file's FATE
+
+```clojure
+(def category-a-prefix
+  {:test  "after this program completes, does a cross-domain behavioral contract REMAIN for someone to read?"
+   FLOW_  {:answer :yes :fate "the :plan section dies; the FILE lives"}
+   PLAN_  {:answer :no  :fate "after harvest the WHOLE FILE self-deletes"}
+   :both  :category-A                 ;; one genre — the prefix is a fate marker, not a second genre
+   :evidence "retro-checked against three real programs: two infrastructure migrations left no behavioral contract and their plan docs self-deleted; the district-build contract outlived its plan"})
+```
 
 ---
 
@@ -92,7 +167,7 @@ editor), instruction semantics (nothing evaluates).
 
 | Category | What it is | Files | Rule |
 |---|---|---|---|
-| **A — Flow contract** | The dated cross-domain contract of ONE behavior: event vocabulary, state ownership (`:now` vs `:target`), ordering invariants, gap list | `Flows/FLOW_*.md` | Diffable against the ecs-graph — a mismatch is drift to fix or a deliberate contract change. Code comments link here, never retell it. |
+| **A — Task document** | ONE behavior or ONE program in three staged sections (Rule 2): the user's request, the contract of what must be true (event vocabulary, state ownership, ordering invariants, open gaps), the live plan | `Flows/FLOW_*.md`, `PLAN_*.md` | Diffable against the ecs-graph — a mismatch is drift to fix or a deliberate contract change. Code comments link here, never retell it. |
 | **B — Template / Reference** | How to build new code, or how to use a tricky API | `Patterns/PATTERN_*.md` (incl. `ADDRESSABLE_PATTERNS.md`) | Do **not** strip. Keep accurate, keep complete. Examples use placeholder names (`Foo*`, `My*`) or live anchors that pass doc-lint. |
 | **C — Policy** | Project-wide rules | `CLAUDE.md`, `ARCHITECTURE.md`, `ECS_CONVENTIONS.md`, `GENERAL_UI_STYLE.md`, `GLOSSARY.md`, this file | Rules and orientation. Change by user decision only. |
 
@@ -141,8 +216,10 @@ After adding/removing/renaming a doc or changing `read`/`trigger`/`status`: re-r
 
 ## Checklist Before Saving Any MD
 
-- [ ] The content fits a non-rotting genre (flow contract / recipe / policy) — no present-tense
+- [ ] The content fits a non-rotting genre (task doc / recipe / policy) — no present-tense
       mirror of code state, no rosters, no wiring, no priorities, no signatures.
+- [ ] Category A only: the three Rule 2 sections are present and named; every sentence passed the
+      `stage-boundary` test; no stage-status claim in the body (a stage's truth is its `:accept` meter).
 - [ ] Frontmatter per the table; `python3 Tools/gen_index.py` re-run if doc-meta changed.
 - [ ] `python3 Tools/doc_lint.py` reports no new ghosts for this doc.
 - [ ] Mechanizable rules are Clojure rule blocks (Rule Style), not prose bullets.
