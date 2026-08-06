@@ -31,7 +31,7 @@ A doc may hold ONLY content that does not decay when code drifts:
 
 ```clojure
 (def doc-genres
-  {:flow-contract "Flows/FLOW_<BEHAVIOR>.md | PLAN_<PROGRAM>.md"  ;; ONE genre (Category A) in three staged sections — Rule 2; the prefix encodes the file's FATE, not a second genre
+  {:flow-contract "Flows/FLOW_<TASK>.md | Flows/Archive/FLOW_<TASK>.md"  ;; ONE persistent Category A artifact per engineering task — Rule 2
    :recipe        "Patterns/PATTERN_*.md"  ;; one-approach-per-file skeleton for a code role; changes when the convention changes
    :policy        "root *.md"              ;; ARCHITECTURE / ECS_CONVENTIONS / CLAUDE / this file / GENERAL_UI_STYLE / GLOSSARY
    :never         "present-tense mirror of code state"})  ;; current-state prose, rosters, wiring — tools own those
@@ -66,7 +66,7 @@ undifferentiated file lets the shortest-lived content drag down the longest-live
               :on-completion "stays, verbatim"}
    :contract {:owns "what must be TRUE: invariants, semantics, state ownership, open gaps"
               :lifetime "changes by decision, never by drift"
-              :on-completion "stays — this IS the Category A payload"}
+              :on-completion "stays when it remains operational; otherwise the whole FLOW becomes historical"}
    :plan     {:owns "what to DO: files, order, traps, meters"
               :lifetime :dies-on-completion
               :on-completion :harvest-then-drop}})  ;; Rule 2c
@@ -89,6 +89,17 @@ undifferentiated file lets the shortest-lived content drag down the longest-live
    :alongside "the agent's normalised task map, explicitly marked as the AGENT's restatement"  ;; two forms side by side, never one merged form
    :why "the request is the only artifact with a zero rot coefficient; a paraphrase is already a lossy read of intent"
    :never     "reconstructing a request that was not preserved"})   ;; mark its ABSENCE — a reconstruction is the agent's words wearing the user's date
+```
+
+```clojure
+(def one-task-one-flow  ;; user 2026-08-06 — the FLOW is the task's only cross-session artifact
+  {:scope       "EVERY engineering task — code, architecture, refactor, docs, config-flow, tooling"
+   :unit        "ONE confirmed task map or vector batch → ONE new FLOW"
+   :created     "the FIRST write after the initial go; before Research starts"
+   :identity    "FLOW_<TASK>.md — uppercase snake-case of the confirmed :task id"
+   :batch       "a vector batch needs one shared FLOW name in the confirmed restatement"
+   :contains    (-> :request :contract :plan)
+   :never       #{"chat-only engineering plan" "a self-deleting PLAN_ file" "implementation before the fresh implementation-go"}})
 ```
 
 ### Rule 2b — `:contract` closes before `:plan` starts
@@ -114,15 +125,21 @@ undifferentiated file lets the shortest-lived content drag down the longest-live
    :never               "an executed plan left inside a live contract"})
 ```
 
-### Rule 2d — the filename prefix encodes the file's FATE
+### Rule 2d — the FLOW's completion fate
 
 ```clojure
-(def category-a-prefix
-  {:test  "after this program completes, does a cross-domain behavioral contract REMAIN for someone to read?"
-   FLOW_  {:answer :yes :fate "the :plan section dies; the FILE lives"}
-   PLAN_  {:answer :no  :fate "after harvest the WHOLE FILE self-deletes"}
-   :both  :category-A                 ;; one genre — the prefix is a fate marker, not a second genre
-   :evidence "retro-checked against three real programs: two infrastructure migrations left no behavioral contract and their plan docs self-deleted; the district-build contract outlived its plan"})
+(def flow-fate
+  {:active   {:path "Flows/FLOW_<TASK>.md"         :read :always  :status :partial}
+   :contract {:path "Flows/FLOW_<TASK>.md"         :read :trigger :status :implemented}
+   :history  {:path "Flows/Archive/FLOW_<TASK>.md" :read :archive :status :implemented}
+   :test     "does a durable contract remain useful before a future change?"
+   :yes      "keep the FLOW trigger-readable; its Request and decisions remain the task history"
+   :no       "move the FLOW to Archive; preserve the exact historical vocabulary"
+   :archive  {:never-current-truth true
+              :code-refs :remove                 ;; old symbols are history, not current declarations
+              :index "counted, never listed individually"
+              :doc-lint "body symbols are exempt from current-code ghost detection"}
+   :never    "delete a FLOW file"})
 ```
 
 ---
@@ -167,7 +184,7 @@ editor), instruction semantics (nothing evaluates).
 
 | Category | What it is | Files | Rule |
 |---|---|---|---|
-| **A — Task document** | ONE behavior or ONE program in three staged sections (Rule 2): the user's request, the contract of what must be true (event vocabulary, state ownership, ordering invariants, open gaps), the live plan | `Flows/FLOW_*.md`, `PLAN_*.md` | Diffable against the ecs-graph — a mismatch is drift to fix or a deliberate contract change. Code comments link here, never retell it. |
+| **A — Task FLOW** | ONE engineering task in three staged sections (Rule 2): the user's request, the contract of what must be true, and the live plan | `Flows/FLOW_*.md`, `Flows/Archive/FLOW_*.md` | Active/contract FLOWs are diffable against the tools; archived FLOWs are immutable task history, not current-code claims. |
 | **B — Template / Reference** | How to build new code, or how to use a tricky API | `Patterns/PATTERN_*.md` (incl. `ADDRESSABLE_PATTERNS.md`) | Do **not** strip. Keep accurate, keep complete. Examples use placeholder names (`Foo*`, `My*`) or live anchors that pass doc-lint. |
 | **C — Policy** | Project-wide rules | `CLAUDE.md`, `ARCHITECTURE.md`, `ECS_CONVENTIONS.md`, `GENERAL_UI_STYLE.md`, `GLOSSARY.md`, this file | Rules and orientation. Change by user decision only. |
 
@@ -180,10 +197,10 @@ Navigation only — doc-meta and doc↔doc relations, never code structure.
 | Field | Required | Rule |
 |---|---|---|
 | `category` | all files | `A` \| `B` \| `C` per the table above |
-| `read` | all files | `always` (session-start set, keep tiny) · `trigger` (+ one imperative `trigger:` line — it is the doc's INDEX entry) · `reference` |
+| `read` | all files | `always` (session-start set; Category A means active work) · `trigger` (+ one imperative `trigger:` line) · `reference` · `archive` (completed historical FLOW only; counted but not listed in INDEX) |
 | `tags` | encouraged | lowercase domain labels, never type/assembly names |
 | `related` | omit if none | doc↔doc **relative markdown links** only |
-| `status` | Category A only | `partial` \| `implemented` — how much of the flow's TARGET the code meets |
+| `status` | Category A only | `partial` while active · `implemented` after every acceptance meter passes |
 | `code_refs` | Category A only | bare symbol names the contract reasons about, nested by kind — doc-lint drift anchors |
 
 After adding/removing/renaming a doc or changing `read`/`trigger`/`status`: re-run
@@ -220,6 +237,8 @@ After adding/removing/renaming a doc or changing `read`/`trigger`/`status`: re-r
       mirror of code state, no rosters, no wiring, no priorities, no signatures.
 - [ ] Category A only: the three Rule 2 sections are present and named; every sentence passed the
       `stage-boundary` test; no stage-status claim in the body (a stage's truth is its `:accept` meter).
+- [ ] Category A lifecycle: active = `read: always` + `status: partial`; completion harvested the
+      plan and chose `read: trigger` or `read: archive`; archived FLOW has no `code_refs`.
 - [ ] Frontmatter per the table; `python3 Tools/gen_index.py` re-run if doc-meta changed.
 - [ ] `python3 Tools/doc_lint.py` reports no new ghosts for this doc.
 - [ ] Mechanizable rules are Clojure rule blocks (Rule Style), not prose bullets.

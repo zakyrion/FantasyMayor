@@ -13,7 +13,7 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 25 docs — 2 always · 21 trigger · 2 reference · 3 canvas.
+Totals: 27 docs — 2 always · 21 trigger · 2 reference · 2 archive · 3 canvas.
 
 ## Read at start (always)
 
@@ -58,6 +58,10 @@ Reference docs read on demand.
 |---|---|---|---|
 | [AGENTS.md](AGENTS.md) | C | — | Codex bootstrap: full FantasyMayor process contract, Codex-native — HARD GATE, go/done, notation ext, tools, policies. |
 | [Як читати і писати Clojure-інструкції](CLOJURE_GUIDE.md) | B | — | Людський підручник до Clojure-нотації задач і правил: реальний синтаксис Clojure як мова |
+
+## Task history (archive)
+
+2 completed FLOW document(s) are retained under `Flows/Archive/`. They preserve task history and are searched on demand; they are not startup context or current-code claims.
 
 ## Canvas map (on demand)
 

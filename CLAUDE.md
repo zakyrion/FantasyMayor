@@ -17,8 +17,9 @@ Every engineering task runs in three phases — ENTERED only through a confirmed
 statement (the HARD GATE): confirming the statement is what opens Research and Plan
 for that task; Execute opens only on its own fresh `go` for the implementation map.
 The precise gate semantics are `go-contract` / `done-contract` (Engineering Task
-Template below). Each phase is already backed by an existing gate — this names the
-discipline, it adds no new rule:
+Template below). One confirmed task map or vector batch owns one persistent Category A
+FLOW: the first `go` authorizes its creation, Research and Plan write through it, and
+Execute closes it. Each phase is already backed by an existing gate:
 1. **Research** — gather facts, do not accumulate source. **Tool-first + code**: structure
    via the bounded `mcp__roslyn__*` tools and the ECS/DI graph CLIs (`ecsg.py` / `dig.py`);
    targeted code reads (a file's header comment is its contract) — read the files you will
@@ -33,16 +34,24 @@ discipline, it adds no new rule:
    ask exactly like a missing field, never a licence to stub; do not drip questions across rounds.
    When new code will consume types across an asmdef boundary, verify the consuming
    `.asmdef` references (or run `Tools/asmdef_reach.py`) BEFORE asking for GO.
-   Persist the plan as an on-disk artifact **only for multi-session programs**
-   (a dedicated top-level plan doc); single-session tasks stay in plan-mode / the chat.
+   After confirmation, the FIRST write is `Flows/FLOW_<TASK>.md`: preserve the user's
+   request verbatim beside the agent restatement, then record Research, decisions and the
+   implementation map in that same file. A vector batch needs one confirmed shared FLOW
+   name. There are no chat-only engineering plans and no self-deleting `PLAN_` files.
 3. **Execute** — edit under the standing invariants (ECS writes via `entity.AddComponent(value)` — the
    Friflo upsert path, never `ref`-mutation; instance-by-default, zero-allocation systems).
+   Record acceptance evidence in the FLOW; on completion harvest durable facts, drop the
+   executed plan, leave its tombstone, and retain the file under the fate rules in
+   `DOC_STANDARD.md`.
 
 # FantasyMayor: Project Context & Architectural Decisions
 
 ## Start Working
 - **Read `INDEX.md` first — and by default ONLY `INDEX.md`** (plain `Read`). It is the generated doc map and the single key to every doc and canvas: it carries each file's read-priority (`always` / `trigger` / `reference`) plus a one-line description. Let INDEX drive all navigation — do **not** preload anything it does not send you to.
 - Follow INDEX's read-priority: read the docs it marks `read: always` next; open `trigger` docs only when their condition holds, and `reference` docs on demand.
+- The `always` set is dynamic: a Category A FLOW with `status: partial` is active work. Read it
+  after the standing always-docs and reconstruct its current stage, unresolved decisions and next
+  plan item. If several active FLOWs exist, report the conflict and ask which one to resume.
 - `INDEX.md` is built in **2 passes**: (1) `python3 Tools/gen_index.py` rebuilds the structural skeleton between its `BEGIN/END GENERATED` markers from each doc's frontmatter + first line; (2) the agent curates descriptions / statuses / context. Re-run pass 1 after any frontmatter change; never edit between the markers, and keep the agent zone below the END marker short and informative.
 
 ## Documentation Access
@@ -101,6 +110,9 @@ discipline, it adds no new rule:
 
 ## Engineering Task Template
 - **HARD GATE — no actions before a confirmed task statement. For any engineering task you MUST first restate the task using the template below AND, if you have any doubt that you understood the task correctly, ask me your own clarifying questions in the same message. Then STOP and wait for my explicit confirmation. Only AFTER I confirm the statement may you create a plan or do any work. Forming a plan, entering plan mode, reading-for-implementation, or editing anything before that confirmation is a process violation. The duty to ask is yours: when in doubt, ask me — do not assume, and do not wait for me to question you. This overrides any default "just start planning" behavior.**
+- The confirmed statement's first write is its Category A FLOW. Creating or updating that
+  FLOW is Research/Plan work; it never authorizes implementation. `DOC_STANDARD.md` owns
+  the exact three-stage structure and active/contract/archive lifecycle.
 
 What a confirmation ("go") authorizes, and what "done" means — explicit since 2026-08-05
 (this is the long-standing two-gate practice written down, not a new rule):
@@ -108,7 +120,7 @@ What a confirmation ("go") authorizes, and what "done" means — explicit since 
 ```clojure
 (def go-contract
   {:authorizes "only the actions needed for the :result of the CURRENT confirmed task map"
-   :research-go "a task whose :result is findings/a plan authorizes research and planning — NEVER implementation"
+   :research-go "create the task's active FLOW, then research and plan through it — NEVER implementation"
    :implementation-go "implementation born from research = a NEW task map + a NEW go"
    :expires "on completion of the confirmed task, or when its scope materially changes"
    :revoked-by "an interrupt or a user question — answer only, zero actions until a fresh go"})
@@ -120,6 +132,7 @@ What a confirmation ("go") authorizes, and what "done" means — explicit since 
    :accept :when-present                ;; every :accept meter reads its :target — "almost" does not exist
    :diagnostic :when-code-changed       ;; roslyn pre-check clean on the edited scope
    :runtime :when-only-user-can-verify  ;; Unity-side check stays the user's authority
+   :flow "acceptance recorded; durable facts harvested; executed plan replaced by its tombstone"
    :commit :only-when-requested
    :never "a checked checkbox or the mere fact of editing files"})
 ```
@@ -206,8 +219,8 @@ Field ↔ template-block mapping: `:where` = «Працюй тільки в», `
   2. **Code comments at distance zero** — intent, non-obvious invariants, and contracts live in a short
      comment ON the thing itself (class header / method), updated in the same diff. A comment about
      ANOTHER file is a rot seed — link by name only, or move the fact to its owner.
-  3. **Dated records** — the "why" of a change belongs in the commit message; cross-domain target
-     contracts are dated FLOW docs (`Flows/FLOW_<NAME>.md`).
+  3. **Dated records** — every engineering task has a dated Category A FLOW; its verbatim request and
+     decision log preserve the change across sessions. The commit message remains the execution record.
   4. **Decreed rules** — `ARCHITECTURE.md` (policy), `ECS_CONVENTIONS.md` (point-of-code rules),
      `Patterns/` (recipes). They change only by the user's decision, never by code drift.
 - If you add or change an ECS entity archetype, refresh the ecs-graph (`build_graph.py` / `/ecs-graph`) —

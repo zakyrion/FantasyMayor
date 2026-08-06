@@ -1,12 +1,11 @@
 ---
-category: A
+category: C
 read: trigger
 trigger: "when a domain term (any language) needs its canonical code name before searching roslyn / ecs-graph / di-graph"
 tags: [glossary, vocabulary, navigation]
 related:
   - "[ARCHITECTURE](ARCHITECTURE.md)"
   - "[INDEX](INDEX.md)"
-status: partial
 ---
 
 # GLOSSARY — domain vocabulary → code anchors

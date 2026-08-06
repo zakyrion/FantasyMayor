@@ -23,7 +23,9 @@ Codex bootstrap: full FantasyMayor process contract, Codex-native — HARD GATE,
 Every engineering task runs in three phases — ENTERED only through a confirmed task
 statement (the HARD GATE): confirming the statement is what opens Research and Plan
 for that task; Execute opens only on its own fresh `go` for the implementation map.
-The precise gate semantics are `go-contract` / `done-contract` below.
+The precise gate semantics are `go-contract` / `done-contract` below. One confirmed task
+map or vector batch owns one persistent Category A FLOW: the first `go` authorizes its
+creation, Research and Plan write through it, and Execute closes it.
 1. **Research** — gather facts, do not accumulate source. **Tool-first + code**: ECS/DI
    structure via your installed `ecs-graph` / `di-graph` skills (never by grepping for
    `AddComponent<T>()` / `builder.Register<…>()` — generic-typed wiring is invisible to
@@ -38,10 +40,15 @@ The precise gate semantics are `go-contract` / `done-contract` below.
    field, never a licence to stub; do not drip questions across rounds. When new code
    will consume types across an asmdef boundary, verify the consuming `.asmdef`
    references (or run `Tools/asmdef_reach.py`) BEFORE asking for GO.
-   Persist the plan as an on-disk artifact **only for multi-session programs**;
-   single-session tasks stay in the chat.
+   After confirmation, the FIRST write is `Flows/FLOW_<TASK>.md`: preserve the user's
+   request verbatim beside the agent restatement, then record Research, decisions and the
+   implementation map in that same file. A vector batch needs one confirmed shared FLOW
+   name. There are no chat-only engineering plans and no self-deleting `PLAN_` files.
 3. **Execute** — edit under the standing invariants (ECS writes via `entity.AddComponent(value)` — the
    Friflo upsert path, never `ref`-mutation; instance-by-default, zero-allocation systems).
+   Record acceptance evidence in the FLOW; on completion harvest durable facts, drop the
+   executed plan, leave its tombstone, and retain the file under the fate rules in
+   `DOC_STANDARD.md`.
 
 ## Start Working
 - **Read `INDEX.md` first — and by default ONLY `INDEX.md`.** It is the generated doc map
@@ -50,6 +57,9 @@ The precise gate semantics are `go-contract` / `done-contract` below.
   **not** preload anything it does not send you to.
 - Follow INDEX's read-priority: read the docs it marks `read: always` next; open
   `trigger` docs only when their condition holds, and `reference` docs on demand.
+- The `always` set is dynamic: a Category A FLOW with `status: partial` is active work. Read it
+  after the standing always-docs and reconstruct its current stage, unresolved decisions and next
+  plan item. If several active FLOWs exist, report the conflict and ask which one to resume.
 - `INDEX.md` is built in **2 passes**: (1) `python3 Tools/gen_index.py` rebuilds the
   skeleton between its `BEGIN/END GENERATED` markers; (2) the agent curates the zone
   below the END marker. Re-run pass 1 after any frontmatter change; never edit between
@@ -93,6 +103,9 @@ The precise gate semantics are `go-contract` / `done-contract` below.
 
 ## Engineering Task Template
 - **HARD GATE — no actions before a confirmed task statement. For any engineering task you MUST first restate the task using the template below AND, if you have any doubt that you understood the task correctly, ask me your own clarifying questions in the same message. Then STOP and wait for my explicit confirmation. Only AFTER I confirm the statement may you create a plan or do any work. Forming a plan, reading-for-implementation, or editing anything before that confirmation is a process violation. The duty to ask is yours: when in doubt, ask me — do not assume, and do not wait for me to question you. This overrides any default "just start planning" behavior.**
+- The confirmed statement's first write is its Category A FLOW. Creating or updating that
+  FLOW is Research/Plan work; it never authorizes implementation. `DOC_STANDARD.md` owns
+  the exact three-stage structure and active/contract/archive lifecycle.
 - Use the template for engineering tasks by default: coding, architecture changes,
   refactors, documentation, config-flow work, and other repository changes. Not required
   for casual conversation or pure Q&A without repository changes.
@@ -106,7 +119,7 @@ What a confirmation ("go") authorizes, and what "done" means:
 ```clojure
 (def go-contract
   {:authorizes "only the actions needed for the :result of the CURRENT confirmed task map"
-   :research-go "a task whose :result is findings/a plan authorizes research and planning — NEVER implementation"
+   :research-go "create the task's active FLOW, then research and plan through it — NEVER implementation"
    :implementation-go "implementation born from research = a NEW task map + a NEW go"
    :expires "on completion of the confirmed task, or when its scope materially changes"
    :revoked-by "an interrupt or a user question — answer only, zero actions until a fresh go"})
@@ -118,6 +131,7 @@ What a confirmation ("go") authorizes, and what "done" means:
    :accept :when-present                ;; every :accept meter reads its :target — "almost" does not exist
    :diagnostic :when-code-changed       ;; careful re-read of the edited scope; Codex has no C# analyzer
    :runtime :when-only-user-can-verify  ;; Unity-side check stays the user's authority
+   :flow "acceptance recorded; durable facts harvested; executed plan replaced by its tombstone"
    :commit :only-when-requested
    :never "a checked checkbox or the mere fact of editing files"})
 ```
@@ -195,8 +209,8 @@ Field ↔ template-block mapping: `:where` = «Працюй тільки в», `
   2. **Code comments at distance zero** — intent, non-obvious invariants, and contracts
      live in a short comment ON the thing itself, updated in the same diff. A comment
      about ANOTHER file is a rot seed — link by name only.
-  3. **Dated records** — the "why" of a change belongs in the commit message;
-     cross-domain target contracts are dated FLOW docs (`Flows/FLOW_<NAME>.md`).
+  3. **Dated records** — every engineering task has a dated Category A FLOW; its verbatim request and
+     decision log preserve the change across sessions. The commit message remains the execution record.
   4. **Decreed rules** — `ARCHITECTURE.md` (policy), `ECS_CONVENTIONS.md` (point-of-code
      rules), `Patterns/` (recipes). They change only by the user's decision.
 - If you add or change an ECS entity archetype, refresh the ecs-graph; after changing DI

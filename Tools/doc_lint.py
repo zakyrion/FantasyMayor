@@ -9,6 +9,9 @@ Verifies every symbol name a doc claims against the actual C# declarations:
 A name present in a doc but absent from the code is a GHOST — either doc rot or a rename
 the doc missed. Exit code 1 if any ghost is found.
 
+Completed task history under Flows/Archive is deliberately excluded: its old symbol names
+are dated historical facts, not claims about the current codebase.
+
 Usage:
   python3 Tools/doc_lint.py                # whole repo
   python3 Tools/doc_lint.py --scope Flows  # only .md whose path contains the substring
@@ -183,7 +186,9 @@ def main():
 
     decls, idents = collect_code_facts(REPO / "Assets")
     mds = [p for p in REPO.rglob("*.md")
-           if not SKIP_DIRS.intersection(p.parts) and args.scope in str(p.relative_to(REPO))]
+           if not SKIP_DIRS.intersection(p.parts)
+           and not str(p.relative_to(REPO)).startswith("Flows/Archive/")
+           and args.scope in str(p.relative_to(REPO))]
 
     total = []
     for md in sorted(mds):
