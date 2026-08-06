@@ -285,7 +285,7 @@ Rules-блоки `ARCHITECTURE.md`, `Patterns/*`, `Flows/*` — ті самі ф
 
  {:task :ui-reads-draft
   :where Assets/Presentation/UI/DistrictBuild/Systems
-  :do "секції читають draft (With<BuildDistrictActionTemplateTag> + DistrictTypeComponent) замість world component"
+  :do "секції читають draft (архетип BuildDistrictActionTemplateTag + DistrictTypeComponent) замість singleton-компонента"
   :decided "draft від народження = DistrictType.None, ніколи Unknown (Unknown лишається error-маркером)"}
 
  {:task :purge-old-home

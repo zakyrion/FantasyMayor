@@ -187,7 +187,7 @@ the ecs-graph; this doc is diffable against it. Code comments link here, never r
 ```clojure
 (def phantom-guard  ;; dated record — kept ONLY because each entry stops a future reader from re-filing a non-gap
   {:g4      {:was "the evaluator's «missing» main-thread hop, filed as a bug 2026-07-17"
-             :verdict :RETRACTED   ;; the family Sets an EXISTING column, which the law permitted off-thread; a hop costs a frame
+             :verdict :RETRACTED   ;; the family writes an EXISTING column, which the law permitted off-thread; a hop costs a frame
              :root-cause "the file's own comment declared a stricter rule than the decreed one — the agent trusted the comment over ECS_CONVENTIONS"
              :moot-since "2026-08-05 — FM-13 made the turn pipeline inline and main-thread-only; both the permission and the hop are gone"}
    :g7      :never-existed   ;; the FM-13 plan named a :g7 here; no such gap was ever filed — the list ran :g1…:g6

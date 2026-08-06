@@ -95,8 +95,9 @@ discipline, it adds no new rule:
 - The `ecs-graph` / `di-graph` knowledge graphs are **derived, not authored**: refresh them by running
   their build scripts directly (both deterministic, one pass, no LLM — see Code Knowledge Policy); never
   hand-edit the `.ecs-graph/` / `.di-graph/` artifacts (the graph-gate hook enforces this).
-- `ARCHITECTURE.md` is **FROZEN**: NO agent edits it — the graph-gate hook turns an attempt into a
-  user-approval ask; propose the change to the user instead.
+- `ARCHITECTURE.md` changes **only with the user's explicit permission**: the graph-gate hook turns any agent
+  edit into a user-approval ask, and approving that prompt IS the permission. Without it, propose the change
+  to the user instead of writing it.
 
 ## Engineering Task Template
 - **HARD GATE — no actions before a confirmed task statement. For any engineering task you MUST first restate the task using the template below AND, if you have any doubt that you understood the task correctly, ask me your own clarifying questions in the same message. Then STOP and wait for my explicit confirmation. Only AFTER I confirm the statement may you create a plan or do any work. Forming a plan, entering plan mode, reading-for-implementation, or editing anything before that confirmation is a process violation. The duty to ask is yours: when in doubt, ask me — do not assume, and do not wait for me to question you. This overrides any default "just start planning" behavior.**

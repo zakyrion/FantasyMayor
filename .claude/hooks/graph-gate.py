@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """PreToolUse gate — keeps the MAIN agent OUT of the graph artifact dirs (ad-hoc read/write) and turns
-any main-agent edit of a FROZEN policy doc (ARCHITECTURE.md) into a user-approval ASK.
+any main-agent edit of a permission-gated policy doc (ARCHITECTURE.md) into a user-approval ASK.
 
 Both graphs are DETERMINISTIC now: `build_graph.py` (ecs) and `build_di_graph.py` (di) each extract AND
 curate in ONE call (no LLM STEP-2 for either graph anymore), so the main agent MAY run either directly.
@@ -23,12 +23,12 @@ GRAPH_DIR_RE = re.compile(r"\.(?:ecs|di)-graph\b")   # matches .ecs-graph / .di-
 # Both graph builders are deterministic (extract + curate in one call), alongside the read-only query CLIs —
 # the MAIN agent may run all of them directly, including the writes they make into their own graph dir.
 GRAPH_EXES = {"ecsg.py", "dig.py", "build_graph.py", "build_di_graph.py"}
-# Policy-frozen docs (status: frozen): an agent edit becomes a user-approval ASK, not a silent write.
-FROZEN_DOCS = ("ARCHITECTURE.md",)
-BASH_WRITE_EXES = {"sed", "tee", "cp", "mv", "rm", "truncate"}  # write-capable bash vectors onto a frozen doc
-FROZEN_ASK = ("ARCHITECTURE.md is FROZEN policy (see its header banner) — agents do not edit it. "
-              "If the user explicitly ordered this policy change, they can approve this prompt; "
-              "otherwise flag the needed change back to the user instead of editing.")
+# Permission-gated policy docs: an agent edit becomes a user-approval ASK, not a silent write.
+APPROVAL_DOCS = ("ARCHITECTURE.md",)
+BASH_WRITE_EXES = {"sed", "tee", "cp", "mv", "rm", "truncate"}  # write-capable bash vectors onto a gated doc
+APPROVAL_ASK = ("ARCHITECTURE.md is policy: it changes ONLY with the user's explicit permission "
+                "(see its header banner). Approving this prompt IS that permission. If the user did not "
+                "order this change, cancel and flag the needed change back to them instead.")
 # wrappers to skip when finding a pipeline segment's real executable
 WRAPPERS = {"python", "python3", "uv", "run", "time", "nice", "env", "sudo", "command", "exec", "xargs"}
 
@@ -55,9 +55,9 @@ def ask(reason: str):
     sys.exit(0)
 
 
-def _is_frozen(path: str) -> bool:
+def _needs_approval(path: str) -> bool:
     p = path.replace("\\", "/")
-    return any(p == d or p.endswith("/" + d) for d in FROZEN_DOCS)
+    return any(p == d or p.endswith("/" + d) for d in APPROVAL_DOCS)
 
 
 def _segment_exe(segment: str) -> str:
@@ -87,8 +87,8 @@ def bash_is_gated(cmd: str):
         exe = _segment_exe(seg)
         if GRAPH_DIR_RE.search(seg) and exe not in GRAPH_EXES:
             return GRAPH_DIR_DENY
-        if exe in BASH_WRITE_EXES and any(d in seg for d in FROZEN_DOCS):
-            return "FROZEN_ASK"
+        if exe in BASH_WRITE_EXES and any(d in seg for d in APPROVAL_DOCS):
+            return "APPROVAL_ASK"
     return None
 
 
@@ -109,14 +109,14 @@ def main():
         if GRAPH_DIR_RE.search(fp):
             deny("Writing the graph artifacts (.ecs-graph/ / .di-graph/) by hand is denied — they are "
                  "generated. Rebuild via build_graph.py / build_di_graph.py.")
-        if _is_frozen(fp):
-            ask(FROZEN_ASK)
+        if _needs_approval(fp):
+            ask(APPROVAL_ASK)
         return
 
     if tool == "Bash":
         reason = bash_is_gated(ti.get("command", "") or "")
-        if reason == "FROZEN_ASK":
-            ask(FROZEN_ASK)
+        if reason == "APPROVAL_ASK":
+            ask(APPROVAL_ASK)
         elif reason:
             deny(reason)
         return

@@ -26,7 +26,7 @@ publishes it is `Patterns/PATTERN_CONFIG_LOADER.md`.
 | **Entity table** | N rows of the same shape (hexes, resources, views, icon containers) | `storages.World`: the table's declared `Archetype` (Table Rule); keyed joins via `ComponentIndex<TComponent,TValue>` | the ecs-graph (`/ecs-graph`) |
 | **Singleton component** | exactly ONE value, and NO consumer needs it in an entity query | `storages.Singletons.Get/Has/Set` | `SingletonArchetypes.Singleton` in the ecs-graph |
 | **One-frame event entity** | a signal that something changed; consumed by every Reactive System exactly once, the frame AFTER it is raised | `storages.World.CreateEvent(payload)`; `EventCleanupSystem` deletes it once ripe (Event Lifecycle below) | the ecs-graph (`/ecs-graph`) |
-| **Singleton entity** | exactly ONE row, but it MUST appear in entity queries (a per-frame system anchors on it, or reactive filters watch it) | `storages.World`: its own declared archetype + tag, read through that table | the ecs-graph (`/ecs-graph`) |
+| **Singleton entity** | exactly ONE row, but it MUST appear in entity queries (a per-frame system anchors its tick on it, or another system reads it through its archetype) | `storages.World`: its own declared archetype + tag, read through that table | the ecs-graph (`/ecs-graph`) |
 
 ```clojure
 (def storage-registry-law  ;; FM-14, 2026-08-06

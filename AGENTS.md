@@ -89,7 +89,7 @@ The precise gate semantics are `go-contract` / `done-contract` below.
   ask first; mechanical passes are free (`gen_index.py` pass 1, graph rebuilds, `doc_lint.py`).
 - The `ecs-graph` / `di-graph` knowledge graphs are **derived, not authored**: refresh via
   their build scripts (deterministic, no LLM); never hand-edit `.ecs-graph/` / `.di-graph/`.
-- `ARCHITECTURE.md` is **FROZEN**: NO agent edits it — propose the change to the user.
+- `ARCHITECTURE.md` changes **only with the user's explicit permission** — without it, propose the change instead of writing it.
 
 ## Engineering Task Template
 - **HARD GATE — no actions before a confirmed task statement. For any engineering task you MUST first restate the task using the template below AND, if you have any doubt that you understood the task correctly, ask me your own clarifying questions in the same message. Then STOP and wait for my explicit confirmation. Only AFTER I confirm the statement may you create a plan or do any work. Forming a plan, reading-for-implementation, or editing anything before that confirmation is a process violation. The duty to ask is yours: when in doubt, ask me — do not assume, and do not wait for me to question you. This overrides any default "just start planning" behavior.**

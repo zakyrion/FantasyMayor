@@ -30,7 +30,7 @@ independent mechanics (e.g. confirm-build → spawn entity, spend resources, set
 [UsedImplicitly]
 public sealed class [Name]System : UpdatedSystem
 {
-    private readonly EntityStore _world;
+    private readonly EntityStorages _storages;
 
     // DI-collected subsystems. Ordered once; fixed composition, not per-frame state — hence [StateAllowed].
     [StateAllowed]
@@ -38,10 +38,11 @@ public sealed class [Name]System : UpdatedSystem
 
     public override int Priority => SystemPriorities.RuntimeTick.[Name];
 
-    public [Name]System(EntityStore world, IReadOnlyList<[Name]SubSystem> subSystems)
-        : base(world, EventArchetypes.Of<[Name]Event>(world))   // the pulse's archetype drives the system
+    // DI injects EntityStorages — never a bare EntityStore (ECS_CONVENTIONS → State Storage Taxonomy).
+    public [Name]System(EntityStorages storages, IReadOnlyList<[Name]SubSystem> subSystems)
+        : base(storages.World, EventArchetypes.Of<[Name]Event>(storages.World))   // the pulse's archetype drives the system
     {
-        _world = world;
+        _storages = storages;
         _subSystems = subSystems.OrderBy(s => s.Priority).ToArray();
     }
 
@@ -74,7 +75,7 @@ yet.
 
 ```clojure
 (def reactive-orchestrator-rules
-  {:driven-by       "EventArchetypes.Of<TheEvent>"                ;; zero cost while no pulse exists; the event is payload-less (PATTERN_EVENT) — persistent truth lives in world components / on entities
+  {:driven-by       "EventArchetypes.Of<TheEvent>"                ;; zero cost while no pulse exists; the event is payload-less (PATTERN_EVENT) — persistent truth lives in singleton components / on entities
    :on-pulse        "subsystems reconcile, never delta"           ;; each Run() rebuilds from CURRENT state and diffs — idempotent
    :ripe-gate       "IsRipe(pulse) or return"                     ;; the orchestrator gates ONCE, before the fan-out — a subsystem never re-checks (ECS_CONVENTIONS → Event Lifecycle)
    :orchestrator    {:contains :no-domain-logic}                  ;; sort by Priority, skip IsEnabled==false, Run — ALL real work is in the subsystems

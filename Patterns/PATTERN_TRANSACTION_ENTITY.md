@@ -85,7 +85,7 @@ becomes command pulses, never writes.
 ```clojure
 (def transaction-entity-rules
   {:home          "verb domain (Actions)"                     ;; the verb owns its session — never the substrate, never Presentation
-   :state         "ALL transaction state on the ONE entity"   ;; no world-component copies, no second home; state you can't place = a design question, not a new component
+   :state         "ALL transaction state on the ONE entity"   ;; no singleton-component copies, no second home; state you can't place = a design question, not a new component
    :reachability  {:never "place state in a substrate domain so another layer can read it"}  ;; the entity IS the reachable home; pure UI selection state stays in Presentation
    :ui            :projection                                 ;; the UI SYSTEM reads the entity and raises the command pulses across the boundary; the view feeds it via a local C# event and never raises the pulse itself (PATTERN_VIEW_SYSTEM); owns zero transaction state (pure render state stays in the view)
    :command       "one-frame pulse, tiny identifying payload" ;; PATTERN_EVENT tolerance; consumed ONLY by a verb-domain reactive system that writes the entity
@@ -99,7 +99,7 @@ becomes command pulses, never writes.
 
 | Wrong | Why | Right |
 |---|---|---|
-| Transaction state as a world component in a substrate domain "so the other side can read it" | Substrate vocabulary polluted with session state; ownership inverts (Presentation writes Economy) | The state lives on the transaction entity; whoever needs it reads the entity |
+| Transaction state as a singleton component in a substrate domain "so the other side can read it" | Substrate vocabulary polluted with session state; ownership inverts (Presentation writes Economy) | The state lives on the transaction entity; whoever needs it reads the entity |
 | Snapshot payload across the boundary (a full state copy on the opening event) | A copy-at-a-moment goes stale; a re-stamp elsewhere papers over it | Identifying payload only; the consumer reads live state off the entity |
 | A view renders the verb entity as if it were the result | When the verb gains stages (ticking), every consumer breaks semantically | Completion writes a fact; views reconcile from the fact table |
 | One logical state duplicated per subdomain, synced by events | The copies drift; the invariants end up as prose in N docs | ONE entity, N readers |

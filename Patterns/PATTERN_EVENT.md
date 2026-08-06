@@ -44,8 +44,8 @@ frame or an asmdef boundary the C# call can't reach, and then a SYSTEM raises it
 
 ```clojure
 (def event-rules
-  {:payload            :none                                          ;; no coords/lists/ids — the consumer reconciles from world state (PATTERN_REACTIVE_SYSTEM); persistent truth lives in a world component / on an entity, the event only says "re-read it"
-   :payload-tolerated  "tiny IDENTIFYING value"                       ;; only when the target cannot be derived from state; prefer target→world-component + payload-less pulse; NEVER bulk or derived data
+  {:payload            :none                                          ;; no coords/lists/ids — the consumer reconciles from store state (PATTERN_REACTIVE_SYSTEM); persistent truth lives in a singleton component / on an entity, the event only says "re-read it"
+   :payload-tolerated  "tiny IDENTIFYING value"                       ;; only when the target cannot be derived from state; prefer target→singleton-component + payload-less pulse; NEVER bulk or derived data
    :raise              "store.CreateEvent(new [Name]Event())"        ;; the helper stamps the frame and lands the row in its archetype — never assemble a pulse by hand (EcsEventExtensions)
    :view-source        {:never "a view raising a pulse to its OWN system"       ;; use a local C# event → the system subscribes (PATTERN_VIEW_SYSTEM); an ECS pulse is only for crossing a frame/asmdef boundary, raised by a SYSTEM
                         :only  "cross a frame/asmdef boundary the C# call can't reach"}

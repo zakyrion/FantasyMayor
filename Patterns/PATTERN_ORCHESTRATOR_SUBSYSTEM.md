@@ -19,6 +19,7 @@ ordered parts. One approach.
 ```csharp
 public abstract class [Name]SubSystem : IDisposable
 {
+    // The base takes the bare store — it is not DI-constructed; the concrete below unwraps EntityStorages.
     protected readonly EntityStore World;
     protected [Name]SubSystem(EntityStore world) => World = world;
 
@@ -38,7 +39,8 @@ public sealed class [Feature]SubSystem : [Name]SubSystem
     private const int ExecutionPriority = [N];
     public override int Priority => ExecutionPriority;
 
-    public [Feature]SubSystem(EntityStore world) : base(world) { }
+    // DI injects EntityStorages — never a bare EntityStore (ECS_CONVENTIONS → State Storage Taxonomy).
+    public [Feature]SubSystem(EntityStorages storages) : base(storages.World) { }
 
     public override void Run([Args])
     {
@@ -53,7 +55,7 @@ public sealed class [Feature]SubSystem : [Name]SubSystem
 [StateAllowed]   // the host IS a system; the list is fixed composition, not per-frame state
 private readonly IReadOnlyList<[Name]SubSystem> _subSystems;
 
-public [Name]System(IReadOnlyList<[Name]SubSystem> subSystems /*, EntityStore world ... */)
+public [Name]System(IReadOnlyList<[Name]SubSystem> subSystems /*, EntityStorages storages ... */)
 {
     _subSystems = subSystems.OrderBy(s => s.Priority).ToArray();
 }
