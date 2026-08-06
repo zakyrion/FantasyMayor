@@ -66,12 +66,12 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
                 return;
             }
 
-            if (!_storages.World.HasWorldComponent<HexResourceIconConfigComponent>())
+            if (!_storages.Singletons.Has<HexResourceIconConfigComponent>())
                 throw new InvalidOperationException(
                     "HexInfoPanelResourcesSystem: HexResourceIconConfigComponent is missing.");
 
             var coords = selectedHexEntity.GetComponent<HexSelectedComponent>().Coords;
-            var entries = _storages.World.GetWorldComponent<HexResourceIconConfigComponent>().Value.Entries;
+            var entries = _storages.Singletons.Get<HexResourceIconConfigComponent>().Value.Entries;
 
             _chips.Clear();
             foreach (var resourceEntity in _resourceSet.Entities)

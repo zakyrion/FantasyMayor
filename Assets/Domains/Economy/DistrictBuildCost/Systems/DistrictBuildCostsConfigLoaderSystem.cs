@@ -10,7 +10,7 @@ using System;
 
 namespace Domains.Economy.DistrictBuildCost.Systems{
     // Config Loader (ConfigLoadStep, one-shot): loads the DistrictsBuildCostConfig SO from Addressables,
-    // validates it, and publishes the DistrictsBuildCostConfigComponent world component carrying the SO
+    // validates it, and publishes the DistrictsBuildCostConfigComponent singleton component carrying the SO
     // reference. The build window reads this catalogue throughout play, so the loader RETAINS the addressable
     // Box (ADDRESSABLE_PATTERNS "Load non-GameObject asset") and releases it in OnDispose. Sibling of Economy's
     // DistrictsBuildConfigLoaderSystem (gating catalogue); this one owns the cost catalogue.
@@ -23,7 +23,7 @@ namespace Domains.Economy.DistrictBuildCost.Systems{
         private Box<DistrictBuildCostsConfig> _config = Box<DistrictBuildCostsConfig>.Empty();
 
         public DistrictBuildCostsConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
-            : base(addressable, storages.World)
+            : base(addressable)
         {
             _storages = storages;
         }
@@ -41,7 +41,7 @@ namespace Domains.Economy.DistrictBuildCost.Systems{
             ValidateConfig(box.Value);
 
             _config = box;
-            _storages.World.SetWorldComponent(new DistrictBuildCostsConfigComponent(box.Value));
+            _storages.Singletons.Set(new DistrictBuildCostsConfigComponent(box.Value));
             MarkAsLoaded();
         }
 

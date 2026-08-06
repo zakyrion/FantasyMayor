@@ -25,7 +25,7 @@ namespace Presentation.Terrain.Systems
         private const string WIND_EROSION_CONFIG = "WindErosionConfig";
 
         public TerrainViewConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
-            : base(addressable, storages.World)
+            : base(addressable)
         {
             _storages = storages;
         }
@@ -57,19 +57,19 @@ namespace Presentation.Terrain.Systems
                 if (cancellationToken.IsCancellationRequested)
                     return;
 
-                _storages.World.SetWorldComponent(InnerIsolineConfigComponent.FromConfig(innerIsolineConfig.Value));
-                _storages.World.SetWorldComponent(OuterIsolineConfigComponent.FromConfig(outerIsolineConfig.Value));
-                _storages.World.SetWorldComponent(HeightSmoothingConfigComponent.FromConfig(heightSmoothingConfig.Value));
-                _storages.World.SetWorldComponent(WindErosionConfigComponent.FromConfig(windErosionConfig.Value));
-                _storages.World.SetWorldComponent(HydraulicErosionConfigComponent.FromConfig(hydraulicErosionConfig.Value));
-                _storages.World.SetWorldComponent(TerrainViewConfigComponent.FromConfig(terrainViewConfig.Value));
-                _storages.World.SetWorldComponent(TerrainTextureConfigComponent.FromConfig(terrainTextureConfig.Value));
-                _storages.World.SetWorldComponent(WaterViewConfigComponent.FromConfig(waterViewConfig.Value));
+                _storages.Singletons.Set(InnerIsolineConfigComponent.FromConfig(innerIsolineConfig.Value));
+                _storages.Singletons.Set(OuterIsolineConfigComponent.FromConfig(outerIsolineConfig.Value));
+                _storages.Singletons.Set(HeightSmoothingConfigComponent.FromConfig(heightSmoothingConfig.Value));
+                _storages.Singletons.Set(WindErosionConfigComponent.FromConfig(windErosionConfig.Value));
+                _storages.Singletons.Set(HydraulicErosionConfigComponent.FromConfig(hydraulicErosionConfig.Value));
+                _storages.Singletons.Set(TerrainViewConfigComponent.FromConfig(terrainViewConfig.Value));
+                _storages.Singletons.Set(TerrainTextureConfigComponent.FromConfig(terrainTextureConfig.Value));
+                _storages.Singletons.Set(WaterViewConfigComponent.FromConfig(waterViewConfig.Value));
 
                 var vertexGrid = new VertexGrid(
                     terrainViewConfig.Value.CellSize,
                     terrainViewConfig.Value.Subdivisions);
-                _storages.World.SetWorldComponent(new VertexGridComponent { Grid = vertexGrid });
+                _storages.Singletons.Set(new VertexGridComponent { Grid = vertexGrid });
 
                 MarkAsLoaded();
             }

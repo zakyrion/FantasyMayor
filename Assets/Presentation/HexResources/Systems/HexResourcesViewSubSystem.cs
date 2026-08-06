@@ -14,7 +14,7 @@ namespace Presentation.HexResources.Systems
 {
     internal abstract class HexResourcesViewSubSystem : ISystem<GameState>
     {
-        private readonly EntityStore _world;
+        private readonly EntityStorages _storages;
         private readonly Archetype _resourceSet;
 
         public bool IsEnabled { get; set; } = true;
@@ -22,10 +22,10 @@ namespace Presentation.HexResources.Systems
         public abstract int Priority { get; }
         protected abstract HexResourceType TargetHexResourceType { get; }
 
-        protected HexResourcesViewSubSystem(EntityStore world)
+        protected HexResourcesViewSubSystem(EntityStorages storages)
         {
-            _world = world;
-            _resourceSet = MapArchetypes.HexResource(world);
+            _storages = storages;
+            _resourceSet = MapArchetypes.HexResource(storages.World);
         }
 
         public abstract void Update(GameState state);
@@ -34,10 +34,10 @@ namespace Presentation.HexResources.Systems
         {
             prefab = null;
 
-            if (!_world.HasWorldComponent<HexResourcesViewConfigComponent>())
+            if (!_storages.Singletons.Has<HexResourcesViewConfigComponent>())
                 return false;
 
-            var viewConfig = _world.GetWorldComponent<HexResourcesViewConfigComponent>().Value;
+            var viewConfig = _storages.Singletons.Get<HexResourcesViewConfigComponent>().Value;
             foreach (var resource in viewConfig.Resources)
             {
                 if (resource.Type != TargetHexResourceType)
@@ -54,10 +54,10 @@ namespace Presentation.HexResources.Systems
         {
             prefabs = Array.Empty<GameObject>();
 
-            if (!_world.HasWorldComponent<HexResourcesViewConfigComponent>())
+            if (!_storages.Singletons.Has<HexResourcesViewConfigComponent>())
                 return false;
 
-            var viewConfig = _world.GetWorldComponent<HexResourcesViewConfigComponent>().Value;
+            var viewConfig = _storages.Singletons.Get<HexResourcesViewConfigComponent>().Value;
 
             // Managed exception to the "Unity.Collections in ECS systems" rule: the elements are GameObject
             // (managed), which a NativeContainer cannot hold. See ECS_CONVENTIONS.md → Statelessness And
@@ -76,10 +76,10 @@ namespace Presentation.HexResources.Systems
         {
             vertexGrid = default;
 
-            if (!_world.HasWorldComponent<VertexGridComponent>())
+            if (!_storages.Singletons.Has<VertexGridComponent>())
                 return false;
 
-            vertexGrid = _world.GetWorldComponent<VertexGridComponent>().Grid;
+            vertexGrid = _storages.Singletons.Get<VertexGridComponent>().Grid;
             return true;
         }
 

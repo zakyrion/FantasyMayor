@@ -50,19 +50,19 @@ namespace Presentation.Terrain.Systems
         /// <inheritdoc />
         public override async UniTask Update(GameState state, CancellationToken cancellationToken)
         {
-            if (!HasRequiredConfigEntities())
+            if (!HasRequiredConfigComponents())
                 return;
 
-            if (!_storages.World.HasWorldComponent<VertexGridComponent>())
-                throw new InvalidOperationException("TerrainViewGenerationSubSystem: VertexGridComponent world component is missing.");
+            if (!_storages.Singletons.Has<VertexGridComponent>())
+                throw new InvalidOperationException("TerrainViewGenerationSubSystem: VertexGridComponent singleton component is missing.");
 
-            var vertexGrid = _storages.World.GetWorldComponent<VertexGridComponent>().Grid;
-            var config = _storages.World.GetWorldComponent<TerrainViewConfigComponent>();
-            var innerConfig = _storages.World.GetWorldComponent<InnerIsolineConfigComponent>();
-            var outerConfig = _storages.World.GetWorldComponent<OuterIsolineConfigComponent>();
-            var heightSmoothingConfig = _storages.World.GetWorldComponent<HeightSmoothingConfigComponent>();
-            var hydraulicConfig = _storages.World.GetWorldComponent<HydraulicErosionConfigComponent>();
-            var windConfig = _storages.World.GetWorldComponent<WindErosionConfigComponent>();
+            var vertexGrid = _storages.Singletons.Get<VertexGridComponent>().Grid;
+            var config = _storages.Singletons.Get<TerrainViewConfigComponent>();
+            var innerConfig = _storages.Singletons.Get<InnerIsolineConfigComponent>();
+            var outerConfig = _storages.Singletons.Get<OuterIsolineConfigComponent>();
+            var heightSmoothingConfig = _storages.Singletons.Get<HeightSmoothingConfigComponent>();
+            var hydraulicConfig = _storages.Singletons.Get<HydraulicErosionConfigComponent>();
+            var windConfig = _storages.Singletons.Get<WindErosionConfigComponent>();
 
             await BuildIsolinesAsync(vertexGrid, config, innerConfig, outerConfig, cancellationToken);
 
@@ -89,15 +89,15 @@ namespace Presentation.Terrain.Systems
         }
 
         /// <summary>
-        ///     Validates that all required singleton config entity sets contain at least one entity.
+        ///     Validates that all required singleton config components are present.
         /// </summary>
         /// <returns><c>true</c> if all config sets are populated; <c>false</c> with a logged error otherwise.</returns>
-        private bool HasRequiredConfigEntities()
+        private bool HasRequiredConfigComponents()
         {
-            if (_storages.World.HasWorldComponent<TerrainViewConfigComponent>() &&
-                _storages.World.HasWorldComponent<InnerIsolineConfigComponent>() && _storages.World.HasWorldComponent<OuterIsolineConfigComponent>() &&
-                _storages.World.HasWorldComponent<HeightSmoothingConfigComponent>() && _storages.World.HasWorldComponent<HydraulicErosionConfigComponent>() &&
-                _storages.World.HasWorldComponent<WindErosionConfigComponent>())
+            if (_storages.Singletons.Has<TerrainViewConfigComponent>() &&
+                _storages.Singletons.Has<InnerIsolineConfigComponent>() && _storages.Singletons.Has<OuterIsolineConfigComponent>() &&
+                _storages.Singletons.Has<HeightSmoothingConfigComponent>() && _storages.Singletons.Has<HydraulicErosionConfigComponent>() &&
+                _storages.Singletons.Has<WindErosionConfigComponent>())
                 return true;
 
             Debug.LogError("[TerrainViewGenerationSubSystem] One or more required configs are missing.");

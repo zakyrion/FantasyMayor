@@ -41,7 +41,7 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public override void Populate(GameObject root)
         {
-            var view = _storages.World.GetWorldComponent<DistrictBuildListUIViewComponent>().View;
+            var view = _storages.Singletons.Get<DistrictBuildListUIViewComponent>().View;
 
             // The view outlives the subsystem; subscribe once to the local row-click event.
             if (!_hooked)
@@ -110,9 +110,9 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public override void Dispose()
         {
-            if (_hooked && _storages.World.HasWorldComponent<DistrictBuildListUIViewComponent>())
+            if (_hooked && _storages.Singletons.Has<DistrictBuildListUIViewComponent>())
             {
-                var view = _storages.World.GetWorldComponent<DistrictBuildListUIViewComponent>().View;
+                var view = _storages.Singletons.Get<DistrictBuildListUIViewComponent>().View;
                 if (view != null)
                     view.SelectionChanged -= OnSelected;
             }

@@ -26,7 +26,7 @@ namespace Domains.Map.HexResources.Systems
         public override int Priority => SystemPriorities.SubSystems.HexResourceGeneration.Clay;
         protected override HexResourceType TargetHexResourceType => HexResourceType.Clay;
 
-        public ClayResourceGenerationSubSystem(EntityStorages storages) : base(storages.World)
+        public ClayResourceGenerationSubSystem(EntityStorages storages) : base(storages)
         {
             _hexSet = MapArchetypes.Hex(storages.World);
             _hexesByType = storages.World.ComponentIndex<HexTypeComponent, HexType>();

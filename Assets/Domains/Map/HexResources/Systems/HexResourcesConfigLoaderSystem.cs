@@ -21,7 +21,7 @@ namespace Domains.Map.HexResources.Systems
         private Box<HexResourcesConfig> _config = Box<HexResourcesConfig>.Empty();
 
         public HexResourcesConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
-            : base(addressable, storages.World)
+            : base(addressable)
         {
             _storages = storages;
         }
@@ -41,7 +41,7 @@ namespace Domains.Map.HexResources.Systems
                 _config = loadedConfig;
                 loadedConfig = Box<HexResourcesConfig>.Empty();
 
-                _storages.World.SetWorldComponent(new HexResourcesConfigComponent { Value = _config.Value });
+                _storages.Singletons.Set(new HexResourcesConfigComponent { Value = _config.Value });
                 MarkAsLoaded();
             }
             finally

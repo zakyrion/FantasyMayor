@@ -13,7 +13,7 @@ using Unity.Collections;
 namespace Domains.Actors.City.Systems
 {
     // Config Loader (ConfigLoadStep, one-shot): loads the CityConfig SO from Addressables, validates it,
-    // and publishes the flattened CityConfigComponent world component. CitySpawnSystem reads it at map
+    // and publishes the flattened CityConfigComponent singleton component. CitySpawnSystem reads it at map
     // creation to seed the City's starting resources (Patterns/PATTERN_CONFIG_LOADER.md).
     [UsedImplicitly]
     internal sealed class CityConfigLoaderSystem : ConfigLoaderSystem
@@ -22,7 +22,7 @@ namespace Domains.Actors.City.Systems
         private readonly EntityStorages _storages;
 
         public CityConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
-            : base(addressable, storages.World)
+            : base(addressable)
         {
             _storages = storages;
         }
@@ -39,7 +39,7 @@ namespace Domains.Actors.City.Systems
 
                 ValidateConfig(configBox.Value);
 
-                _storages.World.SetWorldComponent(CityConfigComponent.FromConfig(configBox.Value));
+                _storages.Singletons.Set(CityConfigComponent.FromConfig(configBox.Value));
                 MarkAsLoaded();
             }
             finally

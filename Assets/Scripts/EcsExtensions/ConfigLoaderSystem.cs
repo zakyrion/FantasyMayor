@@ -2,7 +2,6 @@ using System;
 using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
-using Friflo.Engine.ECS;
 using Modules.Addressable.Core;
 using Modules.Boot.Core;
 
@@ -10,16 +9,14 @@ namespace EcsExtensions
 {
     public abstract class ConfigLoaderSystem : IUniTaskSystem<ConfigLoadStep>
     {
-        protected readonly EntityStore World;
         private readonly IAddressable _addressable;
 
         protected bool IsDisposed { get; private set; }
         protected bool IsLoaded { get; private set; }
 
-        protected ConfigLoaderSystem(IAddressable addressable, EntityStore world)
+        protected ConfigLoaderSystem(IAddressable addressable)
         {
             _addressable = addressable;
-            World = world;
         }
 
         public async UniTask Update(ConfigLoadStep state, CancellationToken cancellationToken)

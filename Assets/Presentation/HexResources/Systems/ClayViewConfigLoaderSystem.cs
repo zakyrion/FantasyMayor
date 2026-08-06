@@ -16,7 +16,7 @@ namespace Presentation.HexResources.Systems
         private const string CLAY_VIEW_CONFIG = "ClayViewConfig";
 
         public ClayViewConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
-            : base(addressable, storages.World)
+            : base(addressable)
         {
             _storages = storages;
         }
@@ -32,7 +32,7 @@ namespace Presentation.HexResources.Systems
                     return;
 
                 // Flattened component owns its data — the ScriptableObject is not retained past load.
-                _storages.World.SetWorldComponent(ClayViewConfigComponent.FromConfig(loadedConfig.Value));
+                _storages.Singletons.Set(ClayViewConfigComponent.FromConfig(loadedConfig.Value));
                 MarkAsLoaded();
             }
             finally

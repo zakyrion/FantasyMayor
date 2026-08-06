@@ -11,7 +11,7 @@ namespace Presentation.HexResources.Systems
         protected override HexResourceType TargetHexResourceType => HexResourceType.Fish;
 
         public FishHexResourceViewSubSystem(EntityStorages storages)
-            : base(storages.World)
+            : base(storages)
         {
         }
 

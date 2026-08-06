@@ -52,18 +52,18 @@ namespace Domains.Map.Generation.Systems
 
         public override void Update(EcsExtensions.GameState state)
         {
-            if (!_storages.World.HasWorldComponent<TerrainGenerationConfigComponent>())
+            if (!_storages.Singletons.Has<TerrainGenerationConfigComponent>())
                 return;
 
-            var config = _storages.World.GetWorldComponent<TerrainGenerationConfigComponent>();
+            var config = _storages.Singletons.Get<TerrainGenerationConfigComponent>();
 
             if (config.WaterType != WaterType.River)
                 return;
 
-            if (!_storages.World.HasWorldComponent<RiverConfigComponent>())
+            if (!_storages.Singletons.Has<RiverConfigComponent>())
                 return;
 
-            var riverConfig = _storages.World.GetWorldComponent<RiverConfigComponent>();
+            var riverConfig = _storages.Singletons.Get<RiverConfigComponent>();
 
             Generate(config.WaveCount, riverConfig.CornerOffsetTiles);
         }

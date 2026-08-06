@@ -40,10 +40,10 @@ namespace Presentation.HexIcons.Systems
             if (cancellationToken.IsCancellationRequested)
                 return UniTask.CompletedTask;
 
-            if (!_storages.World.HasWorldComponent<HexIconsConfigComponent>())
+            if (!_storages.Singletons.Has<HexIconsConfigComponent>())
                 throw new InvalidOperationException("HexIconsSpawnSystem: HexIconsConfigComponent is missing.");
 
-            var iconConfig = _storages.World.GetWorldComponent<HexIconsConfigComponent>();
+            var iconConfig = _storages.Singletons.Get<HexIconsConfigComponent>();
 
             var prefab = iconConfig.Value.Prefab;
             if (prefab == null)
@@ -65,7 +65,7 @@ namespace Presentation.HexIcons.Systems
 
             _view = view;
 
-            _storages.World.SetWorldComponent(new HexIconsViewComponent(view));
+            _storages.Singletons.Set(new HexIconsViewComponent(view));
 
             CreateContainers();
 

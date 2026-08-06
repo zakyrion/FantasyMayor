@@ -73,13 +73,13 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             _buildInProgressArchetype = ActionsArchetypes.BuildDistrictInProgress(storages.World);
 
             // Seed the shared action-id counter once; ids start at 1 (0 = unset).
-            if (!storages.World.HasWorldComponent<ActionIdAllocatorComponent>())
-                storages.World.SetWorldComponent(new ActionIdAllocatorComponent { Next = 1 });
+            if (!storages.Singletons.Has<ActionIdAllocatorComponent>())
+                storages.Singletons.Set(new ActionIdAllocatorComponent { Next = 1 });
 
             // Seed the district-id counter once; ids start at 1 (0 = unset). Moved here from
             // BuildDistrictCompletionSystem (FLOW_DISTRICT_BUILD unification): the PK is allocated at CONFIRM now.
-            if (!storages.World.HasWorldComponent<DistrictIdAllocatorComponent>())
-                storages.World.SetWorldComponent(new DistrictIdAllocatorComponent { Next = 1 });
+            if (!storages.Singletons.Has<DistrictIdAllocatorComponent>())
+                storages.Singletons.Set(new DistrictIdAllocatorComponent { Next = 1 });
         }
 
         protected override void Update(GameState state, in Entity pulse)
@@ -170,12 +170,12 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         // no cost config is a broken invariant (the UI only offers configured districts), not a benign default.
         private DistrictBuildCostConfig ResolveCost(DistrictType type)
         {
-            if (!_storages.World.HasWorldComponent<DistrictBuildCostsConfigComponent>())
+            if (!_storages.Singletons.Has<DistrictBuildCostsConfigComponent>())
                 throw new InvalidOperationException(
-                    "BuildDistrictActionSystem: DistrictBuildCostsConfigComponent world component is missing.");
+                    "BuildDistrictActionSystem: DistrictBuildCostsConfigComponent singleton component is missing.");
 
             if (!DistrictConfigLookup.TryFind(
-                    _storages.World.GetWorldComponent<DistrictBuildCostsConfigComponent>().Value?.Districts, type, c => c.DistrictType, out var cost))
+                    _storages.Singletons.Get<DistrictBuildCostsConfigComponent>().Value?.Districts, type, c => c.DistrictType, out var cost))
                 throw new InvalidOperationException(
                     $"BuildDistrictActionSystem: no DistrictBuildCostConfig for district type '{type}'.");
 
@@ -185,16 +185,16 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         // Hands out the next unique action id and advances the shared counter (write via AddComponent).
         private int AllocateId()
         {
-            var id = _storages.World.GetWorldComponent<ActionIdAllocatorComponent>().Next;
-            _storages.World.SetWorldComponent(new ActionIdAllocatorComponent { Next = id + 1 });
+            var id = _storages.Singletons.Get<ActionIdAllocatorComponent>().Next;
+            _storages.Singletons.Set(new ActionIdAllocatorComponent { Next = id + 1 });
             return id;
         }
 
         // Hands out the next unique district id and advances the shared counter (write via AddComponent).
         private int AllocateDistrictId()
         {
-            var id = _storages.World.GetWorldComponent<DistrictIdAllocatorComponent>().Next;
-            _storages.World.SetWorldComponent(new DistrictIdAllocatorComponent { Next = id + 1 });
+            var id = _storages.Singletons.Get<DistrictIdAllocatorComponent>().Next;
+            _storages.Singletons.Set(new DistrictIdAllocatorComponent { Next = id + 1 });
             return id;
         }
     }

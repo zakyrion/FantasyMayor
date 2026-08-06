@@ -11,7 +11,7 @@ using Presentation.Districts.Configs;
 namespace Presentation.Districts.Systems
 {
     // Config Loader (ConfigLoadStep, one-shot): loads the DistrictBuildProgressViewsConfig SO from Addressables,
-    // validates it, and publishes the DistrictBuildProgressViewsConfigComponent world component carrying the SO
+    // validates it, and publishes the DistrictBuildProgressViewsConfigComponent singleton component carrying the SO
     // reference. The reactive DistrictBuildProgressViewSpawnSystem reads this catalogue throughout play, so the
     // loader RETAINS the addressable Box and releases it in OnDispose. Mirrors DistrictViewsConfigLoaderSystem.
     [UsedImplicitly]
@@ -23,7 +23,7 @@ namespace Presentation.Districts.Systems
         private Box<DistrictBuildProgressViewsConfig> _config = Box<DistrictBuildProgressViewsConfig>.Empty();
 
         public DistrictBuildProgressViewsConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
-            : base(addressable, storages.World)
+            : base(addressable)
         {
             _storages = storages;
         }
@@ -41,7 +41,7 @@ namespace Presentation.Districts.Systems
             ValidateConfig(box.Value);
 
             _config = box;
-            _storages.World.SetWorldComponent(new DistrictBuildProgressViewsConfigComponent(box.Value));
+            _storages.Singletons.Set(new DistrictBuildProgressViewsConfigComponent(box.Value));
             MarkAsLoaded();
         }
 

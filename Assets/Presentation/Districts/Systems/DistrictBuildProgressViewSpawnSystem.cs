@@ -62,16 +62,16 @@ namespace Presentation.Districts.Systems
             if (!EcsEventExtensions.IsRipe(pulse))
                 return;
 
-            if (!_storages.World.HasWorldComponent<DistrictBuildProgressViewsConfigComponent>())
+            if (!_storages.Singletons.Has<DistrictBuildProgressViewsConfigComponent>())
                 throw new InvalidOperationException(
-                    "DistrictBuildProgressViewSpawnSystem: DistrictBuildProgressViewsConfigComponent world component is missing.");
+                    "DistrictBuildProgressViewSpawnSystem: DistrictBuildProgressViewsConfigComponent singleton component is missing.");
 
-            if (!_storages.World.HasWorldComponent<VertexGridComponent>())
+            if (!_storages.Singletons.Has<VertexGridComponent>())
                 throw new InvalidOperationException(
-                    "DistrictBuildProgressViewSpawnSystem: VertexGridComponent world component is missing.");
+                    "DistrictBuildProgressViewSpawnSystem: VertexGridComponent singleton component is missing.");
 
-            var viewsConfig = _storages.World.GetWorldComponent<DistrictBuildProgressViewsConfigComponent>().Value;
-            var vertexGrid = _storages.World.GetWorldComponent<VertexGridComponent>().Grid;
+            var viewsConfig = _storages.Singletons.Get<DistrictBuildProgressViewsConfigComponent>().Value;
+            var vertexGrid = _storages.Singletons.Get<VertexGridComponent>().Grid;
 
             // Snapshot-before-iterate: birth via _viewArchetype.CreateEntity() is NOT a structural change,
             // but the AddComponent writes that follow it are, and they would throw while _districts.Entities

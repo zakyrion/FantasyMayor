@@ -37,10 +37,10 @@ namespace Presentation.UI.MainHud.ContextTabs.Systems
             if (!EcsEventExtensions.IsRipe(entity))
                 return;
 
-            if (!_storages.World.HasWorldComponent<ContextTabsViewComponent>())
+            if (!_storages.Singletons.Has<ContextTabsViewComponent>())
                 return;
 
-            var view = _storages.World.GetWorldComponent<ContextTabsViewComponent>().View;
+            var view = _storages.Singletons.Get<ContextTabsViewComponent>().View;
             if (view == null)
                 return;
 

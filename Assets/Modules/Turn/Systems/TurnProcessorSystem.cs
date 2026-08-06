@@ -41,20 +41,20 @@ namespace Modules.Turn.Systems
 
         public void Update(GameState state)
         {
-            if (_storages.World.GetWorldComponent<TurnProcessorComponent>().Status == TurnProcessorStatus.Idle)
+            if (_storages.Singletons.Get<TurnProcessorComponent>().Status == TurnProcessorStatus.Idle)
             {
                 if (!HasRipePulse())
                     return;
 
-                _storages.World.SetWorldComponent(new TurnProcessorComponent { Status = TurnProcessorStatus.Running });
+                _storages.Singletons.Set(new TurnProcessorComponent { Status = TurnProcessorStatus.Running });
                 Debug.Log("[TurnProcessorSystem] Turn started.");
                 RunTurnAsync().Forget();
                 return;
             }
 
-            if (_storages.World.GetWorldComponent<TurnProcessorComponent>().Status == TurnProcessorStatus.Completed)
+            if (_storages.Singletons.Get<TurnProcessorComponent>().Status == TurnProcessorStatus.Completed)
             {
-                _storages.World.SetWorldComponent(new TurnProcessorComponent { Status = TurnProcessorStatus.Idle });
+                _storages.Singletons.Set(new TurnProcessorComponent { Status = TurnProcessorStatus.Idle });
                 Debug.Log("[TurnProcessorSystem] Turn completed.");
 
                 // Announce the turn boundary so the counter (and future turn-boundary reactors) advance,
@@ -79,7 +79,7 @@ namespace Modules.Turn.Systems
 
             await _runner.RunAsync(_phases, new TurnPhaseStep(), token);
 
-            _storages.World.SetWorldComponent(new TurnProcessorComponent { Status = TurnProcessorStatus.Completed });
+            _storages.Singletons.Set(new TurnProcessorComponent { Status = TurnProcessorStatus.Completed });
         }
     }
 }

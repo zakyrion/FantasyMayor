@@ -18,14 +18,14 @@ namespace Presentation.HexIcons.Systems
         private const string HEX_RESOURCE_ICON_CONFIG = "HexResourceIconConfig";
 
         public HexIconsConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
-            : base(addressable, storages.World)
+            : base(addressable)
         {
             _storages = storages;
         }
 
         protected override async UniTask LoadConfigsAsync(CancellationToken cancellationToken)
         {
-            // Both boxes stay owned here until every World.Set succeeds; the shared finally rolls back
+            // Both boxes stay owned here until every Singletons.Set succeeds; the shared finally rolls back
             // whichever load already committed if a later one fails or cancels.
             var iconsConfig = Box<HexIconsConfig>.Empty();
             var resourceIconConfig = Box<HexResourceIconConfig>.Empty();
@@ -42,8 +42,8 @@ namespace Presentation.HexIcons.Systems
                 ValidateConfig(iconsConfig.Value);
                 ValidateResourceIconConfig(resourceIconConfig.Value);
 
-                _storages.World.SetWorldComponent(new HexIconsConfigComponent(iconsConfig));
-                _storages.World.SetWorldComponent(new HexResourceIconConfigComponent(resourceIconConfig));
+                _storages.Singletons.Set(new HexIconsConfigComponent(iconsConfig));
+                _storages.Singletons.Set(new HexResourceIconConfigComponent(resourceIconConfig));
                 iconsConfig = Box<HexIconsConfig>.Empty();
                 resourceIconConfig = Box<HexResourceIconConfig>.Empty();
                 MarkAsLoaded();

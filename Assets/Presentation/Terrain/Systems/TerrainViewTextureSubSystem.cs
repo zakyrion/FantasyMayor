@@ -44,18 +44,18 @@ namespace Presentation.Terrain.Systems
         /// <inheritdoc />
         public override async UniTask Update(GameState state, CancellationToken cancellationToken)
         {
-            if (!_storages.World.HasWorldComponent<VertexGridComponent>())
-                throw new InvalidOperationException("TerrainViewTextureSubSystem: VertexGridComponent world component is missing.");
+            if (!_storages.Singletons.Has<VertexGridComponent>())
+                throw new InvalidOperationException("TerrainViewTextureSubSystem: VertexGridComponent singleton component is missing.");
 
-            if (!_storages.World.HasWorldComponent<TerrainTextureConfigComponent>() || !_storages.World.HasWorldComponent<TerrainViewConfigComponent>())
+            if (!_storages.Singletons.Has<TerrainTextureConfigComponent>() || !_storages.Singletons.Has<TerrainViewConfigComponent>())
             {
                 Debug.LogError("[TerrainViewTextureSubSystem] Required config is missing.");
                 return;
             }
 
-            var config = _storages.World.GetWorldComponent<TerrainTextureConfigComponent>();
-            var terrainConfig = _storages.World.GetWorldComponent<TerrainViewConfigComponent>();
-            var vertexGrid = _storages.World.GetWorldComponent<VertexGridComponent>().Grid;
+            var config = _storages.Singletons.Get<TerrainTextureConfigComponent>();
+            var terrainConfig = _storages.Singletons.Get<TerrainViewConfigComponent>();
+            var vertexGrid = _storages.Singletons.Get<VertexGridComponent>().Grid;
 
             // Persistent (not Temp): the map is read inside RunOnThreadPool, so it must outlive the await.
             // NativeParallelHashMap is the thread-safe-read container; disposed on every exit path below.
@@ -88,7 +88,7 @@ namespace Presentation.Terrain.Systems
 
                 // Store write sits after the RunOnThreadPool hop back to main (Law 1) — UniTask resumes
                 // on the main thread by default once the background delegate completes.
-                _storages.World.SetWorldComponent(new TerrainTextureComponent { Texture = texture });
+                _storages.Singletons.Set(new TerrainTextureComponent { Texture = texture });
             }
             finally
             {

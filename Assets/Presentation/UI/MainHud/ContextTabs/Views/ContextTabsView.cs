@@ -174,7 +174,7 @@ namespace Presentation.UI.MainHud.ContextTabs.Views
         {
             // Record the selection in the world state, then raise a payload-less pulse — ContextTabSelectionSystem
             // reconciles the group against ActiveContextTabComponent (the pulse carries no data by design).
-            _storages.World.SetWorldComponent(new ActiveContextTabComponent(tab));
+            _storages.Singletons.Set(new ActiveContextTabComponent(tab));
             _storages.World.CreateEvent(new ContextTabChangedEvent());
         }
 

@@ -46,7 +46,7 @@ namespace Presentation.UI.MainHud.Systems
 
         public async UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
         {
-            if (_storages.World.GetWorldComponent<MainHudComponent>().RootBox.Exist)
+            if (_storages.Singletons.Get<MainHudComponent>().RootBox.Exist)
                 return;
 
             var canvas = _canvasProvider.RootGO;
@@ -68,7 +68,7 @@ namespace Presentation.UI.MainHud.Systems
                 throw new InvalidOperationException(
                     $"MainHudSpawnSystem: failed to load Main UI by address '{MainUIPath}'.");
 
-            _storages.World.SetWorldComponent(new MainHudComponent
+            _storages.Singletons.Set(new MainHudComponent
             {
                 RootBox = result.Box
             });
@@ -85,10 +85,10 @@ namespace Presentation.UI.MainHud.Systems
 
         public void Dispose()
         {
-            if (_storages != null && _storages.World.GetWorldComponent<MainHudComponent>().RootBox.Exist)
+            if (_storages != null && _storages.Singletons.Get<MainHudComponent>().RootBox.Exist)
             {
-                _storages.World.GetWorldComponent<MainHudComponent>().RootBox.Dispose();
-                _storages.World.SetWorldComponent(new MainHudComponent());
+                _storages.Singletons.Get<MainHudComponent>().RootBox.Dispose();
+                _storages.Singletons.Set(new MainHudComponent());
             }
         }
     }

@@ -36,7 +36,7 @@ namespace Presentation.HexResources.Systems
         protected override HexResourceType TargetHexResourceType => HexResourceType.Clay;
 
         public ClayHexResourceViewSubSystem(EntityStorages storages)
-            : base(storages.World)
+            : base(storages)
         {
             _storages = storages;
             _terrainViewSet = PresentationArchetypes.TerrainView(storages.World);
@@ -49,18 +49,18 @@ namespace Presentation.HexResources.Systems
             if (clayEntities.Length == 0)
                 return;
 
-            if (!TryGetVertexGrid(out var grid) || !_storages.World.HasWorldComponent<ClayViewConfigComponent>())
+            if (!TryGetVertexGrid(out var grid) || !_storages.Singletons.Has<ClayViewConfigComponent>())
                 return;
 
-            if (!_storages.World.HasWorldComponent<TerrainViewConfigComponent>() || !_storages.World.HasWorldComponent<TerrainTextureComponent>() || _terrainViewSet.Count == 0)
+            if (!_storages.Singletons.Has<TerrainViewConfigComponent>() || !_storages.Singletons.Has<TerrainTextureComponent>() || _terrainViewSet.Count == 0)
             {
                 Debug.LogWarning("[ClayHexResourceViewSubSystem] Missing terrain config, texture, or view — clay skipped.");
                 return;
             }
 
-            var clayConfig = _storages.World.GetWorldComponent<ClayViewConfigComponent>();
-            var cellSize = _storages.World.GetWorldComponent<TerrainViewConfigComponent>().CellSize;
-            var texture = _storages.World.GetWorldComponent<TerrainTextureComponent>().Texture;
+            var clayConfig = _storages.Singletons.Get<ClayViewConfigComponent>();
+            var cellSize = _storages.Singletons.Get<TerrainViewConfigComponent>().CellSize;
+            var texture = _storages.Singletons.Get<TerrainTextureComponent>().Texture;
             _terrainViewSet.TryGetFirst(out var terrainViewEntity);
             var terrainView = terrainViewEntity.GetComponent<TerrainViewComponent>().ObjectRef;
 

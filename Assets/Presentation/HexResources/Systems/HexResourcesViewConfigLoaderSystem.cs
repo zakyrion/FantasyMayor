@@ -19,7 +19,7 @@ namespace Presentation.HexResources.Systems
         private Box<HexResourcesViewConfig> _config = Box<HexResourcesViewConfig>.Empty();
 
         public HexResourcesViewConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
-            : base(addressable, storages.World)
+            : base(addressable)
         {
             _storages = storages;
         }
@@ -39,7 +39,7 @@ namespace Presentation.HexResources.Systems
                 _config = loadedConfig;
                 loadedConfig = Box<HexResourcesViewConfig>.Empty();
 
-                _storages.World.SetWorldComponent(new HexResourcesViewConfigComponent { Value = _config.Value });
+                _storages.Singletons.Set(new HexResourcesViewConfigComponent { Value = _config.Value });
                 MarkAsLoaded();
             }
             finally

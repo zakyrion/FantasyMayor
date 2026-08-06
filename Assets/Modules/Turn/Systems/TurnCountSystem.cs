@@ -31,12 +31,12 @@ namespace Modules.Turn.Systems
             if (!EcsEventExtensions.IsRipe(entity))
                 return;
 
-            if (!_storages.World.HasWorldComponent<TurnCountComponent>())
+            if (!_storages.Singletons.Has<TurnCountComponent>())
                 throw new InvalidOperationException(
                     "TurnCountSystem: TurnCountComponent is missing — it must be seeded on Gameplay enter.");
 
-            var current = _storages.World.GetWorldComponent<TurnCountComponent>().Value;
-            _storages.World.SetWorldComponent(new TurnCountComponent(current + 1));
+            var current = _storages.Singletons.Get<TurnCountComponent>().Value;
+            _storages.Singletons.Set(new TurnCountComponent(current + 1));
         }
     }
 }

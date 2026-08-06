@@ -12,7 +12,7 @@ using System;
 namespace Domains.Economy.DistrictBuild.Systems
 {
     // Config Loader (ConfigLoadStep, one-shot): loads the DistrictsBuildConfig SO from Addressables, validates
-    // it, and publishes the DistrictsBuildConfigComponent world component carrying the SO reference. Unlike the
+    // it, and publishes the DistrictsBuildConfigComponent singleton component carrying the SO reference. Unlike the
     // copy-out actor loaders, the build window reads this catalogue throughout play, so the loader RETAINS the
     // addressable Box (ADDRESSABLE_PATTERNS "Load non-GameObject asset") and releases it in OnDispose.
     [UsedImplicitly]
@@ -23,7 +23,7 @@ namespace Domains.Economy.DistrictBuild.Systems
 
         private Box<DistrictBuildsConfig> _config = Box<DistrictBuildsConfig>.Empty();
 
-        public DistrictsBuildConfigLoaderSystem(IAddressable addressable, EntityStorages storages) : base(addressable, storages.World)
+        public DistrictsBuildConfigLoaderSystem(IAddressable addressable, EntityStorages storages) : base(addressable)
         {
             _storages = storages;
         }
@@ -40,7 +40,7 @@ namespace Domains.Economy.DistrictBuild.Systems
             ValidateConfig(box.Value);
 
             _config = box;
-            _storages.World.SetWorldComponent(new DistrictBuildsConfigComponent(box.Value));
+            _storages.Singletons.Set(new DistrictBuildsConfigComponent(box.Value));
             MarkAsLoaded();
         }
 

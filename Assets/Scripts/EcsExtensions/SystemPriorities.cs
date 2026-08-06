@@ -35,7 +35,7 @@ namespace EcsExtensions
         ///     <see cref="EventCleanup" /> disposes it, regardless of relative priority to its producer (see the
         ///     Event Lifecycle law, ECS_CONVENTIONS.md). Every system still gets a distinct value — even two
         ///     systems with no known dependency today — so a same-tick write/read dependency between them (e.g. one
-        ///     system reading a world component another wrote this frame) is never silently order-agnostic.
+        ///     system reading a singleton component another wrote this frame) is never silently order-agnostic.
         /// </summary>
         public static class RuntimeTick
         {

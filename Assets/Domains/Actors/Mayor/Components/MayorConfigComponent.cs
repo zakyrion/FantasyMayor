@@ -4,7 +4,7 @@ using Friflo.Engine.ECS;
 
 namespace Domains.Actors.Mayor.Components
 {
-    // World component: flattened MayorConfig. Carries the Mayor's authored
+    // Singleton component: flattened MayorConfig. Carries the Mayor's authored
     // starting inventory loadout (a sparse set of entries — ResourceTypes the author omits start at 0)
     // and the Mayor's starting Action Points. Both are consumed by MayorSpawnSystem at map creation:
     // Resources seed the per-ResourceType inventory loadout; StartActionPoints seeds BOTH the per-turn restore

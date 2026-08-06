@@ -39,7 +39,7 @@ namespace Presentation.UI.DistrictBuild.Systems
         private readonly ComponentIndex<MayorIdFKComponent, int> _mayorResources;
         private readonly ComponentIndex<CityIdFKComponent, int> _cityResources;
 
-        // The chrome view lives on an ENTITY (UITag), not as a world component — resolve it the way the orchestrator does.
+        // The chrome view lives on an ENTITY (UITag), not as a singleton component — resolve it the way the orchestrator does.
         private readonly Archetype _chrome;
 
         private bool _hooked;
@@ -59,7 +59,7 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public override void Populate(GameObject root)
         {
-            var view = _storages.World.GetWorldComponent<DistrictBuildPriceUIViewComponent>().View;
+            var view = _storages.Singletons.Get<DistrictBuildPriceUIViewComponent>().View;
 
             // The view outlives the subsystem; subscribe once to the payer selection.
             if (!_hooked)
@@ -73,7 +73,7 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         private void OnPayerChanged(ActorType owner)
         {
-            Render(_storages.World.GetWorldComponent<DistrictBuildPriceUIViewComponent>().View);
+            Render(_storages.Singletons.Get<DistrictBuildPriceUIViewComponent>().View);
         }
 
         private void Render(DistrictBuildPriceUIView view)
@@ -132,7 +132,7 @@ namespace Presentation.UI.DistrictBuild.Systems
         }
 
         // Drives the chrome confirm button (owned by DistrictBuildUIView, which lives on the UITag chrome entity — NOT a
-        // world component). Affordability is known only here, so the price section is the single source of truth for the
+        // singleton component). Affordability is known only here, so the price section is the single source of truth for the
         // gate — it stays in sync on both populate and payer switch because Render is the choke point for both.
         private void PushConfirmGate(bool affordable)
         {
@@ -153,11 +153,11 @@ namespace Presentation.UI.DistrictBuild.Systems
                     $"is {DistrictType.Unknown} — the selection must be a real district or {nameof(DistrictType.None)}, " +
                     "never the error marker.");
 
-            if (type == DistrictType.None || !_storages.World.HasWorldComponent<DistrictBuildCostsConfigComponent>())
+            if (type == DistrictType.None || !_storages.Singletons.Has<DistrictBuildCostsConfigComponent>())
                 return false;
 
             return DistrictConfigLookup.TryFind(
-                _storages.World.GetWorldComponent<DistrictBuildCostsConfigComponent>().Value?.Districts, type, c => c.DistrictType, out cost);
+                _storages.Singletons.Get<DistrictBuildCostsConfigComponent>().Value?.Districts, type, c => c.DistrictType, out cost);
         }
 
         private bool TryGetDistrict(DistrictType type, out DistrictBuildConfig district)
@@ -169,11 +169,11 @@ namespace Presentation.UI.DistrictBuild.Systems
                     $"is {DistrictType.Unknown} — the selection must be a real district or {nameof(DistrictType.None)}, " +
                     "never the error marker.");
 
-            if (type == DistrictType.None || !_storages.World.HasWorldComponent<DistrictBuildsConfigComponent>())
+            if (type == DistrictType.None || !_storages.Singletons.Has<DistrictBuildsConfigComponent>())
                 return false;
 
             return DistrictConfigLookup.TryFind(
-                _storages.World.GetWorldComponent<DistrictBuildsConfigComponent>().Value?.Districts, type, d => d.DistrictType, out district);
+                _storages.Singletons.Get<DistrictBuildsConfigComponent>().Value?.Districts, type, d => d.DistrictType, out district);
         }
 
         // Default payer when the view has no valid selection yet: first allowed owner in canonical order
@@ -219,9 +219,9 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public override void Dispose()
         {
-            if (_hooked && _storages.World.HasWorldComponent<DistrictBuildPriceUIViewComponent>())
+            if (_hooked && _storages.Singletons.Has<DistrictBuildPriceUIViewComponent>())
             {
-                var view = _storages.World.GetWorldComponent<DistrictBuildPriceUIViewComponent>().View;
+                var view = _storages.Singletons.Get<DistrictBuildPriceUIViewComponent>().View;
                 if (view != null)
                     view.PayerChanged -= OnPayerChanged;
             }

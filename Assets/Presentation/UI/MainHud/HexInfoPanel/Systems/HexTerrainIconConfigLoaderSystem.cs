@@ -21,7 +21,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
         private const string HEX_TERRAIN_ICON_CONFIG = "HexTerrainIconConfig";
 
         public HexTerrainIconConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
-            : base(addressable, storages.World)
+            : base(addressable)
         {
             _storages = storages;
         }
@@ -37,7 +37,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
 
                 ValidateConfig(terrainIconConfig.Value);
 
-                _storages.World.SetWorldComponent(new HexTerrainIconConfigComponent(terrainIconConfig));
+                _storages.Singletons.Set(new HexTerrainIconConfigComponent(terrainIconConfig));
                 terrainIconConfig = Box<HexTerrainIconConfig>.Empty();
                 MarkAsLoaded();
             }

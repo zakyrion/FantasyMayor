@@ -57,11 +57,11 @@ namespace Presentation.Terrain.Systems
         {
             DisposeWaterView();
 
-            if (!HasRequiredConfigEntities())
+            if (!HasRequiredConfigComponents())
                 return;
 
-            var terrainConfig = _storages.World.GetWorldComponent<TerrainViewConfigComponent>();
-            var waterConfig = _storages.World.GetWorldComponent<WaterViewConfigComponent>();
+            var terrainConfig = _storages.Singletons.Get<TerrainViewConfigComponent>();
+            var waterConfig = _storages.Singletons.Get<WaterViewConfigComponent>();
 
             var result = await _addressable.LoadAndInstanceAsync(WATER_VIEW_ADDRESS, cancellationToken);
 
@@ -164,10 +164,10 @@ namespace Presentation.Terrain.Systems
             return shoreHexes;
         }
 
-        /// <summary>Validates that all singleton config entity sets are populated.</summary>
-        private bool HasRequiredConfigEntities()
+        /// <summary>Validates that all required singleton config components are present.</summary>
+        private bool HasRequiredConfigComponents()
         {
-            if (_storages.World.HasWorldComponent<TerrainViewConfigComponent>() && _storages.World.HasWorldComponent<WaterViewConfigComponent>())
+            if (_storages.Singletons.Has<TerrainViewConfigComponent>() && _storages.Singletons.Has<WaterViewConfigComponent>())
                 return true;
 
             Debug.LogError("[WaterViewSubSystem] One or more required configs are missing.");

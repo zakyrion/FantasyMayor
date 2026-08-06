@@ -55,27 +55,27 @@ namespace Presentation.HexResources.Systems
             if (!EcsEventExtensions.IsRipe(pulse))
                 return;
 
-            if (!_storages.World.HasWorldComponent<TerrainTextureComponent>())
+            if (!_storages.Singletons.Has<TerrainTextureComponent>())
                 return;
 
-            var texture = _storages.World.GetWorldComponent<TerrainTextureComponent>().Texture;
+            var texture = _storages.Singletons.Get<TerrainTextureComponent>().Texture;
             if (texture == null)
                 return;
 
-            if (!_storages.World.HasWorldComponent<VertexGridComponent>())
+            if (!_storages.Singletons.Has<VertexGridComponent>())
                 throw new InvalidOperationException(
-                    "ForestSpawnSystem: VertexGridComponent world component is missing.");
+                    "ForestSpawnSystem: VertexGridComponent singleton component is missing.");
 
-            if (!_storages.World.HasWorldComponent<TerrainViewConfigComponent>() || !_storages.World.HasWorldComponent<HexResourcesViewConfigComponent>())
+            if (!_storages.Singletons.Has<TerrainViewConfigComponent>() || !_storages.Singletons.Has<HexResourcesViewConfigComponent>())
                 return;
 
             var forestResources = _resourcesByType[HexResourceType.Forest];
             if (forestResources.Count == 0)
                 return;
 
-            var vertexGrid = _storages.World.GetWorldComponent<VertexGridComponent>().Grid;
-            var viewConfig = _storages.World.GetWorldComponent<HexResourcesViewConfigComponent>().Value;
-            var cellSize = _storages.World.GetWorldComponent<TerrainViewConfigComponent>().CellSize;
+            var vertexGrid = _storages.Singletons.Get<VertexGridComponent>().Grid;
+            var viewConfig = _storages.Singletons.Get<HexResourcesViewConfigComponent>().Value;
+            var cellSize = _storages.Singletons.Get<TerrainViewConfigComponent>().CellSize;
 
             if (_root == null)
                 _root = new GameObject("ForestViewRoot").transform;

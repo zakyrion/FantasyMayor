@@ -33,7 +33,7 @@ namespace Presentation.HexResources.Systems
         protected override HexResourceType TargetHexResourceType => HexResourceType.Forest;
 
         public ForestHexResourceViewSubSystem(EntityStorages storages)
-            : base(storages.World)
+            : base(storages)
         {
             _storages = storages;
             _hexSet = MapArchetypes.Hex(storages.World);
@@ -47,17 +47,17 @@ namespace Presentation.HexResources.Systems
 
             if (!TryGetVertexGrid(out var vertexGrid))
                 throw new InvalidOperationException(
-                    "ForestHexResourceViewSubSystem: VertexGridComponent world component is missing.");
+                    "ForestHexResourceViewSubSystem: VertexGridComponent singleton component is missing.");
 
-            if (!_storages.World.HasWorldComponent<TerrainViewConfigComponent>() || !_storages.World.HasWorldComponent<HexResourcesViewConfigComponent>() || !_storages.World.HasWorldComponent<TerrainTextureComponent>())
+            if (!_storages.Singletons.Has<TerrainViewConfigComponent>() || !_storages.Singletons.Has<HexResourcesViewConfigComponent>() || !_storages.Singletons.Has<TerrainTextureComponent>())
                 return;
 
-            var texture = _storages.World.GetWorldComponent<TerrainTextureComponent>().Texture;
+            var texture = _storages.Singletons.Get<TerrainTextureComponent>().Texture;
             if (texture == null)
                 return;
 
-            var viewConfig = _storages.World.GetWorldComponent<HexResourcesViewConfigComponent>().Value;
-            var cellSize = _storages.World.GetWorldComponent<TerrainViewConfigComponent>().CellSize;
+            var viewConfig = _storages.Singletons.Get<HexResourcesViewConfigComponent>().Value;
+            var cellSize = _storages.Singletons.Get<TerrainViewConfigComponent>().CellSize;
 
             if (_root == null)
                 _root = new GameObject("ForestViewRoot").transform;

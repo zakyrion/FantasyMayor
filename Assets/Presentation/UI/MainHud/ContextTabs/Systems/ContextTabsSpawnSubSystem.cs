@@ -11,7 +11,7 @@ namespace Presentation.UI.MainHud.ContextTabs.Systems
 {
     /// <summary>
     ///     Main UI spawn subsystem: resolves the context-tabs view from the shared Main UI instance and seeds
-    ///     the ContextTabsViewComponent + ActiveContextTabComponent (Overview) world singletons, then applies the
+    ///     the ContextTabsViewComponent + ActiveContextTabComponent (Overview) singleton components, then applies the
     ///     initial highlight. This window has no singleton entity. Instantiates nothing — the orchestrator owns
     ///     the Main UI handle.
     /// </summary>
@@ -38,9 +38,9 @@ namespace Presentation.UI.MainHud.ContextTabs.Systems
                 throw new InvalidOperationException(
                     "ContextTabsSpawnSubSystem: ContextTabsView is missing from the Main UI prefab.");
 
-            // The view and the active tab are world singletons (mirror TurnCountComponent) — no entity is created.
-            _storages.World.SetWorldComponent(new ContextTabsViewComponent(view));
-            _storages.World.SetWorldComponent(new ActiveContextTabComponent(DefaultTab));
+            // The view and the active tab are singleton components (mirror TurnCountComponent) — no game entity is created.
+            _storages.Singletons.Set(new ContextTabsViewComponent(view));
+            _storages.Singletons.Set(new ActiveContextTabComponent(DefaultTab));
             view.SetActive(DefaultTab);
         }
     }

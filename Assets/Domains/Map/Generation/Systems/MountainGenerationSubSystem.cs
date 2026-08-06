@@ -46,10 +46,10 @@ namespace Domains.Map.Generation.Systems
         /// <inheritdoc />
         public override void Update(GameState state)
         {
-            if (!_storages.World.HasWorldComponent<MountainConfigComponent>())
+            if (!_storages.Singletons.Has<MountainConfigComponent>())
                 return;
 
-            var config = _storages.World.GetWorldComponent<MountainConfigComponent>();
+            var config = _storages.Singletons.Get<MountainConfigComponent>();
 
             Generate(in config);
         }

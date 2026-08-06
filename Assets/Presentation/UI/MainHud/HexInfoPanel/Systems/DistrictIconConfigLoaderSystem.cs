@@ -21,7 +21,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
         private const string DISTRICT_ICON_CONFIG = "DistrictIconConfig";
 
         public DistrictIconConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
-            : base(addressable, storages.World)
+            : base(addressable)
         {
             _storages = storages;
         }
@@ -37,7 +37,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
 
                 ValidateConfig(districtIconConfig.Value);
 
-                _storages.World.SetWorldComponent(new DistrictIconConfigComponent(districtIconConfig));
+                _storages.Singletons.Set(new DistrictIconConfigComponent(districtIconConfig));
                 districtIconConfig = Box<DistrictIconConfig>.Empty();
                 MarkAsLoaded();
             }

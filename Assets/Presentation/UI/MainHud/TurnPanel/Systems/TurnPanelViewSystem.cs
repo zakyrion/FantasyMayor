@@ -47,13 +47,13 @@ namespace Presentation.UI.MainHud.TurnPanel.Systems
             if (view == null)
                 return;
 
-            if (!_storages.World.HasWorldComponent<TurnCountComponent>())
+            if (!_storages.Singletons.Has<TurnCountComponent>())
                 throw new InvalidOperationException(
                     "TurnPanelViewSystem: TurnCountComponent is missing — it must be seeded on Gameplay enter.");
 
             view.Show();
-            view.SetProcessing(_storages.World.GetWorldComponent<TurnProcessorComponent>().Status == TurnProcessorStatus.Running);
-            view.SetTurnNumber(_storages.World.GetWorldComponent<TurnCountComponent>().Value);
+            view.SetProcessing(_storages.Singletons.Get<TurnProcessorComponent>().Status == TurnProcessorStatus.Running);
+            view.SetTurnNumber(_storages.Singletons.Get<TurnCountComponent>().Value);
 
             PushActionPoints(view);
         }

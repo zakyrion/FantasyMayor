@@ -37,14 +37,14 @@ namespace Domains.Economy.DistrictBuildOutcome.Systems{
 
         public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
         {
-            if (!_storages.World.HasWorldComponent<DistrictBuildOutcomesConfigComponent>())
+            if (!_storages.Singletons.Has<DistrictBuildOutcomesConfigComponent>())
                 throw new InvalidOperationException(
                     "BuildDistrictOutcomeSpawnSystem: BuildDistrictOutcomesConfigComponent is missing.");
 
             if (cancellationToken.IsCancellationRequested)
                 return UniTask.CompletedTask;
 
-            var outcomes = _storages.World.GetWorldComponent<DistrictBuildOutcomesConfigComponent>().Value.Outcomes;
+            var outcomes = _storages.Singletons.Get<DistrictBuildOutcomesConfigComponent>().Value.Outcomes;
 
             for (var index = 0; index < outcomes.Length; index++)
             {

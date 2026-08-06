@@ -36,10 +36,10 @@ namespace Presentation.Terrain.Systems
         /// <inheritdoc />
         public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
         {
-            if (!_storages.World.HasWorldComponent<TerrainViewConfigComponent>())
+            if (!_storages.Singletons.Has<TerrainViewConfigComponent>())
                 return UniTask.CompletedTask;
 
-            var cellSize = _storages.World.GetWorldComponent<TerrainViewConfigComponent>().CellSize;
+            var cellSize = _storages.Singletons.Get<TerrainViewConfigComponent>().CellSize;
 
             foreach (var hexEntity in _hexSet.Entities)
             {

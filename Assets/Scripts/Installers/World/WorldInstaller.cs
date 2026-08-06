@@ -27,7 +27,7 @@ using Modules.UserInput.Tags;
 
 namespace Installers.World
 {
-    /// <summary>Registers the named ECS storages, the camera world component, and world-level ECS systems.</summary>
+    /// <summary>Registers the named ECS storages, the camera singleton component, and world-level ECS systems.</summary>
     public class WorldInstaller : LifetimeScope
     {
         [SerializeField] private Camera _mainCamera;
@@ -48,13 +48,10 @@ namespace Installers.World
             var world = entityStorages.World;
             builder.RegisterInstance(entityStorages);
 
-            // The "world" singleton must exist before any SetWorldComponent call.
-            world.CreateEntity(new UniqueEntity("world"));
-
             builder.Register<IMainCanvasProvider, MainCanvasProvider>(Lifetime.Scoped).WithParameter(_uiRoot);
 
-            // CameraComponent is single-instance world state, stored as a world component, not an entity.
-            world.SetWorldComponent(new CameraComponent
+            // CameraComponent is single-instance world state, isolated from game entities.
+            entityStorages.Singletons.Set(new CameraComponent
             {
                 Camera = _mainCamera
             });

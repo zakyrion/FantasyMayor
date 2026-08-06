@@ -50,10 +50,10 @@ namespace Domains.Map.Generation.Systems
         /// <inheritdoc />
         public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
         {
-            if (!_storages.World.HasWorldComponent<TerrainGenerationConfigComponent>())
+            if (!_storages.Singletons.Has<TerrainGenerationConfigComponent>())
                 return UniTask.CompletedTask;
 
-            var config = _storages.World.GetWorldComponent<TerrainGenerationConfigComponent>();
+            var config = _storages.Singletons.Get<TerrainGenerationConfigComponent>();
 
             Generate(in config);
             RunGenerationSubSystems();

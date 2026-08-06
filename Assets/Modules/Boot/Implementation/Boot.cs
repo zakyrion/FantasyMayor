@@ -114,7 +114,7 @@ namespace Modules.Boot.Implementation
             var mapCreation = new MapCreationState(generationPipeline, eventCleanup);
 
             var gameplay = new GameplayState(
-                storages.World,
+                storages,
                 new IUpdatedSystem[]
                 {
                     hexSelection, hexSelectionView, forestSpawn, forestDespawn, districtViewSpawn, hexIconsVisibility,

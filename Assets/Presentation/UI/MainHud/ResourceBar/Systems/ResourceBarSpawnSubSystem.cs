@@ -36,12 +36,12 @@ namespace Presentation.UI.MainHud.ResourceBar.Systems
                 throw new InvalidOperationException(
                     "ResourceBarSpawnSubSystem: ResourceBarView is missing from the Main UI prefab.");
 
-            if (!_storages.World.HasWorldComponent<InventoryResourceIconConfigComponent>())
+            if (!_storages.Singletons.Has<InventoryResourceIconConfigComponent>())
                 throw new InvalidOperationException(
                     "ResourceBarSpawnSubSystem: InventoryResourceIconConfigComponent missing — " +
                     "InventoryResourceIconConfigLoaderSystem must run at ConfigLoadStep first.");
 
-            view.Build(_storages.World.GetWorldComponent<InventoryResourceIconConfigComponent>().Value.Entries);
+            view.Build(_storages.Singletons.Get<InventoryResourceIconConfigComponent>().Value.Entries);
             view.Hide();
 
             var entity = _archetype.CreateEntity();

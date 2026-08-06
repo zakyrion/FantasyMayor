@@ -23,7 +23,7 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
         private Box<DistrictOpenConditionsConfig> _config = Box<DistrictOpenConditionsConfig>.Empty();
 
         public DistrictOpenConditionsConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
-            : base(addressable, storages.World)
+            : base(addressable)
         {
             _storages = storages;
         }
@@ -41,7 +41,7 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
             ValidateConfig(box.Value);
 
             _config = box;
-            _storages.World.SetWorldComponent(new DistrictOpenConditionsConfigComponent(box.Value));
+            _storages.Singletons.Set(new DistrictOpenConditionsConfigComponent(box.Value));
             MarkAsLoaded();
         }
 

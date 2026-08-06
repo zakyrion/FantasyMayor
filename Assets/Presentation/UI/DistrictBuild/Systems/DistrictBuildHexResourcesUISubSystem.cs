@@ -50,7 +50,7 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public override void Populate(GameObject root)
         {
-            var view = _storages.World.GetWorldComponent<DistrictBuildHexResourcesUIViewComponent>().View;
+            var view = _storages.Singletons.Get<DistrictBuildHexResourcesUIViewComponent>().View;
 
             if (!_selectionSet.TryGetFirst(out var selectionEntity))
                 throw new InvalidOperationException(
@@ -96,11 +96,11 @@ namespace Presentation.UI.DistrictBuild.Systems
                     $"is {DistrictType.Unknown} — the selection must be a real district or {nameof(DistrictType.None)}, " +
                     "never the error marker.");
 
-            if (type == DistrictType.None || !_storages.World.HasWorldComponent<DistrictBuildsConfigComponent>())
+            if (type == DistrictType.None || !_storages.Singletons.Has<DistrictBuildsConfigComponent>())
                 return false;
 
             return DistrictConfigLookup.TryFind(
-                _storages.World.GetWorldComponent<DistrictBuildsConfigComponent>().Value?.Districts, type, d => d.DistrictType, out district);
+                _storages.Singletons.Get<DistrictBuildsConfigComponent>().Value?.Districts, type, d => d.DistrictType, out district);
         }
 
         private bool TryGetHexType(HexCoord coords, out HexType type)

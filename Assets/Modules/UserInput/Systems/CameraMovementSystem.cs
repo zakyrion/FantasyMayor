@@ -48,7 +48,7 @@ namespace Modules.UserInput.Systems
         /// <param name="storages">Named ECS storages used to build the game-world entity set.</param>
         public CameraMovementSystem(EntityStorages storages)
             // Anchored on the single PlayerInputComponent entity so Update ticks once per frame;
-            // the camera itself is a world component (CameraComponent), read via storages.World below.
+            // the camera itself is a singleton component (CameraComponent), read via storages.Singletons below.
             : base(storages.World, UserInputArchetypes.PlayerInput(storages.World))
         {
             _storages = storages;
@@ -67,14 +67,14 @@ namespace Modules.UserInput.Systems
                     return;
             }
 
-            if (!_storages.World.HasWorldComponent<CameraMovementConfigComponent>() || !_storages.World.HasWorldComponent<CameraComponent>())
+            if (!_storages.Singletons.Has<CameraMovementConfigComponent>() || !_storages.Singletons.Has<CameraComponent>())
                 return;
 
-            var camera = _storages.World.GetWorldComponent<CameraComponent>().Camera;
+            var camera = _storages.Singletons.Get<CameraComponent>().Camera;
             if (camera == null)
                 return;
 
-            var config = _storages.World.GetWorldComponent<CameraMovementConfigComponent>();
+            var config = _storages.Singletons.Get<CameraMovementConfigComponent>();
             var cameraTransform = camera.transform;
 
             MoveCamera(cameraTransform, config, state.DeltaTime);
@@ -89,10 +89,10 @@ namespace Modules.UserInput.Systems
         /// <returns><c>true</c> when bounds were successfully computed and cached.</returns>
         private bool TryComputeBounds()
         {
-            if (!_storages.World.HasWorldComponent<TerrainViewConfigComponent>() || _hexArchetype.Count == 0)
+            if (!_storages.Singletons.Has<TerrainViewConfigComponent>() || _hexArchetype.Count == 0)
                 return false;
 
-            var cellSize = _storages.World.GetWorldComponent<TerrainViewConfigComponent>().CellSize;
+            var cellSize = _storages.Singletons.Get<TerrainViewConfigComponent>().CellSize;
 
             var minX = float.MaxValue;
             var maxX = float.MinValue;

@@ -13,7 +13,7 @@ using Unity.Collections;
 namespace Domains.Actors.Mayor.Systems
 {
     // Config Loader (ConfigLoadStep, one-shot): loads the MayorConfig SO from Addressables, validates it,
-    // and publishes the flattened MayorConfigComponent world component. MayorSpawnSystem reads it at map
+    // and publishes the flattened MayorConfigComponent singleton component. MayorSpawnSystem reads it at map
     // creation to seed the Mayor's starting resources + Action Points (Patterns/PATTERN_CONFIG_LOADER.md).
     [UsedImplicitly]
     internal sealed class MayorConfigLoaderSystem : ConfigLoaderSystem
@@ -22,7 +22,7 @@ namespace Domains.Actors.Mayor.Systems
         private readonly EntityStorages _storages;
 
         public MayorConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
-            : base(addressable, storages.World)
+            : base(addressable)
         {
             _storages = storages;
         }
@@ -39,7 +39,7 @@ namespace Domains.Actors.Mayor.Systems
 
                 ValidateConfig(configBox.Value);
 
-                _storages.World.SetWorldComponent(MayorConfigComponent.FromConfig(configBox.Value));
+                _storages.Singletons.Set(MayorConfigComponent.FromConfig(configBox.Value));
                 MarkAsLoaded();
             }
             finally

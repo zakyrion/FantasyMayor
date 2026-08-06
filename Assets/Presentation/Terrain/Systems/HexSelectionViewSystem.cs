@@ -69,8 +69,8 @@ namespace Presentation.Terrain.Systems
                 return;
             }
 
-            if (!_storages.World.HasWorldComponent<VertexGridComponent>())
-                throw new InvalidOperationException("HexSelectionViewSystem: VertexGridComponent world component is missing.");
+            if (!_storages.Singletons.Has<VertexGridComponent>())
+                throw new InvalidOperationException("HexSelectionViewSystem: VertexGridComponent singleton component is missing.");
 
             var selected = selectedEntity.GetComponent<HexSelectedComponent>();
             if (!viewChanged && _hadSelection && _lastSelection.Coords == selected.Coords)
@@ -78,7 +78,7 @@ namespace Presentation.Terrain.Systems
                 return;
             }
 
-            VertexGrid vertexGrid = _storages.World.GetWorldComponent<VertexGridComponent>().Grid;
+            VertexGrid vertexGrid = _storages.Singletons.Get<VertexGridComponent>().Grid;
             ComputeSelectionRings(selected.Coords, vertexGrid, out var outerRing, out var innerRing);
 
             view.ShowSelectionBorder(outerRing, innerRing);

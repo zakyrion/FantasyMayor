@@ -47,15 +47,15 @@ namespace Domains.Map.Generation.Systems
         /// <param name="state">Current game state.</param>
         public override void Update(GameState state)
         {
-            if (!_storages.World.HasWorldComponent<TerrainGenerationConfigComponent>() || !_storages.World.HasWorldComponent<SeaConfigComponent>())
+            if (!_storages.Singletons.Has<TerrainGenerationConfigComponent>() || !_storages.Singletons.Has<SeaConfigComponent>())
                 return;
 
-            var terrainConfig = _storages.World.GetWorldComponent<TerrainGenerationConfigComponent>();
+            var terrainConfig = _storages.Singletons.Get<TerrainGenerationConfigComponent>();
 
             if (terrainConfig.WaterType != WaterType.Sea)
                 return;
 
-            var config = _storages.World.GetWorldComponent<SeaConfigComponent>();
+            var config = _storages.Singletons.Get<SeaConfigComponent>();
 
             Generate(in terrainConfig, in config);
         }

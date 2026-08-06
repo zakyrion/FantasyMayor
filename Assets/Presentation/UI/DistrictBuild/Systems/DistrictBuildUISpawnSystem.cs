@@ -45,7 +45,7 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public async UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
         {
-            if (_storages.World.GetWorldComponent<DistrictBuildUIRootComponent>().RootBox.Exist)
+            if (_storages.Singletons.Get<DistrictBuildUIRootComponent>().RootBox.Exist)
                 return;
 
             var canvas = _canvasProvider.RootGO;
@@ -92,11 +92,11 @@ namespace Presentation.UI.DistrictBuild.Systems
                     + "the overlay prefab.");
             }
 
-            _storages.World.SetWorldComponent(new DistrictBuildUIRootComponent { RootBox = result.Box });
-            _storages.World.SetWorldComponent(new DistrictBuildListUIViewComponent(listView));
-            _storages.World.SetWorldComponent(new DistrictBuildHexResourcesUIViewComponent(hexResourcesView));
-            _storages.World.SetWorldComponent(new DistrictBuildPriceUIViewComponent(priceView));
-            _storages.World.SetWorldComponent(new DistrictBuildActionsUIViewComponent(actionsView));
+            _storages.Singletons.Set(new DistrictBuildUIRootComponent { RootBox = result.Box });
+            _storages.Singletons.Set(new DistrictBuildListUIViewComponent(listView));
+            _storages.Singletons.Set(new DistrictBuildHexResourcesUIViewComponent(hexResourcesView));
+            _storages.Singletons.Set(new DistrictBuildPriceUIViewComponent(priceView));
+            _storages.Singletons.Set(new DistrictBuildActionsUIViewComponent(actionsView));
 
             var entity = _archetype.CreateEntity();
             entity.AddComponent(new DistrictBuildUIViewComponent(view));
@@ -108,10 +108,10 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public void Dispose()
         {
-            if (_storages != null && _storages.World.GetWorldComponent<DistrictBuildUIRootComponent>().RootBox.Exist)
+            if (_storages != null && _storages.Singletons.Get<DistrictBuildUIRootComponent>().RootBox.Exist)
             {
-                _storages.World.GetWorldComponent<DistrictBuildUIRootComponent>().RootBox.Dispose();
-                _storages.World.SetWorldComponent(new DistrictBuildUIRootComponent());
+                _storages.Singletons.Get<DistrictBuildUIRootComponent>().RootBox.Dispose();
+                _storages.Singletons.Set(new DistrictBuildUIRootComponent());
             }
         }
     }

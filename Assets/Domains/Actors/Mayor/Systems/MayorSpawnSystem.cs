@@ -40,20 +40,20 @@ namespace Domains.Actors.Mayor.Systems
 
             // Idempotent one-shot: an existing allocator means the Mayor was already created
             // (or restored by a future load flow) — never spawn a duplicate on pipeline re-entry.
-            if (_storages.World.HasWorldComponent<MayorIdAllocatorComponent>())
+            if (_storages.Singletons.Has<MayorIdAllocatorComponent>())
                 return UniTask.CompletedTask;
 
-            if (!_storages.World.HasWorldComponent<MayorConfigComponent>())
+            if (!_storages.Singletons.Has<MayorConfigComponent>())
                 throw new InvalidOperationException(
                     "MayorSpawnSystem: MayorConfigComponent missing — MayorConfigLoaderSystem must run at ConfigLoadStep first.");
 
-            var config = _storages.World.GetWorldComponent<MayorConfigComponent>();
+            var config = _storages.Singletons.Get<MayorConfigComponent>();
 
-            _storages.World.SetWorldComponent(new MayorIdAllocatorComponent { Next = 1 });
+            _storages.Singletons.Set(new MayorIdAllocatorComponent { Next = 1 });
 
             // Single actor (id stays 1); allocate-then-advance for symmetry with City and the save/load contract.
-            var mayorId = _storages.World.GetWorldComponent<MayorIdAllocatorComponent>().Next;
-            _storages.World.SetWorldComponent(new MayorIdAllocatorComponent { Next = mayorId + 1 });
+            var mayorId = _storages.Singletons.Get<MayorIdAllocatorComponent>().Next;
+            _storages.Singletons.Set(new MayorIdAllocatorComponent { Next = mayorId + 1 });
 
             var mayorIdComponent = new MayorIdComponent { Value = mayorId };
             var mayor = _mayorArchetype.CreateEntity();

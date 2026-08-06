@@ -22,7 +22,7 @@ namespace Domains.Economy.DistrictBuildOutcome.Systems{
         private Box<DistrictBuildOutcomesConfig> _config = Box<DistrictBuildOutcomesConfig>.Empty();
 
         public DistrictBuildOutcomesConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
-            : base(addressable, storages.World)
+            : base(addressable)
         {
             _storages = storages;
         }
@@ -40,7 +40,7 @@ namespace Domains.Economy.DistrictBuildOutcome.Systems{
             ValidateConfig(box.Value);
 
             _config = box;
-            _storages.World.SetWorldComponent(new DistrictBuildOutcomesConfigComponent(box.Value));
+            _storages.Singletons.Set(new DistrictBuildOutcomesConfigComponent(box.Value));
             MarkAsLoaded();
         }
 

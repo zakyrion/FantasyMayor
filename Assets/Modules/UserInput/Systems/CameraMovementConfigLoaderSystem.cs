@@ -20,9 +20,9 @@ namespace Modules.UserInput.Systems
         private const string CAMERA_MOVEMENT_CONFIG = "CameraMovementConfig";
 
         /// <param name="addressable">Addressable loader abstraction.</param>
-        /// <param name="storages">Named ECS storages whose game world receives the flattened config entity.</param>
+        /// <param name="storages">Named ECS storages whose singleton row receives the flattened config component.</param>
         public CameraMovementConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
-            : base(addressable, storages.World)
+            : base(addressable)
         {
             _storages = storages;
         }
@@ -38,7 +38,7 @@ namespace Modules.UserInput.Systems
                 if (cancellationToken.IsCancellationRequested)
                     return;
 
-                _storages.World.SetWorldComponent(CameraMovementConfigComponent.FromConfig(cameraMovementConfig.Value));
+                _storages.Singletons.Set(CameraMovementConfigComponent.FromConfig(cameraMovementConfig.Value));
                 MarkAsLoaded();
             }
             finally

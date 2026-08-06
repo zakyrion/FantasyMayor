@@ -118,33 +118,33 @@ namespace Presentation.HexIcons.Systems
 
         private void PreUpdate(GameState state)
         {
-            if (!_storages.World.HasWorldComponent<HexIconsViewComponent>())
+            if (!_storages.Singletons.Has<HexIconsViewComponent>())
                 throw new InvalidOperationException(
                     "HexIconsContainerPositionSystem: HexIconsViewComponent is missing.");
-            if (!_storages.World.HasWorldComponent<CameraComponent>())
+            if (!_storages.Singletons.Has<CameraComponent>())
                 throw new InvalidOperationException(
                     "HexIconsContainerPositionSystem: CameraComponent is missing.");
 
-            var panel = _storages.World.GetWorldComponent<HexIconsViewComponent>().View.Root.panel;
+            var panel = _storages.Singletons.Get<HexIconsViewComponent>().View.Root.panel;
             if (panel == null)
                 throw new InvalidOperationException("HexIconsContainerPositionSystem: panel is not ready.");
 
-            var camera = _storages.World.GetWorldComponent<CameraComponent>().Camera;
+            var camera = _storages.Singletons.Get<CameraComponent>().Camera;
             if (camera == null)
                 throw new InvalidOperationException("HexIconsContainerPositionSystem: scene camera is null.");
 
-            if (!_storages.World.HasWorldComponent<VertexGridComponent>())
+            if (!_storages.Singletons.Has<VertexGridComponent>())
                 throw new InvalidOperationException(
                     "HexIconsContainerPositionSystem: VertexGridComponent is missing.");
-            var grid = _storages.World.GetWorldComponent<VertexGridComponent>().Grid;
+            var grid = _storages.Singletons.Get<VertexGridComponent>().Grid;
             if (grid == null)
                 throw new InvalidOperationException("HexIconsContainerPositionSystem: VertexGrid is null.");
 
-            if (!_storages.World.HasWorldComponent<HexIconsConfigComponent>())
+            if (!_storages.Singletons.Has<HexIconsConfigComponent>())
                 throw new InvalidOperationException(
                     "HexIconsContainerPositionSystem: HexIconsConfigComponent is missing.");
 
-            var worldYOffset = _storages.World.GetWorldComponent<HexIconsConfigComponent>().Value.WorldYOffset;
+            var worldYOffset = _storages.Singletons.Get<HexIconsConfigComponent>().Value.WorldYOffset;
             var focusDepth = ComputeFocusDepth(camera);
 
             _pose = FrameBox<FramePose>.OneFrame(

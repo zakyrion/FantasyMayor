@@ -5,7 +5,7 @@ using Presentation.UI.MainHud.ResourceBar.Configs;
 namespace Presentation.UI.MainHud.ResourceBar.Components
 {
     /// <summary>
-    ///     World component wrapping the loaded inventory-resource-icon config. Holds the <see cref="Box{T}" /> so
+    ///     Singleton component wrapping the loaded inventory-resource-icon config. Holds the <see cref="Box{T}" /> so
     ///     the sprite assets stay loaded for the resource strip's lifetime (ownership is transferred here by the
     ///     loader). Mirrors HexTerrainIconConfigComponent.
     /// </summary>

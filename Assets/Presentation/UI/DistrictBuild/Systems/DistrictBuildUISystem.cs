@@ -143,10 +143,10 @@ namespace Presentation.UI.DistrictBuild.Systems
         // spends the payer's stockpile from it (R2).
         private ActorType ReadPayer()
         {
-            if (!_storages.World.HasWorldComponent<DistrictBuildPriceUIViewComponent>())
+            if (!_storages.Singletons.Has<DistrictBuildPriceUIViewComponent>())
                 throw new InvalidOperationException("DistrictBuildUISystem: confirm with no price section view.");
 
-            var payer = _storages.World.GetWorldComponent<DistrictBuildPriceUIViewComponent>().View.SelectedOwner;
+            var payer = _storages.Singletons.Get<DistrictBuildPriceUIViewComponent>().View.SelectedOwner;
             if (payer == ActorType.Unknown)
                 throw new InvalidOperationException("DistrictBuildUISystem: confirm with no selected payer.");
 
@@ -186,7 +186,7 @@ namespace Presentation.UI.DistrictBuild.Systems
         // sequences them by Priority and hands over the overlay root.
         private void PopulateSections()
         {
-            var root = _storages.World.GetWorldComponent<DistrictBuildUIRootComponent>().RootBox.Value;
+            var root = _storages.Singletons.Get<DistrictBuildUIRootComponent>().RootBox.Value;
 
             for (var i = 0; i < _subSystems.Count; i++)
                 if (_subSystems[i].IsEnabled)

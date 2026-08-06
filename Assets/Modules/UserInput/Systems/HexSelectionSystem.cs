@@ -37,7 +37,7 @@ namespace Modules.UserInput.Systems
         /// <param name="storages">Named ECS storages used to query camera, config, and selection state.</param>
         public HexSelectionSystem(EntityStorages storages)
             // Anchored on the single PlayerInputComponent entity so Update ticks once per frame;
-            // the camera itself is a world component (CameraComponent), read via storages.World below.
+            // the camera itself is a singleton component (CameraComponent), read via storages.Singletons below.
             : base(storages.World, UserInputArchetypes.PlayerInput(storages.World))
         {
             _storages = storages;
@@ -56,7 +56,7 @@ namespace Modules.UserInput.Systems
                     return;
             }
 
-            if (!_storages.World.HasWorldComponent<TerrainViewConfigComponent>())
+            if (!_storages.Singletons.Has<TerrainViewConfigComponent>())
                 return;
 
             if (!_clickAction.WasPressedThisFrame())
@@ -65,14 +65,14 @@ namespace Modules.UserInput.Systems
             if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
                 return;
 
-            if (!_storages.World.HasWorldComponent<CameraComponent>())
+            if (!_storages.Singletons.Has<CameraComponent>())
                 return;
 
-            var camera = _storages.World.GetWorldComponent<CameraComponent>().Camera;
+            var camera = _storages.Singletons.Get<CameraComponent>().Camera;
             if (camera == null)
                 return;
 
-            var cellSize = _storages.World.GetWorldComponent<TerrainViewConfigComponent>().CellSize;
+            var cellSize = _storages.Singletons.Get<TerrainViewConfigComponent>().CellSize;
             if (cellSize <= 0f)
                 return;
 

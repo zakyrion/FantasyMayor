@@ -18,7 +18,7 @@ namespace Domains.Map.Generation.Systems
         private const string TERRAIN_GENERATION_CONFIG = "TerrainGenerationConfig";
 
         public TerrainGenerationConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
-            : base(addressable, storages.World)
+            : base(addressable)
         {
             _storages = storages;
         }
@@ -35,7 +35,7 @@ namespace Domains.Map.Generation.Systems
 
                 var config = terrainGenerationConfig.Value;
 
-                _storages.World.SetWorldComponent(TerrainGenerationConfigComponent.FromConfig(config));
+                _storages.Singletons.Set(TerrainGenerationConfigComponent.FromConfig(config));
                 CreateMountainConfigComponent(config);
                 CreateWaterConfigComponent(config);
 
@@ -49,7 +49,7 @@ namespace Domains.Map.Generation.Systems
 
         private void CreateMountainConfigComponent(TerrainGenerationConfig config)
         {
-            _storages.World.SetWorldComponent(new MountainConfigComponent
+            _storages.Singletons.Set(new MountainConfigComponent
             {
                 SizeFraction         = config.HillSizeFraction,
                 SeedCount            = config.SeedCount,
@@ -90,7 +90,7 @@ namespace Domains.Map.Generation.Systems
             if (riverConfig == null)
                 throw new InvalidOperationException($"{nameof(RiverConfig)} is not assigned in TerrainGenerationConfig but WaterType is River.");
 
-            _storages.World.SetWorldComponent(new RiverConfigComponent
+            _storages.Singletons.Set(new RiverConfigComponent
             {
                 CornerOffsetTiles = riverConfig.CornerOffsetTiles
             });
@@ -101,7 +101,7 @@ namespace Domains.Map.Generation.Systems
             if (lakeConfig == null)
                 throw new InvalidOperationException($"{nameof(LakeConfig)} is not assigned in TerrainGenerationConfig but WaterType is Lake.");
 
-            _storages.World.SetWorldComponent(new LakeConfigComponent
+            _storages.Singletons.Set(new LakeConfigComponent
             {
                 EdgeMarginTiles = lakeConfig.EdgeMarginTiles,
                 SizeFraction = lakeConfig.SizeFraction
@@ -113,7 +113,7 @@ namespace Domains.Map.Generation.Systems
             if (seaConfig == null)
                 throw new InvalidOperationException($"{nameof(SeaConfig)} is not assigned in TerrainGenerationConfig but WaterType is Sea.");
 
-            _storages.World.SetWorldComponent(new SeaConfigComponent
+            _storages.Singletons.Set(new SeaConfigComponent
             {
                 SizeFraction = seaConfig.SizeFraction
             });

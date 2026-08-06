@@ -130,13 +130,13 @@ namespace Presentation.Terrain.Systems
             _terrainViewBox = result.Box;
             var terrainView = _terrainViewBox.Value;
 
-            if (!_storages.World.HasWorldComponent<TerrainViewConfigComponent>())
+            if (!_storages.Singletons.Has<TerrainViewConfigComponent>())
             {
                 Debug.LogError("[TerrainViewSystem] TerrainViewConfigComponent is missing.");
                 return;
             }
 
-            var config = _storages.World.GetWorldComponent<TerrainViewConfigComponent>();
+            var config = _storages.Singletons.Get<TerrainViewConfigComponent>();
 
             var hexCoords = CollectHexCoords();
             try
@@ -158,10 +158,10 @@ namespace Presentation.Terrain.Systems
 
             ApplyGeneratedTexture(terrainView);
 
-            if (!_storages.World.HasWorldComponent<VertexGridComponent>())
-                throw new InvalidOperationException("TerrainViewSystem: VertexGridComponent world component is missing.");
+            if (!_storages.Singletons.Has<VertexGridComponent>())
+                throw new InvalidOperationException("TerrainViewSystem: VertexGridComponent singleton component is missing.");
 
-            var vertexGrid = _storages.World.GetWorldComponent<VertexGridComponent>().Grid;
+            var vertexGrid = _storages.Singletons.Get<VertexGridComponent>().Grid;
             terrainView.ApplyHeightsFromVertexGrid(vertexGrid);
 
             DestroyTerrainViewEntity();
@@ -171,19 +171,19 @@ namespace Presentation.Terrain.Systems
         }
 
         /// <summary>
-        ///     Reads the <see cref="TerrainTextureComponent" /> world component created by the texture
+        ///     Reads the <see cref="TerrainTextureComponent" /> singleton component created by the texture
         ///     subsystem and applies the texture to the terrain view material.
-        ///     The world component persists: the same <see cref="UnityEngine.Texture2D" /> instance
+        ///     The singleton component persists: the same <see cref="UnityEngine.Texture2D" /> instance
         ///     stays assigned to the material, so reactive runtime systems (e.g. forest ground painting)
         ///     can mutate its pixels and have the material reflect the change without re-applying.
         /// </summary>
         /// <param name="terrainView">Target terrain view that receives the texture.</param>
         private void ApplyGeneratedTexture(Views.TerrainView terrainView)
         {
-            if (!_storages.World.HasWorldComponent<TerrainTextureComponent>())
+            if (!_storages.Singletons.Has<TerrainTextureComponent>())
                 return;
 
-            var texture = _storages.World.GetWorldComponent<TerrainTextureComponent>().Texture;
+            var texture = _storages.Singletons.Get<TerrainTextureComponent>().Texture;
             terrainView.ApplyTexture(texture);
         }
 

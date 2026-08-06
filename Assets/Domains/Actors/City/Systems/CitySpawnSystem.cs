@@ -38,20 +38,20 @@ namespace Domains.Actors.City.Systems
 
             // Idempotent one-shot: an existing allocator means the City was already created
             // (or restored by a future load flow) — never spawn a duplicate on pipeline re-entry.
-            if (_storages.World.HasWorldComponent<CityIdAllocatorComponent>())
+            if (_storages.Singletons.Has<CityIdAllocatorComponent>())
                 return UniTask.CompletedTask;
 
-            if (!_storages.World.HasWorldComponent<CityConfigComponent>())
+            if (!_storages.Singletons.Has<CityConfigComponent>())
                 throw new InvalidOperationException(
                     "CitySpawnSystem: CityConfigComponent missing — CityConfigLoaderSystem must run at ConfigLoadStep first.");
 
-            var config = _storages.World.GetWorldComponent<CityConfigComponent>();
+            var config = _storages.Singletons.Get<CityConfigComponent>();
 
-            _storages.World.SetWorldComponent(new CityIdAllocatorComponent { Next = 1 });
+            _storages.Singletons.Set(new CityIdAllocatorComponent { Next = 1 });
 
             // Take the next id, advance the allocator, create the row (PK + discriminator).
-            var cityId = _storages.World.GetWorldComponent<CityIdAllocatorComponent>().Next;
-            _storages.World.SetWorldComponent(new CityIdAllocatorComponent { Next = cityId + 1 });
+            var cityId = _storages.Singletons.Get<CityIdAllocatorComponent>().Next;
+            _storages.Singletons.Set(new CityIdAllocatorComponent { Next = cityId + 1 });
 
             var cityIdComponent = new CityIdComponent { Value = cityId };
             var city = _cityArchetype.CreateEntity();

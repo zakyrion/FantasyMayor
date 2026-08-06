@@ -14,7 +14,7 @@ namespace Presentation.UI.MainHud.ResourceBar.Systems
 {
     /// <summary>
     ///     Loads the inventory-resource-icon config at boot and publishes it as the
-    ///     InventoryResourceIconConfigComponent world component. Ownership of the Box transfers to that component
+    ///     InventoryResourceIconConfigComponent singleton component. Ownership of the Box transfers to that component
     ///     so the sprites stay loaded. The config's entries also define the resource strip's columns. Mirrors
     ///     HexTerrainIconConfigLoaderSystem.
     /// </summary>
@@ -25,7 +25,7 @@ namespace Presentation.UI.MainHud.ResourceBar.Systems
         private const string INVENTORY_RESOURCE_ICON_CONFIG = "InventoryResourceIconConfig";
 
         public InventoryResourceIconConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
-            : base(addressable, storages.World)
+            : base(addressable)
         {
             _storages = storages;
         }
@@ -42,7 +42,7 @@ namespace Presentation.UI.MainHud.ResourceBar.Systems
 
                 ValidateConfig(config.Value);
 
-                _storages.World.SetWorldComponent(new InventoryResourceIconConfigComponent(config));
+                _storages.Singletons.Set(new InventoryResourceIconConfigComponent(config));
                 config = Box<InventoryResourceIconConfig>.Empty();
                 MarkAsLoaded();
             }
