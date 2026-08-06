@@ -10,7 +10,7 @@ related:
 
 # Pattern — Pipeline Stage (one-shot, world-init)
 
-One-shot async construction during map creation: spawn entities/views, build runtime world components, load
+One-shot async construction during map creation: spawn entities/views, build runtime singleton components, load
 prefabs. Runs once, ordered against other stages by Priority. Implement
 `IPrioritizedUniTaskSystem<MapGenerationStep>`. One approach.
 
@@ -22,26 +22,28 @@ internal sealed class [Name]System : IPrioritizedUniTaskSystem<MapGenerationStep
 {
     private const int ExecutionPriority = [N];   // current stages: ~100..900, spaced by ~100
 
+    private readonly EntityStorages _storages;
     private readonly EntityStore _world;
     private readonly Archetype _rows;   // the table this stage populates
 
     public int Priority => ExecutionPriority;
 
-    public [Name]System(EntityStore world)
+    public [Name]System(EntityStorages storages)
     {
-        _world = world;
-        _rows = [Domain]Archetypes.[Table](world);
+        _storages = storages;
+        _world = storages.World;
+        _rows = [Domain]Archetypes.[Table](_world);
     }
 
     public async UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
     {
-        if (!_world.HasWorldComponent<[Prerequisite]Component>())
+        if (!_storages.Singletons.Has<[Prerequisite]Component>())
             throw new InvalidOperationException("[Name]System: [Prerequisite]Component is missing.");
 
         if (cancellationToken.IsCancellationRequested)
             return;
 
-        // Build content: create rows via _rows.CreateEntity(), publish runtime world components, load prefabs.
+        // Build content: create rows via _rows.CreateEntity(), publish runtime singleton components, load prefabs.
     }
 
     public void Dispose()
@@ -60,7 +62,7 @@ internal sealed class [Name]System : IPrioritizedUniTaskSystem<MapGenerationStep
    :addressable-handle  "keep owned, release in Dispose"                ;; ADDRESSABLE_PATTERNS.md
    :quiet-return        "cancellationToken.IsCancellationRequested ONLY" ;; own line, never combined with a validity check
    :singleton-view      "publish a …ViewComponent for consumers"
-   :singleton-non-queried :world-component
+   :singleton-non-queried :singleton-component
    :wiring              ".As<IPrioritizedUniTaskSystem<MapGenerationStep>>" ;; pipeline auto-collects — no Boot.Construct edit
    :native-scratch      {:never "Allocator.Temp across an await"}       ;; Temp is a per-thread stack rewound under you at frame/job end — scratch that spans an await = Allocator.Persistent + explicit Dispose (law: ECS_CONVENTIONS → Threading And Native Memory)
    :thread-hops         {:off-thread "computation over plain data ONLY"       ;; code on RunOnThreadPool touches NO store call at all — not even a read — and NO Allocator.Temp (its TLS block never rewinds there)

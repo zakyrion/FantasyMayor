@@ -24,6 +24,8 @@ related:
 
 ## Stack
 - Engine: Unity · ECS: `Friflo.Engine.ECS` 3.6 (DoD style, not Unity DOTS) · DI: `VContainer` · Async: `UniTask`
+- ECS storage: `EntityStorages` names exactly two members — `World` is the entity/event
+  `EntityStore`; `Singletons` is the cover over a private second store and its birth-complete row
 - Assets: `Addressables` · Input: `InputSystem` · Rendering: URP · UI: `UI Toolkit` (UXML/USS) with
   `Unity App UI` (`com.unity.dt.app-ui`) as the component foundation — see `GENERAL_UI_STYLE.md` §15
 
@@ -54,7 +56,7 @@ its OO **tactical** patterns (aggregates/repositories), which ECS expresses as t
 ```clojure
 (def shared-kernel
   {Core                    "Assets/Scripts/Core"                 ;; shared primitives: Box<T>, Result<T>, FrameBox<T>, StateAllowedAttribute — enumerate members via roslyn
-   Ecs.Extensions          "Assets/Scripts/EcsExtensions"       ;; ECS loop contracts + base systems: UpdatedSystem/LateUpdatedSystem, ConfigLoaderSystem, IPrioritizedUniTaskSystem<T>, EventCleanupSystem, GameState; plus the Friflo seams: EventArchetypes, EcsEventExtensions, WorldComponentExtensions, QueryResultExtensions
+   Ecs.Extensions          "Assets/Scripts/EcsExtensions"       ;; ECS loop contracts + base systems: UpdatedSystem/LateUpdatedSystem, ConfigLoaderSystem, IPrioritizedUniTaskSystem<T>, EventCleanupSystem, GameState; plus the Friflo seams: EntityStorages, SingletonComponents, EventArchetypes, EcsEventExtensions, QueryResultExtensions
    Installers.World        "Assets/Scripts/Installers"           ;; app-root DI: root LifetimeScope, world composition, input wiring, installer orchestration
    :authored-config-assets "Assets/Addressables/Configs/*"})
 ```
@@ -93,6 +95,8 @@ its OO **tactical** patterns (aggregates/repositories), which ECS expresses as t
    :installer         "plain class : VContainer.IInstaller"
    :installer-mono    {:only-when "it owns [SerializeField] data"}
    :install-order     "explicit in Configure()"                   ;; dependencies before dependents
+   :storage-registry  EntityStorages                              ;; RegisterInstance once in WorldInstaller; bare EntityStore is NEVER a DI service
+   :storage-members   #{World Singletons}                         ;; callers name the storage they mean; exact contracts: ECS_CONVENTIONS → State Storage Taxonomy
    :per-frame-system  "register CONCRETE, .As<TheSystem>()"       ;; never As<IUpdatedSystem> — Boot injects concretes and wires states by hand
    :public-api-module "Core/ contract asm + Implementation/ asm"});; canonical examples: Addressable, MainCanvas, Boot
 ```
@@ -186,7 +190,7 @@ implementation. Each is a Category B doc in `Patterns/` (also in `INDEX.md`). Th
 | a field-less marker / table discriminator (empty struct) | `Patterns/PATTERN_TAG.md` |
 | a one-frame event (payload-less pulse + `EventTag`) | `Patterns/PATTERN_EVENT.md` |
 | a `ScriptableObject` config + its runtime component (flatten vs wrap-SO) | `Patterns/PATTERN_CONFIG.md` |
-| a config loader (`ConfigLoadStep`, `Box`, validate, `world.Set`) | `Patterns/PATTERN_CONFIG_LOADER.md` |
+| a config loader (`ConfigLoadStep`, `Box`, validate, `storages.Singletons.Set`) | `Patterns/PATTERN_CONFIG_LOADER.md` |
 | a world-init pipeline stage (spawn / build once during map creation) | `Patterns/PATTERN_PIPELINE_STAGE.md` |
 | an orchestrator + DI-collected subsystem family (DoD polymorphism) | `Patterns/PATTERN_ORCHESTRATOR_SUBSYSTEM.md` |
 | a polymorphic SO config catalogue materialized into an entity table (many kinds keyed by a shared FK; + optional per-kind evaluator) | `Patterns/PATTERN_POLYMORPHIC_CATALOGUE.md` |

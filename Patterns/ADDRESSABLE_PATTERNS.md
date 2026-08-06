@@ -113,9 +113,10 @@ static void DisposeBox<T>(ref Box<T> b) {
 
 ### ECS handoff
 Loader system retains `Box<T>` ownership; component carries `Value` only.
-Config components are stored as **world components** (see `Patterns/PATTERN_CONFIG.md`), not on an entity:
+Config components are stored as **singleton components** (see `Patterns/PATTERN_CONFIG.md`), not
+in a queryable entity table:
 ```csharp
-_world.SetWorldComponent(new MyConfigComponent { Value = _config.Value });
+_storages.Singletons.Set(new MyConfigComponent { Value = _config.Value });
 ```
 
 ## Anti-patterns

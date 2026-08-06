@@ -10,7 +10,7 @@ related:
 
 # Pattern — Config (ScriptableObject + Component)
 
-Authored data lives in a `ScriptableObject`, loaded via Addressables, and published as a **world component**
+Authored data lives in a `ScriptableObject`, loaded via Addressables, and published as a **singleton component**
 that is the runtime source of truth. The SO is an authoring artifact only; runtime systems read the component
 — except a catalogue component that deliberately wraps the SO reference (see below).
 
@@ -64,9 +64,9 @@ Two shapes — pick by what the SO holds:
 
 ```clojure
 (def config-rules
-  {SO          :authoring-only                       ;; runtime reads the component (store.GetWorldComponent<[Name]ConfigComponent>()), never the asset — except the wrap variant, whose whole job is carrying the SO reference
+  {SO          :authoring-only                       ;; runtime reads the component (storages.Singletons.Get<[Name]ConfigComponent>()), never the asset — except the wrap variant, whose whole job is carrying the SO reference
    :shape      {#{scalar-tunables}                :flatten          ;; copy values out; loader releases the SO after copying — no asset lifetime to manage
                 #{engine-refs sub-config-lists}   :wrap-live-SO-ref} ;; a flattened copy would lose them; the norm for catalogues — record the wrapped component in ecs-graph
    :validation "at load, in the loader"             ;; one-entry-per-type, no nulls, non-empty — PATTERN_CONFIG_LOADER, never inside the SO
-   :storage    "world component via store.SetWorldComponent"})  ;; never an entity for a singleton config; storage taxonomy: ECS_CONVENTIONS
+   :storage    "singleton component via storages.Singletons.Set"})  ;; never a queryable entity table for a singleton config; storage taxonomy: ECS_CONVENTIONS
 ```

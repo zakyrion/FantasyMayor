@@ -15,38 +15,53 @@ error conventions every system must follow. Layering, taxonomy, and the recipe i
 
 ## State Storage Taxonomy
 
-Four storages. Pick by answering: how many instances, and does anything need to FIND it via an
-entity query?
+Four state shapes are backed by exactly two `EntityStore` instances. Pick the shape by asking how
+many instances exist and whether a consumer must FIND the state through an entity query.
 
-**Apply via:** a loaded config is always a world component — the config-loader procedure that does it
-is `Patterns/PATTERN_CONFIG_LOADER.md`.
+**Apply via:** a loaded config is always a singleton component — the config-loader procedure that
+publishes it is `Patterns/PATTERN_CONFIG_LOADER.md`.
 
 | Storage | Use when | Access | Registry |
 |---|---|---|---|
-| **Entity table** | N rows of the same shape (hexes, resources, views, icon containers) | the table's declared `Archetype` (Table Rule); keyed joins via `ComponentIndex<TComponent,TValue>` | the ecs-graph (`/ecs-graph`) |
-| **World component** | exactly ONE instance, and NO consumer needs it in an entity query | `store.GetWorldComponent<T>()` / `store.SetWorldComponent(value)` | the ecs-graph (`/ecs-graph`) |
-| **One-frame event entity** | a signal that something changed; consumed by every Reactive System exactly once, the frame AFTER it is raised | `store.CreateEvent(payload)`; `EventCleanupSystem` deletes it once ripe (Event Lifecycle below) | the ecs-graph (`/ecs-graph`) |
-| **Singleton entity** | exactly ONE instance, but it MUST appear in entity queries (a per-frame system anchors on it, or reactive filters watch it) | its own declared archetype + tag, read via `TryGetFirst` | the ecs-graph (`/ecs-graph`) |
+| **Entity table** | N rows of the same shape (hexes, resources, views, icon containers) | `storages.World`: the table's declared `Archetype` (Table Rule); keyed joins via `ComponentIndex<TComponent,TValue>` | the ecs-graph (`/ecs-graph`) |
+| **Singleton component** | exactly ONE value, and NO consumer needs it in an entity query | `storages.Singletons.Get/Has/Set` | `SingletonArchetypes.Singleton` in the ecs-graph |
+| **One-frame event entity** | a signal that something changed; consumed by every Reactive System exactly once, the frame AFTER it is raised | `storages.World.CreateEvent(payload)`; `EventCleanupSystem` deletes it once ripe (Event Lifecycle below) | the ecs-graph (`/ecs-graph`) |
+| **Singleton entity** | exactly ONE row, but it MUST appear in entity queries (a per-frame system anchors on it, or reactive filters watch it) | `storages.World`: its own declared archetype + tag, read through that table | the ecs-graph (`/ecs-graph`) |
 
-World component contract:
-- A world component is a component on the ONE `UniqueEntity("world")` singleton row, reached only
-  through `WorldComponentExtensions`. Mechanically it sits on an entity, but it is **not a table**:
-  it carries no identity tag and no archetype filter names it, so nothing can query it. If its
-  change must drive consumers, raise an explicit one-frame event entity alongside the write.
-- All loaded configs are world components (`Patterns/PATTERN_CONFIG.md`). Runtime singletons follow the same
-  storage: `CameraComponent`, `VertexGridComponent`, `TerrainTextureComponent`,
-  `HexIconsViewComponent`, `HexIconsVisibilityComponent`.
-- A world component carrying a **reference type** (`VertexGrid`, `Texture2D`) is set ONCE at
-  creation; the payload object is then mutated in place by its writers. `SetWorldComponent` is never
-  re-called after a mutation — readers always see the live object via `GetWorldComponent`.
-- **Presence is not a runtime state.** `HasWorldComponent<T>()` survives for exactly one job: the
-  fail-loud precondition check that a config was loaded before its consumer runs (throw, never skip).
-  A runtime "not active" state is a **sentinel value** on an always-present component
-  (`TurnProcessorStatus.Idle`, an empty `RootBox`), never an absent one — see Birth Completeness below.
+```clojure
+(def storage-registry-law  ;; FM-14, 2026-08-06
+  {:registry         EntityStorages             ;; the ONLY DI-registered entry point to ECS storage
+   :members          #{World Singletons}        ;; exactly two; a third member needs a new architecture decision
+   :world            "the shared game EntityStore — entity tables, indexes, singleton entities, and one-frame events"
+   :singletons       SingletonComponents        ;; public cover over a private second EntityStore + its one hidden row
+   :store-creation   "EntityStorages constructs World; SingletonComponents privately constructs the second store — no other app code creates or exposes one"
+   :di               "register and inject EntityStorages, never a bare EntityStore"
+   :cross-store      "no query, index, entity handle, or FK join spans stores"
+   :per-domain-split :blocked                   ;; today's cross-domain tables join by key inside World
+   :capacity         "the 256 component-type and 256 tag-type limits are per EntityStore"})
+```
+
+Singleton component contract:
+- `SingletonComponents` hides both its store and the ONE row. The row is born from
+  `SingletonArchetypes.Singleton` with its complete composition and exactly one `SingletonTag`;
+  consumers cannot query it or add undeclared columns.
+- All loaded configs are singleton components (`Patterns/PATTERN_CONFIG.md`). Runtime singleton
+  state follows the same access shape: `CameraComponent`, `VertexGridComponent`,
+  `TerrainTextureComponent`, `HexIconsViewComponent`, `HexIconsVisibilityComponent`.
+- DECLARED and INITIALIZED are separate sets. `Set<T>` throws when `T` is undeclared, `Get<T>`
+  throws before the first write, and `Has<T>` answers whether the value has been initialized — it
+  does not inspect physical column presence.
+- A singleton component carrying a **reference type** (`VertexGrid`, `Texture2D`) is set ONCE at
+  creation; the payload object is then mutated in place by its writers. Readers always receive the
+  same live object through `Singletons.Get<T>()`.
+- **Physical presence is not runtime state.** `Singletons.Has<T>()` exists only for the fail-loud
+  precondition check that a required value was initialized before its consumer runs (throw, never
+  skip). A runtime "not active" state is a **sentinel value** (`TurnProcessorStatus.Idle`, an empty
+  `RootBox`), never an absent column — see Birth Completeness below.
 - Singleton entities are the exception, not the default. Current ones exist because systems anchor
   per-frame ticks on them or query them: `TerrainViewComponent`, `HexSelectedComponent`,
   `WaterViewComponent`, `HexSelectionViewComponent`, `HexInfoPanelViewComponent`,
-  `PlayerInputComponent`. When adding new single-instance state, default to a world component;
+  `PlayerInputComponent`. When adding new single-instance state, default to a singleton component;
   create a singleton entity only when an entity-query consumer exists from day one. A singleton
   entity is still an entity — the Tag Law applies (it carries its tag, its archetype names it).
 
@@ -138,7 +153,7 @@ What DOES count as state: any reassignable field, and any `readonly` field whose
 across frames (collections, arrays, `StringBuilder`, `Native*` buffers held between ticks).
 
 Escape hatches, in order of preference:
-1. Move the state where it belongs — onto an entity (a component) or into a world component.
+1. Move the state where it belongs — onto an entity (a component) or into a singleton component.
 2. `FrameBox<T>` (`Core`) for state valid only within a bounded number of frames (e.g. a per-frame
    cache resolved in `PreUpdate`): it is frame-stamped and fails loud on a stale read.
 3. `[StateAllowed("reason")]` (`Core`) on the field — a deliberate, reviewed exception that
@@ -147,13 +162,13 @@ Escape hatches, in order of preference:
 **The default home for "system state" is a component — reach for 2–3 only after ruling out 1.**
 Most things that feel like per-system state are not: a status flag, an in-flight marker, a progress
 counter, an "is this running" / "did this complete" bit, a handle to the thing currently being
-processed — these are domain state that belongs ON AN ENTITY (a component) or in a WORLD component,
+processed — these are domain state that belongs ON AN ENTITY (a component) or in a SINGLETON component,
 and moving them there breaks nothing. The system then just reads/writes that component and stays
 stateless. A component is not limited to "intrinsic data" — a transient, single-instance lifecycle
-flag is a perfectly valid world component. Do not assume a value must live in the system just because
+flag is a perfectly valid singleton component. Do not assume a value must live in the system just because
 only that system touches it today; the moment a value lives on a component, any future system can
 observe it without auditing the writer. Worked example: `TurnProcessorComponent` (module `Turn`) is a
-world component that holds the in-flight turn's status and doubles as the "turn in progress" signal;
+singleton component that holds the in-flight turn's status and doubles as the "turn in progress" signal;
 the launching `TurnProcessorSystem` keeps zero mutable fields.
 
 **Ban 2 — no `System.Collections.Generic` in systems.** Use `Unity.Collections`
@@ -204,7 +219,8 @@ filter. A bare `store.CreateEntity()` at a call site is forbidden; only a holder
    :owner     "each system caches the Archetype it uses in its own readonly field, resolved once in the constructor — same idiom as a stored ComponentIndex"
    :birth     "archetype.CreateEntity() — the row is born BY its archetype with every column at default(T); the writes that follow are value upserts into columns that already exist"
    :bulk      "archetype.CreateEntities(n) for default-valued bulk rows; EnsureCapacity(n) first when the count is known"
-   :arity-cap "ComponentTypes.Get / Tags.Get cap at 5 type arguments"
+   :arity-cap "the generic ComponentTypes.Get / Tags.Get builders cap at 5 type arguments"
+   :singleton-manifest "SingletonArchetypes.Singleton is the deliberate cross-assembly exception: it accumulates every singleton component into ComponentTypes at runtime and returns SingletonArchetypeDefinition because the backing store is hidden"
    :filter    "BY NEED, not dogma: where the target IS one archetype, iterate the archetype itself (archetype.Entities yields the same result type an ArchetypeQuery does, so no query is needed); ArchetypeQuery stays for a genuinely cross-archetype filter"
    :cross-archetype "a cross-archetype filter is reviewed WITH the user, never introduced unilaterally"})
 ```
@@ -213,7 +229,8 @@ filter. A bare `store.CreateEntity()` at a call site is forbidden; only a holder
 Three binding consequences:
 - A column's PRESENCE is never a predicate. Where presence used to carry meaning, the meaning moves
   into a **value**: a sentinel (`HexType.Unknown`, `DistrictType.Unknown`, `TurnProcessorStatus.Idle`)
-  or an empty box.
+  or an empty box. `Singletons.Has<T>()` is not a column-presence query — it reads the cover's
+  initialized-value set.
 - There are no optional columns. **A different composition is a different entity** — to change one,
   delete the row and create a new one in its archetype, carrying the PK/FK value over.
   `RemoveComponent` / `RemoveTag` appear nowhere in the codebase; do not reintroduce them.
@@ -268,7 +285,7 @@ computes over plain data and hops back BEFORE it touches the store.
 
 ```clojure
 (def store-thread-law  ;; FM-13, 2026-08-05
-  {:main-thread-only   "every store call — CreateEntity, AddComponent, GetComponent, DeleteEntity, index lookups, raising pulses"
+  {:main-thread-only   "every store call — CreateEntity, AddComponent, GetComponent, DeleteEntity, index lookups, raising pulses — plus every Singletons.Get/Has/Set call"
    :off-thread-allowed "computation over plain data and native containers only; worked examples: TerrainViewGenerationSubSystem, TerrainViewTextureSubSystem (mesh/texture math off-thread, every store write after the hop)"
    :bridge             "await UniTask.SwitchToMainThread() before the FIRST store call; back via SwitchToThreadPool for more compute"
    :bridge-cost        "a hop costs ~1 update/frame — SwitchToMainThread resumes at PlayerLoopTiming.Update, so a pool thread waits for the next frame"
@@ -441,14 +458,8 @@ Recorded so the constraint is visible at the point of code, not carried in anyon
 is in force; each needs its own decision before any code follows it.
 
 ```clojure
-(def open-directions  ;; 2026-08-05, after FM-13
-  {:multi-storage
-     {:constraint "an EntityStore is capped at 256 component types and 256 tag types — the budget is finite and per-store"
-      :now        "ONE store for the whole app run (created in WorldInstaller); ~155 component types, ~23 tag types"
-      :direction  "if the budget runs out, the answer is more than one store — which raises questions this project has not answered: who owns which store, how a cross-store join is even expressed (an index never spans stores), and where the split falls"
-      :status     :unanswered}
-
-   :cumulative-command-buffer
+(def open-directions
+  {:cumulative-command-buffer
      {:what     "work with entities from a parallel thread (or several) by recording changes into a CommandBuffer and syncing only the changes: recording is legal on any thread, Playback() only on main"
       :caveat   "until Playback() the store is UNCHANGED — a long chain of dependent changes must account for that: the second step does not see what the first recorded. Resource spending is the sharp case (a second spend re-reads the pre-playback balance and both succeed)"
       :now      "0 usages in Assets/**; Law 1 (main-thread-only) is what actually holds today"

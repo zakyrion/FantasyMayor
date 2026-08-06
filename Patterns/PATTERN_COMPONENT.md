@@ -18,7 +18,7 @@ table key). One approach.
 ```csharp
 namespace Domains.[Domain].[Feature].Components
 {
-    // Payload component: runtime data carried by an entity (or the world singleton).
+    // Payload component: runtime data carried by an entity or the singleton-component store.
     public struct [Name]Component : IComponent
     {
         public [FieldType] [FieldName];
@@ -65,12 +65,12 @@ The FK component lives in the OWNER's feature folder, next to its PK — one spa
 
 ```clojure
 (def component-rules
-  {:write           #{"entity.AddComponent(v)" "store.SetWorldComponent(v)"}  ;; upsert; NEVER mutate through a ref — the write CALL is what re-files the index (ECS_CONVENTIONS → Component Writes)
+  {:write           #{"entity.AddComponent(v)" "storages.Singletons.Set(v)"}  ;; upsert; NEVER mutate through a ref — the write CALL is what re-files the index (ECS_CONVENTIONS → Component Writes)
    :declare         "struct : IComponent"                      ;; a component the engine cannot see is a silent no-op at birth
    :naming-data     "…Component"                               ;; field-less marker → "…Tag" (PATTERN_TAG); one-frame pulse → "…Event" (PATTERN_EVENT)
    :naming-fk       "…FKComponent"                             ;; wraps another key space's value — the ONLY legal cross-table reference type (key-role law)
    :naming-prefix   :none                                      ;; the namespace carries the domain; FK/PK identity components are the exception (ECS_CONVENTIONS → Naming & Construction)
-   :world-component :not-query-matchable                       ;; no archetype names it — read store.GetWorldComponent<T>(); storage taxonomy: ECS_CONVENTIONS
+   :singleton-component :not-query-matchable                   ;; the hidden row has a declared archetype, but consumers can only read storages.Singletons.Get<T>(); storage taxonomy: ECS_CONVENTIONS
    :index-key       {:requires "IIndexedComponent<TValue>, TValue equatable"}  ;; define the PK/FK pair ONCE in the owner's folder (Table Rule, ECS_CONVENTIONS)
    :index-bucket    {:max 100}                                 ;; entities per identical key value — insert/remove is O(N) over duplicates
    :fk-per-space    {:max 1}                                   ;; one component instance per type per entity — a 2-refs relationship gets its own FK type pair

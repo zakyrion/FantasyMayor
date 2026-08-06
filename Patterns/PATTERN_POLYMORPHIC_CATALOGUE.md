@@ -38,8 +38,8 @@ explore it via the ecs-graph / code headers; this recipe is the generic procedur
 
 ;; ── do NOT use when ─────────────────────────────────────────────────────────
 (cond
-  (one-config-one-shape?)       PATTERN_CONFIG              ;; flatten or wrap into a world component — never spawn an entity for a singleton config
-  (homogeneous-read-once-list?) :flattened-world-component  ;; cheaper than a table when never queried by key
+  (one-config-one-shape?)       PATTERN_CONFIG                  ;; flatten or wrap into a singleton component — never spawn a queryable row for a singleton config
+  (homogeneous-read-once-list?) :flattened-singleton-component  ;; cheaper than a table when never queried by key
   (behavior-on-the-config?)     :NO)                        ;; SO configs stay pure data — the type-switch lives in the subsystems
 ```
 
@@ -76,9 +76,9 @@ public sealed class FoosConfig : ScriptableObject
 }
 ```
 
-### 2 — Loader → world component (live SO reference)
+### 2 — Loader → singleton component (live SO reference)
 
-One [config loader](PATTERN_CONFIG_LOADER.md) at `ConfigLoadStep`. It publishes a world component that **wraps the
+One [config loader](PATTERN_CONFIG_LOADER.md) at `ConfigLoadStep`. It publishes a singleton component that **wraps the
 live SO reference** (not a flattened copy — the orchestrator reads the concrete subclasses later, at
 `MapGenerationStep`) and **retains the addressable `Box`** for the catalogue's lifetime, releasing it in `OnDispose`.
 Validate all entries non-null and **fail loud** — a missing/blank catalogue stops the game at boot, not later
@@ -90,7 +90,7 @@ public readonly struct FoosConfigComponent : IComponent { public readonly FoosCo
 
 ### 3 — Spawn orchestrator + Try-pattern subsystem family (routing)
 
-A [pipeline stage](PATTERN_PIPELINE_STAGE.md) orchestrator at `MapGenerationStep` reads the world component, iterates
+A [pipeline stage](PATTERN_PIPELINE_STAGE.md) orchestrator at `MapGenerationStep` reads the singleton component, iterates
 `Items`, and routes each entry to the **first** subsystem that handles its concrete type. **Fail loud** on a null
 entry or a config type no subsystem matches (a new kind without its subsystem must not pass silently).
 
@@ -109,12 +109,12 @@ internal sealed class FooSpawnSystem : IPrioritizedUniTaskSystem<MapGenerationSt
 {
     public int Priority => 920;                        // domain-spawn cluster
     [StateAllowed] private readonly IReadOnlyList<FooSpawnSubSystem> _subSystems;
-    private readonly EntityStore _world;
-    // ctor: (EntityStore world, IReadOnlyList<FooSpawnSubSystem> subSystems)
+    private readonly EntityStorages _storages;
+    // ctor: (EntityStorages storages, IReadOnlyList<FooSpawnSubSystem> subSystems)
 
     public UniTask Update(MapGenerationStep state, CancellationToken ct)
     {
-        var items = _world.GetWorldComponent<FoosConfigComponent>().Value.Items;
+        var items = _storages.Singletons.Get<FoosConfigComponent>().Value.Items;
         foreach (var item in items)
         {
             if (item == null)      throw new /* fail loud: null catalogue entry */;
