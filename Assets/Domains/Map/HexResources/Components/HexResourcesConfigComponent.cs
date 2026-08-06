@@ -3,8 +3,8 @@ using Friflo.Engine.ECS;
 
 namespace Domains.Map.HexResources.Components
 {
-    internal struct HexResourcesConfigComponent : IComponent
+    public struct HexResourcesConfigComponent : IComponent
     {
-        public HexResourcesConfig Value;
+        internal HexResourcesConfig Value;
     }
 }

@@ -2,7 +2,7 @@ using Friflo.Engine.ECS;
 namespace Domains.Map.Generation.Components
 {
     /// <summary>Stores river generation parameters extracted from <see cref="Configs.RiverConfig"/>.</summary>
-    internal struct RiverConfigComponent : IComponent
+    public struct RiverConfigComponent : IComponent
     {
         /// <summary>How many edge tiles to skip from each corner when selecting river endpoints.</summary>
         public int CornerOffsetTiles;

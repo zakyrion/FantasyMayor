@@ -5,12 +5,12 @@ namespace EcsExtensions
     public sealed class EntityStorages
     {
         public EntityStore World { get; }
-        public SingletonStorage Singletons { get; }
+        public SingletonComponents Singletons { get; }
 
-        public EntityStorages()
+        public EntityStorages(in SingletonArchetypeDefinition singletonArchetype)
         {
             World = new EntityStore();
-            Singletons = new SingletonStorage();
+            Singletons = new SingletonComponents(singletonArchetype);
         }
     }
 }

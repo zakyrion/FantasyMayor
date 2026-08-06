@@ -44,7 +44,8 @@ namespace Installers.World
         /// <inheritdoc />
         protected override void Configure(IContainerBuilder builder)
         {
-            var entityStorages = new EntityStorages();
+            var singletonArchetype = SingletonArchetypes.Singleton();
+            var entityStorages = new EntityStorages(singletonArchetype);
             var world = entityStorages.World;
             builder.RegisterInstance(entityStorages);
 

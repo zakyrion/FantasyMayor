@@ -2,7 +2,7 @@ using Friflo.Engine.ECS;
 namespace Domains.Map.Generation.Components
 {
     /// <summary>Stores lake generation parameters extracted from <see cref="Configs.LakeConfig"/>.</summary>
-    internal struct LakeConfigComponent : IComponent
+    public struct LakeConfigComponent : IComponent
     {
         /// <summary>Minimum distance in tiles from the map edge within which the lake centre cannot spawn.</summary>
         public int EdgeMarginTiles;
