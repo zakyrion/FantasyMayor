@@ -17,3 +17,8 @@ if [ "$before" != "$after" ]; then
     git add INDEX.md
     echo "pre-commit: INDEX.md regenerated and staged."
 fi
+
+if ! python3 Tools/gen_agents.py --check; then
+    echo "pre-commit: AGENTS.md drifted from CLAUDE.md canon — run: python3 Tools/gen_agents.py" >&2
+    exit 1
+fi

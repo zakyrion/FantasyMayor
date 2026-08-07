@@ -69,7 +69,7 @@ undifferentiated file lets the shortest-lived content drag down the longest-live
               :on-completion "stays when it remains operational; otherwise the whole FLOW becomes historical"}
    :plan     {:owns "what to DO: files, order, traps, meters"
               :lifetime :dies-on-completion
-              :on-completion :harvest-then-drop}})  ;; Rule 2c
+              :on-completion :harvest-then-drop}})  ;; Rule 2d
 ```
 
 ```clojure
@@ -92,12 +92,28 @@ undifferentiated file lets the shortest-lived content drag down the longest-live
 ```
 
 ```clojure
+(def request-amendments
+  {:home :request
+   :entry {:received-at "date/time or ordered turn marker"
+           :raw-request :verbatim
+           :normalized "Clojure patch against the confirmed task"
+           :confirmed "true only after explicit user confirmation"}
+   :append-only true
+   :precedence (cond (confirmed-amendment?) "patch only the fields it names"
+                     (unconfirmed-amendment?) :no-authority
+                     (sources-conflict?) "stop and ask the user"
+                     :else "the current confirmed contract governs execution")
+   :never "replace or rewrite the raw request; it remains the immutable source of intent"})
+```
+
+```clojure
 (def one-task-one-flow  ;; user 2026-08-06 — the FLOW is the task's only cross-session artifact
   {:scope       "EVERY engineering task — code, architecture, refactor, docs, config-flow, tooling"
    :unit        "ONE confirmed task map or vector batch → ONE new FLOW"
    :created     "the FIRST write after the initial go; before Research starts"
    :identity    "FLOW_<TASK>.md — uppercase snake-case of the confirmed :task id"
    :batch       "a vector batch needs one shared FLOW name in the confirmed restatement"
+   :template    "FLOW_TEMPLATE.md — copy-skeleton; the FLOW shape lives ONLY there"
    :contains    (-> :request :contract :plan)
    :never       #{"chat-only engineering plan" "a self-deleting PLAN_ file" "implementation before the fresh implementation-go"}})
 ```
@@ -107,12 +123,40 @@ undifferentiated file lets the shortest-lived content drag down the longest-live
 ```clojure
 (def contract-closed
   {:criterion "ZERO open resolutions"   ;; every `?` / `:by-<source>` has become `:decided`
+   :amendments "each confirmed Request amendment patches the durable Contract decision it affects"
    :gate      "a plan step may not execute while a decision it depends on is open"
    :marker    "state the closure IN the doc — either «every resolution is CLOSED, execute in order» or an explicit :blocks edge"
    :why "validated twice before it was written down: a fully-closed batch executed clean, and an open decision correctly stalled a later stage instead of being stubbed"})
 ```
 
-### Rule 2c — `:plan` is harvested, then dropped
+### Rule 2c — `:plan` owns progress, resume state, and blockers
+
+```clojure
+(def plan-progress
+  {:shape {:status #{:active :blocked}
+           :completed #{}
+           :current ?
+           :remaining #{}
+           :resume-context "the smallest sufficient state for the next session"
+           :blocker "required only while :status is :blocked"}
+   :update "after a material plan transition and before a session handoff"
+   :resume (-> "read Request amendments"
+               "apply only confirmed patches"
+               "restore the latest progress shape"
+               "continue from :current")
+   :compatibility "for an older FLOW without the shape, reconstruct state from its existing Plan"})
+```
+
+```clojure
+(def blocked-flow
+  {:meaning "work cannot continue without concrete user authority, a runtime decision, or an external-state change"
+   :frontmatter {:read :always :status :partial}
+   :requires #{:blocker :needed-authority :next-action}
+   :resume "re-enter through the unresolved blocker"
+   :never #{:implemented :archive "treating blocked as complete"}})
+```
+
+### Rule 2d — `:plan` is harvested, then dropped
 
 ```clojure
 (def harvest  ;; what happens to :plan once every stage has landed
@@ -125,7 +169,7 @@ undifferentiated file lets the shortest-lived content drag down the longest-live
    :never               "an executed plan left inside a live contract"})
 ```
 
-### Rule 2d — the FLOW's completion fate
+### Rule 2e — the FLOW's completion fate
 
 ```clojure
 (def flow-fate
@@ -239,6 +283,8 @@ After adding/removing/renaming a doc or changing `read`/`trigger`/`status`: re-r
       `stage-boundary` test; no stage-status claim in the body (a stage's truth is its `:accept` meter).
 - [ ] Category A lifecycle: active = `read: always` + `status: partial`; completion harvested the
       plan and chose `read: trigger` or `read: archive`; archived FLOW has no `code_refs`.
+- [ ] Active Category A progress records completed/current/remaining/resume context; a blocked FLOW
+      also records its blocker, needed authority, and next action without changing completion state.
 - [ ] Frontmatter per the table; `python3 Tools/gen_index.py` re-run if doc-meta changed.
 - [ ] `python3 Tools/doc_lint.py` reports no new ghosts for this doc.
 - [ ] Mechanizable rules are Clojure rule blocks (Rule Style), not prose bullets.

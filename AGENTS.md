@@ -116,6 +116,7 @@ creation, Research and Plan write through it, and Execute closes it.
 
 What a confirmation ("go") authorizes, and what "done" means:
 
+<!-- BEGIN GENERATED: go-contract (Tools/gen_agents.py — never edit inside) -->
 ```clojure
 (def go-contract
   {:authorizes "only the actions needed for the :result of the CURRENT confirmed task map"
@@ -124,6 +125,7 @@ What a confirmation ("go") authorizes, and what "done" means:
    :expires "on completion of the confirmed task, or when its scope materially changes"
    :revoked-by "an interrupt or a user question — answer only, zero actions until a fresh go"})
 ```
+<!-- END GENERATED: go-contract -->
 
 ```clojure
 (def done-contract
@@ -136,6 +138,21 @@ What a confirmation ("go") authorizes, and what "done" means:
    :never "a checked checkbox or the mere fact of editing files"})
 ```
 
+<!-- BEGIN GENERATED: close-ritual (Tools/gen_agents.py — never edit inside) -->
+```clojure
+(def close-ritual  ;; 2026-08-07 — the explicit completion act; Claude Code: /flow-close command, Codex: follow this block manually
+  {:trigger "user-invoked only — never auto-close"
+   :steps (-> (check-all-acceptance!)     ;; read every :accept meter for real — never from memory
+              (record-acceptance-audit!)  ;; :meter/:target/:actual/:status into the FLOW
+              (harvest-plan!)             ;; DOC_STANDARD Rule 2d — agent proposes the split, user vetoes
+              (choose-fate!)              ;; DOC_STANDARD Rule 2e — trigger | archive
+              (regen-index!))             ;; gen_index pass 1 + doc_lint one-liner
+   :blocked "any meter off target → FLOW stays partial; record per blocked-outcome"
+   :never #{"archive with a failing meter" "close without the user's explicit ask"}})
+```
+<!-- END GENERATED: close-ritual -->
+
+<!-- BEGIN GENERATED: task-template (Tools/gen_agents.py — never edit inside) -->
 ```text
 Задача:
 [що саме треба зробити]
@@ -162,7 +179,9 @@ What a confirmation ("go") authorizes, and what "done" means:
 Результат:
 - [який вихід очікується]
 ```
+<!-- END GENERATED: task-template -->
 
+<!-- BEGIN GENERATED: task-clojure-example (Tools/gen_agents.py — never edit inside) -->
 **EQUAL ALTERNATIVE — the Clojure statement.** Same standing as the prose template;
 the user picks either form per task. Shape: one map per mechanic, a vector of maps
 for a batch:
@@ -184,21 +203,72 @@ for a batch:
 Field ↔ template-block mapping: `:where` = «Працюй тільки в», `:off-limits` = «Не дивись»,
 `:pattern` = «Роби за шаблоном», `:decided` = «Архітектурні рішення», `:skip` + `:result` =
 «Не потрібно» + «Результат».
+<!-- END GENERATED: task-clojure-example -->
 
 - The HARD GATE and the missing-block rules apply UNCHANGED to Clojure input: an absent
   key means "ask about that block, aiming the question at the specific map" — never "no
   constraints". The exceptions are `:pattern` and `:accept`: both optional, an absent one
   is never an ask — never gate on them.
+
+<!-- BEGIN GENERATED: task-contracts (Tools/gen_agents.py — never edit inside) -->
+```clojure
+(def task-normalization
+  {:input #{:prose :clojure}
+   :before "classification and action"
+   :raw-input :preserve-verbatim
+   :canonical-ir :clojure
+   :show (cond (engineering-task?) :always
+               (ambiguous?) "the fields that need resolution"
+               :else :may-stay-internal)
+   :persist (cond (engineering-task?) "Request section of its FLOW"
+                  :else :not-required)
+   :never "invent or silently resolve a missing field"})
+
+(def task-amendments
+  {:home "Request section of the current FLOW"
+   :entry {:received-at "date/time or ordered turn marker"
+           :raw-request :verbatim
+           :normalized "Clojure patch against the confirmed task"
+           :confirmed "true only after the user confirms it"}
+   :source-of-intent :raw-request
+   :execution-source "the latest confirmed normalized contract consistent with the raw request"
+   :patch "a confirmed amendment changes only the fields it names"
+   :unconfirmed :no-authority
+   :conflict "stop and ask; never silently merge contradictory sources"})
+
+(def flow-progress
+  {:home :plan
+   :shape {:status #{:active :blocked}
+           :completed #{}
+           :current ?
+           :remaining #{}
+           :resume-context "the smallest sufficient state for the next session"
+           :blocker "required only while :status is :blocked"}
+   :update "after a material plan transition and before a session handoff"
+   :resume "apply confirmed amendments, then continue from :current"
+   :compatibility "older FLOWs without this shape are reconstructed from their existing Plan"})
+
+(def blocked-outcome
+  {:frontmatter {:read :always :status :partial}
+   :requires "a concrete missing authority, user/runtime decision, or external-state change"
+   :record #{:blocker :needed-authority :next-action}
+   :resume "re-enter through the unresolved blocker; blocked is never complete"
+   :never #{:archive :implemented}})
+```
+<!-- END GENERATED: task-contracts -->
+
 - The universal notation is defined ONCE — the canonical glossary autoloads for you from
   `~/.codex/AGENTS.md` (Codex-native copy; canon home `~/.claude/CLAUDE.md`). The block
   below adds PROJECT-scoped readings only:
 
+<!-- BEGIN GENERATED: notation-ecs-ext (Tools/gen_agents.py — never edit inside) -->
 ```clojure
 (def notation-ecs-ext  ;; 2026-07-17 — project-scoped notation extension (ECS); universal forms stay global
   {:entity-shape "(def <Archetype> {:archetype … :tag … :pk … :fk … :kind … :state … :data …}) — one map = one entity; keys anchor to tag-law / key-role-law (ARCHITECTURE.md)"
    :set-cardinality "the FIELD decides the #{} reading: singular-valued key (:home, :tag) → global 'one of'; collection-valued key (:data, :fk) → ALL members, unordered, no duplicates (= ECS composition)"
    :tag-never-set "a #{} under :tag is not alternative syntax — it DISPLAYS a Tag Law violation (2 identity tags)"})
 ```
+<!-- END GENERATED: notation-ecs-ext -->
 
 ## Code Knowledge Policy (tool-first — module MDs abolished 2026-07-09)
 - **Module/domain/presentation MD files do not exist and must NEVER be recreated.**
@@ -220,13 +290,15 @@ Field ↔ template-block mapping: `:where` = «Працюй тільки в», `
 
 ## OpenSpec Policy
 
+<!-- BEGIN GENERATED: openspec-policy (Tools/gen_agents.py — never edit inside) -->
 ```clojure
 (def openspec-policy  ;; 2026-08-05 — removed from the active workflow of BOTH agents
-  {:project-integration :removed        ;; skills + openspec/ deleted
+  {:project-integration :removed        ;; skills (.claude/.codex) + openspec/ deleted
    :cli :available                      ;; global `openspec` CLI stays installed
    :future-use :explicit-only           ;; never triggers by itself — only by the user's direct ask
    :reconsider-only-when "довготривала capability spec із реальними delta requirements"})
 ```
+<!-- END GENERATED: openspec-policy -->
 
 ## Unity Build Policy
 - This is a Unity project. Do not run Unity project builds from the agent side.

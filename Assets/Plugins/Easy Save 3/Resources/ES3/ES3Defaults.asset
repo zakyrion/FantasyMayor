@@ -45,7 +45,6 @@ MonoBehaviour:
     - Cameras
     - Core
     - CurveBuilders
-    - DefaultECS.Extensions
     - Domains.Actions
     - Domains.Actors
     - Domains.Economy
@@ -53,6 +52,7 @@ MonoBehaviour:
     - Domains.Map
     - Dreamteck.Splines
     - Dreamteck.Utilities
+    - Ecs.Extensions
     - Flows.DistrictBuild
     - Installers
     - Installers.World
