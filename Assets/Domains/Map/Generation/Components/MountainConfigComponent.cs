@@ -1,7 +1,8 @@
+using Friflo.Engine.ECS;
 namespace Domains.Map.Generation.Components
 {
     /// <summary>Stores mountain generation parameters extracted from <see cref="Configs.TerrainGenerationConfig"/>.</summary>
-    internal struct MountainConfigComponent
+    public struct MountainConfigComponent : IComponent
     {
         /// <summary>Mountain coverage as a fraction of the total tile count (0–1).</summary>
         public float SizeFraction;

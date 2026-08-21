@@ -1,36 +1,31 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
-using DefaultEcs;
-using DefaultEcs.System;
-using DefaultECSExtensions;
-using Domains.Map.Hex.Components;
+using Domains.Map.Archetypes;
 using Domains.Map.Hex.Utils;
 using Domains.Map.HexResources.Components;
 using Domains.Map.HexResources.Data;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using Presentation.HexResources.Components;
 using Presentation.Terrain.Components;
 using UnityEngine;
-using Domains.Map.HexResources.Tags;
 
 namespace Presentation.HexResources.Systems
 {
     internal abstract class HexResourcesViewSubSystem : ISystem<GameState>
     {
-        private readonly World _world;
-        private readonly EntitySet _resourceSet;
+        private readonly EntityStorages _storages;
+        private readonly Archetype _resourceSet;
 
         public bool IsEnabled { get; set; } = true;
 
         public abstract int Priority { get; }
         protected abstract HexResourceType TargetHexResourceType { get; }
 
-        protected HexResourcesViewSubSystem(World world)
+        protected HexResourcesViewSubSystem(EntityStorages storages)
         {
-            _world = world;
-            _resourceSet = world.GetEntities()
-                .With<HexIdFKComponent>()
-                .With<HexResourceComponent>().With<HexResourceTag>()
-                .AsSet();
+            _storages = storages;
+            _resourceSet = MapArchetypes.HexResource(storages.World);
         }
 
         public abstract void Update(GameState state);
@@ -39,10 +34,10 @@ namespace Presentation.HexResources.Systems
         {
             prefab = null;
 
-            if (!_world.Has<HexResourcesViewConfigComponent>())
+            if (!_storages.Singletons.Has<HexResourcesViewConfigComponent>())
                 return false;
 
-            var viewConfig = _world.Get<HexResourcesViewConfigComponent>().Value;
+            var viewConfig = _storages.Singletons.Get<HexResourcesViewConfigComponent>().Value;
             foreach (var resource in viewConfig.Resources)
             {
                 if (resource.Type != TargetHexResourceType)
@@ -59,13 +54,14 @@ namespace Presentation.HexResources.Systems
         {
             prefabs = Array.Empty<GameObject>();
 
-            if (!_world.Has<HexResourcesViewConfigComponent>())
+            if (!_storages.Singletons.Has<HexResourcesViewConfigComponent>())
                 return false;
 
-            var viewConfig = _world.Get<HexResourcesViewConfigComponent>().Value;
+            var viewConfig = _storages.Singletons.Get<HexResourcesViewConfigComponent>().Value;
 
             // Managed exception to the "Unity.Collections in ECS systems" rule: the elements are GameObject
-            // (managed), which a NativeContainer cannot hold. See ARCHITECTURE.md (collections rule).
+            // (managed), which a NativeContainer cannot hold. See ECS_CONVENTIONS.md → Statelessness And
+            // Collections (Ban 2, "Exception — managed elements").
             var result = new List<GameObject>();
 
             foreach (var resource in viewConfig.Resources)
@@ -80,21 +76,21 @@ namespace Presentation.HexResources.Systems
         {
             vertexGrid = default;
 
-            if (!_world.Has<VertexGridComponent>())
+            if (!_storages.Singletons.Has<VertexGridComponent>())
                 return false;
 
-            vertexGrid = _world.Get<VertexGridComponent>().Grid;
+            vertexGrid = _storages.Singletons.Get<VertexGridComponent>().Grid;
             return true;
         }
 
         protected Entity[] GetTargetResourceEntities()
         {
-            var resourceEntities = _resourceSet.GetEntities();
+            var resourceEntities = _resourceSet.Entities;
             var matchCount = 0;
 
-            for (var i = 0; i < resourceEntities.Length; i++)
+            foreach (var resourceEntity in resourceEntities)
             {
-                if (resourceEntities[i].Get<HexResourceComponent>().Type == TargetHexResourceType)
+                if (resourceEntity.GetComponent<HexResourceComponent>().Type == TargetHexResourceType)
                     matchCount++;
             }
 
@@ -104,12 +100,12 @@ namespace Presentation.HexResources.Systems
             var matchedResources = new Entity[matchCount];
             var resultIndex = 0;
 
-            for (var i = 0; i < resourceEntities.Length; i++)
+            foreach (var resourceEntity in resourceEntities)
             {
-                if (resourceEntities[i].Get<HexResourceComponent>().Type != TargetHexResourceType)
+                if (resourceEntity.GetComponent<HexResourceComponent>().Type != TargetHexResourceType)
                     continue;
 
-                matchedResources[resultIndex++] = resourceEntities[i];
+                matchedResources[resultIndex++] = resourceEntity;
             }
 
             return matchedResources;
@@ -117,7 +113,6 @@ namespace Presentation.HexResources.Systems
 
         public virtual void Dispose()
         {
-            _resourceSet.Dispose();
         }
     }
 }

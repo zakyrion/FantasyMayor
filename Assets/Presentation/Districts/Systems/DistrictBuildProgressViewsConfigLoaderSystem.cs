@@ -2,8 +2,7 @@ using System;
 using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using Presentation.Districts.Components;
@@ -12,19 +11,21 @@ using Presentation.Districts.Configs;
 namespace Presentation.Districts.Systems
 {
     // Config Loader (ConfigLoadStep, one-shot): loads the DistrictBuildProgressViewsConfig SO from Addressables,
-    // validates it, and publishes the DistrictBuildProgressViewsConfigComponent world component carrying the SO
+    // validates it, and publishes the DistrictBuildProgressViewsConfigComponent singleton component carrying the SO
     // reference. The reactive DistrictBuildProgressViewSpawnSystem reads this catalogue throughout play, so the
     // loader RETAINS the addressable Box and releases it in OnDispose. Mirrors DistrictViewsConfigLoaderSystem.
     [UsedImplicitly]
     internal sealed class DistrictBuildProgressViewsConfigLoaderSystem : ConfigLoaderSystem
     {
+        private readonly EntityStorages _storages;
         private const string DISTRICT_BUILD_PROGRESS_VIEWS_CONFIG = "DistrictBuildProgressViewsConfig";
 
         private Box<DistrictBuildProgressViewsConfig> _config = Box<DistrictBuildProgressViewsConfig>.Empty();
 
-        public DistrictBuildProgressViewsConfigLoaderSystem(IAddressable addressable, World world)
-            : base(addressable, world)
+        public DistrictBuildProgressViewsConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
+            : base(addressable)
         {
+            _storages = storages;
         }
 
         protected override async UniTask LoadConfigsAsync(CancellationToken cancellationToken)
@@ -40,7 +41,7 @@ namespace Presentation.Districts.Systems
             ValidateConfig(box.Value);
 
             _config = box;
-            World.Set(new DistrictBuildProgressViewsConfigComponent(box.Value));
+            _storages.Singletons.Set(new DistrictBuildProgressViewsConfigComponent(box.Value));
             MarkAsLoaded();
         }
 

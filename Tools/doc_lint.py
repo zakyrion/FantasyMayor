@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""doc-lint — deterministic ghost detector for the repo's .md docs.
+"""doc-lint — deterministic structural lint for the repo's current .md docs.
 
 Verifies every symbol name a doc claims against the actual C# declarations:
   1. frontmatter `code_refs:` entries — checked STRICTLY (every name must be declared);
@@ -7,7 +7,12 @@ Verifies every symbol name a doc claims against the actual C# declarations:
      (System/Component/Tag/Event/Config/Installer/View) that is not declared in Assets/**.cs.
 
 A name present in a doc but absent from the code is a GHOST — either doc rot or a rename
-the doc missed. Exit code 1 if any ghost is found.
+the doc missed. Every ```clojure fence is also read as Clojure data: delimiters, strings,
+map cardinality, and the notation's supported reader macros are checked. Exit code 1 if
+any ghost or Clojure syntax error is found.
+
+Completed task history under Flows/Archive is deliberately excluded: its old symbol names
+are dated historical facts, not claims about the current codebase.
 
 Usage:
   python3 Tools/doc_lint.py                # whole repo
@@ -50,7 +55,6 @@ HISTORY_MARKERS = ("remov", "retir", "renam", "привид", "ghost", "вида
 ALLOWLIST = {
     "InputSystem", "EventSystem", "UnityEvent",                    # Unity
     "ChangeEvent", "ScrollView", "ListView", "TreeView", "GridView",  # UI Toolkit / App UI
-    "AEntitySetSystem", "ISystem",                                 # DefaultEcs
     "IInstaller",                                                  # VContainer
 }
 
@@ -59,6 +63,202 @@ TOKEN_RE = re.compile(r"[A-Za-z][A-Za-z0-9]*")
 BLOCK_COMMENT_RE = re.compile(r"/\*.*?\*/", re.S)
 LINE_COMMENT_RE = re.compile(r"//[^\n]*")
 STRING_RE = re.compile(r'"(?:\\.|[^"\\])*"')
+CLOJURE_FENCE_RE = re.compile(r"^\s*```clojure\s*$")
+FENCE_END_RE = re.compile(r"^\s*```\s*$")
+
+
+class ClojureReadError(Exception):
+    def __init__(self, message: str, line: int, column: int):
+        super().__init__(message)
+        self.message = message
+        self.line = line
+        self.column = column
+
+
+class ClojureReader:
+    """Small dependency-free reader for the instruction notation's data forms."""
+
+    DISCARDED = object()
+    OPEN_TO_CLOSE = {"(": ")", "[": "]", "{": "}"}
+    CLOSERS = frozenset(OPEN_TO_CLOSE.values())
+    STRING_ESCAPES = frozenset('btnrf\\"')
+
+    def __init__(self, source: str, base_line: int):
+        self.source = source
+        self.base_line = base_line
+        self.pos = 0
+        self.line = base_line
+        self.column = 1
+
+    def error(self, message: str, line=None, column=None):
+        raise ClojureReadError(message, line or self.line, column or self.column)
+
+    def peek(self, offset=0):
+        pos = self.pos + offset
+        return self.source[pos] if pos < len(self.source) else ""
+
+    def advance(self):
+        char = self.peek()
+        if not char:
+            return ""
+        self.pos += 1
+        if char == "\n":
+            self.line += 1
+            self.column = 1
+        else:
+            self.column += 1
+        return char
+
+    def skip_layout(self):
+        while True:
+            while self.peek() and (self.peek().isspace() or self.peek() == ","):
+                self.advance()
+            if self.peek() != ";":
+                return
+            while self.peek() and self.advance() != "\n":
+                pass
+
+    def read_all(self):
+        while True:
+            self.skip_layout()
+            if not self.peek():
+                return
+            if self.peek() in self.CLOSERS:
+                self.error(f"unexpected closing delimiter {self.peek()!r}")
+            self.read_form()
+
+    def read_form(self):
+        self.skip_layout()
+        char = self.peek()
+        if not char:
+            self.error("expected a form, reached end of fence")
+        if char in self.OPEN_TO_CLOSE:
+            return self.read_collection()
+        if char in self.CLOSERS:
+            self.error(f"unexpected closing delimiter {char!r}")
+        if char == '"':
+            self.read_string()
+            return object()
+        if char == "#":
+            return self.read_dispatch()
+        if char == "^":
+            return self.read_metadata()
+        if char == "'":
+            self.advance()
+            self.read_form()
+            return object()
+        return self.read_atom()
+
+    def read_collection(self, set_literal=False):
+        start_line, start_column = self.line, self.column
+        opener = self.advance()
+        closer = self.OPEN_TO_CLOSE[opener]
+        count = 0
+        while True:
+            self.skip_layout()
+            char = self.peek()
+            if not char:
+                kind = "set" if set_literal else "collection"
+                self.error(f"unclosed {kind}: expected {closer!r}", start_line, start_column)
+            if char == closer:
+                self.advance()
+                break
+            if char in self.CLOSERS:
+                self.error(f"mismatched delimiter: expected {closer!r}, found {char!r}")
+            if self.read_form() is not self.DISCARDED:
+                count += 1
+        if opener == "{" and not set_literal and count % 2:
+            self.error("map literal must contain an even number of forms", start_line, start_column)
+        return object()
+
+    def read_string(self):
+        start_line, start_column = self.line, self.column
+        self.advance()
+        while True:
+            char = self.peek()
+            if not char:
+                self.error("unterminated string", start_line, start_column)
+            self.advance()
+            if char == '"':
+                return
+            if char != "\\":
+                continue
+            escaped = self.peek()
+            if not escaped:
+                self.error("unterminated string escape")
+            if escaped == "u":
+                self.advance()
+                digits = "".join(self.advance() for _ in range(4))
+                if len(digits) != 4 or not all(c in "0123456789abcdefABCDEF" for c in digits):
+                    self.error("invalid unicode escape; expected four hex digits")
+            elif escaped in self.STRING_ESCAPES:
+                self.advance()
+            else:
+                self.error(f"unsupported string escape \\{escaped}")
+
+    def read_dispatch(self):
+        start_line, start_column = self.line, self.column
+        self.advance()
+        dispatch = self.peek()
+        if dispatch == "{":
+            return self.read_collection(set_literal=True)
+        if dispatch == "_":
+            self.advance()
+            self.read_form()
+            return self.DISCARDED
+        self.error("unsupported reader macro; only #{} and #_ are allowed", start_line, start_column)
+
+    def read_metadata(self):
+        self.advance()
+        self.read_form()
+        target = self.read_form()
+        if target is self.DISCARDED:
+            self.error("metadata target cannot be discarded")
+        return object()
+
+    def read_atom(self):
+        start = self.pos
+        while self.peek():
+            char = self.peek()
+            if char.isspace() or char == "," or char in "()[]{}\";":
+                break
+            if char in "^'" and self.pos == start:
+                break
+            self.advance()
+        if self.pos == start:
+            self.error(f"unexpected character {self.peek()!r}")
+        return object()
+
+
+def lint_clojure_fences(md: Path):
+    """Return (line, column, message) for every invalid current Clojure fence."""
+    try:
+        lines = md.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return []
+
+    issues = []
+    opener_line = None
+    content = []
+    for line_no, line in enumerate(lines, start=1):
+        if opener_line is None:
+            if CLOJURE_FENCE_RE.match(line):
+                opener_line = line_no
+                content = []
+            continue
+        if FENCE_END_RE.match(line):
+            try:
+                ClojureReader("\n".join(content), opener_line + 1).read_all()
+            except ClojureReadError as error:
+                issues.append((error.line, error.column, error.message))
+            opener_line = None
+            content = []
+        else:
+            content.append(line)
+
+    if opener_line is not None:
+        issues.append((opener_line, 1, "unclosed ```clojure fence"))
+    return issues
 
 
 def collect_code_facts(root: Path):
@@ -177,28 +377,36 @@ def lint_file(md: Path, decls: set, idents: set):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="MD ghost detector: doc symbol claims vs C# declarations")
+    ap = argparse.ArgumentParser(description="MD structural lint: code ghosts and Clojure fences")
     ap.add_argument("--scope", default="", help="only lint .md files whose path contains this substring")
     ap.add_argument("--quiet", action="store_true", help="print the summary line only")
     args = ap.parse_args()
 
     decls, idents = collect_code_facts(REPO / "Assets")
     mds = [p for p in REPO.rglob("*.md")
-           if not SKIP_DIRS.intersection(p.parts) and args.scope in str(p.relative_to(REPO))]
+           if not SKIP_DIRS.intersection(p.parts)
+           and not str(p.relative_to(REPO)).startswith("Flows/Archive/")
+           and args.scope in str(p.relative_to(REPO))]
 
     total = []
+    clojure_issues = []
     for md in sorted(mds):
         rel = md.relative_to(REPO)
         for line_no, name, where in lint_file(md, decls, idents):
             total.append((rel, line_no, name, where))
+        for line_no, column, message in lint_clojure_fences(md):
+            clojure_issues.append((rel, line_no, column, message))
 
     files_hit = len({t[0] for t in total})
     print(f"doc-lint: {len(total)} ghost(s) in {files_hit} file(s) · "
+          f"{len(clojure_issues)} Clojure syntax error(s) · "
           f"{len(mds)} md scanned · {len(decls)} symbols declared")
     if not args.quiet:
         for rel, line_no, name, where in total:
             print(f"  {rel}:{line_no}  {name}  ({where})")
-    sys.exit(1 if total else 0)
+        for rel, line_no, column, message in clojure_issues:
+            print(f"  {rel}:{line_no}:{column}  {message}  (clojure)")
+    sys.exit(1 if total or clojure_issues else 0)
 
 
 if __name__ == "__main__":

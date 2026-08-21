@@ -1,5 +1,6 @@
-using System;
 using Domains.Economy.District.Data;
+using Friflo.Engine.ECS;
+using System;
 
 namespace Domains.Economy.District.Events
 {
@@ -13,7 +14,7 @@ namespace Domains.Economy.District.Events
     ///     <c>Domains.Actions.BuildDistrictAction</c> systems (legal: Actions → Economy) on the pulse's own entity
     ///     alongside <c>EventTag</c>. Cleared by <c>EventCleanupSystem</c>.
     /// </summary>
-    public struct DistrictTableChangedEvent : IEquatable<DistrictTableChangedEvent>
+    public struct DistrictTableChangedEvent : IEquatable<DistrictTableChangedEvent>, IComponent
     {
         public DistrictTableChange Change;
 

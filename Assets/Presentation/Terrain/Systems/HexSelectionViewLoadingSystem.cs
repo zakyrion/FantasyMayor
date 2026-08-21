@@ -1,14 +1,14 @@
 using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using Modules.Boot.Core;
+using Presentation.Archetypes;
 using Presentation.Terrain.Components;
 using Presentation.Terrain.Views;
-using Presentation.Terrain.Tags;
 
 namespace Presentation.Terrain.Systems
 {
@@ -23,7 +23,7 @@ namespace Presentation.Terrain.Systems
         private const string HEX_SELECTION_VIEW_ADDRESS = "HexSelectionView";
 
         private readonly IAddressable _addressable;
-        private readonly World _world;
+        private readonly Archetype _archetype;
 
         private Box<HexSelectionView> _hexSelectionViewBox;
         private Entity? _hexSelectionViewEntity;
@@ -31,11 +31,11 @@ namespace Presentation.Terrain.Systems
         /// <inheritdoc />
         public int Priority => SystemPriorities.WorldInit.HexSelectionViewLoading;
 
-        public HexSelectionViewLoadingSystem(World world, IAddressable addressable)
+        public HexSelectionViewLoadingSystem(EntityStorages storages, IAddressable addressable)
         {
-            _world = world;
             _addressable = addressable;
             _hexSelectionViewBox = Box<HexSelectionView>.Empty();
+            _archetype = PresentationArchetypes.HexSelectionView(storages.World);
         }
 
         /// <inheritdoc />
@@ -53,10 +53,10 @@ namespace Presentation.Terrain.Systems
 
         private void DestroyHexSelectionViewEntity()
         {
-            if (_hexSelectionViewEntity == null || !_hexSelectionViewEntity.Value.IsAlive)
+            if (_hexSelectionViewEntity == null || _hexSelectionViewEntity.Value.IsNull)
                 return;
 
-            _hexSelectionViewEntity.Value.Dispose();
+            _hexSelectionViewEntity.Value.DeleteEntity();
             _hexSelectionViewEntity = null;
         }
 
@@ -87,9 +87,8 @@ namespace Presentation.Terrain.Systems
             var view = _hexSelectionViewBox.Value;
             view.HideSelectionMesh();
 
-            var entity = _world.CreateEntity();
-            entity.Set(new HexSelectionViewComponent { ObjectRef = view });
-            entity.Set(new HexSelectionViewTag());
+            var entity = _archetype.CreateEntity();
+            entity.AddComponent(new HexSelectionViewComponent { ObjectRef = view });
             _hexSelectionViewEntity = entity;
         }
     }

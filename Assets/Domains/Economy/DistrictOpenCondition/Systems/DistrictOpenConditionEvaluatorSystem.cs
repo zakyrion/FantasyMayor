@@ -6,7 +6,7 @@ using Cysharp.Threading.Tasks;
 using JetBrains.Annotations;
 using Modules.Turn.Data;
 using Modules.Turn.Systems;
-using DefaultECSExtensions;
+using EcsExtensions;
 
 namespace Domains.Economy.DistrictOpenCondition.Systems
 {

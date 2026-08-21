@@ -1,9 +1,10 @@
+using Friflo.Engine.ECS;
 using System;
 
 namespace Domains.Actors.Mayor.Components
 {
     // Primary key of the Mayor entity.
-    public struct MayorIdComponent : IEquatable<MayorIdComponent>
+    public struct MayorIdComponent : IEquatable<MayorIdComponent>, IComponent
     {
         public int Value;
 

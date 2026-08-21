@@ -1,9 +1,10 @@
 using Domains.Map.HexResources.Configs;
+using Friflo.Engine.ECS;
 
 namespace Domains.Map.HexResources.Components
 {
-    internal struct HexResourcesConfigComponent
+    public struct HexResourcesConfigComponent : IComponent
     {
-        public HexResourcesConfig Value;
+        internal HexResourcesConfig Value;
     }
 }

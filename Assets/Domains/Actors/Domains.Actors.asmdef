@@ -4,7 +4,7 @@
     "references": [
         "Domains.Kernel",
         "Domains.Economy",
-        "DefaultECS.Extensions",
+        "Ecs.Extensions",
         "Boot.Core",
         "Core",
         "Addressables.Core",

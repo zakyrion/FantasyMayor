@@ -1,19 +1,19 @@
-using System.Threading;
+﻿using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using Domains.Map.Archetypes;
+using Domains.Map.Hex.Components;
+using Domains.Map.Hex.Data;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using Modules.AxialSystem;
-using Domains.Map.Hex.Components;
-using Domains.Map.Hex.Data;
-using Domains.Map.Hex.Tags;
+using Presentation.Archetypes;
 using Presentation.Terrain.Components;
 using Presentation.Terrain.Views;
 using Unity.Collections;
 using UnityEngine;
-using Presentation.Terrain.Tags;
 
 namespace Presentation.Terrain.Systems
 {
@@ -29,9 +29,10 @@ namespace Presentation.Terrain.Systems
         private const string WATER_VIEW_ADDRESS = "WaterView";
 
         private readonly IAddressable _addressable;
-        private readonly EntitySet _hexSet;
-        private readonly EntityMultiMap<HexTypeComponent> _hexesByType;
-        private readonly World _world;
+        private readonly Archetype _hexSet;
+        private readonly ComponentIndex<HexTypeComponent, HexType> _hexesByType;
+        private readonly EntityStorages _storages;
+        private readonly Archetype _waterViewArchetype;
 
         private Box<WaterView> _waterViewBox;
         private Entity? _waterViewEntity;
@@ -39,15 +40,16 @@ namespace Presentation.Terrain.Systems
         /// <inheritdoc />
         public override int Priority => SystemPriorities.SubSystems.TerrainView.Water;
 
-        /// <param name="world">ECS world used for entity queries and result entity creation.</param>
+        /// <param name="storages">Named ECS storages used for entity queries and result entity creation.</param>
         /// <param name="addressable">Used to load and instantiate the WaterView prefab.</param>
-        public WaterViewSubSystem(World world, IAddressable addressable)
+        public WaterViewSubSystem(EntityStorages storages, IAddressable addressable)
         {
-            _world = world;
+            _storages = storages;
             _addressable = addressable;
             _waterViewBox = Box<WaterView>.Empty();
-            _hexSet = world.GetEntities().With<HexIdComponent>().With<HexTag>().AsSet();
-            _hexesByType = world.GetEntities().With<HexTag>().AsMultiMap<HexTypeComponent>();
+            _hexSet = MapArchetypes.Hex(storages.World);
+            _hexesByType = storages.World.ComponentIndex<HexTypeComponent, HexType>();
+            _waterViewArchetype = PresentationArchetypes.WaterView(storages.World);
         }
 
         /// <inheritdoc />
@@ -55,11 +57,11 @@ namespace Presentation.Terrain.Systems
         {
             DisposeWaterView();
 
-            if (!HasRequiredConfigEntities())
+            if (!HasRequiredConfigComponents())
                 return;
 
-            var terrainConfig = _world.Get<TerrainViewConfigComponent>();
-            var waterConfig = _world.Get<WaterViewConfigComponent>();
+            var terrainConfig = _storages.Singletons.Get<TerrainViewConfigComponent>();
+            var waterConfig = _storages.Singletons.Get<WaterViewConfigComponent>();
 
             var result = await _addressable.LoadAndInstanceAsync(WATER_VIEW_ADDRESS, cancellationToken);
 
@@ -103,9 +105,8 @@ namespace Presentation.Terrain.Systems
             component.ApplyConfig(in waterConfig);
 
             DestroyWaterViewEntity();
-            var entity = _world.CreateEntity();
-            entity.Set(new WaterViewComponent { ObjectRef = component });
-            entity.Set(new WaterViewTag());
+            var entity = _waterViewArchetype.CreateEntity();
+            entity.AddComponent(new WaterViewComponent { ObjectRef = component });
             _waterViewEntity = entity;
         }
 
@@ -113,8 +114,6 @@ namespace Presentation.Terrain.Systems
         public override void Dispose()
         {
             DisposeWaterView();
-            _hexSet.Dispose();
-            _hexesByType.Dispose();
             base.Dispose();
         }
 
@@ -126,9 +125,8 @@ namespace Presentation.Terrain.Systems
         {
             var waterHexes = new NativeHashSet<HexCoord>(1, Allocator.Persistent);
 
-            if (_hexesByType.TryGetEntities(new HexTypeComponent { Type = HexType.Water }, out var entities))
-                foreach (ref readonly var entity in entities)
-                    waterHexes.Add(entity.Get<HexIdComponent>().Coords);
+            foreach (var entity in _hexesByType[HexType.Water])
+                waterHexes.Add(entity.GetComponent<HexIdComponent>().Coords);
 
             return waterHexes;
         }
@@ -141,17 +139,17 @@ namespace Presentation.Terrain.Systems
         /// <param name="waterHexes">Already-computed water hex set; not modified.</param>
         private NativeHashSet<HexCoord> CollectShoreHexCoords(NativeHashSet<HexCoord> waterHexes)
         {
-            var entities   = _hexSet.GetEntities();
+            var entities   = _hexSet.Entities;
             var shoreHexes = new NativeHashSet<HexCoord>(
-                Mathf.Max(1, entities.Length),
+                Mathf.Max(1, entities.Count),
                 Allocator.Persistent);
 
-            foreach (ref readonly var entity in entities)
+            foreach (var entity in entities)
             {
-                if (!entity.Has<HexTypeComponent>() || entity.Get<HexTypeComponent>().Type == HexType.Water)
+                if (!entity.HasComponent<HexTypeComponent>() || entity.GetComponent<HexTypeComponent>().Type == HexType.Water)
                     continue;
 
-                var coord = entity.Get<HexIdComponent>().Coords;
+                var coord = entity.GetComponent<HexIdComponent>().Coords;
                 for (var d = 0; d < AxialMath.NeighborCount; d++)
                 {
                     var neighbor = coord + AxialMath.NeighborsPointyTop[d];
@@ -166,10 +164,10 @@ namespace Presentation.Terrain.Systems
             return shoreHexes;
         }
 
-        /// <summary>Validates that all singleton config entity sets are populated.</summary>
-        private bool HasRequiredConfigEntities()
+        /// <summary>Validates that all required singleton config components are present.</summary>
+        private bool HasRequiredConfigComponents()
         {
-            if (_world.Has<TerrainViewConfigComponent>() && _world.Has<WaterViewConfigComponent>())
+            if (_storages.Singletons.Has<TerrainViewConfigComponent>() && _storages.Singletons.Has<WaterViewConfigComponent>())
                 return true;
 
             Debug.LogError("[WaterViewSubSystem] One or more required configs are missing.");
@@ -184,10 +182,10 @@ namespace Presentation.Terrain.Systems
 
         private void DestroyWaterViewEntity()
         {
-            if (_waterViewEntity == null || !_waterViewEntity.Value.IsAlive)
+            if (_waterViewEntity == null || _waterViewEntity.Value.IsNull)
                 return;
 
-            _waterViewEntity.Value.Dispose();
+            _waterViewEntity.Value.DeleteEntity();
             _waterViewEntity = null;
         }
 

@@ -1,9 +1,10 @@
+using Friflo.Engine.ECS;
 using Presentation.Terrain.Configs;
 
 namespace Presentation.Terrain.Components
 {
     /// <summary>ECS component that carries the flattened terrain view configuration.</summary>
-    public struct TerrainViewConfigComponent
+    public struct TerrainViewConfigComponent : IComponent
     {
         /// <summary>Hex cell radius in world units.</summary>
         public float CellSize;

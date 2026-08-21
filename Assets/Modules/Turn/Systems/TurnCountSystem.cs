@@ -1,6 +1,6 @@
 using System;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Turn.Components;
 using Modules.Turn.Events;
@@ -16,24 +16,27 @@ namespace Modules.Turn.Systems
     [UsedImplicitly]
     public sealed class TurnCountSystem : UpdatedSystem
     {
-        private readonly World _world;
+        private readonly EntityStorages _storages;
 
         public override int Priority => SystemPriorities.RuntimeTick.TurnCount;
 
-        public TurnCountSystem(World world)
-            : base(world.GetEntities().With<TurnCompletedEvent>().AsSet())
+        public TurnCountSystem(EntityStorages storages)
+            : base(storages.World, EventArchetypes.Of<TurnCompletedEvent>(storages.World))
         {
-            _world = world;
+            _storages = storages;
         }
 
         protected override void Update(GameState state, in Entity entity)
         {
-            if (!_world.Has<TurnCountComponent>())
+            if (!EcsEventExtensions.IsRipe(entity))
+                return;
+
+            if (!_storages.Singletons.Has<TurnCountComponent>())
                 throw new InvalidOperationException(
                     "TurnCountSystem: TurnCountComponent is missing — it must be seeded on Gameplay enter.");
 
-            var current = _world.Get<TurnCountComponent>().Value;
-            _world.Set(new TurnCountComponent(current + 1));
+            var current = _storages.Singletons.Get<TurnCountComponent>().Value;
+            _storages.Singletons.Set(new TurnCountComponent(current + 1));
         }
     }
 }

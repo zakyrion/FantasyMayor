@@ -1,11 +1,11 @@
-using DefaultEcs;
+using Friflo.Engine.ECS;
+using Domains.Economy.Archetypes;
 using Domains.Economy.District.Components;
 using Domains.Economy.DistrictOpenCondition.Components;
 using Domains.Economy.DistrictOpenCondition.Configs;
 using Domains.Economy.DistrictOpenCondition.Data;
-using Domains.Economy.DistrictOpenCondition.Tags;
+using EcsExtensions;
 using JetBrains.Annotations;
-using DefaultECSExtensions;
 
 namespace Domains.Economy.DistrictOpenCondition.Systems
 {
@@ -17,8 +17,11 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
     {
         public override int Priority => SystemPriorities.SubSystems.DistrictOpenConditionSpawn.Single;
 
-        public DistrictSingleOpenConditionSpawnSubSystem(World world) : base(world)
+        private readonly Archetype _archetype;
+
+        public DistrictSingleOpenConditionSpawnSubSystem(EntityStorages storages) : base(storages.World)
         {
+            _archetype = EconomyArchetypes.OpenConditionSingle(storages.World);
         }
 
         public override bool TrySpawn(DistrictOpenConditionConfig config)
@@ -26,11 +29,10 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
             if (config is not DistrictSingleOpenConditionConfig singleConfig)
                 return false;
 
-            var entity = World.CreateEntity();
-            entity.Set(new DistrictTypeFKComponent { Value = singleConfig.DistrictType });
-            entity.Set(new DistrictOpenConditionTag());
-            entity.Set(new DistrictOpenConditionKindComponent { Value = DistrictOpenConditionKind.SingleOpen });
-            entity.Set(new DistrictOpenStateComponent { Value = DistrictOpenState.Closed });
+            var entity = _archetype.CreateEntity();
+            entity.AddComponent(new DistrictTypeFKComponent { Value = singleConfig.DistrictType });
+            entity.AddComponent(new DistrictOpenConditionKindComponent { Value = DistrictOpenConditionKind.SingleOpen });
+            entity.AddComponent(new DistrictOpenStateComponent { Value = DistrictOpenState.Closed });
 
             return true;
         }

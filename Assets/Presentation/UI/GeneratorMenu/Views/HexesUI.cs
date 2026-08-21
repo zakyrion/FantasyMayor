@@ -1,5 +1,4 @@
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
 using Domains.Map.Generation.Components;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -15,7 +14,7 @@ namespace Presentation.UI.GeneratorMenu.Views
         [SerializeField]
         private UIDocument _document;
 
-        private World _world;
+        private EntityStorages _storages;
 
         private void Start()
         {
@@ -30,16 +29,14 @@ namespace Presentation.UI.GeneratorMenu.Views
         }
 
         [Inject]
-        public void Construct(World world)
+        public void Construct(EntityStorages storages)
         {
-            _world = world;
+            _storages = storages;
         }
 
         private void GenerateHexes()
         {
-            var entity = _world.CreateEntity();
-            entity.Set(new TerrainGenerationGenerateEventComponent());
-            entity.Set(new EventTag());
+            _storages.World.CreateEvent(new TerrainGenerationGenerateEventComponent());
         }
     }
 }

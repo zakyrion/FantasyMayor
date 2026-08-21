@@ -1,0 +1,30 @@
+using Friflo.Engine.ECS;
+using UnityEngine;
+
+namespace EcsExtensions
+{
+    /// <summary>
+    ///     Stateless helpers for the one-frame Event Lifecycle: every event is delivered to ALL consumers
+    ///     exactly once, one full frame after creation, independent of system priority — law:
+    ///     ECS_CONVENTIONS.md → Event Lifecycle. <see cref="EventCleanupSystem" /> disposes an
+    ///     event once <see cref="IsRipe" /> is true for it.
+    /// </summary>
+    public static class EcsEventExtensions
+    {
+        /// <summary>
+        ///     Creates a one-frame event entity, stamped with the current frame. Stamp, payload and tag are
+        ///     supplied in the creating call, so the row lands directly in the archetype
+        ///     <see cref="EventArchetypes.Of{T}" /> describes — no component is ever added to a live entity
+        ///     and nothing migrates.
+        /// </summary>
+        public static Entity CreateEvent<T>(this EntityStore store, in T payload) where T : struct, IComponent =>
+            store.CreateEntity(
+                new EventFrameComponent { Frame = Time.frameCount },
+                payload,
+                Tags.Get<EventTag>());
+
+        /// <summary>True exactly one full frame after the event's creation — the frame it must be consumed.</summary>
+        public static bool IsRipe(in Entity eventEntity) =>
+            eventEntity.GetComponent<EventFrameComponent>().Frame < Time.frameCount;
+    }
+}

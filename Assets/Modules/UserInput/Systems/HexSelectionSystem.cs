@@ -1,17 +1,17 @@
-using DefaultEcs;
-using DefaultECSExtensions;
+﻿using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
 using Modules.Cameras.Components;
+using Modules.UserInput.Archetypes;
+using Modules.UserInput.Components;
+using Presentation.Archetypes;
 using Presentation.Terrain.Components;
 using Presentation.Terrain.Events;
-using Modules.UserInput.Components;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
-using Unity.Mathematics;
-using Presentation.Terrain.Tags;
-using Modules.UserInput.Tags;
 
 namespace Modules.UserInput.Systems
 {
@@ -24,9 +24,9 @@ namespace Modules.UserInput.Systems
     {
         private const float SelectionPlaneHeight = 0f;
 
-        private readonly EntitySet _playerInputSet;
-        private readonly EntitySet _selectedHexSet;
-        private readonly World _world;
+        private readonly Archetype _playerInputArchetype;
+        private readonly Archetype _hexSelectionArchetype;
+        private readonly EntityStorages _storages;
 
         private InputAction _clickAction;
         private InputAction _pointAction;
@@ -34,19 +34,15 @@ namespace Modules.UserInput.Systems
         /// <inheritdoc />
         public override int Priority => SystemPriorities.RuntimeTick.HexSelection;
 
-        /// <param name="world">The ECS world used to query camera, config, and selection state.</param>
-        public HexSelectionSystem(World world)
+        /// <param name="storages">Named ECS storages used to query camera, config, and selection state.</param>
+        public HexSelectionSystem(EntityStorages storages)
             // Anchored on the single PlayerInputComponent entity so Update ticks once per frame;
-            // the camera itself is a world component (CameraComponent), read via world.Get below.
-            : base(world.GetEntities().With<PlayerInputComponent>().With<PlayerInputTag>().AsSet())
+            // the camera itself is a singleton component (CameraComponent), read via storages.Singletons below.
+            : base(storages.World, UserInputArchetypes.PlayerInput(storages.World))
         {
-            _world = world;
-            _playerInputSet = world.GetEntities()
-                .With<PlayerInputComponent>().With<PlayerInputTag>()
-                .AsSet();
-            _selectedHexSet = world.GetEntities()
-                .With<HexSelectedComponent>().With<HexSelectionTag>()
-                .AsSet();
+            _storages = storages;
+            _playerInputArchetype = UserInputArchetypes.PlayerInput(storages.World);
+            _hexSelectionArchetype = PresentationArchetypes.HexSelection(storages.World);
 
             TryBindInputActions();
         }
@@ -60,7 +56,7 @@ namespace Modules.UserInput.Systems
                     return;
             }
 
-            if (!_world.Has<TerrainViewConfigComponent>())
+            if (!_storages.Singletons.Has<TerrainViewConfigComponent>())
                 return;
 
             if (!_clickAction.WasPressedThisFrame())
@@ -69,14 +65,14 @@ namespace Modules.UserInput.Systems
             if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
                 return;
 
-            if (!_world.Has<CameraComponent>())
+            if (!_storages.Singletons.Has<CameraComponent>())
                 return;
 
-            var camera = _world.Get<CameraComponent>().Camera;
+            var camera = _storages.Singletons.Get<CameraComponent>().Camera;
             if (camera == null)
                 return;
 
-            var cellSize = _world.Get<TerrainViewConfigComponent>().CellSize;
+            var cellSize = _storages.Singletons.Get<TerrainViewConfigComponent>().CellSize;
             if (cellSize <= 0f)
                 return;
 
@@ -89,46 +85,31 @@ namespace Modules.UserInput.Systems
             ApplySelection(coord);
         }
 
-        /// <inheritdoc />
-        public override void Dispose()
-        {
-            UnbindInputActions();
-            _playerInputSet.Dispose();
-            _selectedHexSet.Dispose();
-            base.Dispose();
-        }
-
         /// <summary>
         ///     Creates, updates, or removes the singleton <see cref="HexSelectedComponent" /> entity.
         /// </summary>
         /// <param name="coord">Hex that was clicked.</param>
         private void ApplySelection(HexCoord coord)
         {
-            var selectedEntities = _selectedHexSet.GetEntities();
-            if (selectedEntities.Length == 0)
+            if (!_hexSelectionArchetype.TryGetFirst(out var selectedEntity))
             {
-                var entity = _world.CreateEntity();
-                entity.Set(new HexSelectedComponent { Coords = coord });
-                entity.Set(new HexSelectionTag());
+                var entity = _hexSelectionArchetype.CreateEntity();
+                entity.AddComponent(new HexSelectedComponent { Coords = coord });
 
                 RaiseSelectionChanged();
                 return;
             }
 
-            for (var index = 1; index < selectedEntities.Length; index++)
-                selectedEntities[index].Dispose();
-
-            var selectedEntity = selectedEntities[0];
-            if (selectedEntity.Get<HexSelectedComponent>().Coords == coord)
+            if (selectedEntity.GetComponent<HexSelectedComponent>().Coords == coord)
             {
-                selectedEntity.Dispose();
+                selectedEntity.DeleteEntity();
                 RaiseSelectionChanged();
                 return;
             }
 
-            // Write through Set (publishing path), never in-place ref-mutation — see ARCHITECTURE.md.
-            selectedEntity.Set(new HexSelectedComponent { Coords = coord });
-            selectedEntity.Set(new HexSelectionTag());
+            // Write through AddComponent (the upsert path), never in-place ref-mutation — see
+            // ECS_CONVENTIONS.md → Component Writes.
+            selectedEntity.AddComponent(new HexSelectedComponent { Coords = coord });
             RaiseSelectionChanged();
         }
 
@@ -139,9 +120,7 @@ namespace Modules.UserInput.Systems
         /// </summary>
         private void RaiseSelectionChanged()
         {
-            var pulse = _world.CreateEntity();
-            pulse.Set(new SelectedHexChangedEvent());
-            pulse.Set(new EventTag());
+            _storages.World.CreateEvent(new SelectedHexChangedEvent());
         }
 
         /// <summary>
@@ -171,10 +150,10 @@ namespace Modules.UserInput.Systems
             if (_clickAction != null && _pointAction != null)
                 return true;
 
-            if (_playerInputSet.Count == 0)
+            if (!_playerInputArchetype.TryGetFirst(out var playerInputEntity))
                 return false;
 
-            var playerInput = _playerInputSet.GetEntities()[0].Get<PlayerInputComponent>().PlayerInput;
+            var playerInput = playerInputEntity.GetComponent<PlayerInputComponent>().PlayerInput;
             if (playerInput == null || playerInput.actions == null)
                 return false;
 
@@ -187,16 +166,6 @@ namespace Modules.UserInput.Systems
             _clickAction = clickAction;
             _pointAction = pointAction;
             return true;
-        }
-
-        /// <summary>Clears cached input action references.</summary>
-        private void UnbindInputActions()
-        {
-            if (_clickAction != null)
-                _clickAction = null;
-
-            if (_pointAction != null)
-                _pointAction = null;
         }
     }
 }

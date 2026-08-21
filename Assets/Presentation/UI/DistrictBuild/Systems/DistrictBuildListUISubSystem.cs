@@ -1,13 +1,13 @@
-using System;
-using DefaultEcs;
-using DefaultECSExtensions;
+﻿using System;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
 using Domains.Economy.DistrictOpenCondition.Components;
 using Domains.Economy.DistrictOpenCondition.Data;
-using Domains.Economy.DistrictOpenCondition.Tags;
+using EcsExtensions;
 using Flows.DistrictBuild.Events;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
+using Presentation.UI.Archetypes;
 using Presentation.UI.DistrictBuild.Components;
 using Presentation.UI.DistrictBuild.Tags;
 using UnityEngine;
@@ -23,25 +23,25 @@ namespace Presentation.UI.DistrictBuild.Systems
     [UsedImplicitly]
     public sealed class DistrictBuildListUISubSystem : DistrictBuildUISubSystem
     {
-        private readonly EntityMultiMap<DistrictOpenStateComponent> _buildable;
-        private readonly EntitySet _requestedSet;
-        private readonly EntitySet _selectionSet;
+        private readonly EntityStorages _storages;
+        private readonly ComponentIndex<DistrictOpenStateComponent, DistrictOpenState> _buildable;
+        private readonly Archetype _requestedSet;
+        private readonly Archetype _selectionSet;
         private bool _hooked;
 
         public override int Priority => SystemPriorities.SubSystems.DistrictBuildUi.List;
 
-        public DistrictBuildListUISubSystem(World world) : base(world)
+        public DistrictBuildListUISubSystem(EntityStorages storages) : base(storages.World)
         {
-            _buildable = world.GetEntities()
-                .With<DistrictOpenConditionTag>()
-                .AsMultiMap<DistrictOpenStateComponent>();
-            _requestedSet = world.GetEntities().With<DistrictBuildUIRequestedEvent>().AsSet();
-            _selectionSet = world.GetEntities().With<DistrictBuildSelectionTag>().AsSet();
+            _storages = storages;
+            _buildable = storages.World.ComponentIndex<DistrictOpenStateComponent, DistrictOpenState>();
+            _requestedSet = EventArchetypes.Of<DistrictBuildUIRequestedEvent>(storages.World);
+            _selectionSet = PresentationUIArchetypes.DistrictBuildSelection(storages.World);
         }
 
         public override void Populate(GameObject root)
         {
-            var view = World.Get<DistrictBuildListUIViewComponent>().View;
+            var view = _storages.Singletons.Get<DistrictBuildListUIViewComponent>().View;
 
             // The view outlives the subsystem; subscribe once to the local row-click event.
             if (!_hooked)
@@ -50,32 +50,45 @@ namespace Presentation.UI.DistrictBuild.Systems
                 _hooked = true;
             }
 
-            var buildable = _buildable.TryGetEntities(
-                new DistrictOpenStateComponent { Value = DistrictOpenState.Buildable }, out var buildableRows)
-                ? buildableRows
-                : ReadOnlySpan<Entity>.Empty;
+            var buildable = _buildable[DistrictOpenState.Buildable];
+
+            if (!_selectionSet.TryGetFirst(out var selectionEntity))
+                throw new InvalidOperationException(
+                    "DistrictBuildListUISubSystem: Populate called with no active " +
+                    $"{nameof(DistrictBuildSelectionTag)} entity.");
 
             // The window just opened this tick: default-select the first buildable district (None if the list
-            // is empty), before this Populate call (and the other sections') reads it.
-            if (_requestedSet.Count > 0)
+            // is empty), before this Populate call (and the other sections') reads it. Ripeness, not mere
+            // presence: the pulse entity lives two frames (birth + ripe), so a Count check would re-apply the
+            // default on the frame after the open and discard a pick made in between (Event Lifecycle).
+            if (HasRipeRequest())
             {
-                var defaultSelection = buildable.Length > 0
-                    ? buildable[0].Get<DistrictTypeFKComponent>().Value
+                var defaultSelection = buildable.Count > 0
+                    ? buildable[0].GetComponent<DistrictTypeFKComponent>().Value
                     : DistrictType.None;
 
-                _selectionSet.GetEntities()[0].Set(new DistrictBuildSelectionComponent { Selected = defaultSelection });
+                selectionEntity.AddComponent(new DistrictBuildSelectionComponent { Selected = defaultSelection });
             }
 
             // Always set by this point (default-selected above on open, or already present from a prior
             // open/click) — a missing component here is a bug, so let Get throw rather than fall back.
-            var selected = _selectionSet.GetEntities()[0].Get<DistrictBuildSelectionComponent>().Selected;
+            var selected = selectionEntity.GetComponent<DistrictBuildSelectionComponent>().Selected;
 
             view.Clear();
             foreach (var entity in buildable)
             {
-                var type = entity.Get<DistrictTypeFKComponent>().Value;
+                var type = entity.GetComponent<DistrictTypeFKComponent>().Value;
                 view.AddDistrict(type, type == selected);
             }
+        }
+
+        private bool HasRipeRequest()
+        {
+            foreach (var pulse in _requestedSet.Entities)
+                if (EcsEventExtensions.IsRipe(pulse))
+                    return true;
+
+            return false;
         }
 
         private void OnSelected(DistrictType district)
@@ -83,12 +96,12 @@ namespace Presentation.UI.DistrictBuild.Systems
             // Fail loud with context (mirrors DistrictBuildUISystem.ReadSelection/ReadPayer): a row click firing
             // with no active selection entity means the overlay closed/confirmed between the click and this
             // handler running — root cause not yet pinned down (2026-07-17); replaces a bare IndexOutOfRangeException.
-            if (_selectionSet.Count == 0)
+            if (!_selectionSet.TryGetFirst(out var selectionEntity))
                 throw new InvalidOperationException(
                     $"DistrictBuildListUISubSystem: row click for '{district}' fired with no active " +
                     $"{nameof(DistrictBuildSelectionTag)} entity — the overlay closed/confirmed before this handler ran.");
 
-            _selectionSet.GetEntities()[0].Set(new DistrictBuildSelectionComponent { Selected = district });
+            selectionEntity.AddComponent(new DistrictBuildSelectionComponent { Selected = district });
 
             // Selection written — re-run every section populator (including this one, to re-mark the active row)
             // against the new selection. Direct C# call into the orchestrator, ordered after the write.
@@ -97,16 +110,13 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public override void Dispose()
         {
-            if (_hooked && World.Has<DistrictBuildListUIViewComponent>())
+            if (_hooked && _storages.Singletons.Has<DistrictBuildListUIViewComponent>())
             {
-                var view = World.Get<DistrictBuildListUIViewComponent>().View;
+                var view = _storages.Singletons.Get<DistrictBuildListUIViewComponent>().View;
                 if (view != null)
                     view.SelectionChanged -= OnSelected;
             }
 
-            _buildable.Dispose();
-            _requestedSet.Dispose();
-            _selectionSet.Dispose();
             base.Dispose();
         }
     }

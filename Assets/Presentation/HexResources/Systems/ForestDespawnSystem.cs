@@ -1,17 +1,16 @@
-using System;
-using DefaultEcs;
-using DefaultECSExtensions;
-using JetBrains.Annotations;
-using Modules.AxialSystem;
+﻿using System;
 using Domains.Map.Hex.Components;
 using Domains.Map.HexResources.Components;
 using Domains.Map.HexResources.Data;
+using EcsExtensions;
+using Friflo.Engine.ECS;
+using JetBrains.Annotations;
+using Modules.AxialSystem;
+using Presentation.Archetypes;
 using Presentation.HexResources.Components;
 using Presentation.HexResources.Events;
 using Unity.Collections;
 using Object = UnityEngine.Object;
-using Presentation.HexResources.Tags;
-using Domains.Map.HexResources.Tags;
 
 namespace Presentation.HexResources.Systems
 {
@@ -28,74 +27,62 @@ namespace Presentation.HexResources.Systems
     public sealed class ForestDespawnSystem : UpdatedSystem
     {
         // HexResource table indexed by its discriminator value -> the Forest bucket is the current truth.
-        private readonly EntityMultiMap<HexResourceComponent> _resourcesByType;
+        private readonly ComponentIndex<HexResourceComponent, HexResourceType> _resourcesByType;
 
-        // ResourceView (forest) table indexed by the hex FK -> N tree entities per coordinate.
-        private readonly EntityMultiMap<HexIdFKComponent> _forestViewsByHex;
+        private readonly Archetype _forestViews;
+        private readonly EntityStorages _storages;
 
         public override int Priority => SystemPriorities.RuntimeTick.ForestDespawn;
 
-        public ForestDespawnSystem(World world)
-            : base(world.GetEntities()
-                .With<ForestHexRemovedEvent>()
-                .AsSet())
+        public ForestDespawnSystem(EntityStorages storages)
+            : base(storages.World, EventArchetypes.Of<ForestHexRemovedEvent>(storages.World))
         {
-            _resourcesByType = world.GetEntities()
-                .With<HexIdFKComponent>()
-                .With<HexResourceComponent>().With<HexResourceTag>()
-                .AsMultiMap<HexResourceComponent>();
-
-            _forestViewsByHex = world.GetEntities()
-                .With<HexIdFKComponent>()
-                .With<ForestViewComponent>().With<ForestViewTag>()
-                .AsMultiMap<HexIdFKComponent>();
+            _storages = storages;
+            _resourcesByType = storages.World.ComponentIndex<HexResourceComponent, HexResourceType>();
+            _forestViews = PresentationArchetypes.ForestView(storages.World);
         }
 
         // The pulse entity itself is ignored — reconciliation is global over current state.
         protected override void Update(GameState state, in Entity pulse)
         {
-            var forestKey = new HexResourceComponent { Type = HexResourceType.Forest };
+            if (!EcsEventExtensions.IsRipe(pulse))
+                return;
 
-            var forestHexes = new NativeHashSet<HexCoord>(64, Allocator.Temp);
-            if (_resourcesByType.TryGetEntities(forestKey, out var forestResources))
-                foreach (ref readonly var resource in forestResources)
-                    forestHexes.Add(resource.Get<HexIdFKComponent>().Coords);
+            var forestResources = _resourcesByType[HexResourceType.Forest];
+            var forestHexes = new NativeHashSet<HexCoord>(Math.Max(1, forestResources.Count), Allocator.Temp);
+            var staleViewIds = new NativeList<int>(Math.Max(1, _forestViews.Count), Allocator.Temp);
 
-            // Snapshot stale views before destroying: DestroyView disposes entities, which would mutate the
-            // view map mid-enumeration.
-            var staleViews = new NativeList<Entity>(8, Allocator.Temp);
-            foreach (var hexId in _forestViewsByHex.Keys)
+            try
             {
-                if (forestHexes.Contains(hexId.Coords))
-                    continue;
+                foreach (var resource in forestResources)
+                    forestHexes.Add(resource.GetComponent<HexIdFKComponent>().Coords);
 
-                if (_forestViewsByHex.TryGetEntities(hexId, out var views))
-                    foreach (ref readonly var view in views)
-                        staleViews.Add(view);
+                // Snapshot only ForestView ids before their deletion mutates the archetype.
+                foreach (var view in _forestViews.Entities)
+                {
+                    var coords = view.GetComponent<HexIdFKComponent>().Coords;
+                    if (!forestHexes.Contains(coords))
+                        staleViewIds.Add(view.Id);
+                }
+
+                for (var i = 0; i < staleViewIds.Length; i++)
+                    if (_storages.World.TryGetEntityById(staleViewIds[i], out var view))
+                        DestroyView(view);
             }
-
-            for (var i = 0; i < staleViews.Length; i++)
-                DestroyView(staleViews[i]);
-
-            staleViews.Dispose();
-            forestHexes.Dispose();
-        }
-
-        public override void Dispose()
-        {
-            _resourcesByType.Dispose();
-            _forestViewsByHex.Dispose();
-            base.Dispose();
+            finally
+            {
+                staleViewIds.Dispose();
+                forestHexes.Dispose();
+            }
         }
 
         private void DestroyView(Entity entity)
         {
-            var view = entity.Get<ForestViewComponent>().View;
+            var view = entity.GetComponent<ForestViewComponent>().View;
             if (view != null)
                 Object.Destroy(view.gameObject);
 
-            if (entity.IsAlive)
-                entity.Dispose();
+            entity.DeleteEntity();
         }
     }
 }

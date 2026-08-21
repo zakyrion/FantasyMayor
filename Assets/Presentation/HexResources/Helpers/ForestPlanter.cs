@@ -1,8 +1,9 @@
-using DefaultEcs;
-using Modules.AxialSystem;
-using Domains.Map.Hex.Components;
+﻿using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Utils;
 using Domains.Map.HexResources.Data;
+using Friflo.Engine.ECS;
+using Modules.AxialSystem;
+using Presentation.Archetypes;
 using Presentation.HexResources.Components;
 using Presentation.HexResources.Configs;
 using Presentation.HexResources.Data;
@@ -12,7 +13,6 @@ using Unity.Mathematics;
 using UnityEngine;
 using Object = UnityEngine.Object;
 using Random = UnityEngine.Random;
-using Presentation.HexResources.Tags;
 
 namespace Presentation.HexResources.Helpers
 {
@@ -31,8 +31,8 @@ namespace Presentation.HexResources.Helpers
         private const int MinTrees = 5;
 
         public void PlantHex(
-            World world,
-            Transform root,
+            EntityStore world,
+            UnityEngine.Transform root,
             HexCoord hex,
             VertexGrid vertexGrid,
             HexResourcesViewConfig viewConfig,
@@ -47,6 +47,8 @@ namespace Presentation.HexResources.Helpers
                 owned.Dispose();
                 return;
             }
+
+            var forestViewArchetype = PresentationArchetypes.ForestView(world);
 
             ShufflePartial(owned, owned.Length);
 
@@ -75,10 +77,9 @@ namespace Presentation.HexResources.Helpers
                 if (view == null)
                     Debug.LogWarning($"[ForestPlanter] Prefab '{entry.Prefab.name}' is missing ForestView component.");
 
-                var viewEntity = world.CreateEntity();
-                viewEntity.Set(new HexIdFKComponent { Coords = hex });
-                viewEntity.Set(new ForestViewComponent { Type = HexResourceType.Forest, View = view });
-                viewEntity.Set(new ForestViewTag());
+                var viewEntity = forestViewArchetype.CreateEntity();
+                viewEntity.AddComponent(new HexIdFKComponent { Coords = hex });
+                viewEntity.AddComponent(new ForestViewComponent { Type = HexResourceType.Forest, View = view });
 
                 if (entry.GroundTint.a > 0f)
                     splats.Add(new ForestGroundPainter.Splat(worldPos, entry.Radius, entry.GroundTint));
@@ -96,7 +97,7 @@ namespace Presentation.HexResources.Helpers
         ///     delta rather than cached. Append-only — blends over current pixels, never reverts.
         /// </summary>
         public void Paint(
-            EntitySet hexSet,
+            Archetype hexSet,
             float cellSize,
             NativeList<ForestGroundPainter.Splat> splats,
             Texture2D texture)
@@ -104,10 +105,11 @@ namespace Presentation.HexResources.Helpers
             if (splats.Length == 0)
                 return;
 
-            var hexEntities = hexSet.GetEntities();
-            var hexCoords = new NativeArray<HexCoord>(hexEntities.Length, Allocator.Temp);
-            for (var i = 0; i < hexEntities.Length; i++)
-                hexCoords[i] = hexEntities[i].Get<HexIdComponent>().Coords;
+            var hexEntities = hexSet.Entities;
+            var hexCoords = new NativeArray<HexCoord>(hexEntities.Count, Allocator.Temp);
+            var index = 0;
+            foreach (var hexEntity in hexEntities)
+                hexCoords[index++] = hexEntity.GetComponent<HexIdComponent>().Coords;
 
             var uv = ForestGroundPainter.ComputeUvRect(hexCoords, cellSize);
             hexCoords.Dispose();

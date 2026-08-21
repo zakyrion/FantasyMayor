@@ -1,5 +1,5 @@
 using System;
-using DefaultEcs;
+using Friflo.Engine.ECS;
 using Domains.Economy.DistrictOpenCondition.Configs;
 
 namespace Domains.Economy.DistrictOpenCondition.Systems
@@ -9,13 +9,13 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
     // The orchestrator routes each authored config to the subsystem that handles its concrete type.
     internal abstract class DistrictOpenConditionSpawnSubSystem : IDisposable
     {
-        protected readonly World World;
+        protected readonly EntityStore World;
 
         public bool IsEnabled { get; set; } = true;
 
         public abstract int Priority { get; }
 
-        protected DistrictOpenConditionSpawnSubSystem(World world)
+        protected DistrictOpenConditionSpawnSubSystem(EntityStore world)
         {
             World = world;
         }

@@ -13,8 +13,13 @@ related:
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Working Contract: Research → Plan → Execute
-Every engineering task runs in three phases. Each is already backed by an existing
-gate — this names the discipline, it adds no new rule:
+Every engineering task runs in three phases — ENTERED only through a confirmed task
+statement (the HARD GATE): confirming the statement is what opens Research and Plan
+for that task; Execute opens only on its own fresh `go` for the implementation map.
+The precise gate semantics are `go-contract` / `done-contract` (Engineering Task
+Template below). One confirmed task map or vector batch owns one persistent Category A
+FLOW: the first `go` authorizes its creation, Research and Plan write through it, and
+Execute closes it. Each phase is already backed by an existing gate:
 1. **Research** — gather facts, do not accumulate source. **Tool-first + code**: structure
    via the bounded `mcp__roslyn__*` tools and the ECS/DI graph CLIs (`ecsg.py` / `dig.py`);
    targeted code reads (a file's header comment is its contract) — read the files you will
@@ -29,16 +34,24 @@ gate — this names the discipline, it adds no new rule:
    ask exactly like a missing field, never a licence to stub; do not drip questions across rounds.
    When new code will consume types across an asmdef boundary, verify the consuming
    `.asmdef` references (or run `Tools/asmdef_reach.py`) BEFORE asking for GO.
-   Persist the plan as an on-disk artifact **only for multi-session programs**
-   (a dedicated top-level plan doc); single-session tasks stay in plan-mode / the chat.
-3. **Execute** — edit under the standing invariants (ECS writes via `Set()`,
-   instance-by-default, zero-allocation systems).
+   After confirmation, the FIRST write is `Flows/FLOW_<TASK>.md`: preserve the user's
+   request verbatim beside the agent restatement, then record Research, decisions and the
+   implementation map in that same file. A vector batch needs one confirmed shared FLOW
+   name. There are no chat-only engineering plans and no self-deleting `PLAN_` files.
+3. **Execute** — edit under the standing invariants (ECS writes via `entity.AddComponent(value)` — the
+   Friflo upsert path, never `ref`-mutation; instance-by-default, zero-allocation systems).
+   Record acceptance evidence in the FLOW; on completion harvest durable facts, drop the
+   executed plan, leave its tombstone, and retain the file under the fate rules in
+   `DOC_STANDARD.md`.
 
 # FantasyMayor: Project Context & Architectural Decisions
 
 ## Start Working
 - **Read `INDEX.md` first — and by default ONLY `INDEX.md`** (plain `Read`). It is the generated doc map and the single key to every doc and canvas: it carries each file's read-priority (`always` / `trigger` / `reference`) plus a one-line description. Let INDEX drive all navigation — do **not** preload anything it does not send you to.
 - Follow INDEX's read-priority: read the docs it marks `read: always` next; open `trigger` docs only when their condition holds, and `reference` docs on demand.
+- The `always` set is dynamic: a Category A FLOW with `status: partial` is active work. Read it
+  after the standing always-docs and reconstruct its current stage, unresolved decisions and next
+  plan item. If several active FLOWs exist, report the conflict and ask which one to resume.
 - `INDEX.md` is built in **2 passes**: (1) `python3 Tools/gen_index.py` rebuilds the structural skeleton between its `BEGIN/END GENERATED` markers from each doc's frontmatter + first line; (2) the agent curates descriptions / statuses / context. Re-run pass 1 after any frontmatter change; never edit between the markers, and keep the agent zone below the END marker short and informative.
 
 ## Documentation Access
@@ -91,11 +104,55 @@ gate — this names the discipline, it adds no new rule:
 - The `ecs-graph` / `di-graph` knowledge graphs are **derived, not authored**: refresh them by running
   their build scripts directly (both deterministic, one pass, no LLM — see Code Knowledge Policy); never
   hand-edit the `.ecs-graph/` / `.di-graph/` artifacts (the graph-gate hook enforces this).
-- `ARCHITECTURE.md` is **FROZEN**: NO agent edits it — the graph-gate hook turns an attempt into a
-  user-approval ask; propose the change to the user instead.
+- `ARCHITECTURE.md` changes **only with the user's explicit permission**: the graph-gate hook turns any agent
+  edit into a user-approval ask, and approving that prompt IS the permission. Without it, propose the change
+  to the user instead of writing it.
 
 ## Engineering Task Template
 - **HARD GATE — no actions before a confirmed task statement. For any engineering task you MUST first restate the task using the template below AND, if you have any doubt that you understood the task correctly, ask me your own clarifying questions in the same message. Then STOP and wait for my explicit confirmation. Only AFTER I confirm the statement may you create a plan or do any work. Forming a plan, entering plan mode, reading-for-implementation, or editing anything before that confirmation is a process violation. The duty to ask is yours: when in doubt, ask me — do not assume, and do not wait for me to question you. This overrides any default "just start planning" behavior.**
+- The confirmed statement's first write is its Category A FLOW. Creating or updating that
+  FLOW is Research/Plan work; it never authorizes implementation. `DOC_STANDARD.md` owns
+  the exact three-stage structure and active/contract/archive lifecycle.
+
+What a confirmation ("go") authorizes, and what "done" means — explicit since 2026-08-05
+(this is the long-standing two-gate practice written down, not a new rule):
+
+<!-- BEGIN SHARED: go-contract -->
+```clojure
+(def go-contract
+  {:authorizes "only the actions needed for the :result of the CURRENT confirmed task map"
+   :research-go "create the task's active FLOW, then research and plan through it — NEVER implementation"
+   :implementation-go "implementation born from research = a NEW task map + a NEW go"
+   :expires "on completion of the confirmed task, or when its scope materially changes"
+   :revoked-by "an interrupt or a user question — answer only, zero actions until a fresh go"})
+```
+<!-- END SHARED: go-contract -->
+
+```clojure
+(def done-contract
+  {:result :required                    ;; the stated :result is met
+   :accept :when-present                ;; every :accept meter reads its :target — "almost" does not exist
+   :diagnostic :when-code-changed       ;; roslyn pre-check clean on the edited scope
+   :runtime :when-only-user-can-verify  ;; Unity-side check stays the user's authority
+   :flow "acceptance recorded; durable facts harvested; executed plan replaced by its tombstone"
+   :commit :only-when-requested
+   :never "a checked checkbox or the mere fact of editing files"})
+```
+
+<!-- BEGIN SHARED: close-ritual -->
+```clojure
+(def close-ritual  ;; 2026-08-07 — the explicit completion act; Claude Code: /flow-close command, Codex: follow this block manually
+  {:trigger "user-invoked only — never auto-close"
+   :steps (-> (check-all-acceptance!)     ;; read every :accept meter for real — never from memory
+              (record-acceptance-audit!)  ;; :meter/:target/:actual/:status into the FLOW
+              (harvest-plan!)             ;; DOC_STANDARD Rule 2d — agent proposes the split, user vetoes
+              (choose-fate!)              ;; DOC_STANDARD Rule 2e — trigger | archive
+              (regen-index!))             ;; gen_index pass 1 + doc_lint one-liner
+   :blocked "any meter off target → FLOW stays partial; record per blocked-outcome"
+   :never #{"archive with a failing meter" "close without the user's explicit ask"}})
+```
+<!-- END SHARED: close-ritual -->
+
 - Use the following template for engineering tasks by default. Engineering tasks include coding, architecture changes, refactors, documentation, config-flow work, and other repository changes.
 - Do not require this template for casual conversation or pure Q&A that does not ask for repository changes.
 - Show this template to the user when they are defining an engineering task so they can see and reuse it.
@@ -103,6 +160,7 @@ gate — this names the discipline, it adds no new rule:
 - If one or more blocks are missing in an engineering task request, do not silently invent them. Ask the user for each missing block separately and keep the discussion focused on filling those gaps.
 - Blocks may be short, but every block should be present for engineering tasks unless the user explicitly opts out — **except «Роби за шаблоном», which is OPTIONAL.** Its absence is never a reason to ask and never a missing block; pick a pattern yourself only when one clearly fits, and never block, plan, or gate on it.
 
+<!-- BEGIN SHARED: task-template -->
 ```text
 Задача:
 [що саме треба зробити]
@@ -129,7 +187,9 @@ gate — this names the discipline, it adds no new rule:
 Результат:
 - [який вихід очікується]
 ```
+<!-- END SHARED: task-template -->
 
+<!-- BEGIN SHARED: task-clojure-example -->
 **EQUAL ALTERNATIVE — the Clojure statement.** Same standing as the prose template;
 the user picks either form per task. Shape: one map per mechanic, a vector of maps
 for a batch:
@@ -151,23 +211,74 @@ for a batch:
 Field ↔ template-block mapping: `:where` = «Працюй тільки в», `:off-limits` = «Не дивись»,
 `:pattern` = «Роби за шаблоном», `:decided` = «Архітектурні рішення», `:skip` + `:result` =
 «Не потрібно» + «Результат».
+<!-- END SHARED: task-clojure-example -->
 
 - The HARD GATE and the missing-block rules apply UNCHANGED: an absent key means "ask about
   that block, aiming the question at the specific map" — never "no constraints". The
   exceptions are `:pattern` («Роби за шаблоном») and `:accept` (measurable done-check):
   both optional, so an absent one is never an ask — never gate on them.
+
+<!-- BEGIN SHARED: task-contracts -->
+```clojure
+(def task-normalization
+  {:input #{:prose :clojure}
+   :before "classification and action"
+   :raw-input :preserve-verbatim
+   :canonical-ir :clojure
+   :show (cond (engineering-task?) :always
+               (ambiguous?) "the fields that need resolution"
+               :else :may-stay-internal)
+   :persist (cond (engineering-task?) "Request section of its FLOW"
+                  :else :not-required)
+   :never "invent or silently resolve a missing field"})
+
+(def task-amendments
+  {:home "Request section of the current FLOW"
+   :entry {:received-at "date/time or ordered turn marker"
+           :raw-request :verbatim
+           :normalized "Clojure patch against the confirmed task"
+           :confirmed "true only after the user confirms it"}
+   :source-of-intent :raw-request
+   :execution-source "the latest confirmed normalized contract consistent with the raw request"
+   :patch "a confirmed amendment changes only the fields it names"
+   :unconfirmed :no-authority
+   :conflict "stop and ask; never silently merge contradictory sources"})
+
+(def flow-progress
+  {:home :plan
+   :shape {:status #{:active :blocked}
+           :completed #{}
+           :current ?
+           :remaining #{}
+           :resume-context "the smallest sufficient state for the next session"
+           :blocker "required only while :status is :blocked"}
+   :update "after a material plan transition and before a session handoff"
+   :resume "apply confirmed amendments, then continue from :current"
+   :compatibility "older FLOWs without this shape are reconstructed from their existing Plan"})
+
+(def blocked-outcome
+  {:frontmatter {:read :always :status :partial}
+   :requires "a concrete missing authority, user/runtime decision, or external-state change"
+   :record #{:blocker :needed-authority :next-action}
+   :resume "re-enter through the unresolved blocker; blocked is never complete"
+   :never #{:archive :implemented}})
+```
+<!-- END SHARED: task-contracts -->
+
 - The notation is defined ONCE — universal forms live only in the canonical glossary
   (`~/.claude/CLAUDE.md` → "Clojure instruction notation", already in every agent's context);
   authoring spec for Clojure rules inside docs: `DOC_STANDARD.md` → Rule Style. The block
   below does NOT restate it — it adds PROJECT-scoped readings only (allowed by the
   glossary's project-scope clause):
 
+<!-- BEGIN SHARED: notation-ecs-ext -->
 ```clojure
 (def notation-ecs-ext  ;; 2026-07-17 — project-scoped notation extension (ECS); universal forms stay global
   {:entity-shape "(def <Archetype> {:archetype … :tag … :pk … :fk … :kind … :state … :data …}) — one map = one entity; keys anchor to tag-law / key-role-law (ARCHITECTURE.md)"
    :set-cardinality "the FIELD decides the #{} reading: singular-valued key (:home, :tag) → global 'one of'; collection-valued key (:data, :fk) → ALL members, unordered, no duplicates (= ECS composition)"
    :tag-never-set "a #{} under :tag is not alternative syntax — it DISPLAYS a Tag Law violation (2 identity tags)"})
 ```
+<!-- END SHARED: notation-ecs-ext -->
 
 ## Code Knowledge Policy (tool-first — module MDs abolished 2026-07-09)
 - **Module/domain/presentation MD files do not exist and must NEVER be recreated.** They rotted faster
@@ -178,14 +289,29 @@ Field ↔ template-block mapping: `:where` = «Працюй тільки в», `
   2. **Code comments at distance zero** — intent, non-obvious invariants, and contracts live in a short
      comment ON the thing itself (class header / method), updated in the same diff. A comment about
      ANOTHER file is a rot seed — link by name only, or move the fact to its owner.
-  3. **Dated records** — the "why" of a change belongs in the commit message; cross-domain target
-     contracts are dated FLOW docs (`Flows/FLOW_<NAME>.md`).
+  3. **Dated records** — every engineering task has a dated Category A FLOW; its verbatim request and
+     decision log preserve the change across sessions. The commit message remains the execution record.
   4. **Decreed rules** — `ARCHITECTURE.md` (policy), `ECS_CONVENTIONS.md` (point-of-code rules),
      `Patterns/` (recipes). They change only by the user's decision, never by code drift.
 - If you add or change an ECS entity archetype, refresh the ecs-graph (`build_graph.py` / `/ecs-graph`) —
   the sole archetype/event registry. Likewise refresh the di-graph (`build_di_graph.py` / `/di-graph`) after
   changing DI wiring (registrations, `[Inject]`, Boot composition). Both builds are deterministic — run them yourself.
 - `DOC_STANDARD.md` governs the surviving doc genres (Flows, Patterns, root policy docs).
+
+## OpenSpec Policy
+Evaluated 2026-08-05: the generated OpenSpec skills over-triggered and duplicated the
+task-map workflow (proposal/design/tasks ≈ task map; checkbox-done ≠ `:accept`-done), and
+its main specs would compete with `Flows/FLOW_*.md`. Full evaluation record: the removal commit.
+
+<!-- BEGIN SHARED: openspec-policy -->
+```clojure
+(def openspec-policy  ;; 2026-08-05 — removed from the active workflow of BOTH agents
+  {:project-integration :removed        ;; skills (.claude/.codex) + openspec/ deleted
+   :cli :available                      ;; global `openspec` CLI stays installed
+   :future-use :explicit-only           ;; never triggers by itself — only by the user's direct ask
+   :reconsider-only-when "довготривала capability spec із реальними delta requirements"})
+```
+<!-- END SHARED: openspec-policy -->
 
 ## Unity Build Policy
 - This is a Unity project.

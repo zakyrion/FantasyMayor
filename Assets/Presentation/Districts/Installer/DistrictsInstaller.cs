@@ -1,4 +1,4 @@
-using DefaultECSExtensions;
+using EcsExtensions;
 using Modules.Boot.Core;
 using Presentation.Districts.Systems;
 using VContainer;

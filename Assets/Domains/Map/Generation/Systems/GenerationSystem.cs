@@ -2,15 +2,16 @@
 using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
-using JetBrains.Annotations;
-using Modules.Boot.Core;
+using Domains.Map.Archetypes;
+using Domains.Map.Generation.Components;
 using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Data;
-using Domains.Map.Hex.Tags;
 using Domains.Map.Hex.Utils;
-using Domains.Map.Generation.Components;
+using EcsExtensions;
+using Friflo.Engine.ECS;
+using JetBrains.Annotations;
+using Modules.Boot.Core;
+using Unity.Collections;
 
 namespace Domains.Map.Generation.Systems
 {
@@ -28,21 +29,18 @@ namespace Domains.Map.Generation.Systems
         private const int WaterLevel = -1;
 
         private readonly IReadOnlyList<GenerationSubSystem> _generationSubSystems;
-        private readonly EntitySet _hexSet;
-        private readonly World _world;
+        private readonly Archetype _hexArchetype;
+        private readonly EntityStorages _storages;
 
         /// <inheritdoc />
         public int Priority => SystemPriorities.WorldInit.Generation;
 
-        /// <param name="world">The ECS world to query and populate.</param>
+        /// <param name="storages">Named ECS storages used to query and populate the game world.</param>
         /// <param name="generationSubSystems">Generation subsystems executed in priority order.</param>
-        public GenerationSystem(World world, IReadOnlyList<GenerationSubSystem> generationSubSystems)
+        public GenerationSystem(EntityStorages storages, IReadOnlyList<GenerationSubSystem> generationSubSystems)
         {
-            _world = world;
-            _hexSet = world.GetEntities()
-                .With<HexIdComponent>()
-                .With<HexLevelComponent>().With<HexTag>()
-                .AsSet();
+            _storages = storages;
+            _hexArchetype = MapArchetypes.Hex(storages.World);
 
             _generationSubSystems = generationSubSystems
                 .OrderBy(system => system.Priority)
@@ -52,10 +50,10 @@ namespace Domains.Map.Generation.Systems
         /// <inheritdoc />
         public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
         {
-            if (!_world.Has<TerrainGenerationConfigComponent>())
+            if (!_storages.Singletons.Has<TerrainGenerationConfigComponent>())
                 return UniTask.CompletedTask;
 
-            ref readonly var config = ref _world.Get<TerrainGenerationConfigComponent>();
+            var config = _storages.Singletons.Get<TerrainGenerationConfigComponent>();
 
             Generate(in config);
             RunGenerationSubSystems();
@@ -67,7 +65,6 @@ namespace Domains.Map.Generation.Systems
         /// <inheritdoc />
         public void Dispose()
         {
-            _hexSet.Dispose();
         }
 
         /// <summary>Creates the flat hex grid for the configured number of waves.</summary>
@@ -80,10 +77,9 @@ namespace Domains.Map.Generation.Systems
             {
                 var hexCoords = HexesUtil.IndexToAxialCoords(index);
 
-                var entity = _world.CreateEntity();
-                entity.Set(new HexIdComponent { Coords = hexCoords });
-                entity.Set(new HexLevelComponent { Level = 0 });
-                entity.Set(new HexTag());
+                var entity = _hexArchetype.CreateEntity();
+                entity.AddComponent(new HexIdComponent { Coords = hexCoords });
+                entity.AddComponent(new HexLevelComponent { Level = 0 });
             }
         }
 
@@ -102,17 +98,26 @@ namespace Domains.Map.Generation.Systems
         }
 
         /// <summary>
-        ///     Assigns each hex its terrain type — a single <see cref="HexTypeComponent" /> column — from
-        ///     the final generated level. Written via Set so any maintained
-        ///     <c>AsMultiMap&lt;HexTypeComponent&gt;</c> index stays in sync.
+        ///     Assigns each hex its terrain type from the final generated level. HexTypeComponent is a birth
+        ///     column (default <see cref="HexType.Unknown" />) on every hex, but Friflo still throws
+        ///     <see cref="StructuralChangeException" /> on any <c>AddComponent</c> call while enumerating the
+        ///     query it is called from — value-only upsert included — so this snapshots ids first, same idiom
+        ///     as <c>ForestDespawnSystem</c>.
         /// </summary>
         private void AssignHexTypes()
         {
-            foreach (ref readonly var entity in _hexSet.GetEntities())
-            {
-                var level = entity.Get<HexLevelComponent>().Level;
-                entity.Set(new HexTypeComponent { Type = LevelToType(level) });
-            }
+            var hexIds = new NativeList<int>(_hexArchetype.Count, Allocator.Temp);
+            foreach (var entity in _hexArchetype.Entities)
+                hexIds.Add(entity.Id);
+
+            for (var i = 0; i < hexIds.Length; i++)
+                if (_storages.World.TryGetEntityById(hexIds[i], out var entity))
+                {
+                    var level = entity.GetComponent<HexLevelComponent>().Level;
+                    entity.AddComponent(new HexTypeComponent { Type = LevelToType(level) });
+                }
+
+            hexIds.Dispose();
         }
 
         // Unmapped/unexpected levels fall back to Plain (matches the old "no terrain tag → Plain" default).

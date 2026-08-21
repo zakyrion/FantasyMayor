@@ -1,9 +1,10 @@
-using System;
+using Friflo.Engine.ECS;
 using Modules.AxialSystem;
+using System;
 
 namespace Domains.Map.Hex.Components
 {
-    public struct HexIdComponent : IEquatable<HexIdComponent>
+    public struct HexIdComponent : IEquatable<HexIdComponent>, IComponent
     {
         public HexCoord Coords;
 

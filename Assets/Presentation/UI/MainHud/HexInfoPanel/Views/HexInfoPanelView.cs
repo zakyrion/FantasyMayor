@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
 using Flows.DistrictBuild.Events;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -42,7 +41,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Views
 
         [SerializeField] private PanelRenderer _renderer;
 
-        private World _world;
+        private EntityStorages _storages;
         private VisualElement _root;
         private VisualElement _contextFilled;
         private VisualElement _contextEmpty;
@@ -78,9 +77,9 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Views
         private bool _cached;
 
         [Inject]
-        public void Construct(World world)
+        public void Construct(EntityStorages storages)
         {
-            _world = world;
+            _storages = storages;
         }
 
         private void OnEnable()
@@ -253,9 +252,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Views
         // HexSelectedComponent for the target hex. No consumer yet (dormant emitter).
         private void OnBuildClicked(ClickEvent evt)
         {
-            var entity = _world.CreateEntity();
-            entity.Set(new DistrictBuildUIRequestedEvent());
-            entity.Set(new EventTag());
+            _storages.World.CreateEvent(new DistrictBuildUIRequestedEvent());
         }
 
         private void UnhookBuildButton()

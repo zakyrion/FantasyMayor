@@ -8,7 +8,7 @@
         "Domains.Map",
         "AxialSystem",
         "Turn",
-        "DefaultECS.Extensions",
+        "Ecs.Extensions",
         "Boot.Core",
         "Addressables.Core",
         "Core",

@@ -1,3 +1,4 @@
+using Friflo.Engine.ECS;
 using Modules.AxialSystem;
 
 namespace Presentation.Terrain.Components
@@ -8,7 +9,7 @@ namespace Presentation.Terrain.Components
     ///     consumers handle the no-entity case; there is no null/sentinel value. Selection is a toggle:
     ///     clicking the selected hex disposes the entity.
     /// </summary>
-    public struct HexSelectedComponent
+    public struct HexSelectedComponent : IComponent
     {
         /// <summary>Axial coordinates of the selected hex.</summary>
         public HexCoord Coords;

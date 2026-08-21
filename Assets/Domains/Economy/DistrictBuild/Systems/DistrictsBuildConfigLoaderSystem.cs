@@ -1,30 +1,31 @@
-using System;
-using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
 using Domains.Economy.DistrictBuild.Components;
 using Domains.Economy.DistrictBuild.Configs;
 using Domains.Kernel.Data;
+using EcsExtensions;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
+using System.Threading;
+using System;
 
 namespace Domains.Economy.DistrictBuild.Systems
 {
     // Config Loader (ConfigLoadStep, one-shot): loads the DistrictsBuildConfig SO from Addressables, validates
-    // it, and publishes the DistrictsBuildConfigComponent world component carrying the SO reference. Unlike the
+    // it, and publishes the DistrictsBuildConfigComponent singleton component carrying the SO reference. Unlike the
     // copy-out actor loaders, the build window reads this catalogue throughout play, so the loader RETAINS the
     // addressable Box (ADDRESSABLE_PATTERNS "Load non-GameObject asset") and releases it in OnDispose.
     [UsedImplicitly]
     internal sealed class DistrictsBuildConfigLoaderSystem : ConfigLoaderSystem
     {
+        private readonly EntityStorages _storages;
         private const string DISTRICTS_BUILD_CONFIG = "DistrictBuildsConfig";
 
         private Box<DistrictBuildsConfig> _config = Box<DistrictBuildsConfig>.Empty();
 
-        public DistrictsBuildConfigLoaderSystem(IAddressable addressable, World world) : base(addressable, world)
+        public DistrictsBuildConfigLoaderSystem(IAddressable addressable, EntityStorages storages) : base(addressable)
         {
+            _storages = storages;
         }
 
         protected override async UniTask LoadConfigsAsync(CancellationToken cancellationToken)
@@ -39,7 +40,7 @@ namespace Domains.Economy.DistrictBuild.Systems
             ValidateConfig(box.Value);
 
             _config = box;
-            World.Set(new DistrictBuildsConfigComponent(box.Value));
+            _storages.Singletons.Set(new DistrictBuildsConfigComponent(box.Value));
             MarkAsLoaded();
         }
 

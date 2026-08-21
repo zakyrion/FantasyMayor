@@ -1,13 +1,12 @@
-﻿using System;
-using System.Threading;
-using Core;
+﻿using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using Domains.Economy.DistrictBuildOutcome.Components;
+using Domains.Economy.DistrictBuildOutcome.Configs;
+using EcsExtensions;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
-using Domains.Economy.DistrictBuildOutcome.Configs;
-using Domains.Economy.DistrictBuildOutcome.Components;
+using System.Threading;
+using System;
 
 namespace Domains.Economy.DistrictBuildOutcome.Systems{
     // Config Loader (ConfigLoadStep, one-shot): loads the BuildDistrictOutcomesConfig SO from Addressables,
@@ -17,13 +16,15 @@ namespace Domains.Economy.DistrictBuildOutcome.Systems{
     [UsedImplicitly]
     internal sealed class DistrictBuildOutcomesConfigLoaderSystem : ConfigLoaderSystem
     {
+        private readonly EntityStorages _storages;
         private const string DISTRICT_BUILD_OUTCOMES_CONFIG = "BuildDistrictOutcomesConfig";
 
         private Box<DistrictBuildOutcomesConfig> _config = Box<DistrictBuildOutcomesConfig>.Empty();
 
-        public DistrictBuildOutcomesConfigLoaderSystem(IAddressable addressable, World world)
-            : base(addressable, world)
+        public DistrictBuildOutcomesConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
+            : base(addressable)
         {
+            _storages = storages;
         }
 
         protected override async UniTask LoadConfigsAsync(CancellationToken cancellationToken)
@@ -39,7 +40,7 @@ namespace Domains.Economy.DistrictBuildOutcome.Systems{
             ValidateConfig(box.Value);
 
             _config = box;
-            World.Set(new DistrictBuildOutcomesConfigComponent(box.Value));
+            _storages.Singletons.Set(new DistrictBuildOutcomesConfigComponent(box.Value));
             MarkAsLoaded();
         }
 

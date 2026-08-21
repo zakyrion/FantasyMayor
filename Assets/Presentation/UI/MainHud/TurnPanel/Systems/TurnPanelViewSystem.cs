@@ -1,20 +1,21 @@
-using System;
-using DefaultEcs;
-using DefaultECSExtensions;
+﻿using System;
+using Domains.Actors.Archetypes;
 using Domains.Actors.Mayor.Components;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Turn.Components;
+using Modules.Turn.Data;
+using Presentation.UI.Archetypes;
 using Presentation.UI.MainHud.TurnPanel.Components;
 using Presentation.UI.MainHud.TurnPanel.Views;
-using Domains.Actors.Mayor.Tags;
-using Presentation.UI.Tags;
 
 namespace Presentation.UI.MainHud.TurnPanel.Systems
 {
     /// <summary>
     ///     Drives the turn corner each Gameplay frame and owns the bottom-panel shell reveal: reveals the whole
     ///     panel (it spawns hidden) since the turn corner is its always-present part, reflects whether a turn is
-    ///     running — Processing while a <see cref="TurnProcessorComponent" /> exists, Ready otherwise — pushes the
+    ///     running — Processing while <see cref="TurnProcessorComponent" /> is Running, Ready otherwise — pushes the
     ///     current turn number from <see cref="TurnCountComponent" /> into "Хід N", and feeds the two AP tiles:
     ///     «ДІЇ ЗАРАЗ» from <see cref="MayorAPComponent" /> (the Mayor's Action Points; reset to full each turn,
     ///     not yet decremented on spend), «НАСТ. ХІД» from <see cref="MayorAPRestoreComponent" />. The
@@ -27,55 +28,46 @@ namespace Presentation.UI.MainHud.TurnPanel.Systems
     {
         // Declarative query cache (a self-maintaining view, not system state): the single Mayor row carrying the
         // live AP and the per-turn restore rule.
-        private readonly EntitySet _mayors;
+        private readonly Archetype _mayors;
 
-        private readonly World _world;
+        private readonly EntityStorages _storages;
 
         public override int Priority => SystemPriorities.RuntimeTick.TurnPanelView;
 
-        public TurnPanelViewSystem(World world)
-            : base(world.GetEntities().With<TurnPanelViewComponent>().With<UITag>().AsSet())
+        public TurnPanelViewSystem(EntityStorages storages)
+            : base(storages.World, PresentationUIArchetypes.TurnPanel(storages.World))
         {
-            _world = world;
-            _mayors = world.GetEntities()
-                .With<MayorIdComponent>().With<MayorTag>().With<MayorAPComponent>().With<MayorAPRestoreComponent>().AsSet();
+            _storages = storages;
+            _mayors = ActorsArchetypes.Mayor(storages.World);
         }
 
         protected override void Update(GameState state, in Entity entity)
         {
-            var view = entity.Get<TurnPanelViewComponent>().View;
+            var view = entity.GetComponent<TurnPanelViewComponent>().View;
             if (view == null)
                 return;
 
-            if (!_world.Has<TurnCountComponent>())
+            if (!_storages.Singletons.Has<TurnCountComponent>())
                 throw new InvalidOperationException(
                     "TurnPanelViewSystem: TurnCountComponent is missing — it must be seeded on Gameplay enter.");
 
             view.Show();
-            view.SetProcessing(_world.Has<TurnProcessorComponent>());
-            view.SetTurnNumber(_world.Get<TurnCountComponent>().Value);
+            view.SetProcessing(_storages.Singletons.Get<TurnProcessorComponent>().Status == TurnProcessorStatus.Running);
+            view.SetTurnNumber(_storages.Singletons.Get<TurnCountComponent>().Value);
 
             PushActionPoints(view);
-        }
-
-        public override void Dispose()
-        {
-            _mayors.Dispose();
-            base.Dispose();
         }
 
         // Always exactly one Mayor: «ДІЇ ЗАРАЗ» = MayorAPComponent.Value, «НАСТ. ХІД» = MayorAPRestoreComponent.Value.
         // Fail-loud if the Mayor is unseeded (MayorSpawnSystem owns it).
         private void PushActionPoints(TurnPanelView view)
         {
-            var mayors = _mayors.GetEntities();
-            if (mayors.Length == 0)
+            if (!_mayors.TryGetFirst(out var mayor))
                 throw new InvalidOperationException(
                     "TurnPanelViewSystem: no Mayor with MayorAPComponent/MayorAPRestoreComponent — MayorSpawnSystem must seed it.");
 
-            var mayor = mayors[0];
-            var current = mayor.Get<MayorAPComponent>().Value;
-            var next = mayor.Get<MayorAPRestoreComponent>().Value;
+            var current = mayor.GetComponent<MayorAPComponent>().Value;
+            var next = mayor.GetComponent<MayorAPRestoreComponent>().Value;
 
             view.SetActionPointsCurrent(current);
             view.SetActionPointsNext(next);

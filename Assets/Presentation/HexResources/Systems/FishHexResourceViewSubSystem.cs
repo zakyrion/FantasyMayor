@@ -1,5 +1,4 @@
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
 using JetBrains.Annotations;
 using Domains.Map.HexResources.Data;
 
@@ -11,8 +10,8 @@ namespace Presentation.HexResources.Systems
         public override int Priority => SystemPriorities.SubSystems.HexResourceView.Fish;
         protected override HexResourceType TargetHexResourceType => HexResourceType.Fish;
 
-        public FishHexResourceViewSubSystem(World world)
-            : base(world)
+        public FishHexResourceViewSubSystem(EntityStorages storages)
+            : base(storages)
         {
         }
 

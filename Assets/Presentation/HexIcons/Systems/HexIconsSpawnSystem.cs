@@ -1,34 +1,38 @@
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
+using Modules.AxialSystem;
 using Modules.Boot.Core;
 using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Tags;
+using Presentation.Archetypes;
 using Presentation.HexIcons.Components;
 using Presentation.HexIcons.Views;
+using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine.UIElements;
 using Object = UnityEngine.Object;
-using Presentation.HexIcons.Tags;
 
 namespace Presentation.HexIcons.Systems
 {
     [UsedImplicitly]
     internal sealed class HexIconsSpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        private readonly World _world;
+        private readonly EntityStorages _storages;
+        private readonly Archetype _containerArchetype;
 
         // Cached at spawn for the container builders.
         private HexIconsView _view;
 
         public int Priority => SystemPriorities.WorldInit.HexIconsSpawn;
 
-        public HexIconsSpawnSystem(World world)
+        public HexIconsSpawnSystem(EntityStorages storages)
         {
-            _world = world;
+            _storages = storages;
+            _containerArchetype = PresentationArchetypes.HexIconContainer(storages.World);
         }
 
         public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
@@ -36,10 +40,10 @@ namespace Presentation.HexIcons.Systems
             if (cancellationToken.IsCancellationRequested)
                 return UniTask.CompletedTask;
 
-            if (!_world.Has<HexIconsConfigComponent>())
+            if (!_storages.Singletons.Has<HexIconsConfigComponent>())
                 throw new InvalidOperationException("HexIconsSpawnSystem: HexIconsConfigComponent is missing.");
 
-            var iconConfig = _world.Get<HexIconsConfigComponent>();
+            var iconConfig = _storages.Singletons.Get<HexIconsConfigComponent>();
 
             var prefab = iconConfig.Value.Prefab;
             if (prefab == null)
@@ -61,7 +65,7 @@ namespace Presentation.HexIcons.Systems
 
             _view = view;
 
-            _world.Set(new HexIconsViewComponent(view));
+            _storages.Singletons.Set(new HexIconsViewComponent(view));
 
             CreateContainers();
 
@@ -73,16 +77,35 @@ namespace Presentation.HexIcons.Systems
         // into the Hex space. Containers are positioned per frame by HexIconsContainerPositionSystem, not here.
         private void CreateContainers()
         {
-            using var hexSet = _world.GetEntities().With<HexTag>().With<HexIdComponent>().AsSet();
-            foreach (var hexEntity in hexSet.GetEntities())
-            {
-                var hexId = hexEntity.Get<HexIdComponent>();
-                var container = CreateContainerElement(hexId.Coords.Value);
+            var hexSet = _storages.World.Query<HexIdComponent>().AllTags(Friflo.Engine.ECS.Tags.Get<HexTag>());
 
-                var containerEntity = _world.CreateEntity();
-                containerEntity.Set(new HexIdFKComponent { Coords = hexId.Coords });
-                containerEntity.Set(new HexIconContainerComponent(container));
-                containerEntity.Set(new HexIconContainerTag());
+            // Snapshot-before-iterate: birth via _containerArchetype.CreateEntity() is NOT a structural
+            // change, but the AddComponent writes that follow it are, and they would throw while
+            // hexSet.Entities enumerates (ECS_CONVENTIONS → Structural changes during iteration).
+            // Snapshotting the hex ids closes that enumeration, so spawn and wiring both happen in one pass —
+            // no managed buffer.
+            var hexIds = new NativeList<int>(Math.Max(1, hexSet.Count), Allocator.Temp);
+            try
+            {
+                foreach (var hexEntity in hexSet.Entities)
+                    hexIds.Add(hexEntity.Id);
+
+                for (var i = 0; i < hexIds.Length; i++)
+                {
+                    if (!_storages.World.TryGetEntityById(hexIds[i], out var hexEntity))
+                        continue;
+
+                    var hexId = hexEntity.GetComponent<HexIdComponent>();
+                    var container = CreateContainerElement(hexId.Coords.Value);
+
+                    var containerEntity = _containerArchetype.CreateEntity();
+                    containerEntity.AddComponent(new HexIdFKComponent { Coords = hexId.Coords });
+                    containerEntity.AddComponent(new HexIconContainerComponent(container));
+                }
+            }
+            finally
+            {
+                hexIds.Dispose();
             }
         }
 
@@ -93,7 +116,7 @@ namespace Presentation.HexIcons.Systems
         private VisualElement CreateContainerElement(int2 coord)
         {
             var container = new VisualElement { name = $"hex-container-{coord.x}-{coord.y}" };
-            container.style.position = Position.Absolute;
+            container.style.position = UnityEngine.UIElements.Position.Absolute;
             container.style.flexDirection = FlexDirection.Column;
             container.style.alignItems = Align.Center;
             container.style.translate = new Translate(Length.Percent(-50f), Length.Percent(-50f));

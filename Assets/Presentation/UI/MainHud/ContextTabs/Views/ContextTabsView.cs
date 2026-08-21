@@ -1,6 +1,5 @@
 using System;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
 using Presentation.UI.MainHud.ContextTabs.Components;
 using Presentation.UI.MainHud.ContextTabs.Data;
 using Presentation.UI.MainHud.ContextTabs.Events;
@@ -36,7 +35,7 @@ namespace Presentation.UI.MainHud.ContextTabs.Views
 
         [SerializeField] private PanelRenderer _renderer;
 
-        private World _world;
+        private EntityStorages _storages;
         private VisualElement _root;
         private Toggle _tabOverview;
         private Toggle _tabBuildings;
@@ -58,9 +57,9 @@ namespace Presentation.UI.MainHud.ContextTabs.Views
         private bool _actionsEnabled = true;
 
         [Inject]
-        public void Construct(World world)
+        public void Construct(EntityStorages storages)
         {
-            _world = world;
+            _storages = storages;
         }
 
         private void OnEnable()
@@ -175,11 +174,8 @@ namespace Presentation.UI.MainHud.ContextTabs.Views
         {
             // Record the selection in the world state, then raise a payload-less pulse — ContextTabSelectionSystem
             // reconciles the group against ActiveContextTabComponent (the pulse carries no data by design).
-            _world.Set(new ActiveContextTabComponent(tab));
-
-            var entity = _world.CreateEntity();
-            entity.Set(new ContextTabChangedEvent());
-            entity.Set(new EventTag());
+            _storages.Singletons.Set(new ActiveContextTabComponent(tab));
+            _storages.World.CreateEvent(new ContextTabChangedEvent());
         }
 
         private Toggle Resolve(ContextTab tab)

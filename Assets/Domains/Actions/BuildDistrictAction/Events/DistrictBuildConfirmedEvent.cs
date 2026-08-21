@@ -1,5 +1,6 @@
 using Domains.Economy.District.Data;
 using Domains.Kernel.Data;
+using Friflo.Engine.ECS;
 using Modules.AxialSystem;
 
 namespace Domains.Actions.BuildDistrictAction.Events
@@ -16,7 +17,7 @@ namespace Domains.Actions.BuildDistrictAction.Events
     ///     charges its stockpile (and the Mayor's AP pool) at confirm before committing the build (R2).
     ///     Cleared by <c>EventCleanupSystem</c>.
     /// </summary>
-    public struct DistrictBuildConfirmedEvent
+    public struct DistrictBuildConfirmedEvent : IComponent
     {
         public HexCoord Coords;
         public DistrictType Type;

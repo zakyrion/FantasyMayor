@@ -9,8 +9,10 @@ namespace Modules.Turn.Helpers
 {
     /// <summary>
     ///     Stateless sequential runner for turn phases: orders by <see cref="TurnPhaseSubSystem.Priority" />,
-    ///     skips disabled phases, and awaits each in turn. Threading is the caller's concern (the launcher owns
-    ///     the thread-pool hop), so a nested phase-orchestrator can reuse this on the same pool thread.
+    ///     skips disabled phases, and awaits each in turn. Threading is the caller's concern: today the only
+    ///     caller, <see cref="TurnProcessorSystem" />, runs the phase set inline on the main thread, because
+    ///     phases do store I/O and store I/O is main-thread only (ECS_CONVENTIONS → Threading And Native
+    ///     Memory, Law 1). This runner adds no hop of its own.
     /// </summary>
     public sealed class TurnPhaseRunner
     {

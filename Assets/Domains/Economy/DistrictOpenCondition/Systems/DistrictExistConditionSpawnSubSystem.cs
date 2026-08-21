@@ -1,11 +1,11 @@
-using DefaultEcs;
+using Friflo.Engine.ECS;
+using Domains.Economy.Archetypes;
 using Domains.Economy.District.Components;
 using Domains.Economy.DistrictOpenCondition.Components;
 using Domains.Economy.DistrictOpenCondition.Configs;
 using Domains.Economy.DistrictOpenCondition.Data;
-using Domains.Economy.DistrictOpenCondition.Tags;
+using EcsExtensions;
 using JetBrains.Annotations;
-using DefaultECSExtensions;
 
 namespace Domains.Economy.DistrictOpenCondition.Systems
 {
@@ -16,8 +16,11 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
     {
         public override int Priority => SystemPriorities.SubSystems.DistrictOpenConditionSpawn.Exist;
 
-        public DistrictExistConditionSpawnSubSystem(World world) : base(world)
+        private readonly Archetype _archetype;
+
+        public DistrictExistConditionSpawnSubSystem(EntityStorages storages) : base(storages.World)
         {
+            _archetype = EconomyArchetypes.OpenConditionExist(storages.World);
         }
 
         public override bool TrySpawn(DistrictOpenConditionConfig config)
@@ -25,12 +28,11 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
             if (config is not DistrictExistConditionConfig existConfig)
                 return false;
 
-            var entity = World.CreateEntity();
-            entity.Set(new DistrictTypeFKComponent { Value = existConfig.DistrictType });
-            entity.Set(new DistrictExistConditionComponent { RequiredDistrict = existConfig.RequiredDistrict });
-            entity.Set(new DistrictOpenConditionTag());
-            entity.Set(new DistrictOpenConditionKindComponent { Value = DistrictOpenConditionKind.Exist });
-            entity.Set(new DistrictOpenStateComponent { Value = DistrictOpenState.Closed });
+            var entity = _archetype.CreateEntity();
+            entity.AddComponent(new DistrictTypeFKComponent { Value = existConfig.DistrictType });
+            entity.AddComponent(new DistrictExistConditionComponent { RequiredDistrict = existConfig.RequiredDistrict });
+            entity.AddComponent(new DistrictOpenConditionKindComponent { Value = DistrictOpenConditionKind.Exist });
+            entity.AddComponent(new DistrictOpenStateComponent { Value = DistrictOpenState.Closed });
 
             return true;
         }

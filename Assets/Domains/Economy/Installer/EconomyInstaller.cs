@@ -1,4 +1,4 @@
-using DefaultECSExtensions;
+using EcsExtensions;
 using Domains.Economy.DistrictBuild.Systems;
 using Domains.Economy.DistrictBuildCost.Systems;
 using Domains.Economy.DistrictBuildOutcome.Systems;

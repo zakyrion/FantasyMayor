@@ -1,28 +1,30 @@
-using System;
-using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
 using Domains.Actors.City.Components;
 using Domains.Actors.City.Configs;
 using Domains.Economy.Resource.Data;
+using EcsExtensions;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
+using System.Threading;
+using System;
 using Unity.Collections;
 
 namespace Domains.Actors.City.Systems
 {
     // Config Loader (ConfigLoadStep, one-shot): loads the CityConfig SO from Addressables, validates it,
-    // and publishes the flattened CityConfigComponent world component. CitySpawnSystem reads it at map
+    // and publishes the flattened CityConfigComponent singleton component. CitySpawnSystem reads it at map
     // creation to seed the City's starting resources (Patterns/PATTERN_CONFIG_LOADER.md).
     [UsedImplicitly]
     internal sealed class CityConfigLoaderSystem : ConfigLoaderSystem
     {
         private const string CITY_CONFIG = "CityConfig";
+        private readonly EntityStorages _storages;
 
-        public CityConfigLoaderSystem(IAddressable addressable, World world) : base(addressable, world)
+        public CityConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
+            : base(addressable)
         {
+            _storages = storages;
         }
 
         protected override async UniTask LoadConfigsAsync(CancellationToken cancellationToken)
@@ -37,7 +39,7 @@ namespace Domains.Actors.City.Systems
 
                 ValidateConfig(configBox.Value);
 
-                World.Set(CityConfigComponent.FromConfig(configBox.Value));
+                _storages.Singletons.Set(CityConfigComponent.FromConfig(configBox.Value));
                 MarkAsLoaded();
             }
             finally

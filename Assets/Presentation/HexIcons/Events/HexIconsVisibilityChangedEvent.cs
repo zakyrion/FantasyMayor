@@ -1,3 +1,4 @@
+using Friflo.Engine.ECS;
 namespace Presentation.HexIcons.Events
 {
     /// <summary>
@@ -6,7 +7,7 @@ namespace Presentation.HexIcons.Events
     ///     current state. Lives one frame on an entity tagged with <c>EventTag</c> (disposed by
     ///     <c>EventCleanupSystem</c>). Public so the producer (Boot assembly) can raise it.
     /// </summary>
-    public struct HexIconsVisibilityChangedEvent
+    public struct HexIconsVisibilityChangedEvent : IComponent
     {
     }
 }

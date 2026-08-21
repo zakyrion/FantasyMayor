@@ -1,30 +1,31 @@
-﻿using System;
-using System.Threading;
-using Core;
+﻿using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using Domains.Economy.DistrictBuildCost.Components;
+using Domains.Economy.DistrictBuildCost.Configs;
+using EcsExtensions;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
-using Domains.Economy.DistrictBuildCost.Configs;
-using Domains.Economy.DistrictBuildCost.Components;
+using System.Threading;
+using System;
 
 namespace Domains.Economy.DistrictBuildCost.Systems{
     // Config Loader (ConfigLoadStep, one-shot): loads the DistrictsBuildCostConfig SO from Addressables,
-    // validates it, and publishes the DistrictsBuildCostConfigComponent world component carrying the SO
+    // validates it, and publishes the DistrictsBuildCostConfigComponent singleton component carrying the SO
     // reference. The build window reads this catalogue throughout play, so the loader RETAINS the addressable
     // Box (ADDRESSABLE_PATTERNS "Load non-GameObject asset") and releases it in OnDispose. Sibling of Economy's
     // DistrictsBuildConfigLoaderSystem (gating catalogue); this one owns the cost catalogue.
     [UsedImplicitly]
     internal sealed class DistrictBuildCostsConfigLoaderSystem : ConfigLoaderSystem
     {
+        private readonly EntityStorages _storages;
         private const string ACTIONS_DISTRICTS_BUILD_CONFIG = "DistrictBuildCostsConfig";
 
         private Box<DistrictBuildCostsConfig> _config = Box<DistrictBuildCostsConfig>.Empty();
 
-        public DistrictBuildCostsConfigLoaderSystem(IAddressable addressable, World world)
-            : base(addressable, world)
+        public DistrictBuildCostsConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
+            : base(addressable)
         {
+            _storages = storages;
         }
 
         protected override async UniTask LoadConfigsAsync(CancellationToken cancellationToken)
@@ -40,7 +41,7 @@ namespace Domains.Economy.DistrictBuildCost.Systems{
             ValidateConfig(box.Value);
 
             _config = box;
-            World.Set(new DistrictBuildCostsConfigComponent(box.Value));
+            _storages.Singletons.Set(new DistrictBuildCostsConfigComponent(box.Value));
             MarkAsLoaded();
         }
 

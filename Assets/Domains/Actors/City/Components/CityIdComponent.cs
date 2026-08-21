@@ -1,9 +1,10 @@
+using Friflo.Engine.ECS;
 using System;
 
 namespace Domains.Actors.City.Components
 {
     // Primary key of a City entity.
-    public struct CityIdComponent : IEquatable<CityIdComponent>
+    public struct CityIdComponent : IEquatable<CityIdComponent>, IComponent
     {
         public int Value;
 

@@ -2,9 +2,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using DefaultECSExtensions;
+using EcsExtensions;
 using Modules.Boot.Core;
-using UnityEngine;
 
 namespace Modules.Boot.Implementation.States
 {
@@ -24,11 +23,10 @@ namespace Modules.Boot.Implementation.States
         private readonly IReadOnlyList<IPrioritizedUniTaskSystem<MapGenerationStep>> _pipeline;
         private readonly IReadOnlyList<IUpdatedSystem> _systems;
 
-        private GameMode? _requestedMode;
         private int _settledFrames;
 
         public GameMode Mode => GameMode.MapCreation;
-        public GameMode? RequestedMode => _requestedMode;
+        public GameMode? RequestedMode { get; private set; }
 
         public MapCreationState(
             IReadOnlyList<IPrioritizedUniTaskSystem<MapGenerationStep>> pipeline,
@@ -40,7 +38,7 @@ namespace Modules.Boot.Implementation.States
 
         public async UniTask EnterAsync(CancellationToken cancellationToken)
         {
-            _requestedMode = null;
+            RequestedMode = null;
             _settledFrames = 0;
 
             var step = new MapGenerationStep();
@@ -51,6 +49,14 @@ namespace Modules.Boot.Implementation.States
             }
         }
 
+        public void Exit()
+        {
+        }
+
+        public void LateTick(GameState state)
+        {
+        }
+
         public void Tick(GameState state)
         {
             foreach (var system in _systems)
@@ -58,15 +64,7 @@ namespace Modules.Boot.Implementation.States
 
             _settledFrames++;
             if (_settledFrames >= SettleFrames)
-                _requestedMode = GameMode.Gameplay;
-        }
-
-        public void LateTick(GameState state)
-        {
-        }
-
-        public void Exit()
-        {
+                RequestedMode = GameMode.Gameplay;
         }
     }
 }

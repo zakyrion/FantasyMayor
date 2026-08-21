@@ -3,7 +3,7 @@ using System.Linq;
 using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
-using DefaultECSExtensions;
+using EcsExtensions;
 using JetBrains.Annotations;
 using Modules.Boot.Core;
 

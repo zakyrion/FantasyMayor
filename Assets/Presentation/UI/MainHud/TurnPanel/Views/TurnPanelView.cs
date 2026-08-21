@@ -1,5 +1,4 @@
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
 using Modules.Turn.Events;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -34,7 +33,7 @@ namespace Presentation.UI.MainHud.TurnPanel.Views
 
         [SerializeField] private PanelRenderer _renderer;
 
-        private World _world;
+        private EntityStorages _storages;
         private VisualElement _root;
         private VisualElement _panel;
         private Button _button;
@@ -55,9 +54,9 @@ namespace Presentation.UI.MainHud.TurnPanel.Views
         private int _apNextValue;
 
         [Inject]
-        public void Construct(World world)
+        public void Construct(EntityStorages storages)
         {
-            _world = world;
+            _storages = storages;
         }
 
         private void OnEnable()
@@ -166,9 +165,7 @@ namespace Presentation.UI.MainHud.TurnPanel.Views
             if (_processing)
                 return;
 
-            var entity = _world.CreateEntity();
-            entity.Set(new NextTurnEvent());
-            entity.Set(new EventTag());
+            _storages.World.CreateEvent(new NextTurnEvent());
         }
 
         private void ApplyState()

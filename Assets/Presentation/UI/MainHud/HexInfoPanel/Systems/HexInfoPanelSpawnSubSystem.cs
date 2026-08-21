@@ -1,12 +1,12 @@
 using System;
-using DefaultEcs;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
+using Presentation.UI.Archetypes;
 using Presentation.UI.MainHud.HexInfoPanel.Components;
 using Presentation.UI.MainHud.HexInfoPanel.Views;
 using Presentation.UI.MainHud.Systems;
-using Presentation.UI.Tags;
 using UnityEngine;
-using DefaultECSExtensions;
+using EcsExtensions;
 
 namespace Presentation.UI.MainHud.HexInfoPanel.Systems
 {
@@ -19,13 +19,13 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
     [UsedImplicitly]
     internal sealed class HexInfoPanelSpawnSubSystem : MainHudSpawnSubSystem
     {
-        private readonly World _world;
+        private readonly Archetype _archetype;
 
         public override int Priority => SystemPriorities.SubSystems.MainHudSpawn.HexInfoPanel;
 
-        public HexInfoPanelSpawnSubSystem(World world)
+        public HexInfoPanelSpawnSubSystem(EntityStorages storages)
         {
-            _world = world;
+            _archetype = PresentationUIArchetypes.HexInfoPanel(storages.World);
         }
 
         public override void Prepare(GameObject mainUi)
@@ -37,9 +37,8 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
                 throw new InvalidOperationException(
                     "HexInfoPanelSpawnSubSystem: HexInfoPanelView is missing from the Main UI prefab.");
 
-            var panelEntity = _world.CreateEntity();
-            panelEntity.Set(new HexInfoPanelViewComponent(view));
-            panelEntity.Set<UITag>();
+            var panelEntity = _archetype.CreateEntity();
+            panelEntity.AddComponent(new HexInfoPanelViewComponent(view));
 
             // Empty context until a hex is selected; HexInfoPanelSystem swaps in the filled blocks.
             view.ShowEmpty();

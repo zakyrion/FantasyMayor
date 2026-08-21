@@ -1,8 +1,9 @@
+using Friflo.Engine.ECS;
 using Presentation.Terrain.Data;
 
 namespace Presentation.Terrain.Components
 {
-    public struct HydraulicErosionConfigComponent
+    public struct HydraulicErosionConfigComponent : IComponent
     {
         public bool EnableHydraulicErosion;
         public int HydraulicIterations;

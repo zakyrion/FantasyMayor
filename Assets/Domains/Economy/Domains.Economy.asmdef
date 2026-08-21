@@ -5,12 +5,13 @@
         "Domains.Kernel",
         "Domains.Map",
         "VContainer",
-        "DefaultECS.Extensions",
+        "Ecs.Extensions",
         "Boot.Core",
         "Core",
         "Addressables.Core",
         "UniTask",
-        "Turn"
+        "Turn",
+        "Unity.Collections"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

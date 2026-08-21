@@ -11,7 +11,7 @@ related:
 # Pattern — Config Loader System
 
 A one-shot system that runs at `ConfigLoadStep`: loads config SO(s) from Addressables, validates them, and
-publishes the world component(s). Subclass `ConfigLoaderSystem`. One approach.
+publishes singleton component(s). Subclass `ConfigLoaderSystem`. One approach.
 
 ## Skeleton
 
@@ -20,8 +20,12 @@ publishes the world component(s). Subclass `ConfigLoaderSystem`. One approach.
 internal sealed class [Name]ConfigLoaderSystem : ConfigLoaderSystem
 {
     private const string [Name]ConfigKey = "[addressable key]";
+    private readonly EntityStorages _storages;
 
-    public [Name]ConfigLoaderSystem(IAddressable addressable, World world) : base(addressable, world) { }
+    public [Name]ConfigLoaderSystem(IAddressable addressable, EntityStorages storages) : base(addressable)
+    {
+        _storages = storages;
+    }
 
     protected override async UniTask LoadConfigsAsync(CancellationToken cancellationToken)
     {
@@ -35,7 +39,7 @@ internal sealed class [Name]ConfigLoaderSystem : ConfigLoaderSystem
             // Validate BEFORE publishing — throw on any authoring violation (null entries, dup keys, empty).
             // e.g. throw new InvalidOperationException("[Name]ConfigLoaderSystem: entry N is null.");
 
-            World.Set([Name]ConfigComponent.FromConfig(configBox.Value));   // FLATTEN variant
+            _storages.Singletons.Set([Name]ConfigComponent.FromConfig(configBox.Value));   // FLATTEN variant
             MarkAsLoaded();
         }
         finally
@@ -51,7 +55,7 @@ field and release in `OnDispose`, because the published component points at the 
 
 ```csharp
 private Box<[ConfigName]> _config = Box<[ConfigName]>.Empty();
-// ...in LoadConfigsAsync: _config = await LoadConfigAsync<...>(...); World.Set(new [Name]ConfigComponent(_config.Value)); MarkAsLoaded();
+// ...in LoadConfigsAsync: _config = await LoadConfigAsync<...>(...); _storages.Singletons.Set(new [Name]ConfigComponent(_config.Value)); MarkAsLoaded();
 protected override void OnDispose() => DisposeBox(ref _config);
 ```
 
@@ -62,8 +66,8 @@ protected override void OnDispose() => DisposeBox(ref _config);
   {:box-flatten  "release in finally"
    :box-wrap     "RETAIN in a field, release in OnDispose"   ;; disposing while the component holds the SO reference would dangle it (PATTERN_CONFIG)
    :order        (-> validate MarkAsLoaded)                  ;; publishing garbage and continuing hides the bug — fail loud; LoadConfigAsync already throws on failed load, keep it
-   :publish      "World.Set world component"                 ;; never CreateEntity for the config itself
-   :loader       {:may      "build derived runtime world components"  ;; e.g. a grid from the config
+   :publish      "_storages.Singletons.Set"                  ;; never a queryable entity table for the config itself
+   :loader       {:may      "build derived runtime singleton components"  ;; e.g. a grid from the config
                   :must-not "per-frame or gameplay logic"}
    :quiet-return "cancellationToken.IsCancellationRequested ONLY"
    :wiring       "installer .As<IUniTaskSystem<ConfigLoadStep>>"})  ;; Boot runs all loaders sequentially at startup; addressable ownership: ADDRESSABLE_PATTERNS.md

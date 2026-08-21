@@ -1,6 +1,7 @@
-﻿namespace Domains.Economy.DistrictBuildOutcome.Tags{
+﻿using Friflo.Engine.ECS;
+namespace Domains.Economy.DistrictBuildOutcome.Tags{
     // Discriminator for the build-district-outcome table (key: DistrictTypeFKComponent).
-    public struct DistrictBuildOutcomeTag
+    public struct DistrictBuildOutcomeTag : ITag
     {
     }
 }

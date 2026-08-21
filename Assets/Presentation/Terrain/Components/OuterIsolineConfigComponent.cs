@@ -1,8 +1,9 @@
+using Friflo.Engine.ECS;
 using Presentation.Terrain.Data;
 
 namespace Presentation.Terrain.Components
 {
-    public struct OuterIsolineConfigComponent
+    public struct OuterIsolineConfigComponent : IComponent
     {
         public TraversalSideData Side;
         public int DepthCenter;

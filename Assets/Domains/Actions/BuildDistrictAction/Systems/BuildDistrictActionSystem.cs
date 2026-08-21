@@ -1,25 +1,25 @@
 ﻿using System;
-using DefaultEcs;
-using DefaultECSExtensions;
+using Domains.Actions.Archetypes;
 using Domains.Actions.BuildDistrictAction.Components;
 using Domains.Actions.BuildDistrictAction.Events;
 using Domains.Actions.Components;
+using Domains.Actors.Archetypes;
 using Domains.Actors.City.Components;
-using Domains.Actors.City.Tags;
 using Domains.Actors.Components;
 using Domains.Actors.Mayor.Components;
-using Domains.Actors.Mayor.Tags;
+using Domains.Economy.Archetypes;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
 using Domains.Economy.District.Events;
 using Domains.Economy.District.Helpers;
-using Domains.Economy.District.Tags;
 using Domains.Economy.DistrictBuildCost.Components;
 using Domains.Economy.DistrictBuildCost.Configs;
 using Domains.Economy.Resource.Data;
 using Domains.Economy.Resource.Helpers;
 using Domains.Kernel.Data;
 using Domains.Map.Hex.Components;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 
 namespace Domains.Actions.BuildDistrictAction.Systems
@@ -45,45 +45,49 @@ namespace Domains.Actions.BuildDistrictAction.Systems
     [UsedImplicitly]
     public sealed class BuildDistrictActionSystem : UpdatedSystem
     {
-        private readonly World _world;
+        private readonly EntityStorages _storages;
 
         // Actor rows (Table Rule): id PK + tag + ActorTypeComponent discriminator; the Mayor also carries the AP pool.
-        private readonly EntitySet _mayorActor;
-        private readonly EntitySet _cityActor;
+        private readonly Archetype _mayorActor;
+        private readonly Archetype _cityActor;
 
         // Resource stacks grouped by owner id — the payer's stockpile handed to ResourceLedger for the spend.
-        private readonly EntityMultiMap<MayorIdFKComponent> _mayorResources;
-        private readonly EntityMultiMap<CityIdFKComponent> _cityResources;
+        private readonly ComponentIndex<MayorIdFKComponent, int> _mayorResources;
+        private readonly ComponentIndex<CityIdFKComponent, int> _cityResources;
+
+        private readonly Archetype _districtArchetype;
+        private readonly Archetype _buildInProgressArchetype;
 
         public override int Priority => SystemPriorities.RuntimeTick.BuildDistrictAction;
 
-        public BuildDistrictActionSystem(World world)
-            : base(world.GetEntities().With<DistrictBuildConfirmedEvent>().AsSet())
+        public BuildDistrictActionSystem(EntityStorages storages)
+            : base(storages.World, EventArchetypes.Of<DistrictBuildConfirmedEvent>(storages.World))
         {
-            _world = world;
+            _storages = storages;
 
-            _mayorActor = world.GetEntities()
-                .With<MayorIdComponent>().With<MayorTag>().With<MayorAPComponent>().With<ActorTypeComponent>().AsSet();
-            _cityActor = world.GetEntities()
-                .With<CityIdComponent>().With<CityTag>().With<ActorTypeComponent>().AsSet();
-            _mayorResources = world.GetEntities()
-                .With<MayorIdFKComponent>().With<MayorResourceTag>().AsMultiMap<MayorIdFKComponent>();
-            _cityResources = world.GetEntities()
-                .With<CityIdFKComponent>().With<CityResourceTag>().AsMultiMap<CityIdFKComponent>();
+            _mayorActor = ActorsArchetypes.Mayor(storages.World);
+            _cityActor = ActorsArchetypes.City(storages.World);
+            _mayorResources = storages.World.ComponentIndex<MayorIdFKComponent, int>();
+            _cityResources = storages.World.ComponentIndex<CityIdFKComponent, int>();
+            _districtArchetype = EconomyArchetypes.District(storages.World);
+            _buildInProgressArchetype = ActionsArchetypes.BuildDistrictInProgress(storages.World);
 
             // Seed the shared action-id counter once; ids start at 1 (0 = unset).
-            if (!world.Has<ActionIdAllocatorComponent>())
-                world.Set(new ActionIdAllocatorComponent { Next = 1 });
+            if (!storages.Singletons.Has<ActionIdAllocatorComponent>())
+                storages.Singletons.Set(new ActionIdAllocatorComponent { Next = 1 });
 
             // Seed the district-id counter once; ids start at 1 (0 = unset). Moved here from
             // BuildDistrictCompletionSystem (FLOW_DISTRICT_BUILD unification): the PK is allocated at CONFIRM now.
-            if (!world.Has<DistrictIdAllocatorComponent>())
-                world.Set(new DistrictIdAllocatorComponent { Next = 1 });
+            if (!storages.Singletons.Has<DistrictIdAllocatorComponent>())
+                storages.Singletons.Set(new DistrictIdAllocatorComponent { Next = 1 });
         }
 
         protected override void Update(GameState state, in Entity pulse)
         {
-            var confirmed = pulse.Get<DistrictBuildConfirmedEvent>();
+            if (!EcsEventExtensions.IsRipe(pulse))
+                return;
+
+            var confirmed = pulse.GetComponent<DistrictBuildConfirmedEvent>();
             var cost = ResolveCost(confirmed.Type);
 
             // Charge the price BEFORE committing any row: a shortfall throws, so a half-built state can never exist.
@@ -91,30 +95,22 @@ namespace Domains.Actions.BuildDistrictAction.Systems
 
             var districtId = AllocateDistrictId();
 
-            var district = _world.CreateEntity();
-            district.Set(new DistrictTag());
-            district.Set(new DistrictIdComponent { Value = districtId });
-            district.Set(new HexIdFKComponent { Coords = confirmed.Coords });
-            district.Set(new DistrictTypeComponent { Value = confirmed.Type });
-            district.Set(new DistrictBuildStateComponent { Value = DistrictBuildState.Planned });
+            var district = _districtArchetype.CreateEntity();
+            district.AddComponent(new DistrictIdComponent { Value = districtId });
+            district.AddComponent(new HexIdFKComponent { Coords = confirmed.Coords });
+            district.AddComponent(new DistrictTypeComponent { Value = confirmed.Type });
+            district.AddComponent(new DistrictBuildStateComponent { Value = DistrictBuildState.Planned });
 
-            var entity = _world.CreateEntity();
-            entity.Set(new DistrictIdFKComponent { Value = districtId });
-            entity.Set(new ActionIdComponent { Value = AllocateId() });
-            entity.Set(new BuildDistrictTurnsComponent { TurnsLeft = cost.TurnsToBuild, TurnsToBuild = cost.TurnsToBuild });
-            entity.Set(new ActorTypeComponent { Type = confirmed.Payer });
-            entity.Set(new BuildDistrictInProgressTag());
+            var entity = _buildInProgressArchetype.CreateEntity();
+            entity.AddComponent(new DistrictIdFKComponent { Value = districtId });
+            entity.AddComponent(new ActionIdComponent { Value = AllocateId() });
+            entity.AddComponent(new BuildDistrictTurnsComponent { TurnsLeft = cost.TurnsToBuild, TurnsToBuild = cost.TurnsToBuild });
+            entity.AddComponent(new ActorTypeComponent { Type = confirmed.Payer });
 
-            var changeEntity = _world.CreateEntity();
-            changeEntity.Set(new DistrictTableChangedEvent { Change = DistrictTableChange.Planned });
-            changeEntity.Set(new EventTag());
+            _storages.World.CreateEvent(new DistrictTableChangedEvent { Change = DistrictTableChange.Planned });
 
             if (cost.TurnsToBuild == 0)
-            {
-                var eventEntity = _world.CreateEntity();
-                eventEntity.Set(new BuildDistrictCompleteEvent());
-                eventEntity.Set(new EventTag());
-            }
+                _storages.World.CreateEvent(new BuildDistrictCompleteEvent());
         }
 
         // All-or-nothing spend: resources from the payer's stockpile + AP from the Mayor's pool. Affordability is
@@ -123,7 +119,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         private void SpendCost(ActorType payer, DistrictBuildCostConfig cost)
         {
             var mayor = ResolveMayor();
-            var mayorAp = mayor.Get<MayorAPComponent>().Value;
+            var mayorAp = mayor.GetComponent<MayorAPComponent>().Value;
             var stacks = ResolvePayerStacks(payer, mayor);
 
             // Flatten the authored price list to a stack-allocated span (zero managed allocation in the system).
@@ -139,38 +135,32 @@ namespace Domains.Actions.BuildDistrictAction.Systems
                     $"(AP {mayorAp}/{cost.ApPrice}). Confirm should be UI-gated by DistrictBuildPriceUISubSystem.");
 
             ResourceLedger.Deduct(stacks, amounts);
-            mayor.Set(new MayorAPComponent { Value = mayorAp - cost.ApPrice });
+            mayor.AddComponent(new MayorAPComponent { Value = mayorAp - cost.ApPrice });
         }
 
         // The single Mayor actor that holds the AP pool. Missing it at confirm is a broken world (the overlay only
         // opens in Gameplay, where a Mayor exists) — fail loud.
         private Entity ResolveMayor()
         {
-            if (_mayorActor.Count == 0)
+            if (!_mayorActor.TryGetFirst(out var mayor))
                 throw new InvalidOperationException("BuildDistrictActionSystem: no Mayor actor to charge AP.");
 
-            return _mayorActor.GetEntities()[0];
+            return mayor;
         }
 
         // The payer's resource stockpile (Mayor or City). An owner with no stacks yet resolves to empty — the
         // affordability guard then rejects any non-zero price. A payer that is neither is an authoring/UI error.
-        private ReadOnlySpan<Entity> ResolvePayerStacks(ActorType payer, in Entity mayor)
+        private Entities ResolvePayerStacks(ActorType payer, in Entity mayor)
         {
             if (payer == ActorType.Mayor)
-                return _mayorResources.TryGetEntities(
-                    new MayorIdFKComponent { Value = mayor.Get<MayorIdComponent>().Value }, out var mayorStacks)
-                    ? mayorStacks
-                    : ReadOnlySpan<Entity>.Empty;
+                return _mayorResources[mayor.GetComponent<MayorIdComponent>().Value];
 
             if (payer == ActorType.City)
             {
-                if (_cityActor.Count == 0)
+                if (!_cityActor.TryGetFirst(out var cityActor))
                     throw new InvalidOperationException("BuildDistrictActionSystem: no City actor to charge resources.");
 
-                var cityId = _cityActor.GetEntities()[0].Get<CityIdComponent>().Value;
-                return _cityResources.TryGetEntities(new CityIdFKComponent { Value = cityId }, out var cityStacks)
-                    ? cityStacks
-                    : ReadOnlySpan<Entity>.Empty;
+                return _cityResources[cityActor.GetComponent<CityIdComponent>().Value];
             }
 
             throw new InvalidOperationException($"BuildDistrictActionSystem: unsupported payer '{payer}'.");
@@ -180,41 +170,32 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         // no cost config is a broken invariant (the UI only offers configured districts), not a benign default.
         private DistrictBuildCostConfig ResolveCost(DistrictType type)
         {
-            if (!_world.Has<DistrictBuildCostsConfigComponent>())
+            if (!_storages.Singletons.Has<DistrictBuildCostsConfigComponent>())
                 throw new InvalidOperationException(
-                    "BuildDistrictActionSystem: DistrictBuildCostsConfigComponent world component is missing.");
+                    "BuildDistrictActionSystem: DistrictBuildCostsConfigComponent singleton component is missing.");
 
             if (!DistrictConfigLookup.TryFind(
-                    _world.Get<DistrictBuildCostsConfigComponent>().Value?.Districts, type, c => c.DistrictType, out var cost))
+                    _storages.Singletons.Get<DistrictBuildCostsConfigComponent>().Value?.Districts, type, c => c.DistrictType, out var cost))
                 throw new InvalidOperationException(
                     $"BuildDistrictActionSystem: no DistrictBuildCostConfig for district type '{type}'.");
 
             return cost;
         }
 
-        // Hands out the next unique action id and advances the shared counter (write via Set).
+        // Hands out the next unique action id and advances the shared counter (write via AddComponent).
         private int AllocateId()
         {
-            var id = _world.Get<ActionIdAllocatorComponent>().Next;
-            _world.Set(new ActionIdAllocatorComponent { Next = id + 1 });
+            var id = _storages.Singletons.Get<ActionIdAllocatorComponent>().Next;
+            _storages.Singletons.Set(new ActionIdAllocatorComponent { Next = id + 1 });
             return id;
         }
 
-        // Hands out the next unique district id and advances the shared counter (write via Set).
+        // Hands out the next unique district id and advances the shared counter (write via AddComponent).
         private int AllocateDistrictId()
         {
-            var id = _world.Get<DistrictIdAllocatorComponent>().Next;
-            _world.Set(new DistrictIdAllocatorComponent { Next = id + 1 });
+            var id = _storages.Singletons.Get<DistrictIdAllocatorComponent>().Next;
+            _storages.Singletons.Set(new DistrictIdAllocatorComponent { Next = id + 1 });
             return id;
-        }
-
-        public override void Dispose()
-        {
-            _mayorActor.Dispose();
-            _cityActor.Dispose();
-            _mayorResources.Dispose();
-            _cityResources.Dispose();
-            base.Dispose();
         }
     }
 }

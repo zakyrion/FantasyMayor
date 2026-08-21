@@ -2,8 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
 using Presentation.HexIcons.Components;
 using Presentation.HexIcons.Events;
 using Modules.Turn.Components;
@@ -18,17 +17,17 @@ namespace Modules.Boot.Implementation.States
     {
         private readonly IReadOnlyList<IUpdatedSystem> _updateSystems;
         private readonly IReadOnlyList<ILateUpdatedSystem> _lateUpdateSystems;
-        private readonly World _world;
+        private readonly EntityStorages _storages;
 
         public GameMode Mode => GameMode.Gameplay;
         public GameMode? RequestedMode => null;
 
         public GameplayState(
-            World world,
+            EntityStorages storages,
             IReadOnlyList<IUpdatedSystem> updateSystems,
             IReadOnlyList<ILateUpdatedSystem> lateUpdateSystems)
         {
-            _world = world;
+            _storages = storages;
             _updateSystems = updateSystems.OrderBy(system => system.Priority).ToArray();
             _lateUpdateSystems = lateUpdateSystems.OrderBy(system => system.Priority).ToArray();
         }
@@ -38,15 +37,13 @@ namespace Modules.Boot.Implementation.States
             // Producer (variant B): write the initial visibility state, then raise a one-frame event so the
             // consumer renders icons on the first Gameplay tick. The player toggles this later via UI by
             // writing HexIconsVisibilityComponent and raising the same event.
-            _world.Set(new HexIconsVisibilityComponent(true));
+            _storages.Singletons.Set(new HexIconsVisibilityComponent(true));
 
-            var visibilityEvent = _world.CreateEntity();
-            visibilityEvent.Set(new HexIconsVisibilityChangedEvent());
-            visibilityEvent.Set(new EventTag());
+            _storages.World.CreateEvent(new HexIconsVisibilityChangedEvent());
 
             // The game opens on the first Mayor Phase = turn 1; TurnCountSystem increments it on each
             // turn boundary. Seeded here so the turn cluster can show "Хід N" from the first frame.
-            _world.Set(new TurnCountComponent(1));
+            _storages.Singletons.Set(new TurnCountComponent(1));
 
             return UniTask.CompletedTask;
         }

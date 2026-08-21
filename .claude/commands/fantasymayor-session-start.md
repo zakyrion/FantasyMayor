@@ -49,6 +49,13 @@ in the status report; if the count grew since the last session, say so. Do not f
 the full list (`python3 Tools/doc_lint.py`) is on-demand ammunition for a doc-cleanup task, and a doc
 that doc-lint flags is proof its claims must be re-verified against code before trusting them.
 
+### 1c. Canon sync check
+
+Run `python3 Tools/gen_agents.py --check` from the project root (1 cheap CLI call). It verifies that
+every GENERATED zone in `AGENTS.md` is byte-identical to its SHARED canon block in `CLAUDE.md`. Note
+the one summary line in the status report. On drift, offer the rebuild (`python3 Tools/gen_agents.py`)
+— do not run it unprompted; canon edits themselves still land in `CLAUDE.md` first.
+
 ### 2. Reconstruct the current state
 
 From the `always` docs and any root status notes INDEX points to, extract only the facts that help

@@ -1,3 +1,4 @@
+using Friflo.Engine.ECS;
 namespace Presentation.HexIcons.Components
 {
     /// <summary>
@@ -5,7 +6,7 @@ namespace Presentation.HexIcons.Components
     ///     it (via UI later); the producer writes it, then raises a <c>HexIconsVisibilityChangedEvent</c> so
     ///     the consumer re-renders. Public so the producer (Boot assembly) can write it.
     /// </summary>
-    public readonly struct HexIconsVisibilityComponent
+    public readonly struct HexIconsVisibilityComponent : IComponent
     {
         public readonly bool IsVisible;
 

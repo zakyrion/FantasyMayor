@@ -1,3 +1,4 @@
+using Friflo.Engine.ECS;
 namespace Modules.Turn.Events
 {
     /// <summary>
@@ -6,7 +7,7 @@ namespace Modules.Turn.Events
     ///     <c>TurnCountSystem</c> (and any future turn-boundary reactors). Decouples the turn counter from the
     ///     processor's completion-detection logic.
     /// </summary>
-    public struct TurnCompletedEvent
+    public struct TurnCompletedEvent : IComponent
     {
     }
 }

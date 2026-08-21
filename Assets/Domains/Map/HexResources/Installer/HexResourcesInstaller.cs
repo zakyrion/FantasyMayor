@@ -1,4 +1,4 @@
-using DefaultECSExtensions;
+using EcsExtensions;
 using Modules.Boot.Core;
 using Domains.Map.HexResources.Systems;
 using VContainer;

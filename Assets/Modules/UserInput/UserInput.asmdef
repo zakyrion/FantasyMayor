@@ -5,7 +5,7 @@
         "Core",
         "Cameras",
         "VContainer",
-        "DefaultECS.Extensions",
+        "Ecs.Extensions",
         "Unity.InputSystem",
         "Addressables.Core",
         "UniTask",

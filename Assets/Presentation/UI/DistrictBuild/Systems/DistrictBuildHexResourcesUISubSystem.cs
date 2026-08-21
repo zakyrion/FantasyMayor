@@ -1,24 +1,24 @@
-using System;
-using DefaultEcs;
+﻿using System;
 using Domains.Economy.District.Data;
 using Domains.Economy.District.Helpers;
 using Domains.Economy.DistrictBuild.Components;
 using Domains.Economy.DistrictBuild.Configs;
+using Domains.Map.Archetypes;
 using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Data;
-using Domains.Map.Hex.Tags;
 using Domains.Map.HexResources.Components;
 using Domains.Map.HexResources.Data;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
+using Presentation.Archetypes;
 using Presentation.Terrain.Components;
+using Presentation.UI.Archetypes;
 using Presentation.UI.DistrictBuild.Components;
 using Presentation.UI.DistrictBuild.Tags;
 using Presentation.UI.DistrictBuild.Views;
 using UnityEngine;
-using DefaultECSExtensions;
-using Presentation.Terrain.Tags;
-using Domains.Map.HexResources.Tags;
 
 namespace Presentation.UI.DistrictBuild.Systems
 {
@@ -29,27 +29,34 @@ namespace Presentation.UI.DistrictBuild.Systems
     [UsedImplicitly]
     public sealed class DistrictBuildHexResourcesUISubSystem : DistrictBuildUISubSystem
     {
-        private readonly EntitySet _selectionSet;
-        private readonly EntitySet _selectedHexSet;
-        private readonly EntitySet _hexSet;
-        private readonly EntityMultiMap<HexIdFKComponent> _hexResources;
+        private readonly EntityStorages _storages;
+        private readonly Archetype _selectionSet;
+        private readonly Archetype _selectedHexSet;
+        private readonly Archetype _hexSet;
+        // HexIdFKComponent is shared by every hex-anchored entity kind (views, containers, districts) — a bare
+        // ComponentIndex over it is ambiguous across kinds; scope the query to the resource archetype itself.
+        private readonly Archetype _hexResources;
 
         public override int Priority => SystemPriorities.SubSystems.DistrictBuildUi.HexResources;
 
-        public DistrictBuildHexResourcesUISubSystem(World world) : base(world)
+        public DistrictBuildHexResourcesUISubSystem(EntityStorages storages) : base(storages.World)
         {
-            _selectionSet = world.GetEntities().With<DistrictBuildSelectionTag>().AsSet();
-            _selectedHexSet = world.GetEntities().With<HexSelectedComponent>().With<HexSelectionTag>().AsSet();
-            _hexSet = world.GetEntities().With<HexTag>().With<HexIdComponent>().AsSet();
-            _hexResources = world.GetEntities()
-                .With<HexResourceComponent>().With<HexResourceTag>().With<HexIdFKComponent>().AsMultiMap<HexIdFKComponent>();
+            _storages = storages;
+            _selectionSet = PresentationUIArchetypes.DistrictBuildSelection(storages.World);
+            _selectedHexSet = PresentationArchetypes.HexSelection(storages.World);
+            _hexSet = MapArchetypes.Hex(storages.World);
+            _hexResources = MapArchetypes.HexResource(storages.World);
         }
 
         public override void Populate(GameObject root)
         {
-            var view = World.Get<DistrictBuildHexResourcesUIViewComponent>().View;
+            var view = _storages.Singletons.Get<DistrictBuildHexResourcesUIViewComponent>().View;
 
-            var selected = _selectionSet.GetEntities()[0].Get<DistrictBuildSelectionComponent>().Selected;
+            if (!_selectionSet.TryGetFirst(out var selectionEntity))
+                throw new InvalidOperationException(
+                    $"DistrictBuildHexResourcesUISubSystem: Populate called with no active {nameof(DistrictBuildSelectionTag)} entity.");
+
+            var selected = selectionEntity.GetComponent<DistrictBuildSelectionComponent>().Selected;
             if (!TryGetDistrict(selected, out var district))
             {
                 view.SetDistrictName(string.Empty);
@@ -60,10 +67,10 @@ namespace Presentation.UI.DistrictBuild.Systems
             view.SetDistrictName(DistrictBuildLabels.DistrictName(district.DistrictType));
             view.ClearRequirements();
 
-            if (_selectedHexSet.Count == 0)
+            if (!_selectedHexSet.TryGetFirst(out var selectedHexEntity))
                 return;
 
-            var coords = _selectedHexSet.GetEntities()[0].Get<HexSelectedComponent>().Coords;
+            var coords = selectedHexEntity.GetComponent<HexSelectedComponent>().Coords;
             if (!TryGetHexType(coords, out var hexType))
                 return;
 
@@ -89,52 +96,50 @@ namespace Presentation.UI.DistrictBuild.Systems
                     $"is {DistrictType.Unknown} — the selection must be a real district or {nameof(DistrictType.None)}, " +
                     "never the error marker.");
 
-            if (type == DistrictType.None || !World.Has<DistrictBuildsConfigComponent>())
+            if (type == DistrictType.None || !_storages.Singletons.Has<DistrictBuildsConfigComponent>())
                 return false;
 
             return DistrictConfigLookup.TryFind(
-                World.Get<DistrictBuildsConfigComponent>().Value?.Districts, type, d => d.DistrictType, out district);
+                _storages.Singletons.Get<DistrictBuildsConfigComponent>().Value?.Districts, type, d => d.DistrictType, out district);
         }
 
         private bool TryGetHexType(HexCoord coords, out HexType type)
         {
             type = default;
-            foreach (var hexEntity in _hexSet.GetEntities())
+            foreach (var hexEntity in _hexSet.Entities)
             {
-                if (hexEntity.Get<HexIdComponent>().Coords != coords)
+                if (hexEntity.GetComponent<HexIdComponent>().Coords != coords)
                     continue;
 
-                type = hexEntity.Get<HexTypeComponent>().Type;
+                type = hexEntity.GetComponent<HexTypeComponent>().Type;
                 return true;
             }
 
             return false;
         }
 
-        private int HexResourceCount(HexCoord coords) =>
-            _hexResources.TryGetEntities(new HexIdFKComponent { Coords = coords }, out var resources)
-                ? resources.Length
-                : 0;
+        private int HexResourceCount(HexCoord coords)
+        {
+            var count = 0;
+            foreach (var resource in _hexResources.Entities)
+                if (resource.GetComponent<HexIdFKComponent>().Coords.Equals(coords))
+                    count++;
+
+            return count;
+        }
 
         private bool HexHasResource(HexCoord coords, HexResourceType type)
         {
-            if (!_hexResources.TryGetEntities(new HexIdFKComponent { Coords = coords }, out var resources))
-                return false;
+            foreach (var resource in _hexResources.Entities)
+            {
+                if (!resource.GetComponent<HexIdFKComponent>().Coords.Equals(coords))
+                    continue;
 
-            foreach (var resource in resources)
-                if (resource.Get<HexResourceComponent>().Type == type)
+                if (resource.GetComponent<HexResourceComponent>().Type == type)
                     return true;
+            }
 
             return false;
-        }
-
-        public override void Dispose()
-        {
-            _selectionSet.Dispose();
-            _selectedHexSet.Dispose();
-            _hexSet.Dispose();
-            _hexResources.Dispose();
-            base.Dispose();
         }
     }
 }

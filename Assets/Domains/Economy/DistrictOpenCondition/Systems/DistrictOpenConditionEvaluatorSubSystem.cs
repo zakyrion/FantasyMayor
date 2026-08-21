@@ -1,5 +1,5 @@
 using System;
-using DefaultEcs;
+using Friflo.Engine.ECS;
 
 namespace Domains.Economy.DistrictOpenCondition.Systems
 {
@@ -10,19 +10,20 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
     // host names IReadOnlyList<DistrictOpenConditionEvaluatorSubSystem> directly in Boot.Construct.
     public abstract class DistrictOpenConditionEvaluatorSubSystem : IDisposable
     {
-        protected readonly World World;
+        protected readonly EntityStore World;
 
         public bool IsEnabled { get; set; } = true;
 
         public abstract int Priority { get; }
 
-        protected DistrictOpenConditionEvaluatorSubSystem(World world)
+        protected DistrictOpenConditionEvaluatorSubSystem(EntityStore world)
         {
             World = world;
         }
 
         // Reconciles DistrictOpenStateComponent for this subsystem's condition kind against current world state.
-        // Idempotent: a re-run with no real change is a no-op (state Set() only on an actual value change).
+        // Idempotent: a re-run with no real change is a no-op (the state column is written only on an actual
+        // value change).
         public abstract void Evaluate();
 
         public virtual void Dispose()

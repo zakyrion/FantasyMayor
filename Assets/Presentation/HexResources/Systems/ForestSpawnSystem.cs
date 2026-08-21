@@ -1,19 +1,19 @@
-using System;
-using DefaultEcs;
-using DefaultECSExtensions;
-using JetBrains.Annotations;
+﻿using System;
+using Domains.Map.Archetypes;
 using Domains.Map.Hex.Components;
-using Domains.Map.Hex.Tags;
 using Domains.Map.HexResources.Components;
 using Domains.Map.HexResources.Data;
+using EcsExtensions;
+using Friflo.Engine.ECS;
+using JetBrains.Annotations;
+using Modules.AxialSystem;
+using Presentation.Archetypes;
 using Presentation.HexResources.Components;
 using Presentation.HexResources.Events;
 using Presentation.HexResources.Helpers;
 using Presentation.Terrain.Components;
 using Unity.Collections;
 using UnityEngine;
-using Presentation.HexResources.Tags;
-using Domains.Map.HexResources.Tags;
 
 namespace Presentation.HexResources.Systems
 {
@@ -29,87 +29,86 @@ namespace Presentation.HexResources.Systems
     public sealed class ForestSpawnSystem : UpdatedSystem
     {
         // HexResource table indexed by its discriminator value -> the Forest bucket is the wanted set.
-        private readonly EntityMultiMap<HexResourceComponent> _resourcesByType;
+        private readonly ComponentIndex<HexResourceComponent, HexResourceType> _resourcesByType;
 
-        // ResourceView (forest) table indexed by the hex FK -> N tree entities per coordinate.
-        private readonly EntityMultiMap<HexIdFKComponent> _forestViewsByHex;
-
-        private readonly EntitySet _hexSet;
+        private readonly Archetype _forestViews;
+        private readonly Archetype _hexSet;
         private readonly ForestPlanter _planter = new();
-        private readonly World _world;
+        private readonly EntityStorages _storages;
 
-        private Transform _root;
+        private UnityEngine.Transform _root;
 
         public override int Priority => SystemPriorities.RuntimeTick.ForestSpawn;
 
-        public ForestSpawnSystem(World world)
-            : base(world.GetEntities()
-                .With<ForestHexAppearedEvent>()
-                .AsSet())
+        public ForestSpawnSystem(EntityStorages storages)
+            : base(storages.World, EventArchetypes.Of<ForestHexAppearedEvent>(storages.World))
         {
-            _world = world;
-            _resourcesByType = world.GetEntities()
-                .With<HexIdFKComponent>()
-                .With<HexResourceComponent>().With<HexResourceTag>()
-                .AsMultiMap<HexResourceComponent>();
-
-            _forestViewsByHex = world.GetEntities()
-                .With<HexIdFKComponent>()
-                .With<ForestViewComponent>().With<ForestViewTag>()
-                .AsMultiMap<HexIdFKComponent>();
-
-            _hexSet = world.GetEntities().With<HexTag>().With<HexIdComponent>().AsSet();
+            _storages = storages;
+            _resourcesByType = storages.World.ComponentIndex<HexResourceComponent, HexResourceType>();
+            _forestViews = PresentationArchetypes.ForestView(storages.World);
+            _hexSet = MapArchetypes.Hex(storages.World);
         }
 
         // The pulse entity itself is ignored — reconciliation is global over current state.
         protected override void Update(GameState state, in Entity pulse)
         {
-            if (!_world.Has<TerrainTextureComponent>())
+            if (!EcsEventExtensions.IsRipe(pulse))
                 return;
 
-            var texture = _world.Get<TerrainTextureComponent>().Texture;
+            if (!_storages.Singletons.Has<TerrainTextureComponent>())
+                return;
+
+            var texture = _storages.Singletons.Get<TerrainTextureComponent>().Texture;
             if (texture == null)
                 return;
 
-            if (!_world.Has<VertexGridComponent>())
+            if (!_storages.Singletons.Has<VertexGridComponent>())
                 throw new InvalidOperationException(
-                    "ForestSpawnSystem: VertexGridComponent world component is missing.");
+                    "ForestSpawnSystem: VertexGridComponent singleton component is missing.");
 
-            if (!_world.Has<TerrainViewConfigComponent>() || !_world.Has<HexResourcesViewConfigComponent>())
+            if (!_storages.Singletons.Has<TerrainViewConfigComponent>() || !_storages.Singletons.Has<HexResourcesViewConfigComponent>())
                 return;
 
-            var forestKey = new HexResourceComponent { Type = HexResourceType.Forest };
-            if (!_resourcesByType.TryGetEntities(forestKey, out var forestHexes))
+            var forestResources = _resourcesByType[HexResourceType.Forest];
+            if (forestResources.Count == 0)
                 return;
 
-            var vertexGrid = _world.Get<VertexGridComponent>().Grid;
-            var viewConfig = _world.Get<HexResourcesViewConfigComponent>().Value;
-            var cellSize = _world.Get<TerrainViewConfigComponent>().CellSize;
+            var vertexGrid = _storages.Singletons.Get<VertexGridComponent>().Grid;
+            var viewConfig = _storages.Singletons.Get<HexResourcesViewConfigComponent>().Value;
+            var cellSize = _storages.Singletons.Get<TerrainViewConfigComponent>().CellSize;
 
             if (_root == null)
                 _root = new GameObject("ForestViewRoot").transform;
 
             var newSplats = new NativeList<ForestGroundPainter.Splat>(64, Allocator.Temp);
+            var forestHexes = new NativeHashSet<HexCoord>(Math.Max(1, forestResources.Count), Allocator.Temp);
+            var viewedHexes = new NativeHashSet<HexCoord>(Math.Max(1, _forestViews.Count), Allocator.Temp);
 
-            // Forested but not yet viewed -> plant trees and collect their ground splats.
-            foreach (ref readonly var hex in forestHexes)
+            try
             {
-                var hexId = hex.Get<HexIdFKComponent>();
-                if (!_forestViewsByHex.ContainsKey(hexId))
-                    _planter.PlantHex(_world, _root, hexId.Coords, vertexGrid, viewConfig, ref newSplats);
+                // Snapshot both table scopes before PlantHex structurally creates ForestView entities.
+                foreach (var resource in forestResources)
+                    forestHexes.Add(resource.GetComponent<HexIdFKComponent>().Coords);
+
+                foreach (var view in _forestViews.Entities)
+                    viewedHexes.Add(view.GetComponent<HexIdFKComponent>().Coords);
+
+                // Forested but not yet viewed -> plant trees and collect their ground splats.
+                foreach (var coords in forestHexes)
+                {
+                    if (!viewedHexes.Contains(coords))
+                        _planter.PlantHex(_storages.World, _root, coords, vertexGrid, viewConfig, ref newSplats);
+                }
+
+                // Append-only: paint just the new patches over the current pixels.
+                _planter.Paint(_hexSet, cellSize, newSplats, texture);
             }
-
-            // Append-only: paint just the new patches over the current pixels.
-            _planter.Paint(_hexSet, cellSize, newSplats, texture);
-            newSplats.Dispose();
-        }
-
-        public override void Dispose()
-        {
-            _resourcesByType.Dispose();
-            _forestViewsByHex.Dispose();
-            _hexSet.Dispose();
-            base.Dispose();
+            finally
+            {
+                viewedHexes.Dispose();
+                forestHexes.Dispose();
+                newSplats.Dispose();
+            }
         }
     }
 }

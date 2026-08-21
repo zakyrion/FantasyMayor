@@ -1,3 +1,4 @@
+using Friflo.Engine.ECS;
 namespace Presentation.Terrain.Events
 {
     /// <summary>
@@ -6,7 +7,7 @@ namespace Presentation.Terrain.Events
     ///     HexSelectedComponent (present/value); the pulse carries no data by design. Paired with EventTag;
     ///     disposed each tick by EventCleanupSystem.
     /// </summary>
-    public struct SelectedHexChangedEvent
+    public struct SelectedHexChangedEvent : IComponent
     {
     }
 }

@@ -1,16 +1,15 @@
-using System;
-using DefaultEcs;
-using DefaultECSExtensions;
+﻿using System;
+using Domains.Map.Hex.Utils;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
-using Domains.Map.Hex.Utils;
+using Presentation.Archetypes;
 using Presentation.Terrain.Components;
 using Presentation.Terrain.Events;
 using Presentation.Terrain.Views;
 using Unity.Collections;
 using Unity.Mathematics;
-using Presentation.Terrain.Tags;
-using UnityEngine;
 
 namespace Presentation.Terrain.Systems
 {
@@ -24,9 +23,9 @@ namespace Presentation.Terrain.Systems
         private const int BorderBfsDepth = 3;
         private const float BorderLift = 0.08f;
 
-        private readonly EntitySet _selectedHexSet;
-        private readonly EntitySet _viewSet;
-        private readonly World _world;
+        private readonly Archetype _selectedHexSet;
+        private readonly Archetype _viewSet;
+        private readonly EntityStorages _storages;
 
         private bool _hadSelection;
         private HexSelectedComponent _lastSelection;
@@ -35,30 +34,32 @@ namespace Presentation.Terrain.Systems
         /// <inheritdoc />
         public override int Priority => SystemPriorities.RuntimeTick.HexSelectionView;
 
-        public HexSelectionViewSystem(World world)
-            : base(world.GetEntities()
-                .With<SelectedHexChangedEvent>().With<EventTag>().AsSet())
+        public HexSelectionViewSystem(EntityStorages storages)
+            : base(storages.World, EventArchetypes.Of<SelectedHexChangedEvent>(storages.World))
         {
-            _world = world;
-            _viewSet = world.GetEntities()
-                .With<HexSelectionViewComponent>().With<HexSelectionViewTag>()
-                .AsSet();
-            _selectedHexSet = world.GetEntities()
-                .With<HexSelectedComponent>().With<HexSelectionTag>()
-                .AsSet();
+            _storages = storages;
+            _viewSet = PresentationArchetypes.HexSelectionView(storages.World);
+            _selectedHexSet = PresentationArchetypes.HexSelection(storages.World);
         }
 
         /// <inheritdoc />
         protected override void Update(GameState state, in Entity entity)
         {
-            var view = _viewSet.GetEntities()[0].Get<HexSelectionViewComponent>().ObjectRef;
+            if (!EcsEventExtensions.IsRipe(entity))
+                return;
+
+            if (!_viewSet.TryGetFirst(out var viewEntity))
+                throw new InvalidOperationException(
+                    "HexSelectionViewSystem: no HexSelectionView entity — HexSelectionViewLoadingSystem must run first.");
+
+            var view = viewEntity.GetComponent<HexSelectionViewComponent>().ObjectRef;
 
             if (view == null)
                 return;
 
             var viewChanged = _lastView != view;
 
-            if (_selectedHexSet.Count == 0)
+            if (!_selectedHexSet.TryGetFirst(out var selectedEntity))
             {
                 if (_hadSelection || viewChanged)
                     view.HideSelectionMesh();
@@ -68,16 +69,16 @@ namespace Presentation.Terrain.Systems
                 return;
             }
 
-            if (!_world.Has<VertexGridComponent>())
-                throw new InvalidOperationException("HexSelectionViewSystem: VertexGridComponent world component is missing.");
+            if (!_storages.Singletons.Has<VertexGridComponent>())
+                throw new InvalidOperationException("HexSelectionViewSystem: VertexGridComponent singleton component is missing.");
 
-            var selected = _selectedHexSet.GetEntities()[0].Get<HexSelectedComponent>();
+            var selected = selectedEntity.GetComponent<HexSelectedComponent>();
             if (!viewChanged && _hadSelection && _lastSelection.Coords == selected.Coords)
             {
                 return;
             }
 
-            VertexGrid vertexGrid = _world.Get<VertexGridComponent>().Grid;
+            VertexGrid vertexGrid = _storages.Singletons.Get<VertexGridComponent>().Grid;
             ComputeSelectionRings(selected.Coords, vertexGrid, out var outerRing, out var innerRing);
 
             view.ShowSelectionBorder(outerRing, innerRing);
@@ -163,13 +164,6 @@ namespace Presentation.Terrain.Systems
             visited.Dispose();
             current.Dispose();
             next.Dispose();
-        }
-
-        /// <inheritdoc />
-        public override void Dispose()
-        {
-            _selectedHexSet.Dispose();
-            base.Dispose();
         }
     }
 }

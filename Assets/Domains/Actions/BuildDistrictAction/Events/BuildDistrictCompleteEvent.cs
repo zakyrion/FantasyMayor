@@ -1,6 +1,7 @@
+using Friflo.Engine.ECS;
 namespace Domains.Actions.BuildDistrictAction.Events
 {
-    internal struct BuildDistrictCompleteEvent
+    internal struct BuildDistrictCompleteEvent : IComponent
     {
 
     }

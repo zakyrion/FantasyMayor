@@ -1,18 +1,17 @@
 using System;
-using DefaultEcs;
 using JetBrains.Annotations;
 using Presentation.UI.MainHud.ContextTabs.Components;
 using Presentation.UI.MainHud.ContextTabs.Data;
 using Presentation.UI.MainHud.ContextTabs.Views;
 using Presentation.UI.MainHud.Systems;
 using UnityEngine;
-using DefaultECSExtensions;
+using EcsExtensions;
 
 namespace Presentation.UI.MainHud.ContextTabs.Systems
 {
     /// <summary>
     ///     Main UI spawn subsystem: resolves the context-tabs view from the shared Main UI instance and seeds
-    ///     the ContextTabsViewComponent + ActiveContextTabComponent (Overview) world singletons, then applies the
+    ///     the ContextTabsViewComponent + ActiveContextTabComponent (Overview) singleton components, then applies the
     ///     initial highlight. This window has no singleton entity. Instantiates nothing — the orchestrator owns
     ///     the Main UI handle.
     /// </summary>
@@ -21,13 +20,13 @@ namespace Presentation.UI.MainHud.ContextTabs.Systems
     {
         private const ContextTab DefaultTab = ContextTab.Overview;
 
-        private readonly World _world;
+        private readonly EntityStorages _storages;
 
         public override int Priority => SystemPriorities.SubSystems.MainHudSpawn.ContextTabs;
 
-        public ContextTabsSpawnSubSystem(World world)
+        public ContextTabsSpawnSubSystem(EntityStorages storages)
         {
-            _world = world;
+            _storages = storages;
         }
 
         public override void Prepare(GameObject mainUi)
@@ -39,9 +38,9 @@ namespace Presentation.UI.MainHud.ContextTabs.Systems
                 throw new InvalidOperationException(
                     "ContextTabsSpawnSubSystem: ContextTabsView is missing from the Main UI prefab.");
 
-            // The view and the active tab are world singletons (mirror TurnCountComponent) — no entity is created.
-            _world.Set(new ContextTabsViewComponent(view));
-            _world.Set(new ActiveContextTabComponent(DefaultTab));
+            // The view and the active tab are singleton components (mirror TurnCountComponent) — no game entity is created.
+            _storages.Singletons.Set(new ContextTabsViewComponent(view));
+            _storages.Singletons.Set(new ActiveContextTabComponent(DefaultTab));
             view.SetActive(DefaultTab);
         }
     }

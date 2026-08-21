@@ -1,3 +1,4 @@
+using Friflo.Engine.ECS;
 using Presentation.HexResources.Configs;
 using Unity.Mathematics;
 using UnityEngine;
@@ -9,7 +10,7 @@ namespace Presentation.HexResources.Components
     ///     <see cref="Presentation.HexResources.Systems.ClayHexResourceViewSubSystem" />. Lives on its own
     ///     config singleton entity.
     /// </summary>
-    internal struct ClayViewConfigComponent
+    public struct ClayViewConfigComponent : IComponent
     {
         public float DepressionRadius;
         public float DepressionDepth;
@@ -20,7 +21,7 @@ namespace Presentation.HexResources.Components
         public Color ClayCenterColor;
         public Color ClayRimColor;
 
-        public static ClayViewConfigComponent FromConfig(ClayViewConfig config)
+        internal static ClayViewConfigComponent FromConfig(ClayViewConfig config)
         {
             return new ClayViewConfigComponent
             {

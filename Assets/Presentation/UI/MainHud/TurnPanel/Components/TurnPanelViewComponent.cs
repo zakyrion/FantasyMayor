@@ -1,3 +1,4 @@
+using Friflo.Engine.ECS;
 using Presentation.UI.MainHud.TurnPanel.Views;
 
 namespace Presentation.UI.MainHud.TurnPanel.Components
@@ -7,7 +8,7 @@ namespace Presentation.UI.MainHud.TurnPanel.Components
     ///     by TurnPanelSpawnSubSystem (it holds the addressable Box); this only references it. Mirrors
     ///     HexInfoPanelViewComponent.
     /// </summary>
-    public readonly struct TurnPanelViewComponent
+    public readonly struct TurnPanelViewComponent : IComponent
     {
         public readonly TurnPanelView View;
 

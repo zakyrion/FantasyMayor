@@ -1,10 +1,10 @@
-using System;
-using DefaultEcs;
-using DefaultECSExtensions;
-using JetBrains.Annotations;
+﻿using System;
+using Domains.Map.Archetypes;
 using Domains.Map.Hex.Components;
-using Domains.Map.Hex.Tags;
 using Domains.Map.HexResources.Data;
+using EcsExtensions;
+using Friflo.Engine.ECS;
+using JetBrains.Annotations;
 using Presentation.HexResources.Components;
 using Presentation.HexResources.Helpers;
 using Presentation.Terrain.Components;
@@ -24,19 +24,19 @@ namespace Presentation.HexResources.Systems
     [UsedImplicitly]
     internal sealed class ForestHexResourceViewSubSystem : HexResourcesViewSubSystem
     {
-        private readonly EntitySet _hexSet;
-        private readonly World _world;
+        private readonly Archetype _hexSet;
+        private readonly EntityStorages _storages;
 
-        private Transform _root;
+        private UnityEngine.Transform _root;
 
         public override int Priority => SystemPriorities.SubSystems.HexResourceView.Forest;
         protected override HexResourceType TargetHexResourceType => HexResourceType.Forest;
 
-        public ForestHexResourceViewSubSystem(World world)
-            : base(world)
+        public ForestHexResourceViewSubSystem(EntityStorages storages)
+            : base(storages)
         {
-            _world = world;
-            _hexSet = world.GetEntities().With<HexTag>().With<HexIdComponent>().AsSet();
+            _storages = storages;
+            _hexSet = MapArchetypes.Hex(storages.World);
         }
 
         public override void Update(GameState state)
@@ -47,17 +47,17 @@ namespace Presentation.HexResources.Systems
 
             if (!TryGetVertexGrid(out var vertexGrid))
                 throw new InvalidOperationException(
-                    "ForestHexResourceViewSubSystem: VertexGridComponent world component is missing.");
+                    "ForestHexResourceViewSubSystem: VertexGridComponent singleton component is missing.");
 
-            if (!_world.Has<TerrainViewConfigComponent>() || !_world.Has<HexResourcesViewConfigComponent>() || !_world.Has<TerrainTextureComponent>())
+            if (!_storages.Singletons.Has<TerrainViewConfigComponent>() || !_storages.Singletons.Has<HexResourcesViewConfigComponent>() || !_storages.Singletons.Has<TerrainTextureComponent>())
                 return;
 
-            var texture = _world.Get<TerrainTextureComponent>().Texture;
+            var texture = _storages.Singletons.Get<TerrainTextureComponent>().Texture;
             if (texture == null)
                 return;
 
-            var viewConfig = _world.Get<HexResourcesViewConfigComponent>().Value;
-            var cellSize = _world.Get<TerrainViewConfigComponent>().CellSize;
+            var viewConfig = _storages.Singletons.Get<HexResourcesViewConfigComponent>().Value;
+            var cellSize = _storages.Singletons.Get<TerrainViewConfigComponent>().CellSize;
 
             if (_root == null)
                 _root = new GameObject("ForestViewRoot").transform;
@@ -67,8 +67,8 @@ namespace Presentation.HexResources.Systems
 
             foreach (var forestEntity in forestEntities)
             {
-                var hex = forestEntity.Get<HexIdFKComponent>().Coords;
-                planter.PlantHex(_world, _root, hex, vertexGrid, viewConfig, ref splats);
+                var hex = forestEntity.GetComponent<HexIdFKComponent>().Coords;
+                planter.PlantHex(_storages.World, _root, hex, vertexGrid, viewConfig, ref splats);
             }
 
             // Append-only: paint the new patches over the current pixels, once.
@@ -78,7 +78,6 @@ namespace Presentation.HexResources.Systems
 
         public override void Dispose()
         {
-            _hexSet.Dispose();
             base.Dispose();
         }
     }

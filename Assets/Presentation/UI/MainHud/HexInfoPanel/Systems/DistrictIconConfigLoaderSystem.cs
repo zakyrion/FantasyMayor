@@ -2,8 +2,7 @@ using System;
 using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using Presentation.UI.MainHud.HexInfoPanel.Components;
@@ -18,10 +17,14 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
     [UsedImplicitly]
     internal sealed class DistrictIconConfigLoaderSystem : ConfigLoaderSystem
     {
+        private readonly EntityStorages _storages;
         private const string DISTRICT_ICON_CONFIG = "DistrictIconConfig";
 
-        public DistrictIconConfigLoaderSystem(IAddressable addressable, World world)
-            : base(addressable, world) { }
+        public DistrictIconConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
+            : base(addressable)
+        {
+            _storages = storages;
+        }
 
         protected override async UniTask LoadConfigsAsync(CancellationToken cancellationToken)
         {
@@ -34,7 +37,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
 
                 ValidateConfig(districtIconConfig.Value);
 
-                World.Set(new DistrictIconConfigComponent(districtIconConfig));
+                _storages.Singletons.Set(new DistrictIconConfigComponent(districtIconConfig));
                 districtIconConfig = Box<DistrictIconConfig>.Empty();
                 MarkAsLoaded();
             }

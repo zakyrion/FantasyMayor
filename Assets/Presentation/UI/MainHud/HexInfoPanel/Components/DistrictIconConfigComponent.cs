@@ -1,13 +1,14 @@
 using Core;
+using Friflo.Engine.ECS;
 using Presentation.UI.MainHud.HexInfoPanel.Configs;
 
 namespace Presentation.UI.MainHud.HexInfoPanel.Components
 {
     /// <summary>
-    ///     World component wrapping the loaded district-icon config. Holds the <see cref="Box{T}" /> so the
+    ///     Singleton component wrapping the loaded district-icon config. Holds the <see cref="Box{T}" /> so the
     ///     sprite assets stay loaded for the panel's lifetime (ownership is transferred here by the loader).
     /// </summary>
-    public readonly struct DistrictIconConfigComponent
+    public readonly struct DistrictIconConfigComponent : IComponent
     {
         private readonly Box<DistrictIconConfig> _config;
 

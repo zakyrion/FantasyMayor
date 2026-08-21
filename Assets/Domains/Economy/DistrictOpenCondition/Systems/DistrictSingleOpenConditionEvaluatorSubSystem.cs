@@ -1,11 +1,14 @@
-using DefaultEcs;
+using System;
+using Friflo.Engine.ECS;
+using Unity.Collections;
 using Domains.Economy.District.Components;
+using Domains.Economy.District.Data;
 using Domains.Economy.District.Tags;
 using Domains.Economy.DistrictOpenCondition.Components;
 using Domains.Economy.DistrictOpenCondition.Data;
 using Domains.Economy.DistrictOpenCondition.Tags;
 using JetBrains.Annotations;
-using DefaultECSExtensions;
+using EcsExtensions;
 
 namespace Domains.Economy.DistrictOpenCondition.Systems
 {
@@ -18,49 +21,52 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
     [UsedImplicitly]
     internal sealed class DistrictSingleOpenConditionEvaluatorSubSystem : DistrictOpenConditionEvaluatorSubSystem
     {
+        private readonly EntityStorages _storages;
         // Declarative query caches (Table Rule): every condition row keyed by its kind column, and every
         // District row indexed by its own type (District table's legal self-index) — 1:N, self-maintaining,
         // never a bare-key scan.
-        private readonly EntityMultiMap<DistrictOpenConditionKindComponent> _conditionsByKind;
-        private readonly EntityMultiMap<DistrictTypeComponent> _districtsByType;
+        private readonly ComponentIndex<DistrictOpenConditionKindComponent, DistrictOpenConditionKind> _conditionsByKind;
+        private readonly ComponentIndex<DistrictTypeComponent, DistrictType> _districtsByType;
 
         public override int Priority => SystemPriorities.SubSystems.DistrictOpenConditionEvaluator.Single;
 
-        public DistrictSingleOpenConditionEvaluatorSubSystem(World world) : base(world)
+        public DistrictSingleOpenConditionEvaluatorSubSystem(EntityStorages storages) : base(storages.World)
         {
-            _conditionsByKind = world.GetEntities()
-                .With<DistrictOpenConditionTag>()
-                .AsMultiMap<DistrictOpenConditionKindComponent>();
-
-            _districtsByType = world.GetEntities()
-                .With<DistrictTag>()
-                .With<DistrictTypeComponent>()
-                .AsMultiMap<DistrictTypeComponent>();
+            _storages = storages;
+            _conditionsByKind = storages.World.ComponentIndex<DistrictOpenConditionKindComponent, DistrictOpenConditionKind>();
+            _districtsByType = storages.World.ComponentIndex<DistrictTypeComponent, DistrictType>();
         }
 
         public override void Evaluate()
         {
-            if (!_conditionsByKind.TryGetEntities(
-                    new DistrictOpenConditionKindComponent { Value = DistrictOpenConditionKind.SingleOpen },
-                    out var conditions))
-                return;
+            var conditions = _conditionsByKind[DistrictOpenConditionKind.SingleOpen];
 
-            foreach (var condition in conditions)
+            // AddComponent is a structural change and throws StructuralChangeException while the index slice
+            // is enumerating — snapshot ids first, then re-fetch to write (ECS_CONVENTIONS → Structural
+            // changes during iteration).
+            var conditionIds = new NativeList<int>(Math.Max(1, conditions.Count), Allocator.Temp);
+            try
             {
-                var districtType = condition.Get<DistrictTypeFKComponent>().Value;
-                var canBuild = !_districtsByType.TryGetEntities(
-                    new DistrictTypeComponent { Value = districtType }, out _);
+                foreach (var condition in conditions)
+                    conditionIds.Add(condition.Id);
 
-                var targetState = canBuild ? DistrictOpenState.Buildable : DistrictOpenState.Closed;
-                if (condition.Get<DistrictOpenStateComponent>().Value != targetState)
-                    condition.Set(new DistrictOpenStateComponent { Value = targetState });
+                for (var i = 0; i < conditionIds.Length; i++)
+                {
+                    if (!_storages.World.TryGetEntityById(conditionIds[i], out var condition))
+                        continue;
+
+                    var districtType = condition.GetComponent<DistrictTypeFKComponent>().Value;
+                    var canBuild = _districtsByType[districtType].Count == 0;
+
+                    var targetState = canBuild ? DistrictOpenState.Buildable : DistrictOpenState.Closed;
+                    if (condition.GetComponent<DistrictOpenStateComponent>().Value != targetState)
+                        condition.AddComponent(new DistrictOpenStateComponent { Value = targetState });
+                }
             }
-        }
-
-        public override void Dispose()
-        {
-            _conditionsByKind.Dispose();
-            _districtsByType.Dispose();
+            finally
+            {
+                conditionIds.Dispose();
+            }
         }
     }
 }

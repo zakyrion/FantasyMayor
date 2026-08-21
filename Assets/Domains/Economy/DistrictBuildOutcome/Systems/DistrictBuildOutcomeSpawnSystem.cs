@@ -4,8 +4,7 @@ using System.Linq;
 using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
 using JetBrains.Annotations;
 using Modules.Boot.Core;
 using Domains.Economy.DistrictBuildOutcome.Configs;
@@ -20,7 +19,7 @@ namespace Domains.Economy.DistrictBuildOutcome.Systems{
     [UsedImplicitly]
     internal sealed class DistrictBuildOutcomeSpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        private readonly World _world;
+        private readonly EntityStorages _storages;
 
         [StateAllowed]
         private readonly IReadOnlyList<DistrictBuildOutcomeSpawnSubSystem> _subSystems;
@@ -28,9 +27,9 @@ namespace Domains.Economy.DistrictBuildOutcome.Systems{
         public int Priority => SystemPriorities.WorldInit.DistrictBuildOutcomeSpawn;
 
         public DistrictBuildOutcomeSpawnSystem(
-            World world, IReadOnlyList<DistrictBuildOutcomeSpawnSubSystem> subSystems)
+            EntityStorages storages, IReadOnlyList<DistrictBuildOutcomeSpawnSubSystem> subSystems)
         {
-            _world = world;
+            _storages = storages;
             _subSystems = subSystems
                 .OrderBy(system => system.Priority)
                 .ToArray();
@@ -38,14 +37,14 @@ namespace Domains.Economy.DistrictBuildOutcome.Systems{
 
         public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
         {
-            if (!_world.Has<DistrictBuildOutcomesConfigComponent>())
+            if (!_storages.Singletons.Has<DistrictBuildOutcomesConfigComponent>())
                 throw new InvalidOperationException(
                     "BuildDistrictOutcomeSpawnSystem: BuildDistrictOutcomesConfigComponent is missing.");
 
             if (cancellationToken.IsCancellationRequested)
                 return UniTask.CompletedTask;
 
-            var outcomes = _world.Get<DistrictBuildOutcomesConfigComponent>().Value.Outcomes;
+            var outcomes = _storages.Singletons.Get<DistrictBuildOutcomesConfigComponent>().Value.Outcomes;
 
             for (var index = 0; index < outcomes.Length; index++)
             {

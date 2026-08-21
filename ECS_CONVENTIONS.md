@@ -15,35 +15,55 @@ error conventions every system must follow. Layering, taxonomy, and the recipe i
 
 ## State Storage Taxonomy
 
-Four storages. Pick by answering: how many instances, and does anything need to FIND it via an
-entity query?
+Four state shapes are backed by exactly two `EntityStore` instances. Pick the shape by asking how
+many instances exist and whether a consumer must FIND the state through an entity query.
 
-**Apply via:** a loaded config is always a world component — the config-loader procedure that does it
-is `Patterns/PATTERN_CONFIG_LOADER.md`.
+**Apply via:** a loaded config is always a singleton component — the config-loader procedure that
+publishes it is `Patterns/PATTERN_CONFIG_LOADER.md`.
 
 | Storage | Use when | Access | Registry |
 |---|---|---|---|
-| **Entity table** | N rows of the same shape (hexes, resources, views, icon containers) | query = key + discriminator (Table Rule); `EntitySet` / `EntityMap` / `EntityMultiMap` | the ecs-graph (`/ecs-graph`) |
-| **World component** | exactly ONE instance, and NO consumer needs it in an entity query | `world.Set` / `world.Get`, guarded by `world.Has` | the ecs-graph (`/ecs-graph`) |
-| **One-frame event entity** | a signal that something changed; consumed by a Reactive System this same frame | marker component + `EventTag`; `EventCleanupSystem` disposes at end of tick | the ecs-graph (`/ecs-graph`) |
-| **Singleton entity** | exactly ONE instance, but it MUST appear in entity queries (a per-frame system anchors on it, or reactive filters watch it) | `With<TheComponent>` set with `Count`-guard | the ecs-graph (`/ecs-graph`) |
+| **Entity table** | N rows of the same shape (hexes, resources, views, icon containers) | `storages.World`: the table's declared `Archetype` (Table Rule); keyed joins via `ComponentIndex<TComponent,TValue>` | the ecs-graph (`/ecs-graph`) |
+| **Singleton component** | exactly ONE value, and NO consumer needs it in an entity query | `storages.Singletons.Get/Has/Set` | `SingletonArchetypes.Singleton` in the ecs-graph |
+| **One-frame event entity** | a signal that something changed; consumed by every Reactive System exactly once, the frame AFTER it is raised | `storages.World.CreateEvent(payload)`; `EventCleanupSystem` deletes it once ripe (Event Lifecycle below) | the ecs-graph (`/ecs-graph`) |
+| **Singleton entity** | exactly ONE row, but it MUST appear in entity queries (a per-frame system anchors its tick on it, or another system reads it through its archetype) | `storages.World`: its own declared archetype + tag, read through that table | the ecs-graph (`/ecs-graph`) |
 
-World component contract:
-- A world component is **not an entity**: it never appears in `world.GetEntities()` and cannot be
-  matched by `With<T>` / `WhenAdded<T>` / `WhenChanged<T>`. If its change must drive reactive
-  consumers, raise an explicit one-frame event entity alongside the `world.Set`.
-- All loaded configs are world components (`Patterns/PATTERN_CONFIG.md`). Runtime singletons follow the same
-  storage: `CameraComponent`, `VertexGridComponent`, `TerrainTextureComponent`,
-  `HexIconsViewComponent`, `HexIconsVisibilityComponent`.
-- A world component carrying a **reference type** (`VertexGrid`, `Texture2D`) is set ONCE at
-  creation; the payload object is then mutated in place by its writers. `world.Set` is never
-  re-called after a mutation — readers always see the live object via `world.Get`.
+```clojure
+(def storage-registry-law  ;; FM-14, 2026-08-06
+  {:registry         EntityStorages             ;; the ONLY DI-registered entry point to ECS storage
+   :members          #{World Singletons}        ;; exactly two; a third member needs a new architecture decision
+   :world            "the shared game EntityStore — entity tables, indexes, singleton entities, and one-frame events"
+   :singletons       SingletonComponents        ;; public cover over a private second EntityStore + its one hidden row
+   :store-creation   "EntityStorages constructs World; SingletonComponents privately constructs the second store — no other app code creates or exposes one"
+   :di               "register and inject EntityStorages, never a bare EntityStore"
+   :cross-store      "no query, index, entity handle, or FK join spans stores"
+   :per-domain-split :blocked                   ;; today's cross-domain tables join by key inside World
+   :capacity         "the 256 component-type and 256 tag-type limits are per EntityStore"})
+```
+
+Singleton component contract:
+- `SingletonComponents` hides both its store and the ONE row. The row is born from
+  `SingletonArchetypes.Singleton` with its complete composition and exactly one `SingletonTag`;
+  consumers cannot query it or add undeclared columns.
+- All loaded configs are singleton components (`Patterns/PATTERN_CONFIG.md`). Runtime singleton
+  state follows the same access shape: `CameraComponent`, `VertexGridComponent`,
+  `TerrainTextureComponent`, `HexIconsViewComponent`, `HexIconsVisibilityComponent`.
+- DECLARED and INITIALIZED are separate sets. `Set<T>` throws when `T` is undeclared, `Get<T>`
+  throws before the first write, and `Has<T>` answers whether the value has been initialized — it
+  does not inspect physical column presence.
+- A singleton component carrying a **reference type** (`VertexGrid`, `Texture2D`) is set ONCE at
+  creation; the payload object is then mutated in place by its writers. Readers always receive the
+  same live object through `Singletons.Get<T>()`.
+- **Physical presence is not runtime state.** `Singletons.Has<T>()` exists only for the fail-loud
+  precondition check that a required value was initialized before its consumer runs (throw, never
+  skip). A runtime "not active" state is a **sentinel value** (`TurnProcessorStatus.Idle`, an empty
+  `RootBox`), never an absent column — see Birth Completeness below.
 - Singleton entities are the exception, not the default. Current ones exist because systems anchor
   per-frame ticks on them or query them: `TerrainViewComponent`, `HexSelectedComponent`,
   `WaterViewComponent`, `HexSelectionViewComponent`, `HexInfoPanelViewComponent`,
-  `PlayerInputComponent`. When adding new single-instance state, default to a world component;
+  `PlayerInputComponent`. When adding new single-instance state, default to a singleton component;
   create a singleton entity only when an entity-query consumer exists from day one. A singleton
-  entity is still an entity — the Tag Law applies (it carries its tag, its queries filter on it).
+  entity is still an entity — the Tag Law applies (it carries its tag, its archetype names it).
 
 ## Decomposition Rules
 
@@ -75,8 +95,11 @@ when designing or reviewing any system.
   it, act on the difference. Work with state, not with transitivity.
 - Reconciliation makes the system **idempotent**: a second pulse in the same frame finds nothing to
   do. Missed or coalesced pulses are harmless — the next pulse repairs everything.
-- The consumer is an `UpdatedSystem` whose base set is `With<TheEvent>` → zero cost while no pulse
-  exists. The pulse entity itself is ignored inside `Update`.
+- The consumer is an `UpdatedSystem` driven by that event's own archetype
+  (`EventArchetypes.Of<TheEvent>(store)`) → zero cost while no pulse exists. It gates on `IsRipe`
+  and ignores the pulse entity itself; the pulse carries no payload to read.
+- A consumer must never assume a same-frame reaction: an event is delivered the frame AFTER it is
+  raised (Event Lifecycle below), so a chain of pulses spans a frame per link.
 - Emitters may be deferred: build the reactive consumer as a dormant scaffold first, wire emitters
   when the gameplay mechanic lands.
 
@@ -109,8 +132,8 @@ when designing or reviewing any system.
   referenced across domains (`DistrictTypeComponent`, `HexIdComponent`, `ActorTypeComponent`, and the shared
   action key space `ActionIdComponent`); or (2) a **DI installer** — the uniform `[Domain]Installer` name is
   a deliberate disambiguator across the ~13 sibling installers.
-- Single-component entity creation may chain: `world.CreateEntity().Set(...)`
-- Once more than one component is assigned, stop chaining and use a local entity variable
+- An entity is created BY its archetype, never by a bare `CreateEntity()` — see Declared Archetypes
+  below. Assign the row's values into a local entity variable; do not chain writes off the creating call.
 - Prefer instance-based design; use `static` only when a type is truly stateless utility
   infrastructure (e.g. `ForestGroundPainter`).
 
@@ -121,16 +144,16 @@ These two bans are machine-checked by `/arch-check`. They apply to every system.
 **Apply via:** the applied per-recipe form is in each `Patterns/PATTERN_*.md` (the recipe's Rules).
 
 **Ban 1 — no stateful systems.** A system holds no mutable per-instance state. Instance fields must
-be `readonly` handles: DI dependencies, `World`, query caches. What does NOT count as state:
-- query caches (`EntitySet`, `EntityMap<T>`, `EntityMultiMap<T>`) — they are declarative,
-  self-maintaining views of world state;
+be `readonly` handles: DI dependencies, the `EntityStore`, query caches. What does NOT count as state:
+- query caches (`Archetype`, `ArchetypeQuery`, `ComponentIndex<TComponent,TValue>`) — they are
+  declarative, self-maintaining views of store state, resolved once in the constructor;
 - `const` / `static readonly` configuration values.
 
 What DOES count as state: any reassignable field, and any `readonly` field whose CONTENTS mutate
 across frames (collections, arrays, `StringBuilder`, `Native*` buffers held between ticks).
 
 Escape hatches, in order of preference:
-1. Move the state where it belongs — onto an entity (a component) or into a world component.
+1. Move the state where it belongs — onto an entity (a component) or into a singleton component.
 2. `FrameBox<T>` (`Core`) for state valid only within a bounded number of frames (e.g. a per-frame
    cache resolved in `PreUpdate`): it is frame-stamped and fails loud on a stale read.
 3. `[StateAllowed("reason")]` (`Core`) on the field — a deliberate, reviewed exception that
@@ -139,13 +162,13 @@ Escape hatches, in order of preference:
 **The default home for "system state" is a component — reach for 2–3 only after ruling out 1.**
 Most things that feel like per-system state are not: a status flag, an in-flight marker, a progress
 counter, an "is this running" / "did this complete" bit, a handle to the thing currently being
-processed — these are domain state that belongs ON AN ENTITY (a component) or in a WORLD component,
+processed — these are domain state that belongs ON AN ENTITY (a component) or in a SINGLETON component,
 and moving them there breaks nothing. The system then just reads/writes that component and stays
 stateless. A component is not limited to "intrinsic data" — a transient, single-instance lifecycle
-flag is a perfectly valid world component. Do not assume a value must live in the system just because
+flag is a perfectly valid singleton component. Do not assume a value must live in the system just because
 only that system touches it today; the moment a value lives on a component, any future system can
 observe it without auditing the writer. Worked example: `TurnProcessorComponent` (module `Turn`) is a
-world component that holds the in-flight turn's status and doubles as the "turn in progress" signal;
+singleton component that holds the in-flight turn's status and doubles as the "turn in progress" signal;
 the launching `TurnProcessorSystem` keeps zero mutable fields.
 
 **Ban 2 — no `System.Collections.Generic` in systems.** Use `Unity.Collections`
@@ -160,55 +183,115 @@ the launching `TurnProcessorSystem` keeps zero mutable fields.
   underlying `int`. As a **value** an enum is fine (`unmanaged`).
 - In `MonoBehaviour` (view) code, `System.Collections.Generic` is fine.
 
-## Component Writes And Reactivity (DefaultEcs)
+## Component Writes
 
-Project rule: **always write components through `entity.Set<T>(value)`** — the publishing write path.
-This is mandatory: any component can gain a reactive consumer without auditing every place that writes it.
+Project rule: **always write components through `entity.AddComponent(value)`** — the upsert write path.
+This is mandatory, and it is what keeps every maintained index truthful.
 
-- **Do not** mutate through `ref entity.Get<T>()`. In-place mutation does not publish a change, silently
-  breaking `WhenChanged<T>` sets and `SubscribeComponentChanged<T>` callbacks. `ref Get` is read-only.
-- `ref` + `entity.NotifyChanged<T>()` is an escape hatch, **not** an approved pattern. A forgotten
-  `NotifyChanged` is a silent desync; it also cannot deliver the true old value (overwritten in place).
-  Use `Set(value)`.
-- Reactive consumers: `WhenChanged<T>()` (batched — call `Complete()` each tick) and
-  `world.SubscribeComponentChanged<T>(...)` (immediate, gives old + new).
-- DefaultEcs tracks the write **call**, not the value — no built-in value-diff. `With<T>` / `Without<T>`
-  filters track component presence only.
-- **Entity set-membership diffs are a separate case.** Reacting to which *entities* enter or leave a set
-  uses `WhenAdded` / `WhenRemoved`, not `WhenChanged`. The project's chosen alternative for view upkeep
-  is the pulse + reconcile pattern (Decomposition Rules above) — prefer it over `WhenAdded`/`WhenRemoved`
-  buffers for new code.
+- **Do not** mutate through a `ref` into component storage. An `IIndexedComponent` type is backed by a
+  `ComponentIndex`, and the index is updated by the WRITE CALL, not by the value: mutating the field in
+  place leaves the row filed under its old key, so every keyed lookup silently returns wrong rows.
+  `entity.GetComponent<T>()` is a read — treat its result as a value, never as a handle to mutate.
+- `AddComponent` is an **upsert**: it updates the column when it exists, and adds it only when it does
+  not. Under Birth Completeness (below) every column already exists at birth, so a runtime write is
+  always a plain value write — it never migrates the entity between archetypes.
+- **Change-only writes.** Compare first, write on difference. A write into an indexed column re-files
+  the row; rewriting the same value each frame is pure churn.
+- **There is no component reactivity, by design.** The engine offers no value-change observer, and the
+  project adopts none: `store.OnComponentAdded` / `OnComponentRemoved` / `OnTagsChanged` are
+  deliberately unused (0 call sites). The ONE reactive mechanism is the one-frame event pulse +
+  reconcile (Decomposition Rules above). If a value change must drive a consumer, raise a pulse next
+  to the write — adding an engine-level observer instead is a design decision for the whole project,
+  never a local one.
 
-## Threading And Native Memory (UniTask × DefaultEcs)
+## Declared Archetypes
 
-The Turn pipeline (`TurnPhaseSubSystem` chain) and any `UniTask` code may run off the main thread
-(`RunOnThreadPool`). Two laws govern what such code may touch. Decided 2026-07-10 on the district
-build-over-turns mechanic; worked producer example: `BuildDistrictTurnTickSystem`.
+Every entity kind is a NAMED archetype in code — one declaration serving both the row's birth and its
+filter. A bare `store.CreateEntity()` at a call site is forbidden; only a holder resolves archetypes.
 
-**Law 1 — DefaultEcs world access by thread.** The line is STRUCTURAL vs VALUE: anything that
-changes which entities match which `EntitySet` (create, first-write of a component type, dispose,
-pulse) synchronously rewrites set buffers the main thread iterates every frame — main thread only.
-Rewriting the bytes of an already-present component touches no set membership.
+**Apply via:** the holder shape and a worked pair of archetypes live in `MapArchetypes`.
 
 ```clojure
-(def defaultecs-thread-law
-  {:off-thread-allowed {:value-read  "entity.Get<T>() / world.Get<T>()"
-                        :value-write "entity.Set<T>() of an EXISTING component — presence unchanged, no EntitySet buffer mutation"}
-   :value-write-caveat "safe ONLY while the component has no WhenChanged<T> / SubscribeComponentChanged consumer — those buffer every Set call on the consumer's thread"
-   :main-thread-only   ["world.CreateEntity()"
-                        "entity.Set<T>() that ADDS a component (first write of that type — structural)"
-                        "entity.Dispose() / Remove<T>()"
-                        "raising event pulses (EventTag entities)"]
-   :bridge             "await UniTask.SwitchToMainThread() before structural ops, back via SwitchToThreadPool"
-   :bridge-cost        "a hop COSTS ~1 update/frame — SwitchToMainThread resumes at PlayerLoopTiming.Update, so a pool thread waits for the next frame"  ;; user 2026-07-17
-   :never-hop-for      "a value-write — it is already legal off-thread; hopping buys nothing and spends a frame"
-   :phase-budget       "each turn phase that hops costs the turn a frame; a phase writing only existing components must NOT hop"})
+(def archetype-law  ;; FM-13, 2026-08-05
+  {:home      "one static <Assembly>Archetypes holder per ASSEMBLY (asmdef), not per feature — an archetype may only name components its own assembly can reference"
+   :shape     "the holder RESOLVES, it does not describe: every member returns the live Archetype — `public static Archetype Hex(EntityStore store) => store.GetArchetype(ComponentTypes.Get<…>(), Tags.Get<…>())`. ComponentTypes/Tags are the method BODY, never public surface"
+   :state     "the holder stores NOTHING, so it never binds to a store — the store arrives as a parameter (this is the project's static exemption: a field-less stateless helper)"
+   :owner     "each system caches the Archetype it uses in its own readonly field, resolved once in the constructor — same idiom as a stored ComponentIndex"
+   :birth     "archetype.CreateEntity() — the row is born BY its archetype with every column at default(T); the writes that follow are value upserts into columns that already exist"
+   :bulk      "archetype.CreateEntities(n) for default-valued bulk rows; EnsureCapacity(n) first when the count is known"
+   :arity-cap "the generic ComponentTypes.Get / Tags.Get builders cap at 5 type arguments"
+   :singleton-manifest "SingletonArchetypes.Singleton is the deliberate cross-assembly exception: it accumulates every singleton component into ComponentTypes at runtime and returns SingletonArchetypeDefinition because the backing store is hidden"
+   :filter    "BY NEED, not dogma: where the target IS one archetype, iterate the archetype itself (archetype.Entities yields the same result type an ArchetypeQuery does, so no query is needed); ArchetypeQuery stays for a genuinely cross-archetype filter"
+   :cross-archetype "a cross-archetype filter is reviewed WITH the user, never introduced unilaterally"})
 ```
 
-An off-thread system that writes ONLY existing components is CORRECT to have no main-thread hop — the
-absence of a hop there is a deliberate optimisation, not a missing guard. A comment claiming a blanket
-"every world write goes back on the main thread" contradicts Law 1 and is rot: the law is STRUCTURAL vs
-VALUE, not write vs read.
+**Birth Completeness — an entity is born carrying EVERY column it will ever hold**, defaults included.
+Three binding consequences:
+- A column's PRESENCE is never a predicate. Where presence used to carry meaning, the meaning moves
+  into a **value**: a sentinel (`HexType.Unknown`, `DistrictType.Unknown`, `TurnProcessorStatus.Idle`)
+  or an empty box. `Singletons.Has<T>()` is not a column-presence query — it reads the cover's
+  initialized-value set.
+- There are no optional columns. **A different composition is a different entity** — to change one,
+  delete the row and create a new one in its archetype, carrying the PK/FK value over.
+  `RemoveComponent` / `RemoveTag` appear nowhere in the codebase; do not reintroduce them.
+- A late `AddComponent` of a column the archetype does not name is a bug, not an extension: it migrates
+  the entity out of the archetype every filter names it by.
+
+**Structural changes during iteration.** The engine's own definition governs here — this section restates
+`Friflo.Engine.ECS` 3.6 (`StructuralChangeException`), it does not extend it:
+
+```clojure
+(def structural-change  ;; FM-13 review, 2026-08-05 — Friflo XML docs are the authority, this doc follows them
+  {:is        #{AddComponent RemoveComponent AddTag RemoveTag}  ;; "A structural change is adding / removing components or tags" — these throw StructuralChangeException inside a query loop
+   :is-not    archetype.CreateEntity                            ;; birth BY an archetype migrates nothing; the store-extension CreateEntity(components…, tags) overloads are documented as "without any structural change"
+   :value-upsert-included "an AddComponent into a column the archetype ALREADY names still throws — the guard is on the call, not on whether the row moves"
+   :guard     :store-wide                                       ;; the throw also fires for a structural call on an UNRELATED entity inside the dispatched work
+   :delete    "not documented as a structural change, but it mutates the set being enumerated — snapshot anyway"})
+```
+
+So a row may be BORN inside an enumeration, but nothing may be written into it there. The idiom is
+**snapshot-before-iterate**: collect `entity.Id` values into a `NativeList<int>`, close the enumeration,
+then re-fetch each via `store.TryGetEntityById` and do the spawning and the writes in that second pass.
+An `Entity` carries a store reference, so it is not `unmanaged` and cannot live in a native container —
+snapshot ids, never entities. `UpdatedSystem` already does this for its subclasses.
+
+Snapshotting the SOURCE ids (rather than buffering freshly-created entities plus their managed payload)
+is what keeps the second pass allocation-free: `DistrictViewSpawnSystem` and `HexIconsSpawnSystem` are the
+worked examples — one `NativeList<int>`, no managed side-buffer, archetype birth still at the call site.
+
+## Event Lifecycle
+
+An event is a payload-less one-frame pulse delivered to EVERY consumer exactly once, one full frame
+after it is raised, independent of system priority.
+
+```clojure
+(def event-lifecycle  ;; FM-13, 2026-08-05
+  {:archetype   "[EventTag, EventFrameComponent, payload] — resolved by EventArchetypes.Of<T>(store)"
+   :raise       "store.CreateEvent(payload) — stamps Time.frameCount inside the creating call"
+   :ripe-rule   "a consumer acts only while EcsEventExtensions.IsRipe(entity) — stamp < Time.frameCount, i.e. the frame AFTER birth"
+   :cleanup     "EventCleanupSystem (Priority int.MaxValue) deletes ripe events at the end of that frame — after every consumer has had its full frame"
+   :priorities  "SystemPriorities orders execution deterministically ONLY; event visibility no longer depends on it, so a 'must sit above/below the producer' rule cannot exist"
+   :idempotency "consumers stay reconcile-style; never assume a same-frame reaction — a chain of pulses costs one frame per link"})
+```
+
+## Threading And Native Memory (UniTask × ECS)
+
+Some `UniTask` code still runs off the main thread (`RunOnThreadPool`) for heavy computation. Two laws
+govern what such code may touch.
+
+**Law 1 — store access is MAIN-THREAD ONLY.** The `EntityStore` is not thread-safe, and the line is
+simply store vs no-store: every read and every write happens on the main thread. Off-thread code
+computes over plain data and hops back BEFORE it touches the store.
+
+```clojure
+(def store-thread-law  ;; FM-13, 2026-08-05
+  {:main-thread-only   "every store call — CreateEntity, AddComponent, GetComponent, DeleteEntity, index lookups, raising pulses — plus every Singletons.Get/Has/Set call"
+   :off-thread-allowed "computation over plain data and native containers only; worked examples: TerrainViewGenerationSubSystem, TerrainViewTextureSubSystem (mesh/texture math off-thread, every store write after the hop)"
+   :bridge             "await UniTask.SwitchToMainThread() before the FIRST store call; back via SwitchToThreadPool for more compute"
+   :bridge-cost        "a hop costs ~1 update/frame — SwitchToMainThread resumes at PlayerLoopTiming.Update, so a pool thread waits for the next frame"
+   :turn-pipeline      "runs INLINE on the main thread — turn phases do not hop at all, so the phase-hop budget no longer exists"
+   :why "there is no off-thread value-write loophole: an indexed column re-files its row on write, so an off-thread write corrupts the index rather than merely racing on bytes"})
+```
 
 **Law 2 — `Allocator.Temp` is thread-bound.** Temp is a per-thread TLS stack: allocation is a
 pointer bump (≈ cost of a local variable), reclamation is a WHOLESALE rewind of the thread's stack.
@@ -245,48 +328,50 @@ The rewind is driven by whoever owns the thread's lifecycle — and nobody owns 
 
 ## Relational Modeling — Table Rule
 
-An entity "table" is defined by its query, and a query MUST name the table, not just the key.
+An entity "table" is defined by its archetype, and every filter MUST name the table, not just the key.
 
-- **Table = key component + discriminator component.** A bare `With<KeyComponent>` query is
-  **forbidden** — it is a UNION of every table sharing that key space, not a table.
+- **Table = key component + discriminator tag, together in one declared archetype.** A filter on a bare
+  key component is **forbidden** — it is a UNION of every table sharing that key space, not a table.
+  Because a table's archetype is declared once in its holder and reused for both birth and filtering,
+  the union cannot be expressed by accident.
 - **Tag Law (2026-07-08; strengthened 2026-07-15 FM-11) — universal and machine-checkable:**
 
   ```clojure
   (def tag-law
     {:entity {:requires "EXACTLY 1 tag — its identity / table discriminator"}  ;; the tag defines the entity's boundary; an entity without a tag does not exist
-     :filter {:requires "exactly 1 tag in every With<> chain"}  ;; 2 identity tags describe a row that cannot exist — a DEAD filter
+     :filter {:requires "exactly 1 tag in every archetype declaration"}  ;; 2 identity tags describe a row that cannot exist — a DEAD filter
      :category-tag UITag                                        ;; a shared kind-marker satisfies the law (identity then rides on the *ViewComponent)
-     :event-filter :exempt                                      ;; a reactive base set filters on the *Event component — the event IS the filter
-     :state "…StateComponent wrapping an enum — NEVER a toggled tag"  ;; Set() re-indexes maintained maps, so a state flip moves the row between self-index slices automatically
-     :kind  "…KindComponent wrapping an enum — NEVER a second tag"    ;; per-kind access = self-index AsMultiMap lookup by the enum value
+     :event-filter :exempt                                      ;; every event shares EventTag; its archetype is named by the payload component — the event IS the filter
+     :state "…StateComponent wrapping an enum — NEVER a toggled tag"  ;; AddComponent re-files the row, so a state flip moves it between self-index slices automatically
+     :kind  "…KindComponent wrapping an enum — NEVER a second tag"    ;; per-kind access = self-index ComponentIndex lookup by the enum value
      :why "tag = archetype identity → deterministic attribution; kind and state are COLUMNS of the row, not identities"})
   ```
 
 - **Tag classes.** Only ONE class of tag exists — the identity/discriminator (plus the structural
   `EventTag` on pulses and the category `UITag`). What looked like other tag uses is data:
   a **runtime-toggled marker** is a state COLUMN → `…StateComponent { Value = enum }`, flipped via
-  `Set()` (change-only writes: compare first, write on difference); a **subtype marker** inside a
-  table family is a kind COLUMN → `…KindComponent { Value = enum }`, set once at spawn. Both are
-  map keys of legal self-indexes (`AsMultiMap<…>` with the family tag as discriminator) — consumers
-  read a slice with `TryGetEntities(value)` instead of scanning or tag-filtering.
+  `AddComponent` (change-only writes: compare first, write on difference); a **subtype marker** inside a
+  table family is a kind COLUMN → `…KindComponent { Value = enum }`, set once at birth. Both are legal
+  self-index keys (`IIndexedComponent<TEnum>` over the family's own rows) — consumers read a slice with
+  `index[value]` instead of scanning or tag-filtering.
 - **Key-role law (2026-07-15, FM-11) — a key's role is visible in its TYPE.** The owner table's
   identity and other tables' references to it are DIFFERENT component types:
 
   ```clojure
   (def key-role-law
-    {:pk   {:suffix "…IdComponent" :home "exactly ONE owner table, paired with its tag" :index "AsMap<PK>"}       ;; the row's own identity
-     :fk   {:suffix "…FKComponent" :home "rows of OTHER tables pointing at the owner"   :index "AsMultiMap<FK>"}  ;; wraps the owner space's key VALUE; IEquatable required
-     :data {:suffix "…Component"   :never "keying maps of two DIFFERENT tables"}                                  ;; attribute value; self-index allowed (exception below)
+    {:pk   {:suffix "…IdComponent" :home "exactly ONE owner table, paired with its tag" :index "ComponentIndex<PK,TValue> — unique by contract, not enforced"}   ;; the row's own identity
+     :fk   {:suffix "…FKComponent" :home "rows of OTHER tables pointing at the owner"   :index "ComponentIndex<FK,TValue> — 1:N"}                                ;; wraps the owner space's key VALUE
+     :data {:suffix "…Component"   :never "keying indexes of two DIFFERENT tables"}                                                                              ;; attribute value; self-index allowed (exception below)
      :kind {:owner-side :data      :referencing-side :fk}   ;; enum key space with NO PK table (district types): the carrier's own value = Data, a catalogue/verb pointer = FK
      :why "a shared key TYPE re-creates the bare-key UNION at the type level; separate types make the compiler enforce the Table Rule"})
   ```
 
-- **Secondary-index exception (self-index).** A Data component MAY key a map when the map's
-  discriminator is a tag of the SAME table — a join/select over the table's own attribute
-  (hexes grouped by `HexTypeComponent`; resource rows by `HexResourceComponent`). The lookup
-  VALUE may arrive from outside (converted from an FK or another table's field) — the boundary
-  holds because every indexed row belongs to one table. The same Data type keying maps of TWO
-  different tables is the forbidden shared-key conflation — split it into PK + FK.
+- **Secondary-index exception (self-index).** A Data component MAY be indexed when every row carrying
+  it belongs to the SAME table — a join/select over the table's own attribute (hexes grouped by
+  `HexTypeComponent`; resource rows by `HexResourceComponent`). The lookup VALUE may arrive from
+  outside (converted from an FK or another table's field) — the boundary holds because every indexed
+  row belongs to one table. The same Data type indexed across TWO different tables is the forbidden
+  shared-key conflation — split it into PK + FK.
 
 - The hex key space under the law:
 
@@ -298,53 +383,48 @@ An entity "table" is defined by its query, and a query MUST name the table, not 
   | HexIconContainer | `HexIconContainerTag` | `HexIdFKComponent` | FK — one per coordinate |
   | DistrictView | `DistrictViewTag` | `HexIdFKComponent` | FK — one per built hex |
 
-- One query definition has three materializations — pick by access pattern:
+- One table has two access shapes — pick by access pattern:
 
   ```csharp
-  // PK table → unique index. TryGetEntity(key, out Entity). A duplicate PK value THROWS (fail-loud).
-  EntityMap<HexIdComponent> hexByCoord =
-      world.GetEntities().With<HexTag>().AsMap<HexIdComponent>();
+  // Sweep the whole table: the declared archetype IS the filter. No query object needed.
+  private readonly Archetype _resources = MapArchetypes.HexResource(store);
+  foreach (var row in _resources.Entities) { /* … */ }
 
-  // FK 1:N table → non-unique index, keyed on the FK TYPE. TryGetEntities(key, out ReadOnlySpan<Entity>).
-  EntityMultiMap<HexIdFKComponent> resourcesByCoord =
-      world.GetEntities().With<HexResourceTag>().AsMultiMap<HexIdFKComponent>();
-
-  // Join = construct the FK value from the PK value at the point of use.
-  if (resourcesByCoord.TryGetEntities(new HexIdFKComponent { Coords = hexId.Coords }, out var rows)) { /* … */ }
-
-  // The same table as a sweep set.
-  EntitySet resources =
-      world.GetEntities().With<HexIdFKComponent>().With<HexResourceComponent>().With<HexResourceTag>().AsSet();
+  // Keyed join: an index over the key column. Declared once in the constructor, never rebuilt.
+  private readonly ComponentIndex<HexResourceComponent, HexResourceType> _byResourceType =
+      store.ComponentIndex<HexResourceComponent, HexResourceType>();
+  foreach (var row in _byResourceType[HexResourceType.Forest]) { /* … */ }
   ```
 
-- **DefaultEcs mechanics behind the law (verified against 0.17.2 source):**
-  - `AsMap<TKey>` / `AsMultiMap<TKey>` implicitly add `With<TKey>()` to the rule — the map alone is
-    still a bare-key UNION of every table carrying `TKey`; the discriminator tag in the chain is what
-    names the table (Tag Law). The key type carries the ROLE; the tag carries the TABLE.
-  - Maps self-maintain via `ComponentChangedMessage<TKey>`: `entity.Set(newKey)` re-indexes the row,
-    component removal / entity disposal removes the entry. This works ONLY because of the "always
-    write through `entity.Set<T>(value)`" rule above — a single ref-mutation silently desyncs every
-    maintained index.
-  - `EntityMap` (PK index) THROWS `ArgumentException` on a duplicate key value — PK uniqueness is
-    enforced fail-loud by the container itself.
-  - DefaultEcs stores ONE component instance per type per entity ⇒ an entity carries AT MOST ONE FK
-    into a given key space. A relationship that needs two references into the same space gets its own
+- **Engine mechanics behind the law (verified against the 3.6.0 assembly):**
+  - A `ComponentIndex<TComponent,TValue>` is keyed on the component TYPE and spans every table that
+    carries it — the index alone is still a bare-key UNION. What names the table is the archetype the
+    row was born in (Tag Law): the key type carries the ROLE, the tag carries the TABLE. So an index
+    shared by two tables is a conflation, not a shortcut — split it into PK + FK types.
+  - An index self-maintains on the WRITE CALL: `AddComponent` re-files the row, entity deletion drops
+    the entry. This works ONLY because of the AddComponent-only rule above — one ref-mutation silently
+    desyncs every index over that type.
+  - **PK uniqueness is a contract, not an enforcement.** A `ComponentIndex` does not throw on a
+    duplicate key — it simply returns both rows. A PK allocator that can repeat a value is a bug the
+    engine will not catch for you; check at the allocation site and throw there.
+  - **Index bucket cap: ≤100 entities per identical key value** — insert/remove is O(N) over the
+    duplicates. Our buckets run units-to-tens; respect the cap in any NEW design.
+  - The store holds ONE component instance per type per entity ⇒ an entity carries AT MOST ONE FK
+    into a given key space. A relationship needing two references into the same space gets its own
     dedicated pair of FK types — a deliberate design decision, never an ad-hoc workaround.
-- Query caches held as system fields (`EntitySet`, `EntityMap`, `EntityMultiMap`) are declarative.
+- Query caches held as system fields (`Archetype`, `ArchetypeQuery`, `ComponentIndex`) are declarative.
   They do NOT count as forbidden system state under the stateless-systems ban.
-- The map API is Try-pattern (`bool` return + `out` result) — the same contract as the Collector
-  convention above. Branch on the `bool`.
-- **Key equality:** a key component MUST implement `IEquatable<T>` + `GetHashCode`, or an
-  `IEqualityComparer<T>` MUST be passed to the `AsMap` / `AsMultiMap` overload.
-  `HexIdComponent` (delegates to `HexCoord`) and `HexTypeComponent` (keys on its enum)
-  implement this — follow their shape for new key components.
+- **Key equality:** an indexed component declares `IIndexedComponent<TValue>` and returns the key field
+  from `GetIndexedValue()`; `TValue` must be equatable. An enum works directly (`HexResourceComponent`
+  → `HexResourceType`); a struct key delegates to its own `IEquatable` implementation
+  (`HexIdComponent` → `HexCoord`). Follow their shape for new key components.
 - **Join = a lookup by key value at the point of use.** Never store an `Entity` reference from one
   table's row to another table's row.
-- Maintained indexes are for hot joins (read every frame or many times per turn). A
-  click-frequency query may linearly scan an `EntitySet` instead — do not build a map for it.
+- Indexes are for hot joins (read every frame or many times per turn). A click-frequency lookup may
+  scan the archetype linearly instead — do not declare an index for it.
 - Legacy bare-key queries were audited and fixed (2026-07-02; 8 sites — hex space got `HexTag`,
-  actor-by-type lookups became id-PK + `ActorTypeComponent` table sets). The codebase holds ZERO
-  bare-key queries — do not reintroduce the pattern; the ecs-graph's bare-key warnings catch regressions.
+  actor-by-type lookups became id-PK + `ActorTypeComponent` tables). The codebase holds ZERO bare-key
+  filters — do not reintroduce the pattern; the ecs-graph's warnings catch regressions.
 
 ## Link Convention — Domain ID vs Entity Handle
 
@@ -371,3 +451,17 @@ An entity "table" is defined by its query, and a query MUST name the table, not 
 - Clean up partial work before throwing (e.g. `Object.Destroy(instance)`).
 - Exception type is not critical; `InvalidOperationException` with a message is the codebase default
   (see `TerrainGenerationConfigLoaderSystem`).
+
+## Open Directions — NOT rules
+
+Recorded so the constraint is visible at the point of code, not carried in anyone's head. Nothing here
+is in force; each needs its own decision before any code follows it.
+
+```clojure
+(def open-directions
+  {:cumulative-command-buffer
+     {:what     "work with entities from a parallel thread (or several) by recording changes into a CommandBuffer and syncing only the changes: recording is legal on any thread, Playback() only on main"
+      :caveat   "until Playback() the store is UNCHANGED — a long chain of dependent changes must account for that: the second step does not see what the first recorded. Resource spending is the sharp case (a second spend re-reads the pre-playback balance and both succeed)"
+      :now      "0 usages in Assets/**; Law 1 (main-thread-only) is what actually holds today"
+      :status   :direction-only}})
+```

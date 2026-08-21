@@ -1,19 +1,21 @@
-using System;
-using DefaultEcs;
-using DefaultECSExtensions;
+﻿using System;
+using Domains.Economy.Archetypes;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
 using Domains.Economy.District.Events;
-using Domains.Economy.District.Tags;
 using Domains.Map.Hex.Components;
+using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
+using Modules.AxialSystem;
+using Presentation.Archetypes;
 using Presentation.Districts.Components;
 using Presentation.Districts.Configs;
 using Presentation.Districts.Views;
 using Presentation.Terrain.Components;
+using Unity.Collections;
 using UnityEngine;
 using Object = UnityEngine.Object;
-using Presentation.Districts.Tags;
 
 namespace Presentation.Districts.Systems
 {
@@ -31,81 +33,100 @@ namespace Presentation.Districts.Systems
     public sealed class DistrictViewSpawnSystem : UpdatedSystem
     {
         // District rows: one per hex, carrying the hex FK, its type, and its build stage.
-        private readonly EntitySet _districts;
+        private readonly Archetype _districts;
 
-        // District view entities indexed by the hex FK -> lets the reconcile skip hexes already viewed.
-        private readonly EntityMultiMap<HexIdFKComponent> _viewsByHex;
+        private readonly EntityStorages _storages;
 
-        private readonly World _world;
+        // District view entities -> lets the reconcile skip hexes already viewed; also the birth archetype for
+        // new views. HexIdFKComponent is shared by every hex-anchored entity kind (the District row itself
+        // included), so a bare ComponentIndex over it would always see the District row and never spawn a view.
+        private readonly Archetype _viewArchetype;
 
-        private Transform _root;
+        private UnityEngine.Transform _root;
 
         public override int Priority => SystemPriorities.RuntimeTick.DistrictViewSpawn;
 
-        public DistrictViewSpawnSystem(World world)
-            : base(world.GetEntities()
-                .With<DistrictTableChangedEvent>()
-                .AsSet())
+        public DistrictViewSpawnSystem(EntityStorages storages)
+            : base(storages.World, EventArchetypes.Of<DistrictTableChangedEvent>(storages.World))
         {
-            _world = world;
+            _storages = storages;
 
-            _districts = world.GetEntities()
-                .With<DistrictTag>()
-                .With<HexIdFKComponent>()
-                .With<DistrictTypeComponent>()
-                .With<DistrictBuildStateComponent>()
-                .AsSet();
-
-            _viewsByHex = world.GetEntities()
-                .With<HexIdFKComponent>()
-                .With<DistrictViewComponent>().With<DistrictViewTag>()
-                .AsMultiMap<HexIdFKComponent>();
+            _districts = EconomyArchetypes.District(storages.World);
+            _viewArchetype = PresentationArchetypes.DistrictView(storages.World);
         }
 
         // The pulse entity itself is ignored — reconciliation is global over current state.
         protected override void Update(GameState state, in Entity pulse)
         {
-            if (!_world.Has<DistrictViewsConfigComponent>())
+            if (!EcsEventExtensions.IsRipe(pulse))
+                return;
+
+            if (!_storages.Singletons.Has<DistrictViewsConfigComponent>())
                 throw new InvalidOperationException(
-                    "DistrictViewSpawnSystem: DistrictViewsConfigComponent world component is missing.");
+                    "DistrictViewSpawnSystem: DistrictViewsConfigComponent singleton component is missing.");
 
-            if (!_world.Has<VertexGridComponent>())
+            if (!_storages.Singletons.Has<VertexGridComponent>())
                 throw new InvalidOperationException(
-                    "DistrictViewSpawnSystem: VertexGridComponent world component is missing.");
+                    "DistrictViewSpawnSystem: VertexGridComponent singleton component is missing.");
 
-            var viewsConfig = _world.Get<DistrictViewsConfigComponent>().Value;
-            var vertexGrid = _world.Get<VertexGridComponent>().Grid;
+            var viewsConfig = _storages.Singletons.Get<DistrictViewsConfigComponent>().Value;
+            var vertexGrid = _storages.Singletons.Get<VertexGridComponent>().Grid;
 
-            var districts = _districts.GetEntities();
-            for (var i = 0; i < districts.Length; i++)
+            // Snapshot-before-iterate: birth via _viewArchetype.CreateEntity() is NOT a structural change,
+            // but the AddComponent writes that follow it are, and they would throw while _districts.Entities
+            // enumerates (ECS_CONVENTIONS → Structural changes during iteration). Snapshotting the District
+            // ids closes that enumeration, so spawn and wiring both happen in one pass — no managed buffer.
+            var districtIds = new NativeList<int>(Math.Max(1, _districts.Count), Allocator.Temp);
+            try
             {
-                if (districts[i].Get<DistrictBuildStateComponent>().Value != DistrictBuildState.Built)
-                    continue;
+                foreach (var district in _districts.Entities)
+                    districtIds.Add(district.Id);
 
-                var hexId = districts[i].Get<HexIdFKComponent>();
-                if (_viewsByHex.ContainsKey(hexId))
-                    continue;
+                for (var i = 0; i < districtIds.Length; i++)
+                {
+                    if (!_storages.World.TryGetEntityById(districtIds[i], out var district))
+                        continue;
 
-                var districtType = districts[i].Get<DistrictTypeComponent>().Value;
-                var prefab = ResolvePrefab(viewsConfig, districtType);
+                    if (district.GetComponent<DistrictBuildStateComponent>().Value != DistrictBuildState.Built)
+                        continue;
 
-                var centerCoord = vertexGrid.GetCenterVertexCoord(hexId.Coords);
-                if (!vertexGrid.TryGet(centerCoord, out var centerVertex))
-                    throw new InvalidOperationException(
-                        $"DistrictViewSpawnSystem: hex {hexId.Coords} has no centre vertex on the grid.");
+                    var hexId = district.GetComponent<HexIdFKComponent>();
+                    if (HasView(hexId.Coords))
+                        continue;
 
-                if (_root == null)
-                    _root = new GameObject("DistrictViewRoot").transform;
+                    var districtType = district.GetComponent<DistrictTypeComponent>().Value;
+                    var prefab = ResolvePrefab(viewsConfig, districtType);
 
-                Vector3 worldPos = centerVertex.Position;
-                var instance = Object.Instantiate(prefab, worldPos, Quaternion.identity, _root);
-                var view = instance.GetComponent<DistrictView>();
+                    var centerCoord = vertexGrid.GetCenterVertexCoord(hexId.Coords);
+                    if (!vertexGrid.TryGet(centerCoord, out var centerVertex))
+                        throw new InvalidOperationException(
+                            $"DistrictViewSpawnSystem: hex {hexId.Coords} has no centre vertex on the grid.");
 
-                var viewEntity = _world.CreateEntity();
-                viewEntity.Set(new HexIdFKComponent { Coords = hexId.Coords });
-                viewEntity.Set(new DistrictViewComponent { Type = districtType, View = view });
-                viewEntity.Set(new DistrictViewTag());
+                    if (_root == null)
+                        _root = new GameObject("DistrictViewRoot").transform;
+
+                    Vector3 worldPos = centerVertex.Position;
+                    var instance = Object.Instantiate(prefab, worldPos, Quaternion.identity, _root);
+                    var view = instance.GetComponent<DistrictView>();
+
+                    var viewEntity = _viewArchetype.CreateEntity();
+                    viewEntity.AddComponent(new HexIdFKComponent { Coords = hexId.Coords });
+                    viewEntity.AddComponent(new DistrictViewComponent { Type = districtType, View = view });
+                }
             }
+            finally
+            {
+                districtIds.Dispose();
+            }
+        }
+
+        private bool HasView(HexCoord coords)
+        {
+            foreach (var view in _viewArchetype.Entities)
+                if (view.GetComponent<HexIdFKComponent>().Coords.Equals(coords))
+                    return true;
+
+            return false;
         }
 
         // Fail loud: a built district with no configured view prefab is an authoring gap, not a benign skip.
@@ -118,13 +139,6 @@ namespace Presentation.Districts.Systems
 
             throw new InvalidOperationException(
                 $"DistrictViewSpawnSystem: no view prefab configured for district type '{districtType}'.");
-        }
-
-        public override void Dispose()
-        {
-            _districts.Dispose();
-            _viewsByHex.Dispose();
-            base.Dispose();
         }
     }
 }

@@ -44,12 +44,12 @@ notation»: самодостатня таблиця (форма + читання
 | Атом | Що це | Приклад |
 |---|---|---|
 | `:keyword` | самозначуща мітка: вердикт, enum, ключ мапи; можна з namespace | `:not-enough-gold`, `:economy/ap` |
-| голий символ | **літеральний якір** — точне ім'я з коду/репо, агент бере дослівно | `DistrictBuiltEvent`, `PATTERN_CONFIG` |
+| голий символ | **літеральний якір** — точне ім'я з коду/репо, агент бере дослівно | `DistrictBuildConfirmedEvent`, `PATTERN_CONFIG` |
 | `"рядок"` | **проза** — опис, який агент має право тлумачити і перепитати | `"спавнити вьюху району"` |
 | число | значення як є | `600`, `0.5` |
 
 **Головне правило нотації: лапки маркують розмите.** Все нечітке живе в лапках і ТІЛЬКИ
-в лапках; ім'я, яке вже вирішене, пиши голим символом. `:listen DistrictBuiltEvent` —
+в лапках; ім'я, яке вже вирішене, пиши голим символом. `:listen DistrictBuildConfirmedEvent` —
 нуль інтерпретації; `:goal "подія-сигнал: район побудовано"` — агент тлумачить. Це
 symbols-vs-strings різниця Clojure, зроблена семантичною.
 
@@ -95,7 +95,35 @@ Clojure-конвенція «мутує світ»:
 
 **`^:meta`-теги** — декорація наступної форми: `^:new` = створити (на відміну від
 існуючих імен-контексту), `^:optional` = nice-to-have, `^:risky` = обговорити перед
-стартом: `{:event ^:new DistrictBuiltEvent}`.
+стартом:
+
+<!-- doc-lint: off — приклад ^:new: якір навмисно НЕ існує, в цьому його сенс -->
+```clojure
+{:event ^:new DistrictDemolishedEvent}   ;; ^:new = «створи, цього типу ще нема»
+```
+<!-- doc-lint: on -->
+
+**`(:label payload …)`** — розмічений вузол інструкції (канонізовано 2026-08-05):
+keyword називає РОЛЬ вузла, payload читається, але не виконується. Один рядок канону
+покриває всю родину міток — `:step-N`, `:flow-N`, `:conclusion-N`, `:assumption`,
+`:question`, будь-яка самоописова мітка; нумерація довільна. Сусідні мітки задають
+структуру сценарію — кроки, розгалуження, висновки, припущення — не перетворюючи його
+на програму; payload може бути прозою, якорем або формою (`->`, `cond`):
+
+```clojure
+[(:step-1 "на початку ходу зменшити лічильник будівництва")
+ (:step-2 (-> NextTurnEvent BuildDistrictTurnsComponent "decrement via AddComponent"))
+ (:flow-1 "лічильник дійшов нуля?")
+ (:conclusion-1 (cond (zero? turns) DistrictBuildConfirmedEvent
+                      :else         :wait-next-turn))
+ (:assumption "системи ходу виконуються послідовно, не паралельно")
+ (:question "чи скидається лічильник при скасуванні будівництва?")]
+```
+
+Читання вголос: «крок 1 — …; крок 2 — NextTurnEvent веде до декременту компонента;
+розвилка — …; висновок — якщо нуль, подія підтвердження, інакше чекати; припущення —
+…; відкрите питання — …». Мітка = адреса вузла: на неї можна послатись у розмові
+(«у :flow-1 забув про cancel») так само, як `:listen` посилається на `:task`-id.
 
 ## 5. Спеціальні значення поля
 
@@ -252,12 +280,12 @@ Rules-блоки `ARCHITECTURE.md`, `Patterns/*`, `Flows/*` — ті самі ф
   :listen :relocate-selection-command
   :pattern PATTERN_REACTIVE_SYSTEM
   :name :by-naming-policy                       ;; пропозиція: BuildDistrictTemplateSelectSystem
-  :do "маленька реактивна система в Actions: Set() DistrictTypeComponent на draft-сутності"
+  :do "маленька реактивна система в Actions: AddComponent DistrictTypeComponent на draft-сутності"
   :result "draft = єдине джерело правди вибору (PATTERN_TRANSACTION_ENTITY :state)"}
 
  {:task :ui-reads-draft
   :where Assets/Presentation/UI/DistrictBuild/Systems
-  :do "секції читають draft (With<BuildDistrictActionTemplateTag> + DistrictTypeComponent) замість world component"
+  :do "секції читають draft (архетип BuildDistrictActionTemplateTag + DistrictTypeComponent) замість singleton-компонента"
   :decided "draft від народження = DistrictType.None, ніколи Unknown (Unknown лишається error-маркером)"}
 
  {:task :purge-old-home
@@ -275,8 +303,8 @@ Rules-блоки `ARCHITECTURE.md`, `Patterns/*`, `Flows/*` — ті самі ф
 
 **Канонізовано** (кожне має рядок у глобальній таблиці): мапа, вектор, set `#{}`,
 `:keyword` (+ namespaced), символ-vs-рядок (якір/проза), `(cond)`, `(-> …)`,
-`(def subject {…})`, `!`-суфікс, `?`, `:by-<джерело>`, `:keyword`-посилання на
-`:task`-id, `^:meta`-теги, констрейнт-ключі, `:accept`, `;;`.
+`(def subject {…})`, `(:label payload …)`-вузол, `!`-суфікс, `?`, `:by-<джерело>`,
+`:keyword`-посилання на `:task`-id, `^:meta`-теги, констрейнт-ключі, `:accept`, `;;`.
 
 **На полиці — крадемо, коли знадобиться:**
 - деструктуринг `{:keys [goal where]}` — компактне «мені потрібні саме ці поля»;
@@ -346,7 +374,7 @@ carve-out'ом). ECS-специфіка живе в проєкті, не в гл
    :pk        "власна ідентичність рядка в СВОЄМУ ключовому просторі (…IdComponent)"
    :fk        "посилання в ЧУЖИЙ ключовий простір (…FKComponent); #{} якщо їх декілька"
    :kind      "enum-компонент-підтип (self-index дискримінатор), не другий tag"
-   :state     "enum-компонент-стан (лічильник стадії), change-only Set()"
+   :state     "enum-компонент-стан (лічильник стадії), change-only AddComponent"
    :data      "прості значення-атрибути → #{} (порядок не важливий)"})
 ```
 

@@ -1,12 +1,12 @@
 using System;
-using DefaultEcs;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
+using Presentation.UI.Archetypes;
 using Presentation.UI.MainHud.ResourceBar.Components;
 using Presentation.UI.MainHud.ResourceBar.Views;
 using Presentation.UI.MainHud.Systems;
-using Presentation.UI.Tags;
 using UnityEngine;
-using DefaultECSExtensions;
+using EcsExtensions;
 
 namespace Presentation.UI.MainHud.ResourceBar.Systems
 {
@@ -18,13 +18,15 @@ namespace Presentation.UI.MainHud.ResourceBar.Systems
     [UsedImplicitly]
     internal sealed class ResourceBarSpawnSubSystem : MainHudSpawnSubSystem
     {
-        private readonly World _world;
+        private readonly EntityStorages _storages;
+        private readonly Archetype _archetype;
 
         public override int Priority => SystemPriorities.SubSystems.MainHudSpawn.ResourceBar;
 
-        public ResourceBarSpawnSubSystem(World world)
+        public ResourceBarSpawnSubSystem(EntityStorages storages)
         {
-            _world = world;
+            _storages = storages;
+            _archetype = PresentationUIArchetypes.ResourceBar(storages.World);
         }
 
         public override void Prepare(GameObject mainUi)
@@ -34,17 +36,16 @@ namespace Presentation.UI.MainHud.ResourceBar.Systems
                 throw new InvalidOperationException(
                     "ResourceBarSpawnSubSystem: ResourceBarView is missing from the Main UI prefab.");
 
-            if (!_world.Has<InventoryResourceIconConfigComponent>())
+            if (!_storages.Singletons.Has<InventoryResourceIconConfigComponent>())
                 throw new InvalidOperationException(
                     "ResourceBarSpawnSubSystem: InventoryResourceIconConfigComponent missing — " +
                     "InventoryResourceIconConfigLoaderSystem must run at ConfigLoadStep first.");
 
-            view.Build(_world.Get<InventoryResourceIconConfigComponent>().Value.Entries);
+            view.Build(_storages.Singletons.Get<InventoryResourceIconConfigComponent>().Value.Entries);
             view.Hide();
 
-            var entity = _world.CreateEntity();
-            entity.Set(new ResourceBarViewComponent(view));
-            entity.Set<UITag>();
+            var entity = _archetype.CreateEntity();
+            entity.AddComponent(new ResourceBarViewComponent(view));
         }
     }
 }

@@ -2,8 +2,7 @@ using System;
 using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
+using EcsExtensions;
 using Domains.Economy.Resource.Data;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
@@ -15,17 +14,21 @@ namespace Presentation.UI.MainHud.ResourceBar.Systems
 {
     /// <summary>
     ///     Loads the inventory-resource-icon config at boot and publishes it as the
-    ///     InventoryResourceIconConfigComponent world component. Ownership of the Box transfers to that component
+    ///     InventoryResourceIconConfigComponent singleton component. Ownership of the Box transfers to that component
     ///     so the sprites stay loaded. The config's entries also define the resource strip's columns. Mirrors
     ///     HexTerrainIconConfigLoaderSystem.
     /// </summary>
     [UsedImplicitly]
     internal sealed class InventoryResourceIconConfigLoaderSystem : ConfigLoaderSystem
     {
+        private readonly EntityStorages _storages;
         private const string INVENTORY_RESOURCE_ICON_CONFIG = "InventoryResourceIconConfig";
 
-        public InventoryResourceIconConfigLoaderSystem(IAddressable addressable, World world)
-            : base(addressable, world) { }
+        public InventoryResourceIconConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
+            : base(addressable)
+        {
+            _storages = storages;
+        }
 
         protected override async UniTask LoadConfigsAsync(CancellationToken cancellationToken)
         {
@@ -39,7 +42,7 @@ namespace Presentation.UI.MainHud.ResourceBar.Systems
 
                 ValidateConfig(config.Value);
 
-                World.Set(new InventoryResourceIconConfigComponent(config));
+                _storages.Singletons.Set(new InventoryResourceIconConfigComponent(config));
                 config = Box<InventoryResourceIconConfig>.Empty();
                 MarkAsLoaded();
             }

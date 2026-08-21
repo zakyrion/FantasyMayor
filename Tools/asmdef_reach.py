@@ -5,13 +5,21 @@ Parses every *.asmdef under Assets/ into an assembly reference graph (name + GUI
 and maps each type to its owning assembly (nearest ancestor .asmdef), to answer the layering
 questions roslyn / ecs-graph / di-graph do NOT:
 
-    python3 Tools/asmdef_reach.py can <Assembly> <Type>        # can <Assembly> use <Type>? + shortest ref path
+    python3 Tools/asmdef_reach.py can <Assembly> <Type>        # will <Assembly> COMPILE against <Type>?
     python3 Tools/asmdef_reach.py path <AsmA> <AsmB>           # shortest reference path AsmA -> AsmB
-    python3 Tools/asmdef_reach.py refs <Assembly>              # direct + transitive references
+    python3 Tools/asmdef_reach.py refs <Assembly>              # direct (compile-visible) + transitive (graph only)
     python3 Tools/asmdef_reach.py assembly-of <Type>          # which assembly(ies) define <Type>
 
-Rule: A can use T iff T's assembly is A itself or in A's transitive reference closure. Scope is
-Assets/ assemblies only (package/engine assemblies referenced by name appear as leaf targets).
+Rule: A compiles against T iff T's assembly is A itself or a DIRECT entry in A's asmdef references.
+Reference visibility is NOT transitive: Unity emits non-SDK-style csproj files listing only the
+declared references, so A -> B -> C does not let A use a type from C. This bit a real landing (Boot
+composing a system by name through an intermediate assembly), which is why `can` answers on direct
+references and reports a transitive-only path as a NO with the reference to add.
+
+Transitive closure is still the right answer for LAYERING questions ("does A depend on C at all") —
+that is what `path` and the second line of `refs` are for. Never read them as compile visibility.
+
+Scope is Assets/ assemblies only (package/engine assemblies referenced by name appear as leaf targets).
 """
 from __future__ import annotations
 
@@ -132,8 +140,8 @@ def main():
             sys.exit(f"asmdef_reach: unknown assembly '{asm}'.")
         direct = sorted(graph.get(asm, set()))
         trans = sorted(closure(graph, asm) - {asm})
-        print(f"{asm} — direct references ({len(direct)}): {', '.join(direct) or '(none)'}")
-        print(f"{asm} — transitive closure ({len(trans)}): {', '.join(trans) or '(none)'}")
+        print(f"{asm} — DIRECT references, compile-visible ({len(direct)}): {', '.join(direct) or '(none)'}")
+        print(f"{asm} — transitive closure, LAYERING ONLY, not compile-visible ({len(trans)}): {', '.join(trans) or '(none)'}")
         return
 
     if cmd == "path" and len(args) == 3:
@@ -153,13 +161,25 @@ def main():
         hits = assemblies_defining(root, typ, dirs)
         if not hits:
             sys.exit(f"asmdef_reach: type '{typ}' not found under Assets/.")
+        direct = graph.get(asm, set())
         reach = closure(graph, asm)
-        visible = [h for h in sorted(hits) if h in reach]
-        if visible:
-            for h in visible:
-                print(f"YES — {asm} can use {typ} (in {h}) via {' -> '.join(shortest_path(graph, asm, h))}")
-        else:
-            print(f"NO — {asm} cannot use {typ} (in {', '.join(sorted(hits))}); no reference path.")
+        # Compile visibility is DIRECT-only — see the module docstring. Transitive reachability is
+        # reported as a NO plus the reference to add, never as a YES.
+        compiles = [h for h in sorted(hits) if h == asm or h in direct]
+        transitive = [h for h in sorted(hits) if h not in compiles and h in reach]
+        unreachable = [h for h in sorted(hits) if h not in compiles and h not in transitive]
+
+        for h in compiles:
+            where = "same assembly" if h == asm else "direct reference"
+            print(f"YES — {asm} compiles against {typ} (in {h}) — {where}")
+        for h in transitive:
+            path = shortest_path(graph, asm, h)
+            print(f"NO — {typ} is in {h}, reachable only TRANSITIVELY via {' -> '.join(path)}")
+            print(f"     Unity does not flow transitive references: add '{h}' to {asm}.asmdef references.")
+        for h in unreachable:
+            print(f"NO — {asm} cannot reach {typ} (in {h}); no reference path at all.")
+        if not compiles:
+            sys.exit(1)
         return
 
     sys.exit(__doc__)

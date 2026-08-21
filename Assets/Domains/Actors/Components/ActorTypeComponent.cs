@@ -1,9 +1,10 @@
-using System;
 using Domains.Kernel.Data;
+using Friflo.Engine.ECS;
+using System;
 
 namespace Domains.Actors.Components
 {
-    public struct ActorTypeComponent : IEquatable<ActorTypeComponent>
+    public struct ActorTypeComponent : IEquatable<ActorTypeComponent>, IComponent
     {
         public ActorType Type;
 

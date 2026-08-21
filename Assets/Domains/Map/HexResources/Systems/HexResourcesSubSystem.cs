@@ -1,24 +1,22 @@
-using DefaultEcs;
-using DefaultEcs.System;
-using DefaultECSExtensions;
+using EcsExtensions;
 using Domains.Map.HexResources.Components;
 using Domains.Map.HexResources.Configs;
 using Domains.Map.HexResources.Data;
 
 namespace Domains.Map.HexResources.Systems
 {
-    internal abstract class HexResourcesSubSystem : ISystem<GameState>
+    internal abstract class HexResourcesSubSystem : EcsExtensions.ISystem<GameState>
     {
-        private readonly World _world;
+        private readonly EntityStorages _storages;
 
         public bool IsEnabled { get; set; } = true;
 
         public abstract int Priority { get; }
         protected abstract HexResourceType TargetHexResourceType { get; }
 
-        protected HexResourcesSubSystem(World world)
+        protected HexResourcesSubSystem(EntityStorages storages)
         {
-            _world = world;
+            _storages = storages;
         }
 
         public abstract void Update(GameState state);
@@ -27,10 +25,10 @@ namespace Domains.Map.HexResources.Systems
         {
             config = null;
 
-            if (!_world.Has<HexResourcesConfigComponent>())
+            if (!_storages.Singletons.Has<HexResourcesConfigComponent>())
                 return false;
 
-            var resourcesConfig = _world.Get<HexResourcesConfigComponent>().Value;
+            var resourcesConfig = _storages.Singletons.Get<HexResourcesConfigComponent>().Value;
             foreach (var resource in resourcesConfig.Resources)
             {
                 if (resource.Type != TargetHexResourceType)

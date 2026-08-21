@@ -38,8 +38,8 @@ explore it via the ecs-graph / code headers; this recipe is the generic procedur
 
 ;; ── do NOT use when ─────────────────────────────────────────────────────────
 (cond
-  (one-config-one-shape?)       PATTERN_CONFIG              ;; flatten or wrap into a world component — never spawn an entity for a singleton config
-  (homogeneous-read-once-list?) :flattened-world-component  ;; cheaper than a table when never queried by key
+  (one-config-one-shape?)       PATTERN_CONFIG                  ;; flatten or wrap into a singleton component — never spawn a queryable row for a singleton config
+  (homogeneous-read-once-list?) :flattened-singleton-component  ;; cheaper than a table when never queried by key
   (behavior-on-the-config?)     :NO)                        ;; SO configs stay pure data — the type-switch lives in the subsystems
 ```
 
@@ -76,31 +76,31 @@ public sealed class FoosConfig : ScriptableObject
 }
 ```
 
-### 2 — Loader → world component (live SO reference)
+### 2 — Loader → singleton component (live SO reference)
 
-One [config loader](PATTERN_CONFIG_LOADER.md) at `ConfigLoadStep`. It publishes a world component that **wraps the
+One [config loader](PATTERN_CONFIG_LOADER.md) at `ConfigLoadStep`. It publishes a singleton component that **wraps the
 live SO reference** (not a flattened copy — the orchestrator reads the concrete subclasses later, at
 `MapGenerationStep`) and **retains the addressable `Box`** for the catalogue's lifetime, releasing it in `OnDispose`.
 Validate all entries non-null and **fail loud** — a missing/blank catalogue stops the game at boot, not later
 rule-blind.
 
 ```csharp
-public readonly struct FoosConfigComponent { public readonly FoosConfig Value; /* ctor */ }
+public readonly struct FoosConfigComponent : IComponent { public readonly FoosConfig Value; /* ctor */ }
 ```
 
 ### 3 — Spawn orchestrator + Try-pattern subsystem family (routing)
 
-A [pipeline stage](PATTERN_PIPELINE_STAGE.md) orchestrator at `MapGenerationStep` reads the world component, iterates
+A [pipeline stage](PATTERN_PIPELINE_STAGE.md) orchestrator at `MapGenerationStep` reads the singleton component, iterates
 `Items`, and routes each entry to the **first** subsystem that handles its concrete type. **Fail loud** on a null
 entry or a config type no subsystem matches (a new kind without its subsystem must not pass silently).
 
 ```csharp
 internal abstract class FooSpawnSubSystem : IDisposable
 {
-    protected readonly World World;
+    protected readonly EntityStore World;
     public bool IsEnabled { get; } = true;
     public int  Priority  { get; }
-    protected FooSpawnSubSystem(World world) => World = world;
+    protected FooSpawnSubSystem(EntityStore world) => World = world;
     public abstract bool TrySpawn(FooConfig config);   // true = "I handled it"
     public void Dispose() { }
 }
@@ -109,12 +109,12 @@ internal sealed class FooSpawnSystem : IPrioritizedUniTaskSystem<MapGenerationSt
 {
     public int Priority => 920;                        // domain-spawn cluster
     [StateAllowed] private readonly IReadOnlyList<FooSpawnSubSystem> _subSystems;
-    private readonly World _world;
-    // ctor: (World world, IReadOnlyList<FooSpawnSubSystem> subSystems)
+    private readonly EntityStorages _storages;
+    // ctor: (EntityStorages storages, IReadOnlyList<FooSpawnSubSystem> subSystems)
 
     public UniTask Update(MapGenerationStep state, CancellationToken ct)
     {
-        var items = _world.Get<FoosConfigComponent>().Value.Items;
+        var items = _storages.Singletons.Get<FoosConfigComponent>().Value.Items;
         foreach (var item in items)
         {
             if (item == null)      throw new /* fail loud: null catalogue entry */;
@@ -136,12 +136,12 @@ internal sealed class BarFooSpawnSubSystem : FooSpawnSubSystem
     public override bool TrySpawn(FooConfig config)
     {
         if (config is not BarFooConfig bar) return false;   // not my kind → let the next try
-        var row = World.CreateEntity();
-        row.Set(new FooKeyComponent(bar.Key));                       // FK into the subject's key space
-        row.Set(new FooTag());                                       // the row's ONLY tag (Tag Law)
-        row.Set(new FooKindComponent { Value = FooKind.Bar });       // kind column — the selector
-        row.Set(new BarFooComponent(bar.RequiredThing));             // per-kind payload (parameters only)
-        row.Set(new FooStateComponent { Value = FooState.Closed });  // initial state, if the family evaluates
+        // The archetype carries EVERY column of this kind — the row is born complete (Birth Completeness).
+        var row = EconomyArchetypes.BarFoo(World).CreateEntity();
+        row.AddComponent(new FooKeyComponent(bar.Key));                       // FK into the subject's key space
+        row.AddComponent(new FooKindComponent { Value = FooKind.Bar });       // kind column — the selector
+        row.AddComponent(new BarFooComponent(bar.RequiredThing));             // per-kind payload (parameters only)
+        row.AddComponent(new FooStateComponent { Value = FooState.Closed });  // initial state, if the family evaluates
         return true;
     }
 }
@@ -155,42 +155,40 @@ output are enum COLUMNS, never extra tags:
 | Slot | Role | Shape |
 |---|---|---|
 | Key component (FK) | which subject this entry is about | the subject space's `…FKComponent` (key-role law) |
-| Discriminator tag | "this row is a Foo" — the row's ONLY tag | `DistrictOpenConditionTag` |
-| Kind component | which kind this row is | `FooKindComponent { FooKind Value }` — enum, `IEquatable`, set once at spawn |
-| Payload component (per kind, optional) | the kind's parameters | plain component; `Get` + fail-loud throw when the kind requires it |
-| State component (optional) | result the evaluator reconciles | `FooStateComponent { FooState Value }` — enum, `IEquatable`, change-only `Set()` |
+| Discriminator tag | "this row is a Foo" — the row's ONLY tag, named by the archetype | `DistrictOpenConditionTag` |
+| Kind component | which kind this row is | `FooKindComponent { FooKind Value }` — `IIndexedComponent<FooKind>`, written once at birth |
+| Payload component (per kind) | the kind's parameters | plain component, named by that kind's archetype |
+| State component (optional) | result the evaluator reconciles | `FooStateComponent { FooState Value }` — `IIndexedComponent<FooState>`, change-only writes |
 
-**Query by the table, never by the bare key** (Table Rule): the family sweep is
-`With<FooTag>().With<FooKeyComponent>()`; a KIND slice or a STATE slice is a legal self-index —
-`With<FooTag>().AsMultiMap<FooKindComponent>()` + `TryGetEntities(kind)` (same for state). `Set()`
-re-indexes maintained maps, so a state flip moves the row between slices automatically.
+**Filter by the table, never by the bare key** (Table Rule): the family sweep is that kind's declared
+archetype; a KIND slice or a STATE slice is a legal self-index — `store.ComponentIndex<FooKindComponent,
+FooKind>()[kind]` (same for state). The write CALL re-files the row, so a state flip moves it between
+slices automatically.
 
 ### 5 — (Optional) Evaluator family — the non-routing loop variant
 
 When rows must be **re-checked over time** (each turn) and reconciled into a STATE column, add a **second** family. It
 uses the SAME orchestrator+subsystem shape but a **different loop discipline** (below). Each evaluator reads its
-kind-slice from the kind self-index, joins the target table by key (`AsMultiMap` / `AsMap`), and reconciles the
+kind-slice from the kind self-index, joins the target table by key (a `ComponentIndex` on the FK), and reconciles the
 state component with **change-only writes**. Omit this whole part if the table is a static lookup joined on demand
 (then it is spawn-only and needs no state component).
 
 ```csharp
 internal sealed class BarFooEvaluatorSubSystem : FooEvaluatorSubSystem
 {
-    private readonly EntityMultiMap<FooKindComponent> _rowsByKind;  // With<FooTag>().AsMultiMap<FooKindComponent>() — kind slice (self-index)
-    private readonly EntityMultiMap<FooKeyComponent> _targetsByKey; // With<TargetTag>().AsMultiMap<FooKeyComponent>()
+    private readonly ComponentIndex<FooKindComponent, FooKind> _rowsByKind;   // kind slice (self-index)
+    private readonly ComponentIndex<FooKeyComponent, FooKeyValue> _targetsByKey;
 
     public override void Evaluate()
     {
-        if (!_rowsByKind.TryGetEntities(new FooKindComponent { Value = FooKind.Bar }, out var rows))
-            return;   // no rows of my kind — a valid catalogue state, not an error
-
-        foreach (ref readonly var row in rows)
+        // An empty bucket is a valid catalogue state, not an error — the loop simply does nothing.
+        foreach (var row in _rowsByKind[FooKind.Bar])
         {
-            var key = row.Get<FooKeyComponent>();
-            var satisfied = /* join: */ !_targetsByKey.TryGetEntities(key, out _);
+            var key = row.GetComponent<FooKeyComponent>().Value;
+            var satisfied = /* join: */ HasTarget(key);
             var next = satisfied ? FooState.Open : FooState.Closed;
-            if (row.Get<FooStateComponent>().Value != next)   // change-only write: no churn, no spurious re-index
-                row.Set(new FooStateComponent { Value = next });
+            if (row.GetComponent<FooStateComponent>().Value != next)   // change-only write: no churn, no re-index
+                row.AddComponent(new FooStateComponent { Value = next });
         }
     }
 }
@@ -222,9 +220,9 @@ The loud/quiet asymmetry is deliberate — see the `;;` notes above.
 
 ```clojure
 (def per-kind-rule
-  {:kind                 "FooKindComponent { FooKind Value }"  ;; ONE enum component per family, every row carries it, set once at spawn
-   :selection            "self-index AsMultiMap<FooKindComponent> + TryGetEntities(kind)"  ;; never a second tag, never payload-presence sniffing
-   :payload              {:only-when "the kind has parameters"} ;; Get + fail-loud throw; presence is NOT the kind selector
+  {:kind                 "FooKindComponent { FooKind Value }"  ;; ONE enum component per family, every row carries it, written once at birth
+   :selection            "self-index ComponentIndex<FooKindComponent, FooKind>[kind]"  ;; never a second tag, never payload-presence sniffing
+   :payload              {:only-when "the kind has parameters"} ;; part of that kind's archetype — presence is NOT the kind selector (Birth Completeness)
    :second-tag           :NEVER                                 ;; breaks 1-entity-1-tag (Tag Law)
    :key-as-discriminator :NEVER})                               ;; the key is the SUBJECT (1:N per key expected); the kind names the RULE
 ```
@@ -269,7 +267,7 @@ Three pieces, orchestrator untouched:
    :spawn-orchestrator "fail loud on null entry / unhandled type; subsystems bool TrySpawn — Try-pattern"
    :row                "key(FK) + ONE discriminator tag + kind component (+ payload, + state); consumers query the TABLE, never the bare key"
    :kind               "enum FooKindComponent on every row — selection via the kind self-index, never a second tag"
-   :evaluator          {:if-present "non-routing, reads its kind-slice, joins by key AsMap/AsMultiMap, reconciles the state component change-only"}
+   :evaluator          {:if-present "non-routing, reads its kind-slice, joins by key through a ComponentIndex, reconciles the state component change-only"}
    :dual-host          {:only-when "two lifecycles needed"}  ;; both reuse ONE subsystem list
    :di                 "all Singleton; subsystems .As<AbstractBase>(); collected field [StateAllowed]"})
 ```

@@ -1,14 +1,13 @@
-using System.Threading;
+﻿using System.Threading;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
-using JetBrains.Annotations;
-using Modules.AxialSystem;
-using Modules.Boot.Core;
+using Domains.Map.Archetypes;
 using Domains.Map.Hex.Components;
+using EcsExtensions;
+using Friflo.Engine.ECS;
+using JetBrains.Annotations;
+using Modules.Boot.Core;
 using Presentation.Terrain.Components;
 using UnityEngine;
-using Domains.Map.Hex.Tags;
 
 namespace Presentation.Terrain.Systems
 {
@@ -22,32 +21,29 @@ namespace Presentation.Terrain.Systems
         private const float RayHeight = 5f;
         private const float RayDuration = 5f;
 
-        private readonly World _world;
-        private readonly EntitySet _hexSet;
+        private readonly EntityStorages _storages;
+        private readonly Archetype _hexSet;
 
         /// <inheritdoc />
         public int Priority => SystemPriorities.WorldInit.TerrainViewDebug;
 
-        public TerrainViewDebugSystem(World world)
+        public TerrainViewDebugSystem(EntityStorages storages)
         {
-            _world = world;
-            _hexSet = world.GetEntities()
-                .With<HexIdComponent>()
-                .With<HexLevelComponent>().With<HexTag>()
-                .AsSet();
+            _storages = storages;
+            _hexSet = MapArchetypes.Hex(storages.World);
         }
 
         /// <inheritdoc />
         public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
         {
-            if (!_world.Has<TerrainViewConfigComponent>())
+            if (!_storages.Singletons.Has<TerrainViewConfigComponent>())
                 return UniTask.CompletedTask;
 
-            var cellSize = _world.Get<TerrainViewConfigComponent>().CellSize;
+            var cellSize = _storages.Singletons.Get<TerrainViewConfigComponent>().CellSize;
 
-            foreach (ref readonly var hexEntity in _hexSet.GetEntities())
+            foreach (var hexEntity in _hexSet.Entities)
             {
-                var level = hexEntity.Get<HexLevelComponent>().Level;
+                var level = hexEntity.GetComponent<HexLevelComponent>().Level;
 
                 Color rayColor;
                 if (level < 0)
@@ -59,7 +55,7 @@ namespace Presentation.Terrain.Systems
                 else
                     continue;
 
-                var hexCoord = hexEntity.Get<HexIdComponent>().Coords;
+                var hexCoord = hexEntity.GetComponent<HexIdComponent>().Coords;
                 var center = AxialMath.AxialToWorld(hexCoord.Value, cellSize, AxialOrientation.PointyTop);
                 Debug.DrawRay(new Vector3(center.x, center.y, center.z), Vector3.up * RayHeight, rayColor, RayDuration);
             }
@@ -70,7 +66,6 @@ namespace Presentation.Terrain.Systems
         /// <inheritdoc />
         public void Dispose()
         {
-            _hexSet.Dispose();
         }
     }
 }

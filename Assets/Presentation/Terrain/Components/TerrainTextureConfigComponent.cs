@@ -1,3 +1,4 @@
+using Friflo.Engine.ECS;
 using Presentation.Terrain.Configs;
 using UnityEngine;
 
@@ -7,7 +8,7 @@ namespace Presentation.Terrain.Components
     ///     Flattened ECS snapshot of <see cref="TerrainTextureConfig" />.
     ///     Created once by the config loader; consumed by <see cref="Systems.TerrainViewTextureSubSystem" />.
     /// </summary>
-    public struct TerrainTextureConfigComponent
+    public struct TerrainTextureConfigComponent : IComponent
     {
         public int TextureResolution;
         public int BrushRadius;

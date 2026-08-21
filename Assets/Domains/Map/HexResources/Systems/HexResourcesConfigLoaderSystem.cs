@@ -1,14 +1,13 @@
-using System;
-using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
-using JetBrains.Annotations;
-using Modules.Addressable.Core;
 using Domains.Map.HexResources.Components;
 using Domains.Map.HexResources.Configs;
 using Domains.Map.HexResources.Data;
+using EcsExtensions;
+using JetBrains.Annotations;
+using Modules.Addressable.Core;
+using System.Threading;
+using System;
 using Unity.Collections;
 
 namespace Domains.Map.HexResources.Systems
@@ -16,13 +15,15 @@ namespace Domains.Map.HexResources.Systems
     [UsedImplicitly]
     internal sealed class HexResourcesConfigLoaderSystem : ConfigLoaderSystem
     {
+        private readonly EntityStorages _storages;
         private const string GAME_RESOURCES_CONFIG = "HexResourcesConfig";
 
         private Box<HexResourcesConfig> _config = Box<HexResourcesConfig>.Empty();
 
-        public HexResourcesConfigLoaderSystem(IAddressable addressable, World world)
-            : base(addressable, world)
+        public HexResourcesConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
+            : base(addressable)
         {
+            _storages = storages;
         }
 
         protected override async UniTask LoadConfigsAsync(CancellationToken cancellationToken)
@@ -40,7 +41,7 @@ namespace Domains.Map.HexResources.Systems
                 _config = loadedConfig;
                 loadedConfig = Box<HexResourcesConfig>.Empty();
 
-                World.Set(new HexResourcesConfigComponent { Value = _config.Value });
+                _storages.Singletons.Set(new HexResourcesConfigComponent { Value = _config.Value });
                 MarkAsLoaded();
             }
             finally

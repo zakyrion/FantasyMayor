@@ -11,7 +11,7 @@ first line / frontmatter, then run:
     python3 Tools/gen_index.py
 
 Data comes from each project doc's YAML frontmatter (see DOC_STANDARD.md
-"Frontmatter"): category, read (always|trigger|reference), trigger, tags, status.
+"Frontmatter"): category, read (always|trigger|reference|archive), trigger, tags, status.
 The one-line description is each doc's own first content line (no second source of truth).
 
 Obsidian Canvas files (`.canvas`) are also catalogued in a "Canvas map" section.
@@ -39,7 +39,7 @@ PRUNE = {
     os.path.join("Assets", "TutorialInfo"),
 }
 
-READ_ORDER = {"always": 0, "trigger": 1, "reference": 2}
+READ_ORDER = {"always": 0, "trigger": 1, "reference": 2, "archive": 3}
 
 # Pass-1 / pass-2 boundary. The script owns everything between the markers and rewrites
 # it every run; the agent owns everything BELOW the END marker, which is preserved.
@@ -178,6 +178,7 @@ def lint(docs):
         for p in _walk_files() if p.startswith("Assets") and p.endswith(".cs"))
     for p, m in docs:
         d = os.path.dirname(p)
+        normalized = p.replace(os.sep, "/")
         # broken relative links — frontmatter `related` + body (code fences skipped:
         # examples inside fences are illustrations, not live links)
         targets = LINK_RE.findall(m["_block"]) + LINK_RE.findall(FENCE_RE.sub("", m["_body"]))
@@ -191,9 +192,33 @@ def lint(docs):
                 issues.append(f"{p}: broken link → {t}")
         # category-scoped fields
         if m["category"] == "A":
+            is_flow = (normalized.startswith("Flows/FLOW_") or
+                       normalized.startswith("Flows/Archive/FLOW_"))
             if not m["status"]:
                 issues.append(f"{p}: Category A doc missing status")
+            elif m["status"] not in ("partial", "implemented"):
+                issues.append(f"{p}: bad Category A status {m['status']!r}")
+            if is_flow:
+                headings = ["# 1 · Request", "# 2 · Contract", "# 3 · Plan"]
+                positions = [m["_body"].find(h) for h in headings]
+                if any(i == -1 for i in positions) or positions != sorted(positions):
+                    issues.append(f"{p}: Category A FLOW needs Request → Contract → Plan sections in order")
+                if m["status"] == "partial" and m["read"] != "always":
+                    issues.append(f"{p}: active partial FLOW must be read: always")
+                if m["read"] == "always" and m["status"] != "partial":
+                    issues.append(f"{p}: implemented FLOW cannot stay in the session-start set")
+            if m["read"] == "archive":
+                if not normalized.startswith("Flows/Archive/FLOW_"):
+                    issues.append(f"{p}: read: archive requires Flows/Archive/FLOW_*.md")
+                if m["status"] != "implemented":
+                    issues.append(f"{p}: archived FLOW must be implemented")
+                if re.search(r"^code_refs:", m["_block"], re.M):
+                    issues.append(f"{p}: archived FLOW must not carry current-code code_refs")
+            elif normalized.startswith("Flows/Archive/"):
+                issues.append(f"{p}: a FLOW under Flows/Archive/ must use read: archive")
         else:
+            if m["read"] == "archive":
+                issues.append(f"{p}: read: archive is Category A only")
             if m["status"]:
                 issues.append(f"{p}: status is Category A only (category {m['category']})")
             if re.search(r"^code_refs:", m["_block"], re.M):
@@ -261,6 +286,8 @@ def main():
                      key=lambda x: x[0])
     ref = sorted([(p, m) for p, m in docs if m["read"] == "reference"],
                  key=lambda x: x[0])
+    archive = sorted([(p, m) for p, m in docs if m["read"] == "archive"],
+                     key=lambda x: x[0])
 
     L = []
     L.append("---")
@@ -279,7 +306,7 @@ def main():
     L.append(GEN_START)
     L.append("")
     L.append(f"Totals: {len(docs)} docs — {len(always)} always · "
-             f"{len(trigger)} trigger · {len(ref)} reference"
+             f"{len(trigger)} trigger · {len(ref)} reference · {len(archive)} archive"
              f" · {len(canvases)} canvas.")
     L.append("")
 
@@ -312,6 +339,13 @@ def main():
                  f"{m['status'] or '—'} | {m['desc']} |")
     L.append("")
 
+    L.append("## Task history (archive)")
+    L.append("")
+    L.append(f"{len(archive)} completed FLOW document(s) are retained under "
+             "`Flows/Archive/`. They preserve task history and are searched on demand; "
+             "they are not startup context or current-code claims.")
+    L.append("")
+
     L.append("## Canvas map (on demand)")
     L.append("")
     L.append("Visual maps (Obsidian Canvas). Read/edit via Obsidian MCP; not preloaded.")
@@ -338,7 +372,8 @@ def main():
         out += "\n"
     open(index_path, "w", encoding="utf-8").write(out)
     print(f"INDEX.md written: {len(docs)} docs "
-          f"({len(always)} always, {len(trigger)} trigger, {len(ref)} reference), "
+          f"({len(always)} always, {len(trigger)} trigger, {len(ref)} reference, "
+          f"{len(archive)} archive), "
           f"{len(canvases)} canvas")
 
     # doc lint — INDEX is already written; issues are doc drift to fix in the docs

@@ -1,25 +1,26 @@
-using System;
-using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
-using DefaultEcs;
-using DefaultECSExtensions;
-using JetBrains.Annotations;
-using Modules.Addressable.Core;
 using Domains.Map.Generation.Components;
 using Domains.Map.Generation.Configs;
 using Domains.Map.Generation.Data;
+using EcsExtensions;
+using JetBrains.Annotations;
+using Modules.Addressable.Core;
+using System.Threading;
+using System;
 
 namespace Domains.Map.Generation.Systems
 {
     [UsedImplicitly]
     internal class TerrainGenerationConfigLoaderSystem : ConfigLoaderSystem
     {
+        private readonly EntityStorages _storages;
         private const string TERRAIN_GENERATION_CONFIG = "TerrainGenerationConfig";
 
-        public TerrainGenerationConfigLoaderSystem(IAddressable addressable, World world)
-            : base(addressable, world)
+        public TerrainGenerationConfigLoaderSystem(IAddressable addressable, EntityStorages storages)
+            : base(addressable)
         {
+            _storages = storages;
         }
 
         protected override async UniTask LoadConfigsAsync(CancellationToken cancellationToken)
@@ -34,7 +35,7 @@ namespace Domains.Map.Generation.Systems
 
                 var config = terrainGenerationConfig.Value;
 
-                World.Set(TerrainGenerationConfigComponent.FromConfig(config));
+                _storages.Singletons.Set(TerrainGenerationConfigComponent.FromConfig(config));
                 CreateMountainConfigComponent(config);
                 CreateWaterConfigComponent(config);
 
@@ -48,7 +49,7 @@ namespace Domains.Map.Generation.Systems
 
         private void CreateMountainConfigComponent(TerrainGenerationConfig config)
         {
-            World.Set(new MountainConfigComponent
+            _storages.Singletons.Set(new MountainConfigComponent
             {
                 SizeFraction         = config.HillSizeFraction,
                 SeedCount            = config.SeedCount,
@@ -89,7 +90,7 @@ namespace Domains.Map.Generation.Systems
             if (riverConfig == null)
                 throw new InvalidOperationException($"{nameof(RiverConfig)} is not assigned in TerrainGenerationConfig but WaterType is River.");
 
-            World.Set(new RiverConfigComponent
+            _storages.Singletons.Set(new RiverConfigComponent
             {
                 CornerOffsetTiles = riverConfig.CornerOffsetTiles
             });
@@ -100,7 +101,7 @@ namespace Domains.Map.Generation.Systems
             if (lakeConfig == null)
                 throw new InvalidOperationException($"{nameof(LakeConfig)} is not assigned in TerrainGenerationConfig but WaterType is Lake.");
 
-            World.Set(new LakeConfigComponent
+            _storages.Singletons.Set(new LakeConfigComponent
             {
                 EdgeMarginTiles = lakeConfig.EdgeMarginTiles,
                 SizeFraction = lakeConfig.SizeFraction
@@ -112,7 +113,7 @@ namespace Domains.Map.Generation.Systems
             if (seaConfig == null)
                 throw new InvalidOperationException($"{nameof(SeaConfig)} is not assigned in TerrainGenerationConfig but WaterType is Sea.");
 
-            World.Set(new SeaConfigComponent
+            _storages.Singletons.Set(new SeaConfigComponent
             {
                 SizeFraction = seaConfig.SizeFraction
             });
