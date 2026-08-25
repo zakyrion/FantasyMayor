@@ -64,6 +64,9 @@ resume work:
 - what files or systems are called out as the current source of truth
 - what the next roadmap item appears to be
 - whether documents disagree about "what is next"
+- if a Category A FLOW with `status: partial` is active: its current stage, unresolved decisions,
+  its **Disproven** section (refuted hypotheses — reread them so the session never re-enters a dead
+  end the FLOW already paid for; canon block `disproven` in `CLAUDE.md`), and the next plan item
 
 When documents conflict, do not silently merge them — state the conflict explicitly with file names
 and the differing claims. Treat process/safety rules in `CLAUDE.md` as mandatory; treat dated status
@@ -76,7 +79,8 @@ re-establish context first, then let the user choose the task.
 
 ## Output shape
 
-Respond in the user's language. Keep it short and operational:
+Respond in the user's language. Keep it short and operational. Answers are prose — Clojure forms
+only for artifacts, per the canon `agent-output` block in `CLAUDE.md`:
 
 1. `Read` — the docs you loaded (INDEX + the `always` set).
 2. `Current state` — where work stopped and what is already done.

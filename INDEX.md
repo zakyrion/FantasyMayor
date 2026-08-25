@@ -13,7 +13,7 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 32 docs — 2 always · 24 trigger · 2 reference · 4 archive · 3 canvas.
+Totals: 34 docs — 2 always · 25 trigger · 2 reference · 5 archive · 3 canvas.
 
 ## Read at start (always)
 
@@ -31,6 +31,7 @@ Do **not** preload. Read only when the trigger condition holds.
 | [DOC_STANDARD.md](DOC_STANDARD.md) | before authoring or reviewing any .md (Flows / Patterns / policy) for standard compliance | Single source of truth for how to write Markdown docs in this project. |
 | [FantasyMayor — ECS & Runtime Conventions](ECS_CONVENTIONS.md) | before writing or editing any ECS system, component, event, config, or query | The ECS/runtime rulebook: where state lives, how systems are decomposed, and the write / collection / |
 | [FLOW_TEMPLATE](FLOW_TEMPLATE.md) | when creating a new Category A FLOW — copy the skeleton below, then fill it | Copy-skeleton for a Category A FLOW: three Rule 2 stages + Decisions, Progress, Acceptance, Amendments shapes. |
+| [FLOW — Backport SDD 0.1.1](Flows/FLOW_BACKPORT_SDD_011.md) | before changing the agent-output / research-depth / disproven canon zones, FLOW_TEMPLATE's Disproven section, or the session-start reconstruction | Бекпорт SDDClojureFlow 0.1.1: agent-output (проза для відповідей), Disproven-секція FLOW, research-depth за типом зміни. |
 | [FLOW — Backport SDD Improvements](Flows/FLOW_BACKPORT_SDD_IMPROVEMENTS.md) | before changing Tools/gen_agents.py, the SHARED/GENERATED canon zones, or the close-ritual | Бекпорт 4 покращень SDDClojureFlow: генерований канон-синк, FLOW-шаблон, Clojure-чекер (вердикт), ритуал закриття. |
 | [FLOW — Design Installable Engineering Flow](Flows/FLOW_DESIGN_INSTALLABLE_ENGINEERING_FLOW.md) | read before changing or implementing the standalone SDD Clojure Flow framework | Design a portable engineering-flow package that becomes active after one project installation. |
 | [FLOW — District Build](Flows/FLOW_DISTRICT_BUILD.md) | before touching district build, the District table, or district open conditions (Domains.Actions.BuildDistrictAction, Domains.Economy.District, Domains.Economy.DistrictOpenCondition, Presentation.Districts) | One row per district from confirm to built; the buildable set is derived from that same table. |
@@ -64,7 +65,7 @@ Reference docs read on demand.
 
 ## Task history (archive)
 
-4 completed FLOW document(s) are retained under `Flows/Archive/`. They preserve task history and are searched on demand; they are not startup context or current-code claims.
+5 completed FLOW document(s) are retained under `Flows/Archive/`. They preserve task history and are searched on demand; they are not startup context or current-code claims.
 
 ## Canvas map (on demand)
 

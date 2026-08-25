@@ -65,6 +65,15 @@ Copy-skeleton for a Category A FLOW: three Rule 2 stages + Decisions, Progress, 
    {:decision :open-decision :status :open :value ?}])
 ```
 
+## Disproven (append-only)
+
+```clojure
+;; write the moment a hypothesis is refuted; reread before formulating any new one (canon: disproven)
+[{:hypothesis "the refuted assumption, stated plainly"
+  :refuted-by "the observation or experiment that killed it"
+  :details "anchor to the diagnostic block holding the full story"}]
+```
+
 # 3 · Plan
 
 ```clojure

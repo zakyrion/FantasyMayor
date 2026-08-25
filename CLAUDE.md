@@ -27,6 +27,7 @@ Execute closes it. Each phase is already backed by an existing gate:
    optionally delegate to **discovery-scout** (Haiku, pointer-contract — see Discovery
    Scouts). In = distilled findings, not raw dumps. Any surviving doc's claim about code is a
    HYPOTHESIS — verify names via `Tools/doc_lint.py` / roslyn before relying on it.
+   Research depth scales with the change's semantic distance — `research-depth` block below.
 2. **Plan** — restate the task via the Engineering Task Template, ask clarifying
    questions, and **wait for explicit confirmation** before any edit (the HARD GATE
    below). Surface ALL open decisions in ONE consolidated pass and BATCH the questions —
@@ -44,14 +45,31 @@ Execute closes it. Each phase is already backed by an existing gate:
    executed plan, leave its tombstone, and retain the file under the fate rules in
    `DOC_STANDARD.md`.
 
+<!-- BEGIN SHARED: research-depth -->
+```clojure
+(def research-depth  ;; 2026-08-25 — SDD 0.1.1 backport: research scales with the change's semantic distance
+  {:depth {:port "inventory is enough — a port preserves semantics by construction"
+           :replace "characterization + divergence hypotheses are mandatory"
+           :new "hypotheses at the integration points"}
+   :characterize {:only-when "the change deletes or replaces an existing mechanism"
+                  :what "behavioral contract of the original: observable behavior over time, all use sites, invariants"
+                  :source #{"git history" "live behavior"}
+                  :gate "a replacement decision cannot be confirmed while the original's contract is missing"}
+   :hypotheses "each contract clause → hypothesis 'the replacement may violate this' → a cheap check"
+   :observability "the irreducibly empirical residue gets self-diagnosing guards, not predictions"
+   :never "confirm a replacement on an unverified 'the new thing already does what is needed'"})
+```
+<!-- END SHARED: research-depth -->
+
 # FantasyMayor: Project Context & Architectural Decisions
 
 ## Start Working
 - **Read `INDEX.md` first — and by default ONLY `INDEX.md`** (plain `Read`). It is the generated doc map and the single key to every doc and canvas: it carries each file's read-priority (`always` / `trigger` / `reference`) plus a one-line description. Let INDEX drive all navigation — do **not** preload anything it does not send you to.
 - Follow INDEX's read-priority: read the docs it marks `read: always` next; open `trigger` docs only when their condition holds, and `reference` docs on demand.
 - The `always` set is dynamic: a Category A FLOW with `status: partial` is active work. Read it
-  after the standing always-docs and reconstruct its current stage, unresolved decisions and next
-  plan item. If several active FLOWs exist, report the conflict and ask which one to resume.
+  after the standing always-docs and reconstruct its current stage, unresolved decisions, disproven
+  hypotheses (its Disproven section — see `disproven`) and next plan item. If several active FLOWs
+  exist, report the conflict and ask which one to resume.
 - `INDEX.md` is built in **2 passes**: (1) `python3 Tools/gen_index.py` rebuilds the structural skeleton between its `BEGIN/END GENERATED` markers from each doc's frontmatter + first line; (2) the agent curates descriptions / statuses / context. Re-run pass 1 after any frontmatter change; never edit between the markers, and keep the agent zone below the END marker short and informative.
 
 ## Documentation Access
@@ -218,6 +236,17 @@ Field ↔ template-block mapping: `:where` = «Працюй тільки в», `
   exceptions are `:pattern` («Роби за шаблоном») and `:accept` (measurable done-check):
   both optional, so an absent one is never an ask — never gate on them.
 
+<!-- BEGIN SHARED: agent-output -->
+```clojure
+(def agent-output  ;; 2026-08-25 — SDD 0.1.1 backport: artifact language vs answer language
+  {:artifacts "Clojure only for artifacts: normalized task maps shown for confirmation, FLOW records, contract drafts — always framed by prose stating what the form means"
+   :answers "prose for everything else: explanations, diagnoses, statuses, answers to questions"
+   :forms "small: nesting ≤ 2, readable strings over invented keyword chains"
+   :never #{"answer a question with a Clojure form"
+            "reference a previously introduced label bare (:s2, :d-4) — restate its content in place"}})
+```
+<!-- END SHARED: agent-output -->
+
 <!-- BEGIN SHARED: task-contracts -->
 ```clojure
 (def task-normalization
@@ -262,6 +291,15 @@ Field ↔ template-block mapping: `:where` = «Працюй тільки в», `
    :record #{:blocker :needed-authority :next-action}
    :resume "re-enter through the unresolved blocker; blocked is never complete"
    :never #{:archive :implemented}})
+
+(def disproven  ;; 2026-08-25 — SDD 0.1.1 backport: refuted hypotheses are first-class
+  {:home "the Disproven section of the active FLOW (Contract stage — durable, survives the plan drop)"
+   :entry {:hypothesis "the refuted assumption, stated plainly"
+           :refuted-by "the observation or experiment that killed it"
+           :details "anchor to the diagnostic block holding the full story"}
+   :write "the moment a hypothesis is refuted — an index entry here, not only a line inside the diagnostic log"
+   :read "before formulating any new hypothesis, reread this section"
+   :why "a compacted or resumed session must not re-enter a dead end it already paid for"})
 ```
 <!-- END SHARED: task-contracts -->
 

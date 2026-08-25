@@ -28,9 +28,10 @@ Read `INDEX.md` before anything else (plain file read). It is the single key to 
 canvas: each one's read-priority (`always` / `trigger` / `reference`) plus a one-line description.
 
 Then follow INDEX's read-priority:
-- Read every `read: always` doc next. Currently that is `ARCHITECTURE.md` and `CLAUDE.md`;
-  `CLAUDE.md` is the Claude-side counterpart of your autoloaded `AGENTS.md` — do NOT re-read it,
-  your contract is already in context. Read `ARCHITECTURE.md`.
+- Read every `read: always` doc next. The set is dynamic: it contains the standing always-docs
+  plus every active Category A FLOW (`status: partial`). `CLAUDE.md` is the Claude-side counterpart
+  of your autoloaded `AGENTS.md` — do NOT re-read that one file, because its contract is already in
+  context. Read every other member, including every active FLOW.
   (`DOC_STANDARD.md` is `read: trigger`, not always — load it only when you author or review a doc
   yourself.)
 - Open `trigger` docs only when their condition holds, and `reference` docs on demand —
@@ -59,6 +60,14 @@ in the status report; if the count grew since the last session, say so. Do not f
 the full list (`python3 Tools/doc_lint.py`) is on-demand ammunition for a doc-cleanup task, and a doc
 that doc-lint flags is proof its claims must be re-verified against code before trusting them.
 
+### 1c. Canon sync check
+
+Run `python3 Tools/gen_agents.py --check` from the project root (1 cheap CLI call). It verifies that
+every GENERATED zone in your autoloaded `AGENTS.md` is byte-identical to its SHARED canon block in
+`CLAUDE.md`. Note the one summary line in the status report. On drift, offer the rebuild
+(`python3 Tools/gen_agents.py`) — do not run it unprompted; canon edits themselves still land in
+`CLAUDE.md` first.
+
 ### 2. Reconstruct the current state
 
 From the `always` docs and any root status notes INDEX points to, extract only the facts that help
@@ -67,6 +76,22 @@ resume work:
 - what files or systems are called out as the current source of truth
 - what the next roadmap item appears to be
 - whether documents disagree about "what is next"
+
+Treat active FLOWs as the authoritative resume artifacts:
+- First read the Request's dated amendment log. Apply only entries marked confirmed to the current
+  contract; surface unconfirmed amendments separately because they have no execution authority.
+  If sources contradict one another, report the conflict instead of silently merging them.
+- Prefer the Plan's explicit progress shape (`:status`, `:completed`, `:current`, `:remaining`,
+  `:resume-context`, and conditional `:blocker`) when it exists. For an older FLOW without that
+  shape, reconstruct the same facts from its existing Plan; do not rewrite the FLOW during startup.
+- Exactly one active FLOW: report its current stage, confirmed amendments, unresolved decisions,
+  disproven hypotheses (reread its **Disproven** section so the session never re-enters a dead end
+  the FLOW already paid for — canon block `disproven` in `AGENTS.md`), completed/current/remaining
+  work, and the smallest sufficient resume context. Ask whether to resume it or start a different task.
+- A blocked FLOW remains active (`read: always`, `status: partial`), never complete. Report its
+  blocker, the authority or external-state change needed, and its recorded next action.
+- More than one active FLOW: report the conflict and list them; never merge their state or choose one.
+- No active FLOW: use the normal roadmap/status reconstruction below.
 
 When documents conflict, do not silently merge them — state the conflict explicitly with file names
 and the differing claims. Treat process/safety rules in `AGENTS.md` as mandatory; treat dated status
@@ -79,12 +104,15 @@ re-establish context first, then let the user choose the task.
 
 ## Output shape
 
-Respond in the user's language. Keep it short and operational:
+Respond in the user's language. Keep it short and operational. Answers are prose — Clojure forms
+only for artifacts, per the canon `agent-output` block in your autoloaded `AGENTS.md`:
 
 1. `Read` — the docs you loaded (INDEX + the `always` set).
 2. `Current state` — where work stopped and what is already done.
-3. `Possible next work` — the next roadmap item, or competing candidates if docs disagree.
-4. `Question` — ask directly what to do next.
+3. `Active FLOW` — its stage, confirmed amendments, progress, blocker if any, and next item; use
+   `none` when absent and list all when several conflict.
+4. `Possible next work` — the next roadmap item, or competing candidates if docs disagree.
+5. `Question` — ask directly what to do next.
 
 ## Guardrails
 
