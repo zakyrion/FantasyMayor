@@ -25,7 +25,9 @@ statement (the HARD GATE): confirming the statement is what opens Research and P
 for that task; Execute opens only on its own fresh `go` for the implementation map.
 The precise gate semantics are `go-contract` / `done-contract` below. One confirmed task
 map or vector batch owns one persistent Category A FLOW: the first `go` authorizes its
-creation, Research and Plan write through it, and Execute closes it.
+creation, Research and Plan write through it, and Execute closes it. The lifecycle governs
+`:plan` and `:mutation` deliverables; a request whose deliverable kind is `:answer` takes
+the answer lane instead (`deliverable-kind` / `answer-contract` below) — no gate, no FLOW.
 1. **Research** — gather facts, do not accumulate source. **Tool-first + code**: ECS/DI
    structure via your installed `ecs-graph` / `di-graph` skills (never by grepping for
    `AddComponent<T>()` / `builder.Register<…>()` — generic-typed wiring is invisible to
@@ -34,9 +36,20 @@ creation, Research and Plan write through it, and Execute closes it.
    claim about code is a HYPOTHESIS — verify names via `Tools/doc_lint.py` / a grep for
    the declaration before relying on it.
    Research depth scales with the change's semantic distance — `research-depth` block below.
+   Prior art beyond the project is a standing research leg at EVERY depth (`prior-art`); a web
+   search or a foreign repository passes the `outbound-gate` confirmation first. Research runs
+   in two passes with a findings gate between them (`research-passes`): pass 1 returns findings
+   + the pointed questions they opened — never a plan. Every recorded finding, decision,
+   disproven hypothesis, and attempted approach carries its provenance — `:verified-by` + `:at`
+   (`provenance` block) — so a guess and a measurement never read alike on the second pass.
 2. **Plan** — restate the task via the Engineering Task Template, ask clarifying
    questions, and **wait for explicit confirmation** before any edit (the HARD GATE
-   below). Surface ALL open decisions in ONE consolidated pass and BATCH the questions —
+   below). The implementation map is written only AFTER the user has seen the research
+   findings and answered the questions they opened (the findings gate; pass 2 collapses
+   when the answers open nothing). Every option offered to the user carries its
+   confidence 0-100 (`option-confidence`), and an approach already in Attempted/Disproven
+   is named as a return, never as a new idea (`recurrence-guard`).
+   Surface ALL open decisions in ONE consolidated pass and BATCH the questions —
    a stated effect whose value-source is not given is an ask exactly like a missing
    field, never a licence to stub; do not drip questions across rounds. When new code
    will consume types across an asmdef boundary, verify the consuming `.asmdef`
@@ -63,7 +76,77 @@ creation, Research and Plan write through it, and Execute closes it.
                   :gate "a replacement decision cannot be confirmed while the original's contract is missing"}
    :hypotheses "each contract clause → hypothesis 'the replacement may violate this' → a cheap check"
    :observability "the irreducibly empirical residue gets self-diagnosing guards, not predictions"
-   :never "confirm a replacement on an unverified 'the new thing already does what is needed'"})
+   :prior-art "an added leg of research at EVERY depth, :port included — see prior-art below"       ;; 2026-08-29 — SDD 0.1.4 backport
+   :passes "two, with a findings gate between them — see research-passes below"                    ;; 2026-08-29 — SDD 0.1.4 backport
+   :record "findings go into the Findings section of the active FLOW, each carrying provenance"    ;; 2026-08-29 — SDD 0.1.4 backport
+   :never #{"confirm a replacement on an unverified 'the new thing already does what is needed'"
+            "record a finding without saying how it was established"}})
+
+;; ── research answers to sources, not to the model's priors (2026-08-29 — SDD 0.1.4 backport) ──
+
+(def research-passes
+  {:pass-1 (-> "sharpen the task with the user"
+               "search"
+               "return with the findings and the questions they opened")
+   :gate "the findings gate — nothing of the plan is written before the user has seen the findings and answered"
+   :pass-2 {:opened-by "the answers"
+            :collapses "when the answers open nothing — planning starts at once"}
+   :to-plan "only when the user agrees with what the second pass returned"
+   :binds "every research phase at every depth; the deep-research skill inherits it"
+   :why "a plan written on the first pass is a plan written before the user could correct the question"})
+
+(def prior-art
+  {:is "how this same problem is already solved outside this repository and this project"
+   :scope :beyond-project
+   :framing "what counts as an analogue is set by the task at hand — never by a fixed list; an engineering task need not rest on code"
+   :relation "an added leg of the research method — it never replaces the project-native one (roslyn / graphs / targeted reads)"
+   :depth-bound "every depth, :port included"
+   :recorded-as "a finding like any other, carrying its provenance"
+   :deep "when the question has no fast right answer, this becomes deep-research"
+   :ungated #{"documentation for a library the task already names" "context7 queries"}
+   :never "a silent step outside the project (outbound-gate)"})
+
+(def outbound-gate
+  {:applies-to #{:web-search :foreign-repository}
+   :requires "explicit user confirmation before the agent reaches outside the project"
+   :ask "name what is to be searched, in the terms of the task, and what the search is meant to settle; for a repository, name it and what is to be read there"
+   :granularity "one confirmation per research pass, covering what was named in it"
+   :window "after the second confirmed pass, ask whether the search may continue without a confirmation each time; the window closes with the research pass"
+   :when (materially-different-from-what-was-confirmed? next-query)
+   :then (:then (reformulate-with-user!)
+                (wait-for-go!))
+   :never #{"a silent outbound search"
+            "reading another local project on the agent's own initiative"}})
+
+(def deep-research
+  {:is "a research pass for a question with no fast right answer — a pool of trade-offs rather than a lookup"
+   :skill "sdd-deep-research — the globally installed plugin skill IS the engine; this canon only wires it in"
+   :activated-by #{"the user, directly" "the agent asking permission the moment it sees the answer is not quick"}
+   :rule "only the user switches it on"
+   :standalone "runs without a FLOW; then the research document is the whole deliverable"
+   :artifact "Flows/RESEARCH_<TOPIC>.md from RESEARCH_TEMPLATE.md, linked from the Findings of the active FLOW"
+   :archive "moves to Flows/Archive/ together with the FLOW that links it"
+   :map "option → forces → when it applies → known uses → evidence and what weakens it → confidence → what it buys → cost to build against cost to adopt → reversibility"
+   :conditions "our own regime is written before anything is read — applicability is an axis of its own, not a shade of truth"
+   :no-verdict "returning a map without a recommendation is a valid result"
+   :never "manufacturing a recommendation the sources do not carry"})
+
+(def evidence-weight
+  {:attaches-to "every option offered and every finding a search produced"
+   :confidence "the integer 0-100 of option-confidence — unchanged, and no second number beside it"
+   :grounded-in "in prose, next to the number: where the belief came from — documentation, a confirmed answer, a study that measured it, a practitioner report, or the agent's own knowledge"
+   :weakened-by "the named reason the evidence is thin: one source, no measurement, another context, agent inference"
+   :order (-> "measured it" "ran it and reported the outcome" "asserts it" "agent knowledge")
+   :agent-knowledge :lowest-weight                             ;; a statistical squeeze of text is not an observation
+   :bar "reversibility sets how much evidence an option must carry — a one-way door demands strong, a two-way door tolerates thin"
+   :never "collapsing the number and its ground into one figure"})
+
+(def disconfirmation
+  {:before-search "record the agent's own guess, specific enough to be provable wrong"
+   :then "search for what would kill the leading option, never for what would confirm it"
+   :deviation "when the search turns the question into a different one, write down what changed"
+   :because "a belief recorded after the search always agrees with it, and a source that merely agrees is not a finding"
+   :never "a vague hunch — it cannot be killed and buys nothing"})
 ```
 <!-- END GENERATED: research-depth -->
 
@@ -75,9 +158,11 @@ creation, Research and Plan write through it, and Execute closes it.
 - Follow INDEX's read-priority: read the docs it marks `read: always` next; open
   `trigger` docs only when their condition holds, and `reference` docs on demand.
 - The `always` set is dynamic: a Category A FLOW with `status: partial` is active work. Read it
-  after the standing always-docs and reconstruct its current stage, unresolved decisions, disproven
-  hypotheses (its Disproven section — see `disproven`) and next plan item. If several active FLOWs
-  exist, report the conflict and ask which one to resume.
+  after the standing always-docs and reconstruct its current stage, findings with their provenance
+  (its Findings section — see `provenance`), unresolved decisions, disproven hypotheses (its
+  Disproven section — see `disproven`), attempted-and-dropped approaches (its Attempted section —
+  see `attempted`), any linked `Flows/RESEARCH_*.md` document, and next plan item. If several
+  active FLOWs exist, report the conflict and ask which one to resume.
 - `INDEX.md` is built in **2 passes**: (1) `python3 Tools/gen_index.py` rebuilds the
   skeleton between its `BEGIN/END GENERATED` markers; (2) the agent curates the zone
   below the END marker. Re-run pass 1 after any frontmatter change; never edit between
@@ -124,6 +209,36 @@ creation, Research and Plan write through it, and Execute closes it.
 - The confirmed statement's first write is its Category A FLOW. Creating or updating that
   FLOW is Research/Plan work; it never authorizes implementation. `DOC_STANDARD.md` owns
   the exact three-stage structure and active/contract/archive lifecycle.
+- The gate holds `:plan` and `:mutation` deliverables. A request whose deliverable kind is
+  `:answer` takes the answer lane instead — classification shown inline together with the
+  answer, the answer itself is the artifact, no gate and no FLOW:
+
+<!-- BEGIN GENERATED: deliverable-kind (Tools/gen_agents.py — never edit inside) -->
+```clojure
+(def deliverable-kind  ;; 2026-08-29 — SDD 0.1.2 backport: what kind of thing this request asks for
+  {:axis [:answer :plan :mutation]
+   :answer "how something works or should be done — the answer itself is the artifact"
+   :plan "design or prepare future work — the plan document is the artifact, still no mutation"
+   :mutation "change the world: files, code, configuration, external state"
+   :source "the user's words in this request set the kind — nothing else"
+   :escalation {:never "the agent promotes the kind on its own"
+                :only "the user's explicit ask escalates answer → plan → mutation"}
+   :go-inherits "a go inherits the kind of the confirmed map — a go on an answer or a plan never opens mutation"
+   :ambiguous (:then (state-classification!)
+                     (ask-user!))})
+
+(def answer-contract  ;; 2026-08-29 — SDD 0.1.2 backport: the answer lane
+  {:artifact "the answer itself — complete, direct, scoped to exactly what was asked"
+   :premise "when the question carries a premise, verify it first and say plainly when it is wrong"
+   :close "end by handing control back — the user decides what happens next, even when it looks obvious"
+   :follow-up "a possible task may be offered in one line — never developed, never started"
+   :never #{"unsolicited roadmaps, step plans, or migration guides"
+            "designing or executing changes the question did not request"
+            "silently escalating :answer into :plan or :mutation"
+            "burying the asked answer under adjacent advice"}})
+```
+<!-- END GENERATED: deliverable-kind -->
+
 - Use the template for engineering tasks by default: coding, architecture changes,
   refactors, documentation, config-flow work, and other repository changes. Not required
   for casual conversation or pure Q&A without repository changes.
@@ -138,6 +253,7 @@ What a confirmation ("go") authorizes, and what "done" means:
 ```clojure
 (def go-contract
   {:authorizes "only the actions needed for the :result of the CURRENT confirmed task map"
+   :kind-bound "a go inherits the deliverable kind of the confirmed map — a go on an answer or a plan never opens mutation"  ;; 2026-08-29 — SDD 0.1.2 backport
    :research-go "create the task's active FLOW, then research and plan through it — NEVER implementation"
    :implementation-go "implementation born from research = a NEW task map + a NEW go"
    :expires "on completion of the confirmed task, or when its scope materially changes"
@@ -152,6 +268,7 @@ What a confirmation ("go") authorizes, and what "done" means:
    :diagnostic :when-code-changed       ;; careful re-read of the edited scope; Codex has no C# analyzer
    :runtime :when-only-user-can-verify  ;; Unity-side check stays the user's authority
    :flow "acceptance recorded; durable facts harvested; executed plan replaced by its tombstone"
+   :research-document "archived together with the FLOW that links it"  ;; 2026-08-29 — SDD 0.1.4 backport
    :commit :only-when-requested
    :never "a checked checkbox or the mere fact of editing files"})
 ```
@@ -163,7 +280,7 @@ What a confirmation ("go") authorizes, and what "done" means:
    :steps (-> (check-all-acceptance!)     ;; read every :accept meter for real — never from memory
               (record-acceptance-audit!)  ;; :meter/:target/:actual/:status into the FLOW
               (harvest-plan!)             ;; DOC_STANDARD Rule 2d — agent proposes the split, user vetoes
-              (choose-fate!)              ;; DOC_STANDARD Rule 2e — trigger | archive
+              (choose-fate!)              ;; DOC_STANDARD Rule 2e — trigger | archive; a linked Flows/RESEARCH_* doc moves with its FLOW
               (regen-index!))             ;; gen_index pass 1 + doc_lint one-liner
    :blocked "any meter off target → FLOW stays partial; record per blocked-outcome"
    :never #{"archive with a failing meter" "close without the user's explicit ask"}})
@@ -234,8 +351,20 @@ Field ↔ template-block mapping: `:where` = «Працюй тільки в», `
   {:artifacts "Clojure only for artifacts: normalized task maps shown for confirmation, FLOW records, contract drafts — always framed by prose stating what the form means"
    :answers "prose for everything else: explanations, diagnoses, statuses, answers to questions"
    :forms "small: nesting ≤ 2, readable strings over invented keyword chains"
+   :options "an offered set of options is never bare — every option carries its confidence (option-confidence below)"  ;; 2026-08-29 — SDD 0.1.4 backport
    :never #{"answer a question with a Clojure form"
             "reference a previously introduced label bare (:s2, :d-4) — restate its content in place"}})
+
+(def option-confidence  ;; 2026-08-29 — SDD 0.1.4 backport: rated options
+  {:when "the agent offers the user a choice — in any lane, at any gate"
+   :carries "an integer 0-100 on every option in the set"
+   :measures "how likely this option is the right decision"
+   :is-not "certainty that a fact is true — the ground under a claim is stated by :verified-by instead"
+   :estimated-before "the options reach the user, not after the user picks"
+   :survives "the numbers are written into the FLOW with the option they rated, so an estimate can later be read against what actually happened"
+   :never #{"an unrated set of options"
+            "a number the agent would not defend"
+            "collapsing likelihood and evidence quality into one figure"}})
 ```
 <!-- END GENERATED: agent-output -->
 
@@ -288,10 +417,57 @@ Field ↔ template-block mapping: `:where` = «Працюй тільки в», `
   {:home "the Disproven section of the active FLOW (Contract stage — durable, survives the plan drop)"
    :entry {:hypothesis "the refuted assumption, stated plainly"
            :refuted-by "the observation or experiment that killed it"
+           :at "the date it was refuted"                       ;; 2026-08-29 — SDD 0.1.4 backport
            :details "anchor to the diagnostic block holding the full story"}
    :write "the moment a hypothesis is refuted — an index entry here, not only a line inside the diagnostic log"
    :read "before formulating any new hypothesis, reread this section"
    :why "a compacted or resumed session must not re-enter a dead end it already paid for"})
+
+;; ── 2026-08-29 — SDD 0.1.4 backport: provenance, attempted approaches, decision hygiene ──
+
+(def provenance
+  {:attaches-to #{:findings :decisions :disproven :attempted}
+   :verified-by "free prose: how this was established — ran it and watched, read the source, the documentation says so, read it outside the project, or nothing but the agent's hunch"
+   :at "the date the claim was established or the decision was made"
+   :why "a long session rewrites its own FLOW; without provenance a guess and a measurement read alike on the second pass, and the task walks in circles"
+   :never "a recorded claim whose ground is left unstated"})
+
+(def attempted
+  {:home "the Attempted section of the active FLOW (Contract stage — durable, survives the plan drop)"
+   :entry {:approach "what was tried, stated plainly"
+           :confidence "the number it carried when it was offered"
+           :dropped-because "what made it unusable"
+           :problems "what it cost — what broke, and what it took to find out"
+           :at "the date it was dropped"}
+   :differs-from :disproven                                    ;; a refuted belief is not the same object as a tried-and-dropped approach
+   :write "the moment an approach is abandoned"
+   :read "before offering any approach (recurrence-guard)"
+   :why "an R&D task that forgets its own attempts pays for each of them twice"})
+
+(def recurrence-guard
+  {:before "offering the user any approach or option"
+   :read #{"Attempted" "Disproven"}
+   :when (already-tried? approach)
+   :then (:then (say-so-before-offering-it!)
+                (state-what-changed-since!)
+                (offer-it-as-a-return!))
+   :never "presenting a tried approach as a new idea"})
+
+(def decision-revisit
+  {:trigger (or (new-details?)
+                (new-request?)
+                (outcome-contradicts-the-decision?))
+   :form "a new dated entry naming the decision it supersedes, showing what was checked, what came out then, and what is new now"
+   :leaves "the superseded entry exactly as it was written"
+   :never #{"editing a confirmed decision in place"
+            "re-deciding without saying what changed"}})
+
+(def emergent-decision  ;; 2026-08-29 — SDD 0.1.2 backport: the late-discovered ?
+  {:is "a choice that surfaces mid-execution and is absent from the confirmed task map"
+   :examples #{"a runtime or SDK version" "a name" "a format default" "deleting whatever stands in the way"}
+   :rule "a late-discovered ? — surface it and wait before acting, never resolve it silently"
+   :batch "when ordering allows, collect emergent decisions and ask in one pass"
+   :no-alternative "having no alternative is still a decision — state it before acting, not report it after"})
 ```
 <!-- END GENERATED: task-contracts -->
 

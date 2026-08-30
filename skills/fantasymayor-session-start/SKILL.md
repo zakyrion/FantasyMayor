@@ -84,10 +84,14 @@ Treat active FLOWs as the authoritative resume artifacts:
 - Prefer the Plan's explicit progress shape (`:status`, `:completed`, `:current`, `:remaining`,
   `:resume-context`, and conditional `:blocker`) when it exists. For an older FLOW without that
   shape, reconstruct the same facts from its existing Plan; do not rewrite the FLOW during startup.
-- Exactly one active FLOW: report its current stage, confirmed amendments, unresolved decisions,
-  disproven hypotheses (reread its **Disproven** section so the session never re-enters a dead end
-  the FLOW already paid for — canon block `disproven` in `AGENTS.md`), completed/current/remaining
-  work, and the smallest sufficient resume context. Ask whether to resume it or start a different task.
+- Exactly one active FLOW: report its current stage, confirmed amendments, its findings with their
+  provenance (`:verified-by` + `:at` — a guess and a measurement must not read alike; canon block
+  `provenance` in `AGENTS.md`), unresolved decisions, disproven hypotheses (reread its **Disproven**
+  section so the session never re-enters a dead end the FLOW already paid for — canon block
+  `disproven`), tried-and-dropped approaches (reread its **Attempted** section — an old approach is
+  offered only as a named return; canon blocks `attempted` / `recurrence-guard`), any linked
+  `Flows/RESEARCH_*.md` document, completed/current/remaining work, and the smallest sufficient
+  resume context. Ask whether to resume it or start a different task.
 - A blocked FLOW remains active (`read: always`, `status: partial`), never complete. Report its
   blocker, the authority or external-state change needed, and its recorded next action.
 - More than one active FLOW: report the conflict and list them; never merge their state or choose one.

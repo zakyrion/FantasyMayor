@@ -19,7 +19,9 @@ Template). This command is the explicit completion act — closing is never trig
    drop, leaving the 3-line tombstone. The user vetoes the split before you write it.
 5. **choose-fate!** Rule 2e: a durable contract still useful before a future change →
    `read: trigger` + `status: implemented`; otherwise move to `Flows/Archive/` (via `vault_move`
-   so links survive) and strip `code_refs`.
+   so links survive) and strip `code_refs`. A linked `Flows/RESEARCH_*.md` document shares the
+   FLOW's fate — move it to Archive together, never leave it behind (canon `done-contract`
+   `:research-document`).
 6. **regen-index!** Run `python3 Tools/gen_index.py`, then `python3 Tools/doc_lint.py --quiet` —
    report both one-liners.
 

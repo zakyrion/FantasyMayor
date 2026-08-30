@@ -54,15 +54,27 @@ Copy-skeleton for a Category A FLOW: three Rule 2 stages + Decisions, Progress, 
 
 # 2 · Contract
 
-```clojure
-(def research-findings
-  {:verified "facts that replace assumptions — distilled, not dumped"})
-```
+## Findings
 
 ```clojure
-(def decisions  ;; the contract closes when NO decision is :open (Rule 2b)
-  [{:decision :decision-id :status :confirmed :value ? :reason "why"}
-   {:decision :open-decision :status :open :value ?}])
+;; distilled facts that replace assumptions — each carries its provenance (canon: provenance)
+[{:finding :finding-id
+  :at "YYYY-MM-DD"
+  :fact "the verified fact, stated plainly"
+  :verified-by "how this was established, in prose"
+  :research-document "Flows/RESEARCH_<TOPIC>.md, when a deep-research pass produced it"
+  :consequence "what it changes for this task"}]
+```
+
+## Decisions
+
+```clojure
+(def decisions  ;; the contract closes when NO decision is :open (Rule 2b); revisit = dated supersedes-entry (canon: decision-revisit)
+  [{:decision :decision-id :status :confirmed :at "YYYY-MM-DD" :value ? :verified-by "how this was established" :reason "why"}
+   {:decision :open-decision :status :open :at "YYYY-MM-DD" :value ?}
+   {:decision :revisited-decision :status :confirmed :supersedes :decision-id :at "YYYY-MM-DD" :value ?
+    :verified-by "the new detail that reopened it"
+    :reason "what was checked before, what came out, and what is new now"}])
 ```
 
 ## Disproven (append-only)
@@ -71,7 +83,19 @@ Copy-skeleton for a Category A FLOW: three Rule 2 stages + Decisions, Progress, 
 ;; write the moment a hypothesis is refuted; reread before formulating any new one (canon: disproven)
 [{:hypothesis "the refuted assumption, stated plainly"
   :refuted-by "the observation or experiment that killed it"
+  :at "YYYY-MM-DD"
   :details "anchor to the diagnostic block holding the full story"}]
+```
+
+## Attempted (append-only)
+
+```clojure
+;; write the moment an approach is abandoned; reread before offering any approach (canon: attempted, recurrence-guard)
+[{:approach "what was tried, stated plainly"
+  :confidence 70
+  :dropped-because "what made it unusable"
+  :problems "what it cost — what broke, and what it took to find out"
+  :at "YYYY-MM-DD"}]
 ```
 
 # 3 · Plan

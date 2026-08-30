@@ -9,7 +9,6 @@ related:
   - "[PATTERN_REACTIVE_SYSTEM](PATTERN_REACTIVE_SYSTEM.md)"
   - "[PATTERN_TAG](PATTERN_TAG.md)"
   - "[PATTERN_VIEW_SYSTEM](PATTERN_VIEW_SYSTEM.md)"
-  - "[FLOW_DISTRICT_BUILD](../Flows/FLOW_DISTRICT_BUILD.md)"
 ---
 
 # Pattern — Transaction Entity (cross-domain behavior)

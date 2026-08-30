@@ -208,8 +208,10 @@ def lint(docs):
                 if m["read"] == "always" and m["status"] != "partial":
                     issues.append(f"{p}: implemented FLOW cannot stay in the session-start set")
             if m["read"] == "archive":
-                if not normalized.startswith("Flows/Archive/FLOW_"):
-                    issues.append(f"{p}: read: archive requires Flows/Archive/FLOW_*.md")
+                # FLOW_* = archived task flows; RESEARCH_* = archived deep-research maps (DOC_STANDARD research-map genre)
+                if not (normalized.startswith("Flows/Archive/FLOW_") or
+                        normalized.startswith("Flows/Archive/RESEARCH_")):
+                    issues.append(f"{p}: read: archive requires Flows/Archive/FLOW_*.md or RESEARCH_*.md")
                 if m["status"] != "implemented":
                     issues.append(f"{p}: archived FLOW must be implemented")
                 if re.search(r"^code_refs:", m["_block"], re.M):

@@ -32,6 +32,7 @@ A doc may hold ONLY content that does not decay when code drifts:
 ```clojure
 (def doc-genres
   {:flow-contract "Flows/FLOW_<TASK>.md | Flows/Archive/FLOW_<TASK>.md"  ;; ONE persistent Category A artifact per engineering task — Rule 2
+   :research-map  "Flows/RESEARCH_<TOPIC>.md | Flows/Archive/RESEARCH_<TOPIC>.md"  ;; deep-research trade-off map (shape: RESEARCH_TEMPLATE.md); frontmatter category A + read trigger; satellite of the FLOW that links it (shares its fate), or a standalone deliverable — 2026-08-29 SDD 0.1.4
    :recipe        "Patterns/PATTERN_*.md"  ;; one-approach-per-file skeleton for a code role; changes when the convention changes
    :policy        "root *.md"              ;; ARCHITECTURE / ECS_CONVENTIONS / CLAUDE / this file / GENERAL_UI_STYLE / GLOSSARY
    :never         "present-tense mirror of code state"})  ;; current-state prose, rosters, wiring — tools own those
@@ -183,6 +184,7 @@ undifferentiated file lets the shortest-lived content drag down the longest-live
               :code-refs :remove                 ;; old symbols are history, not current declarations
               :index "counted, never listed individually"
               :doc-lint "body symbols are exempt from current-code ghost detection"}
+   :research-satellite "a linked Flows/RESEARCH_<TOPIC>.md shares its FLOW's fate — moves to Archive together, never left behind"  ;; 2026-08-29 SDD 0.1.4
    :never    "delete a FLOW file"})
 ```
 
@@ -228,7 +230,7 @@ editor), instruction semantics (nothing evaluates).
 
 | Category | What it is | Files | Rule |
 |---|---|---|---|
-| **A — Task FLOW** | ONE engineering task in three staged sections (Rule 2): the user's request, the contract of what must be true, and the live plan | `Flows/FLOW_*.md`, `Flows/Archive/FLOW_*.md` | Active/contract FLOWs are diffable against the tools; archived FLOWs are immutable task history, not current-code claims. |
+| **A — Task FLOW** | ONE engineering task in three staged sections (Rule 2): the user's request, the contract of what must be true, and the live plan. Deep-research maps (`RESEARCH_TEMPLATE.md` shape) are Category A satellites of their FLOW | `Flows/FLOW_*.md`, `Flows/RESEARCH_*.md`, `Flows/Archive/*` | Active/contract FLOWs are diffable against the tools; archived FLOWs are immutable task history, not current-code claims. |
 | **B — Template / Reference** | How to build new code, or how to use a tricky API | `Patterns/PATTERN_*.md` (incl. `ADDRESSABLE_PATTERNS.md`) | Do **not** strip. Keep accurate, keep complete. Examples use placeholder names (`Foo*`, `My*`) or live anchors that pass doc-lint. |
 | **C — Policy** | Project-wide rules | `CLAUDE.md`, `ARCHITECTURE.md`, `ECS_CONVENTIONS.md`, `GENERAL_UI_STYLE.md`, `GLOSSARY.md`, this file | Rules and orientation. Change by user decision only. |
 
