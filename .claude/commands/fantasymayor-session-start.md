@@ -4,8 +4,9 @@
 
 Orient via the generated doc map, reconstruct the current project state from it, then hand
 control back to the user with a concise status summary and a direct question about the next task.
-This is the **Research / orientation entry** of the Research → Plan → Execute contract
-(`CLAUDE.md`) — it does not plan or execute.
+This is the **Research / orientation entry** of the Research → Plan → Execute lifecycle
+(`.sdd-flow/FLOW_CONTRACT.md`, with this project's declarations in `.sdd-flow/project.md`) —
+it does not plan or execute.
 
 `INDEX.md` drives all navigation: do not preload anything it does not send you to, do not invent
 a different onboarding flow, and do not start implementing before the user picks the next task —
@@ -49,13 +50,6 @@ in the status report; if the count grew since the last session, say so. Do not f
 the full list (`python3 Tools/doc_lint.py`) is on-demand ammunition for a doc-cleanup task, and a doc
 that doc-lint flags is proof its claims must be re-verified against code before trusting them.
 
-### 1c. Canon sync check
-
-Run `python3 Tools/gen_agents.py --check` from the project root (1 cheap CLI call). It verifies that
-every GENERATED zone in `AGENTS.md` is byte-identical to its SHARED canon block in `CLAUDE.md`. Note
-the one summary line in the status report. On drift, offer the rebuild (`python3 Tools/gen_agents.py`)
-— do not run it unprompted; canon edits themselves still land in `CLAUDE.md` first.
-
 ### 2. Reconstruct the current state
 
 From the `always` docs and any root status notes INDEX points to, extract only the facts that help
@@ -65,13 +59,12 @@ resume work:
 - what the next roadmap item appears to be
 - whether documents disagree about "what is next"
 - if a Category A FLOW with `status: partial` is active: its current stage, its **Findings** with
-  their provenance (`:verified-by` + `:at` — a guess and a measurement must not read alike; canon
-  block `provenance` in `CLAUDE.md`), unresolved decisions, its **Disproven** section (refuted
-  hypotheses — reread them so the session never re-enters a dead end the FLOW already paid for;
-  canon block `disproven`), its **Attempted** section (tried-and-dropped approaches with the
-  confidence they carried — an old approach is offered only as a named return; canon blocks
-  `attempted` / `recurrence-guard`), any linked `Flows/RESEARCH_*.md` document, and the next plan
-  item
+  their provenance (`:verified-by` + `:at` — a guess and a measurement must not read alike),
+  unresolved decisions, its **Disproven** section (refuted hypotheses — reread them so the session
+  never re-enters a dead end the FLOW already paid for), its **Attempted** section
+  (tried-and-dropped approaches with the confidence they carried — an old approach is offered only
+  as a named return), any linked `Flows/RESEARCH_*.md` document, and the next plan item. What each
+  of those sections means is the canon: `.sdd-flow/FLOW_CONTRACT.md`
 
 When documents conflict, do not silently merge them — state the conflict explicitly with file names
 and the differing claims. Treat process/safety rules in `CLAUDE.md` as mandatory; treat dated status
@@ -85,7 +78,7 @@ re-establish context first, then let the user choose the task.
 ## Output shape
 
 Respond in the user's language. Keep it short and operational. Answers are prose — Clojure forms
-only for artifacts, per the canon `agent-output` block in `CLAUDE.md`:
+only for artifacts, per the canon `agent-output` block in `.sdd-flow/FLOW_CONTRACT.md`:
 
 1. `Read` — the docs you loaded (INDEX + the `always` set).
 2. `Current state` — where work stopped and what is already done.

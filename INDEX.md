@@ -13,7 +13,7 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 34 docs — 2 always · 23 trigger · 2 reference · 7 archive · 3 canvas.
+Totals: 33 docs — 2 always · 22 trigger · 1 reference · 8 archive · 3 canvas.
 
 ## Read at start (always)
 
@@ -31,7 +31,6 @@ Do **not** preload. Read only when the trigger condition holds.
 | [DOC_STANDARD.md](DOC_STANDARD.md) | before authoring or reviewing any .md (Flows / Patterns / policy) for standard compliance | Single source of truth for how to write Markdown docs in this project. |
 | [FantasyMayor — ECS & Runtime Conventions](ECS_CONVENTIONS.md) | before writing or editing any ECS system, component, event, config, or query | The ECS/runtime rulebook: where state lives, how systems are decomposed, and the write / collection / |
 | [FLOW_TEMPLATE](FLOW_TEMPLATE.md) | when creating a new Category A FLOW — copy the skeleton below, then fill it | Copy-skeleton for a Category A FLOW: three Rule 2 stages + Decisions, Progress, Acceptance, Amendments shapes. |
-| [FLOW_BACKPORT_SDD_014](Flows/FLOW_BACKPORT_SDD_014.md) | before changing the deliverable-kind / research-canon / provenance-attempted zones, FLOW/RESEARCH templates, or the session-start reconstruction | Backport of the sdd-flow framework delta 0.1.1 → 0.1.4 into the FantasyMayor process canon. |
 | [FantasyMayor - Gameplay Foundation](GAMEPLAY_FOUNDATION.md) | ONLY when the user explicitly asks to open this file — never on session-start, never by topic/keyword | `FantasyMayor` is a turn-based game about governing a city through a scarcity of `Action Points`, limited resources, population as a productive and political force, and an unstable balance of power between the mayor and the local elites. |
 | [GENERAL_UI_STYLE.md](GENERAL_UI_STYLE.md) | before creating or changing UI (UI Toolkit, panels, tokens, USS) | The general UI design language for FantasyMayor: the global HUD layout model, design principles, visual |
 | [GLOSSARY — domain vocabulary → code anchors](GLOSSARY.md) | when a domain term (any language) needs its canonical code name before searching roslyn / ecs-graph / di-graph | Map from human vocabulary (game-design terms, Ukrainian/English synonyms, abbreviations) to the |
@@ -58,12 +57,11 @@ Reference docs read on demand.
 
 | Doc | Cat | Status | What it is |
 |---|---|---|---|
-| [AGENTS.md](AGENTS.md) | C | — | Codex bootstrap: full FantasyMayor process contract, Codex-native — HARD GATE, go/done, notation ext, tools, policies. |
 | [Як читати і писати Clojure-інструкції](CLOJURE_GUIDE.md) | B | — | Людський підручник до Clojure-нотації задач і правил: реальний синтаксис Clojure як мова |
 
 ## Task history (archive)
 
-7 completed FLOW document(s) are retained under `Flows/Archive/`. They preserve task history and are searched on demand; they are not startup context or current-code claims.
+8 completed FLOW document(s) are retained under `Flows/Archive/`. They preserve task history and are searched on demand; they are not startup context or current-code claims.
 
 ## Canvas map (on demand)
 

@@ -1,7 +1,8 @@
 # FantasyMayor Flow Close
 
-Close the active Category A FLOW by the canon `close-ritual` block (`CLAUDE.md` → Engineering Task
-Template). This command is the explicit completion act — closing is never triggered automatically.
+Close the active Category A FLOW. The steps below ARE the ritual — this command is their home;
+the lifecycle they serve is `.sdd-flow/FLOW_CONTRACT.md` (`done-contract`). Closing is never
+triggered automatically.
 
 ## Workflow
 

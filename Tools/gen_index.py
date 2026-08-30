@@ -33,7 +33,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PRUNE = {
     "Library", "Packages", "obj", "Logs", "GeneratedAssets",
     ".git", ".claude", ".cmaestro", ".ai", ".idea", ".vscode", ".plastic",
-    "skills", "Tools",
+    ".sdd-flow", "skills", "Tools",
     os.path.join("Assets", "Plugins"), os.path.join("Assets", "ThirdParty"),
     os.path.join("Assets", "Packages"), os.path.join("Assets", "TextMesh Pro"),
     os.path.join("Assets", "TutorialInfo"),

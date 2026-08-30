@@ -4,7 +4,6 @@ read: archive
 tags: [flow, process, clojure, validation]
 related:
   - "[CLAUDE](../../CLAUDE.md)"
-  - "[AGENTS](../../AGENTS.md)"
   - "[DOC_STANDARD](../../DOC_STANDARD.md)"
 status: implemented
 ---

@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "packageName": "sdd-flow",
+  "packageVersion": "0.2.0",
+  "tools": [
+    "claude",
+    "codex"
+  ],
+  "managedFiles": {
+    ".sdd-flow/references/CLOJURE_NOTATION.md": "f7f1be4f0ce24e4a44d84e5736995dcd967fb1709ed5ffada666b6880a23308c",
+    ".sdd-flow/references/EXAMPLES.md": "564a54f87cc11432304ecee97f1fb2efc6b49f3202a413c52241ef7afaefec09",
+    ".sdd-flow/references/ADAPTERS.md": "ad8b4fc2d59931332c59b1201b466e16a7f38a5f296b63bfc5b490469a84947a",
+    ".sdd-flow/references/PROJECT_ADAPTER.md": "4a9bf133d8d63c5558ddd543684685c132b38fddf98fb3df2ed9404276626c3d",
+    ".sdd-flow/FLOW_CONTRACT.md": "eea8fd5c392132f1371518c72e76e2a33f3ba94a5004d0ef3986a0b2da985d88",
+    ".sdd-flow/templates/FLOW.md": "a1b1fd83b19fc09740bb3fd0ec9aee951aed0bcff9a2f6f45d71306d4fa550d7",
+    ".sdd-flow/templates/RESEARCH.md": "fac2ccb0fce70ac34410a3d94a14622d05a9a9a7556358e0e987c39616cfe266",
+    ".sdd-flow/templates/PROJECT.md": "3356ee02e2838291895abfaf1bf9ef92bfc110a135968c1dbc5addb50d0d9bf9",
+    ".agents/skills/sdd-clojure-flow/SKILL.md": "cc33a2ad8ea5e639db301f37f84d3e774114a1ff38bd36b7e95b71b6cd64477a",
+    ".agents/skills/sdd-clojure-flow/agents/openai.yaml": "89e8710dd9e317eb90c455227332ef64144bdddc164777ed2c18c887e08869c4",
+    ".agents/skills/sdd-deep-research/SKILL.md": "0c79848a8935d1601bed8b7d74aaadaba412026f9b2c5276ef38b5462ad409d1",
+    ".agents/skills/sdd-deep-research/agents/openai.yaml": "a55ee5bc0be0110728a2cfb7369a7c0e11c9f0cd142593bbc389dc0d8f4238bc",
+    ".agents/skills/sdd-project-init/SKILL.md": "37eae25467241b4c849bc54cb5c5e3bc53e309156f3436e19de4c86c18e03b54",
+    ".agents/skills/sdd-project-init/agents/openai.yaml": "8cfd50bf4e6194a8c0205998d4edd50c90a85b0e13e279db0664deaea3ef868e",
+    ".claude/skills/sdd-clojure-flow/SKILL.md": "cc33a2ad8ea5e639db301f37f84d3e774114a1ff38bd36b7e95b71b6cd64477a",
+    ".claude/commands/sdd-flow/start.md": "238e069ffc909c3b1acd2e0b03b69160eef2800d4c5d86aec527d9ab18155f59",
+    ".claude/commands/sdd-flow/resume.md": "83f28bd0dafd8e0581b77dacd7436bcd6170a675470a553ab958bdac8fe5e84d",
+    ".claude/commands/sdd-flow/close.md": "64951205e1e540b7efbb245695701e57e8d670ef1f8061fbdadcb21ce1229a33",
+    ".claude/skills/sdd-deep-research/SKILL.md": "0c79848a8935d1601bed8b7d74aaadaba412026f9b2c5276ef38b5462ad409d1",
+    ".claude/commands/sdd-research.md": "8374ee935644f6ed52a559f42a471bb777cbcc897d471ec5d2fa81dad55ae1ab",
+    ".claude/skills/sdd-project-init/SKILL.md": "37eae25467241b4c849bc54cb5c5e3bc53e309156f3436e19de4c86c18e03b54",
+    ".claude/commands/sdd-project-init.md": "df919e1dd1ac5f6914bf075872bb05d1152646b7c0ae49646042c064b3a6d40b",
+    ".claude/commands/sdd-flow/promote.md": "b57a94a8d9fa3c1a94c21044c500f3f5d192f875a7b96524a2227da846488ccd"
+  }
+}

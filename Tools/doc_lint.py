@@ -29,7 +29,7 @@ REPO = Path(__file__).resolve().parent.parent
 
 # Directories never scanned (generated, external, hidden).
 SKIP_DIRS = {".git", "Library", "Temp", "Logs", "obj", "Packages", "node_modules",
-             ".ecs-graph", ".di-graph", "design-mockups"}
+             ".ecs-graph", ".di-graph", ".sdd-flow", "design-mockups"}
 
 # Role suffixes per the project naming policy — a Pascal token with one of these is a code claim.
 ROLE_SUFFIXES = ("SubSystem", "System", "Component", "Tag", "Event", "Config", "Installer", "View")

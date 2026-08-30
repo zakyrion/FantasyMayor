@@ -5,7 +5,6 @@ tags: [flow, process, task-lifecycle, sdd]
 related:
   - "[DOC_STANDARD](../../DOC_STANDARD.md)"
   - "[CLAUDE](../../CLAUDE.md)"
-  - "[AGENTS](../../AGENTS.md)"
 status: implemented
 ---
 
