@@ -16,7 +16,8 @@ by concepts (~1 entry per new mechanic), never by classes; the anchors feed `ros
 `dig.py`, which always return the current truth. Maintained by the main agent at milestone syncs (with the user's approval).
 
 Format: one map — key = `"alias | alias | …"` (the human terms), value = `{:domain <owner> :anchors
-[Name1 Name2 …]}`; anchors are bare type names, 2–4 per concept, verified against the graph before saving.
+[Name1 Name2 …]}`; anchors are bare type names, 2–4 per concept, verified against the graph before saving. A model-only concept that has no code yet carries `:anchors ?` and names its
+GAME_MECHANICS block in `:domain`; the `?` is filled, never guessed, when the code lands.
 
 ```clojure
 (def glossary
@@ -36,7 +37,17 @@ Format: one map — key = `"alias | alias | …"` (the human terms), value = `{:
    "hex resource (natural) | природний ресурс"        {:domain Map/HexResources               :anchors [HexResourceComponent]}
    "hex icon overlay | іконки на гексах"              {:domain Presentation/HexIcons          :anchors [HexIconsVisibilityComponent HexIconsConfigComponent]}
    "hex info panel | панель інформації гекса"         {:domain Presentation.UI/HexInfoPanel   :anchors [HexInfoPanelViewComponent]}
-   "hex selection | вибір гекса"                      {:domain Presentation.UI                :anchors [SelectedHexChangedEvent HexSelectedComponent]}})
+   "hex selection | вибір гекса"                      {:domain Presentation.UI                :anchors [SelectedHexChangedEvent HexSelectedComponent]}
+   ;; ── model-only terms (2026-09-05, GAME_MECHANICS) — no code anchor yet; fill :anchors when the code lands ──
+   "action on a hex | дія | дія на гексі"             {:domain "GAME_MECHANICS §2 (def vocabulary)"              :anchors ?}
+   "order (political) | наказ | розміщення пропозиції | дозвіл" {:domain "GAME_MECHANICS §2 (def vocabulary)"       :anchors ?}
+   "construction goods | будівельні товари"           {:domain "GAME_MECHANICS §6 (def construction-goods)"      :anchors ?}
+   "tier = labour category | щабель | категорія праці" {:domain "GAME_MECHANICS §5 (def tier-is-labour-category)" :anchors ?}
+   "hex development | розвиток гексу | будівництво"   {:domain "GAME_MECHANICS §4 (def hex-development)"         :anchors ?}
+   "building slot | слот | слот під будівлю"          {:domain "GAME_MECHANICS §4 (def hex-is-district)"         :anchors ?}   ;; rev 5
+   "building passive | пасив будівлі"                {:domain "GAME_MECHANICS §4 (def building)"                :anchors ?}   ;; rev 5
+   "exchange offer | пропозиція | лот | біржа"       {:domain "GAME_MECHANICS §6 (def exchange)"                :anchors ?}   ;; rev 5
+   "elite capabilities | спроможності еліти"         {:domain "GAME_MECHANICS §8 (def elite-capabilities)"      :anchors ?}})  ;; rev 5
 ```
 
 Extending: add a line when a NEW concept enters the game (not a new class of an existing concept);

@@ -13,7 +13,7 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 34 docs — 3 always · 22 trigger · 1 reference · 8 archive · 3 canvas.
+Totals: 39 docs — 2 always · 21 trigger · 1 reference · 15 archive · 3 canvas.
 
 ## Read at start (always)
 
@@ -21,7 +21,6 @@ Read these every session before doing anything else.
 
 - [FantasyMayor — Architecture Reference](ARCHITECTURE.md) — `EntityStore`; `Singletons` is the cover over a private second store and its birth-complete row
 - [CLAUDE.md](CLAUDE.md) — This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-- [FLOW_BUILD_UX_DECONGESTION](Flows/FLOW_BUILD_UX_DECONGESTION.md) — R&D pass on the overloaded build HUD: find readable homes for the six concerns of the build mechanic.
 
 ## Read on demand (by trigger)
 
@@ -32,7 +31,7 @@ Do **not** preload. Read only when the trigger condition holds.
 | [DOC_STANDARD.md](DOC_STANDARD.md) | before authoring or reviewing any .md (Flows / Patterns / policy) for standard compliance | Single source of truth for how to write Markdown docs in this project. |
 | [FantasyMayor — ECS & Runtime Conventions](ECS_CONVENTIONS.md) | before writing or editing any ECS system, component, event, config, or query | The ECS/runtime rulebook: where state lives, how systems are decomposed, and the write / collection / |
 | [FLOW_TEMPLATE](FLOW_TEMPLATE.md) | when creating a new Category A FLOW — copy the skeleton below, then fill it | Copy-skeleton for a Category A FLOW: three Rule 2 stages + Decisions, Progress, Acceptance, Amendments shapes. |
-| [GAME_VISION](GAME_VISION.md) | before game-design work on the core loop, economy, actors, elites, population needs, ownership or politics | FantasyMayor is a mayoral character sandbox: physical goods drive autonomous lives, stories and political choices. |
+| [GAME_MECHANICS](GAME_MECHANICS.md) | before any game-design work: the core loop, economy, actors, elites, population needs, land and slots, buildings, the exchange, politics, consequences | The mayor creates opportunities for autonomous elites; the city comes to depend on them and never commands them. |
 | [GLOSSARY — domain vocabulary → code anchors](GLOSSARY.md) | when a domain term (any language) needs its canonical code name before searching roslyn / ecs-graph / di-graph | Map from human vocabulary (game-design terms, Ukrainian/English synonyms, abbreviations) to the |
 | [IAddressable Contract](Patterns/ADDRESSABLE_PATTERNS.md) | before writing/editing/reviewing Addressables, IAddressable, Box<T> or Result<T> code | Single source of truth for addressable loading. Read this; do not grep. |
 | [Pattern — One-Frame Event Cleanup](Patterns/PATTERN_CLEANUP_SYSTEM.md) | before writing any one-frame-event cleanup (and to learn why you usually should not) | **You almost never write a cleanup system.** There is ONE global `EventCleanupSystem` (`EcsExtensions`): a |
@@ -50,7 +49,6 @@ Do **not** preload. Read only when the trigger condition holds.
 | [Pattern — Transaction Entity (cross-domain behavior)](Patterns/PATTERN_TRANSACTION_ENTITY.md) | before building any multi-step behavior that spans more than one subdomain (a cross-domain transaction) | A multi-step behavior that spans subdomains gets exactly ONE home: a **transaction entity** in the |
 | [Pattern — View ↔ System](Patterns/PATTERN_VIEW_SYSTEM.md) | before creating a MonoBehaviour view + its driving system, or wiring how a view and its system talk | A MonoBehaviour View is dumb chrome driven by its System; they talk directly: C# event in, push-to-view out, never ECS. |
 | [RESEARCH_TEMPLATE](RESEARCH_TEMPLATE.md) | when starting a deep-research pass (sdd-deep-research) — copy the skeleton below → Flows/RESEARCH_<TOPIC>.md | Copy-skeleton for a deep-research document: conditions, prior belief, trade-off map, disconfirmation, verdict. |
-| [UI_LANGUAGE](UI_LANGUAGE.md) | before creating or changing any UI — panels, USS, mockups, icons, layout | FantasyMayor's UI style language: what UI Toolkit can render, the confirmed material direction, the content discipline. |
 
 ## Reference map (on demand)
 
@@ -62,7 +60,7 @@ Reference docs read on demand.
 
 ## Task history (archive)
 
-8 completed FLOW document(s) are retained under `Flows/Archive/`. They preserve task history and are searched on demand; they are not startup context or current-code claims.
+15 completed FLOW document(s) are retained under `Flows/Archive/`. They preserve task history and are searched on demand; they are not startup context or current-code claims.
 
 ## Canvas map (on demand)
 
@@ -91,3 +89,13 @@ Curate what the script can't derive: current focus, stale docs, cross-doc orient
 - **`WORK.canvas` is the user's living task-intake scratchpad** — he states tasks there as a graphic
   scheme instead of text. It always changes and contains nothing finished: never treat it as stale,
   orphaned, or a deletion candidate.
+- **`GAME_MECHANICS.md` is the ONE game-design document (2026-09-05).** A clean copy of the economy core loop
+  written from GAME_VISION rev 5, the three vision FLOWs, three research passes and the owner's summary;
+  `GAME_VISION.md` was deleted the same day — never reconstruct it from git. Balance numbers are the owner's, in
+  Unity. The three vision FLOWs (BUILD_UX_DECONGESTION, BASIC_CITY_UI, VISION_UNIFICATION), their three
+  RESEARCH satellites, and the synthesis FLOW that wrote this document (FLOW_ECONOMY_POC) are all closed and
+  archived; the owner's verbatim words live there. No Category A FLOW is currently active.
+- **No UI document exists (2026-09-05).** The owner deleted the main-screen spec (`UISpecs/`), every mockup
+  (`design-mockups/`) and `UI_LANGUAGE.md` as not matching the vision; `GENERAL_UI_STYLE.md` died earlier. UI is
+  derived anew from `GAME_MECHANICS.md` (§12 holds the model-side facts) as a separate task when the owner opens
+  one. Do not reconstruct any of the deleted files from git.
