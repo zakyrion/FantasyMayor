@@ -73,7 +73,7 @@ namespace Presentation.Terrain.Systems
 
         /// <summary>
         ///     Allocates a <see cref="NativeHashSet{T}" /> and fills it with <see cref="HexCoord" /> values
-        ///     from all entities carrying a <see cref="HexIdComponent" />.
+        ///     from all entities carrying a <see cref="HexIdPKComponent" />.
         ///     Caller is responsible for disposing the returned set.
         /// </summary>
         private NativeHashSet<HexCoord> CollectHexCoords()
@@ -82,7 +82,7 @@ namespace Presentation.Terrain.Systems
             var hexCoords = new NativeHashSet<HexCoord>(entities.Count, Allocator.TempJob);
 
             foreach (var entity in entities)
-                hexCoords.Add(entity.GetComponent<HexIdComponent>().Coords);
+                hexCoords.Add(entity.GetComponent<HexIdPKComponent>().Coords);
 
             return hexCoords;
         }

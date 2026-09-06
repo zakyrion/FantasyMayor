@@ -107,7 +107,7 @@ namespace Presentation.HexResources.Systems
             var hexCoords = new NativeArray<HexCoord>(hexEntities.Count, Allocator.Temp);
             var index = 0;
             foreach (var hexEntity in hexEntities)
-                hexCoords[index++] = hexEntity.GetComponent<HexIdComponent>().Coords;
+                hexCoords[index++] = hexEntity.GetComponent<HexIdPKComponent>().Coords;
 
             _painter.Initialize(hexCoords, texture, cellSize);
             hexCoords.Dispose();

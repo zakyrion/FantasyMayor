@@ -120,7 +120,7 @@ namespace Presentation.Terrain.Systems
                 if (!entity.HasComponent<HexTypeComponent>())
                     continue;
 
-                map[entity.GetComponent<HexIdComponent>().Coords] = entity.GetComponent<HexTypeComponent>().Type;
+                map[entity.GetComponent<HexIdPKComponent>().Coords] = entity.GetComponent<HexTypeComponent>().Type;
             }
 
             return map;

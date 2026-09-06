@@ -98,7 +98,7 @@ namespace Domains.Map.Generation.Systems
                 var hexCoords = HexesUtil.IndexToAxialCoords(index);
 
                 var entity = _hexArchetype.CreateEntity();
-                entity.AddComponent(new HexIdComponent { Coords = hexCoords });
+                entity.AddComponent(new HexIdPKComponent { Coords = hexCoords });
                 entity.AddComponent(new HexLevelComponent { Level = 0 });
             }
         }

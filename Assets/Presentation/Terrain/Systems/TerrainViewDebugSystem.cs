@@ -55,7 +55,7 @@ namespace Presentation.Terrain.Systems
                 else
                     continue;
 
-                var hexCoord = hexEntity.GetComponent<HexIdComponent>().Coords;
+                var hexCoord = hexEntity.GetComponent<HexIdPKComponent>().Coords;
                 var center = AxialMath.AxialToWorld(hexCoord.Value, cellSize, AxialOrientation.PointyTop);
                 Debug.DrawRay(new Vector3(center.x, center.y, center.z), Vector3.up * RayHeight, rayColor, RayDuration);
             }

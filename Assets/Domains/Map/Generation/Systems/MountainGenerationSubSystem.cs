@@ -65,7 +65,7 @@ namespace Domains.Map.Generation.Systems
         {
             foreach (var entity in _hexSet.Entities)
             {
-                var coord = entity.GetComponent<HexIdComponent>().Coords.Value;
+                var coord = entity.GetComponent<HexIdPKComponent>().Coords.Value;
                 mapCoords.Add(coord);
                 levelMap.TryAdd(coord, entity.GetComponent<HexLevelComponent>().Level);
             }
@@ -415,7 +415,7 @@ namespace Domains.Map.Generation.Systems
             try
             {
                 foreach (var entity in entities)
-                    idByCoord.TryAdd(entity.GetComponent<HexIdComponent>().Coords.Value, entity.Id);
+                    idByCoord.TryAdd(entity.GetComponent<HexIdPKComponent>().Coords.Value, entity.Id);
 
                 // Pass 1: mountain body
                 foreach (var coord in mapCoords)

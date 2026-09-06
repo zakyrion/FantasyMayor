@@ -126,7 +126,7 @@ namespace Presentation.Terrain.Systems
             var waterHexes = new NativeHashSet<HexCoord>(1, Allocator.Persistent);
 
             foreach (var entity in _hexesByType[HexType.Water])
-                waterHexes.Add(entity.GetComponent<HexIdComponent>().Coords);
+                waterHexes.Add(entity.GetComponent<HexIdPKComponent>().Coords);
 
             return waterHexes;
         }
@@ -149,7 +149,7 @@ namespace Presentation.Terrain.Systems
                 if (!entity.HasComponent<HexTypeComponent>() || entity.GetComponent<HexTypeComponent>().Type == HexType.Water)
                     continue;
 
-                var coord = entity.GetComponent<HexIdComponent>().Coords;
+                var coord = entity.GetComponent<HexIdPKComponent>().Coords;
                 for (var d = 0; d < AxialMath.NeighborCount; d++)
                 {
                     var neighbor = coord + AxialMath.NeighborsPointyTop[d];

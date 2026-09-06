@@ -200,7 +200,7 @@ namespace Domains.Map.Generation.Systems
             try
             {
                 foreach (var entity in entities)
-                    idByCoord[entity.GetComponent<HexIdComponent>().Coords] = entity.Id;
+                    idByCoord[entity.GetComponent<HexIdPKComponent>().Coords] = entity.Id;
 
                 for (var index = 0; index < path.Length; index++)
                 {

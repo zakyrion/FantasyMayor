@@ -186,7 +186,7 @@ namespace Presentation.Terrain.Systems
         private void AddCoordsOfType(HexType type, ref NativeList<HexCoord> result)
         {
             foreach (var entity in _hexesByType[type])
-                result.Add(entity.GetComponent<HexIdComponent>().Coords);
+                result.Add(entity.GetComponent<HexIdPKComponent>().Coords);
         }
 
         /// <summary>
@@ -199,7 +199,7 @@ namespace Presentation.Terrain.Systems
             var hexDomain = new NativeHashSet<HexCoord>(math.max(1, entities.Count), Allocator.Persistent);
 
             foreach (var entity in entities)
-                hexDomain.Add(entity.GetComponent<HexIdComponent>().Coords);
+                hexDomain.Add(entity.GetComponent<HexIdPKComponent>().Coords);
 
             return hexDomain;
         }
@@ -225,7 +225,7 @@ namespace Presentation.Terrain.Systems
             {
                 foreach (var entity in waterEntities)
                 {
-                    var waterHex = entity.GetComponent<HexIdComponent>().Coords;
+                    var waterHex = entity.GetComponent<HexIdPKComponent>().Coords;
                     for (var direction = 0; direction < AxialMath.NeighborCount; direction++)
                     {
                         var neighbor = waterHex + AxialMath.NeighborsPointyTop[direction];
@@ -262,7 +262,7 @@ namespace Presentation.Terrain.Systems
 
         /// <summary>
         ///     Allocates a <see cref="NativeArray{T}" /> and fills it with <see cref="HexCoord" /> values
-        ///     from all entities carrying a <see cref="HexIdComponent" /> plus any extra ghost hexes.
+        ///     from all entities carrying a <see cref="HexIdPKComponent" /> plus any extra ghost hexes.
         ///     Caller is responsible for disposing the returned array.
         /// </summary>
         /// <param name="extraHexes">Additional hexes to append to the vertex-grid build domain.</param>
@@ -273,7 +273,7 @@ namespace Presentation.Terrain.Systems
 
             var index = 0;
             foreach (var entity in entities)
-                hexCoords[index++] = entity.GetComponent<HexIdComponent>().Coords;
+                hexCoords[index++] = entity.GetComponent<HexIdPKComponent>().Coords;
 
             for (var i = 0; i < extraHexes.Length; i++)
                 hexCoords[entities.Count + i] = extraHexes[i];

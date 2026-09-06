@@ -75,7 +75,7 @@ namespace Domains.Map.Generation.Systems
             {
                 foreach (var entity in entities)
                 {
-                    var coord = entity.GetComponent<HexIdComponent>().Coords.Value;
+                    var coord = entity.GetComponent<HexIdPKComponent>().Coords.Value;
                     var level = lakeCoords.Contains(coord) ? LakeLevel : 0;
                     levelById.Add(new int2(entity.Id, level));
                 }
@@ -105,7 +105,7 @@ namespace Domains.Map.Generation.Systems
 
             foreach (var entity in entities)
             {
-                var coord = entity.GetComponent<HexIdComponent>().Coords.Value;
+                var coord = entity.GetComponent<HexIdPKComponent>().Coords.Value;
                 mapDomain.Add(coord);
                 mapCoords.Add(coord);
             }

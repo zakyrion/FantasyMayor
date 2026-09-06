@@ -53,10 +53,10 @@ namespace Domains.Map.HexResources.Systems
             try
             {
                 foreach (var entity in hexEntities)
-                    levelMap.TryAdd(entity.GetComponent<HexIdComponent>().Coords.Value, entity.GetComponent<HexLevelComponent>().Level);
+                    levelMap.TryAdd(entity.GetComponent<HexIdPKComponent>().Coords.Value, entity.GetComponent<HexLevelComponent>().Level);
 
                 foreach (var entity in waterEntities)
-                    waterCoords.Add(entity.GetComponent<HexIdComponent>().Coords.Value);
+                    waterCoords.Add(entity.GetComponent<HexIdPKComponent>().Coords.Value);
 
                 var shoreline = BuildShoreline(hexCapacity, ref levelMap, ref waterCoords);
                 try

@@ -25,7 +25,7 @@ namespace Domains.Map.Archetypes
         /// </summary>
         public static Archetype Hex(EntityStore store) =>
             store.GetArchetype(
-                ComponentTypes.Get<HexIdComponent, HexLevelComponent, HexTypeComponent>(),
+                ComponentTypes.Get<HexIdPKComponent, HexLevelComponent, HexTypeComponent>(),
                 Tags.Get<HexTag>());
 
         /// <summary>A resource deposit on a hex, FK-keyed to the hex row.</summary>

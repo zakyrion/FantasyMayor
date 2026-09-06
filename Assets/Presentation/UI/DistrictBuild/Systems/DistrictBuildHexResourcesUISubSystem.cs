@@ -108,7 +108,7 @@ namespace Presentation.UI.DistrictBuild.Systems
             type = default;
             foreach (var hexEntity in _hexSet.Entities)
             {
-                if (hexEntity.GetComponent<HexIdComponent>().Coords != coords)
+                if (hexEntity.GetComponent<HexIdPKComponent>().Coords != coords)
                     continue;
 
                 type = hexEntity.GetComponent<HexTypeComponent>().Type;

@@ -83,7 +83,7 @@ namespace Modules.UserInput.Systems
         }
 
         /// <summary>
-        ///     Lazily computes world-space AABB from all <see cref="HexIdComponent" /> entities and caches it.
+        ///     Lazily computes world-space AABB from all <see cref="HexIdPKComponent" /> entities and caches it.
         ///     Padded by one hex outer radius so the camera cannot leave the playable area.
         /// </summary>
         /// <returns><c>true</c> when bounds were successfully computed and cached.</returns>
@@ -101,7 +101,7 @@ namespace Modules.UserInput.Systems
 
             foreach (var hexEntity in _hexArchetype.Entities)
             {
-                var coord = hexEntity.GetComponent<HexIdComponent>().Coords.Value;
+                var coord = hexEntity.GetComponent<HexIdPKComponent>().Coords.Value;
                 var world = AxialMath.AxialToWorldPointTop(coord, cellSize);
 
                 if (world.x < minX) minX = world.x;
