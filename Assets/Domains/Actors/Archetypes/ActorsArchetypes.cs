@@ -17,16 +17,18 @@ namespace Domains.Actors.Archetypes
     public static class ActorsArchetypes
     {
         /// <summary>The city actor row: PK + actor discriminator.</summary>
-        public static Archetype City(EntityStore store) =>
-            store.GetArchetype(
-                ComponentTypes.Get<CityIdComponent, ActorTypeComponent>(),
-                Tags.Get<CityTag>());
+        public static Archetype City(EntityStore store)
+        {
+            return store.GetArchetype(
+                ComponentTypes.Get<CityIdComponent, ActorTypeComponent>(), Tags.Get<CityTag>());
+        }
 
         /// <summary>The mayor actor row: PK + actor discriminator + the AP budget columns.</summary>
-        public static Archetype Mayor(EntityStore store) =>
-            store.GetArchetype(
+        public static Archetype Mayor(EntityStore store)
+        {
+            return store.GetArchetype(
                 ComponentTypes.Get<MayorIdComponent, ActorTypeComponent, MayorAPRestoreComponent,
-                    MayorAPComponent>(),
-                Tags.Get<MayorTag>());
+                    MayorAPComponent>(), Tags.Get<MayorTag>());
+        }
     }
 }
