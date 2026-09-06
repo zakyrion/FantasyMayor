@@ -18,7 +18,6 @@ namespace Modules.Turn.Helpers
     {
         public async UniTask RunAsync(
             IReadOnlyList<TurnPhaseSubSystem> phases,
-            TurnPhaseStep step,
             CancellationToken cancellationToken)
         {
             foreach (var phase in phases.OrderBy(candidate => candidate.Priority))
@@ -28,7 +27,7 @@ namespace Modules.Turn.Helpers
                 if (!phase.IsEnabled)
                     continue;
 
-                await phase.Update(step, cancellationToken);
+                await phase.Update(cancellationToken);
             }
         }
     }

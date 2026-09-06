@@ -31,7 +31,7 @@ namespace Domains.Actors.City.Systems
             _cityArchetype = ActorsArchetypes.City(storages.World);
         }
 
-        public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
+        public UniTask Update(CancellationToken cancellationToken)
         {
             if (cancellationToken.IsCancellationRequested)
                 return UniTask.CompletedTask;

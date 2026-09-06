@@ -30,11 +30,10 @@ namespace EcsExtensions
         ///     Updates all the systems once sequentially.
         ///     Each system fully completes before the next one starts.
         /// </summary>
-        /// <param name="state">The state to use.</param>
         /// <param name="cancellationToken">The token used to cancel the update chain.</param>
         /// <returns>A task that represents the asynchronous sequential update.</returns>
         /// <exception cref="ObjectDisposedException">The system has been disposed.</exception>
-        public async UniTask Update(T state, CancellationToken cancellationToken)
+        public async UniTask Update(CancellationToken cancellationToken)
         {
             if (_disposed)
                 throw new ObjectDisposedException(nameof(UniTaskSequentialSystem<T>));
@@ -42,7 +41,7 @@ namespace EcsExtensions
             foreach (var system in _systems)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                await system.Update(state, cancellationToken);
+                await system.Update(cancellationToken);
             }
         }
 

@@ -34,7 +34,7 @@ namespace Presentation.Terrain.Systems
         }
 
         /// <inheritdoc />
-        public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
+        public UniTask Update(CancellationToken cancellationToken)
         {
             if (!_storages.Singletons.Has<TerrainViewConfigComponent>())
                 return UniTask.CompletedTask;

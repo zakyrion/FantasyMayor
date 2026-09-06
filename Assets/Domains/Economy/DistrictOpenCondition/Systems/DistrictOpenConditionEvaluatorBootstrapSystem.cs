@@ -31,7 +31,7 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
                 .ToArray();
         }
 
-        public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
+        public UniTask Update(CancellationToken cancellationToken)
         {
             if (cancellationToken.IsCancellationRequested)
                 return UniTask.CompletedTask;

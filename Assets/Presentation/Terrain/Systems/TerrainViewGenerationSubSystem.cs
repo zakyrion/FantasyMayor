@@ -48,7 +48,7 @@ namespace Presentation.Terrain.Systems
         }
 
         /// <inheritdoc />
-        public override async UniTask Update(GameState state, CancellationToken cancellationToken)
+        public override async UniTask Update(CancellationToken cancellationToken)
         {
             if (!HasRequiredConfigComponents())
                 return;

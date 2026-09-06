@@ -35,7 +35,7 @@ namespace Presentation.HexIcons.Systems
             _containerArchetype = PresentationArchetypes.HexIconContainer(storages.World);
         }
 
-        public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
+        public UniTask Update(CancellationToken cancellationToken)
         {
             if (cancellationToken.IsCancellationRequested)
                 return UniTask.CompletedTask;

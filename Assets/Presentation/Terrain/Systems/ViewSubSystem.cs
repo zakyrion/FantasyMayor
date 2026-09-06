@@ -22,7 +22,7 @@ namespace Presentation.Terrain.Systems
         public abstract int Priority { get; }
 
         /// <inheritdoc />
-        public abstract UniTask Update(GameState state, CancellationToken cancellationToken);
+        public abstract UniTask Update(CancellationToken cancellationToken);
 
         /// <inheritdoc />
         public virtual void Dispose()

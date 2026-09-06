@@ -77,7 +77,7 @@ namespace Modules.Turn.Systems
         {
             var token = StatusMonitor.Token;
 
-            await _runner.RunAsync(_phases, new TurnPhaseStep(), token);
+            await _runner.RunAsync(_phases, token);
 
             _storages.Singletons.Set(new TurnProcessorComponent { Status = TurnProcessorStatus.Completed });
         }

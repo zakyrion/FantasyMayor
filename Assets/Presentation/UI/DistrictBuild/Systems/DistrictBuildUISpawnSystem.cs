@@ -43,7 +43,7 @@ namespace Presentation.UI.DistrictBuild.Systems
             _archetype = PresentationUIArchetypes.DistrictBuildUI(storages.World);
         }
 
-        public async UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
+        public async UniTask Update(CancellationToken cancellationToken)
         {
             if (_storages.Singletons.Get<DistrictBuildUIRootComponent>().RootBox.Exist)
                 return;

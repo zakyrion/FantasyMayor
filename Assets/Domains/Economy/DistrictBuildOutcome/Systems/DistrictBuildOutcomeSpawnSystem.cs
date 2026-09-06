@@ -35,7 +35,7 @@ namespace Domains.Economy.DistrictBuildOutcome.Systems{
                 .ToArray();
         }
 
-        public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
+        public UniTask Update(CancellationToken cancellationToken)
         {
             if (!_storages.Singletons.Has<DistrictBuildOutcomesConfigComponent>())
                 throw new InvalidOperationException(

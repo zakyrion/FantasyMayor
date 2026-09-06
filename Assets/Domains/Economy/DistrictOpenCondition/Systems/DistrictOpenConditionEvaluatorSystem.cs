@@ -29,7 +29,7 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
                 .ToArray();
         }
 
-        public override async UniTask Update(TurnPhaseStep state, CancellationToken cancellationToken)
+        public override async UniTask Update(CancellationToken cancellationToken)
         {
             if (cancellationToken.IsCancellationRequested)
                 return;

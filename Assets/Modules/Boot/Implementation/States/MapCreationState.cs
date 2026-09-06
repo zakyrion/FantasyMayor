@@ -41,11 +41,10 @@ namespace Modules.Boot.Implementation.States
             RequestedMode = null;
             _settledFrames = 0;
 
-            var step = new MapGenerationStep();
             foreach (var stage in _pipeline)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                await stage.Update(step, cancellationToken);
+                await stage.Update(cancellationToken);
             }
         }
 

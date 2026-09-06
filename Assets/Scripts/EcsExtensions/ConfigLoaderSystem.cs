@@ -19,7 +19,7 @@ namespace EcsExtensions
             _addressable = addressable;
         }
 
-        public async UniTask Update(ConfigLoadStep state, CancellationToken cancellationToken)
+        public async UniTask Update(CancellationToken cancellationToken)
         {
             if (IsDisposed)
                 throw new ObjectDisposedException(GetType().Name);

@@ -34,7 +34,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             _inProgress = ActionsArchetypes.BuildDistrictInProgress(storages.World);
         }
 
-        public override UniTask Update(TurnPhaseStep state, CancellationToken cancellationToken)
+        public override UniTask Update(CancellationToken cancellationToken)
         {
             if (cancellationToken.IsCancellationRequested)
                 return UniTask.CompletedTask;

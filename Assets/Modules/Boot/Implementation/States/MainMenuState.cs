@@ -32,7 +32,7 @@ namespace Modules.Boot.Implementation.States
         {
             _requestedMode = null;
             // Idempotent: loads the UI on first entry, no-op afterwards.
-            await _ui.Update(new FirstUIStep(), cancellationToken);
+            await _ui.Update(cancellationToken);
             _ui.Show();
         }
 

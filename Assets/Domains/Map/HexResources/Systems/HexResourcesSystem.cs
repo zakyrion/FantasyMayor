@@ -28,7 +28,7 @@ namespace Domains.Map.HexResources.Systems
         }
 
         /// <inheritdoc />
-        public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
+        public UniTask Update(CancellationToken cancellationToken)
         {
             // Resource generation is one-shot; deltaTime is irrelevant, so a default GameState is passed through.
             var gameState = default(GameState);

@@ -31,7 +31,7 @@ namespace Domains.Actions.Systems
             _mayors = ActorsArchetypes.Mayor(storages.World);
         }
 
-        public override UniTask Update(TurnPhaseStep state, CancellationToken cancellationToken)
+        public override UniTask Update(CancellationToken cancellationToken)
         {
             if (cancellationToken.IsCancellationRequested)
                 return UniTask.CompletedTask;

@@ -44,7 +44,7 @@ namespace Presentation.UI.MainHud.Systems
                 .ToArray();
         }
 
-        public async UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
+        public async UniTask Update(CancellationToken cancellationToken)
         {
             if (_storages.Singletons.Get<MainHudComponent>().RootBox.Exist)
                 return;

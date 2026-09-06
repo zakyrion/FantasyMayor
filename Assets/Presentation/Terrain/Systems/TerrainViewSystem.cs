@@ -59,7 +59,7 @@ namespace Presentation.Terrain.Systems
         }
 
         /// <inheritdoc />
-        public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
+        public UniTask Update(CancellationToken cancellationToken)
         {
             return LoadAndSetupAsync(cancellationToken);
         }
@@ -193,9 +193,6 @@ namespace Presentation.Terrain.Systems
         /// <param name="cancellationToken">Token that aborts the pipeline.</param>
         private async UniTask RunViewSubSystemsAsync(CancellationToken cancellationToken)
         {
-            // View building is one-shot; deltaTime is irrelevant, so a default GameState is passed through.
-            var state = default(GameState);
-
             foreach (var subSystem in _viewSubSystems)
             {
                 if (cancellationToken.IsCancellationRequested)
@@ -204,7 +201,7 @@ namespace Presentation.Terrain.Systems
                 if (!subSystem.IsEnabled)
                     continue;
 
-                await subSystem.Update(state, cancellationToken);
+                await subSystem.Update(cancellationToken);
             }
         }
     }

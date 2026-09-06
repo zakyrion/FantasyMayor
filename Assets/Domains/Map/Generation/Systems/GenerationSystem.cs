@@ -4,6 +4,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using Domains.Map.Archetypes;
 using Domains.Map.Generation.Components;
+using Domains.Map.Generation.Utils;
 using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Data;
 using Domains.Map.Hex.Utils;
@@ -23,11 +24,6 @@ namespace Domains.Map.Generation.Systems
     [UsedImplicitly]
     internal sealed class GenerationSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
     {
-        private const int FoothillLevel = 1;
-        private const int MountainLevel = 2;
-        private const int PlainLevel = 0;
-        private const int WaterLevel = -1;
-
         private readonly IReadOnlyList<GenerationSubSystem> _generationSubSystems;
         private readonly Archetype _hexArchetype;
         private readonly EntityStorages _storages;
@@ -48,7 +44,7 @@ namespace Domains.Map.Generation.Systems
         }
 
         /// <inheritdoc />
-        public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
+        public UniTask Update(CancellationToken cancellationToken)
         {
             if (!_storages.Singletons.Has<TerrainGenerationConfigComponent>())
                 return UniTask.CompletedTask;
@@ -65,6 +61,30 @@ namespace Domains.Map.Generation.Systems
         /// <inheritdoc />
         public void Dispose()
         {
+        }
+
+        /// <summary>
+        ///     Assigns each hex its terrain type from the final generated level. HexTypeComponent is a birth
+        ///     column (default <see cref="HexType.Unknown" />) on every hex, but Friflo still throws
+        ///     <see cref="StructuralChangeException" /> on any <c>AddComponent</c> call while enumerating the
+        ///     query it is called from — value-only upsert included — so this snapshots ids first, same idiom
+        ///     as <c>ForestDespawnSystem</c>.
+        /// </summary>
+        private void AssignHexTypes()
+        {
+            var hexIds = new NativeList<int>(_hexArchetype.Count, Allocator.Temp);
+            foreach (var entity in _hexArchetype.Entities)
+                hexIds.Add(entity.Id);
+
+            for (var i = 0; i < hexIds.Length; i++)
+            {
+                if (_storages.World.TryGetEntityById(hexIds[i], out var entity))
+                {
+                    entity.AddComponent(entity.GetComponent<HexLevelComponent>().ToHexType());
+                }
+            }
+
+            hexIds.Dispose();
         }
 
         /// <summary>Creates the flat hex grid for the configured number of waves.</summary>
@@ -96,37 +116,5 @@ namespace Domains.Map.Generation.Systems
                 generationSubSystem.Update(state);
             }
         }
-
-        /// <summary>
-        ///     Assigns each hex its terrain type from the final generated level. HexTypeComponent is a birth
-        ///     column (default <see cref="HexType.Unknown" />) on every hex, but Friflo still throws
-        ///     <see cref="StructuralChangeException" /> on any <c>AddComponent</c> call while enumerating the
-        ///     query it is called from — value-only upsert included — so this snapshots ids first, same idiom
-        ///     as <c>ForestDespawnSystem</c>.
-        /// </summary>
-        private void AssignHexTypes()
-        {
-            var hexIds = new NativeList<int>(_hexArchetype.Count, Allocator.Temp);
-            foreach (var entity in _hexArchetype.Entities)
-                hexIds.Add(entity.Id);
-
-            for (var i = 0; i < hexIds.Length; i++)
-                if (_storages.World.TryGetEntityById(hexIds[i], out var entity))
-                {
-                    var level = entity.GetComponent<HexLevelComponent>().Level;
-                    entity.AddComponent(new HexTypeComponent { Type = LevelToType(level) });
-                }
-
-            hexIds.Dispose();
-        }
-
-        // Unmapped/unexpected levels fall back to Plain (matches the old "no terrain tag → Plain" default).
-        private static HexType LevelToType(int level) => level switch
-        {
-            MountainLevel => HexType.Mount,
-            FoothillLevel => HexType.Bedhill,
-            WaterLevel => HexType.Water,
-            _ => HexType.Plain
-        };
     }
 }

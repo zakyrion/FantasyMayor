@@ -13,7 +13,7 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 39 docs — 2 always · 21 trigger · 1 reference · 15 archive · 3 canvas.
+Totals: 40 docs — 3 always · 21 trigger · 1 reference · 15 archive · 3 canvas.
 
 ## Read at start (always)
 
@@ -21,6 +21,7 @@ Read these every session before doing anything else.
 
 - [FantasyMayor — Architecture Reference](ARCHITECTURE.md) — `EntityStore`; `Singletons` is the cover over a private second store and its birth-complete row
 - [CLAUDE.md](CLAUDE.md) — This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+- [FLOW — Remove state param from IUniTaskSystem.Update](Flows/FLOW_REMOVE_STATE_PARAM_IUNITASKSYSTEM.md) — Every resolution is CLOSED, execute in order after a fresh implementation-go.
 
 ## Read on demand (by trigger)
 

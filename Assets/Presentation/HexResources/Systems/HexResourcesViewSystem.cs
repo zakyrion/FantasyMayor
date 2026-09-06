@@ -28,7 +28,7 @@ namespace Presentation.HexResources.Systems
         }
 
         /// <inheritdoc />
-        public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
+        public UniTask Update(CancellationToken cancellationToken)
         {
             // View building is one-shot; deltaTime is irrelevant, so a default GameState is passed through.
             var gameState = default(GameState);

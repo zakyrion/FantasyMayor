@@ -33,7 +33,7 @@ namespace Domains.Actors.Mayor.Systems
             _mayorArchetype = ActorsArchetypes.Mayor(storages.World);
         }
 
-        public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
+        public UniTask Update(CancellationToken cancellationToken)
         {
             if (cancellationToken.IsCancellationRequested)
                 return UniTask.CompletedTask;

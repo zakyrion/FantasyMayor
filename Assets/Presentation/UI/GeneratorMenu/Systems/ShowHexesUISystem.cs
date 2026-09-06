@@ -36,9 +36,8 @@ namespace Presentation.UI.GeneratorMenu.Systems
         /// <summary>
         ///     Loads and instantiates the hex UI prefab under the main canvas. Idempotent after first successful load.
         /// </summary>
-        /// <param name="state">Unused boot phase marker.</param>
         /// <param name="cancellationToken">Token to abort the async load.</param>
-        public async UniTask Update(FirstUIStep state, CancellationToken cancellationToken)
+        public async UniTask Update(CancellationToken cancellationToken)
         {
             if (_isDisposed)
                 throw new ObjectDisposedException(GetType().Name);

@@ -41,7 +41,7 @@ namespace Modules.Boot.Implementation
             Application.targetFrameRate = 60;
 
             var loadConfigs = new UniTaskSequentialSystem<ConfigLoadStep>(_configLoadSystems);
-            await loadConfigs.Update(new ConfigLoadStep(), CancellationToken.None);
+            await loadConfigs.Update(CancellationToken.None);
 
             _configsLoaded = true;
             _machine.Switch(GameMode.MainMenu);
