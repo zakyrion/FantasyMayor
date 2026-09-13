@@ -8,6 +8,7 @@ using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 using Random = UnityEngine.Random;
+using Domains.Map.Generation.Configs;
 
 namespace Domains.Map.Generation.Systems
 {
@@ -46,12 +47,9 @@ namespace Domains.Map.Generation.Systems
         /// <inheritdoc />
         public override void Update(GameState state)
         {
-            if (!_storages.Singletons.Has<MountainConfigComponent>())
-                return;
+            var config = _storages.Get<TerrainGenerationConfig>();
 
-            var config = _storages.Singletons.Get<MountainConfigComponent>();
-
-            Generate(in config);
+            Generate(config);
         }
 
         /// <summary>
@@ -727,8 +725,8 @@ namespace Domains.Map.Generation.Systems
         /// <summary>
         ///     Runs the full mountain generation pipeline.
         /// </summary>
-        /// <param name="config">Mountain-specific config.</param>
-        private void Generate(in MountainConfigComponent config)
+        /// <param name="config">Terrain generation config holding the mountain settings.</param>
+        private void Generate(TerrainGenerationConfig config)
         {
             var entities = _hexSet.Entities;
             var mapCapacity = math.max(1, entities.Count);
@@ -759,7 +757,7 @@ namespace Domains.Map.Generation.Systems
                             return;
 
                         var targetHexCount = Mathf.Min(
-                            Mathf.RoundToInt(config.SizeFraction * mapCoords.Length),
+                            Mathf.RoundToInt(config.HillSizeFraction * mapCoords.Length),
                             safeList.Length);
 
                         if (targetHexCount <= 0)

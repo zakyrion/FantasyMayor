@@ -18,6 +18,7 @@ using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 using Random = UnityEngine.Random;
+using Presentation.Terrain.Configs;
 
 namespace Presentation.Terrain.Systems
 {
@@ -50,19 +51,16 @@ namespace Presentation.Terrain.Systems
         /// <inheritdoc />
         public override async UniTask Update(CancellationToken cancellationToken)
         {
-            if (!HasRequiredConfigComponents())
-                return;
-
             if (!_storages.Singletons.Has<VertexGridComponent>())
                 throw new InvalidOperationException("TerrainViewGenerationSubSystem: VertexGridComponent singleton component is missing.");
 
             var vertexGrid = _storages.Singletons.Get<VertexGridComponent>().Grid;
-            var config = _storages.Singletons.Get<TerrainViewConfigComponent>();
-            var innerConfig = _storages.Singletons.Get<InnerIsolineConfigComponent>();
-            var outerConfig = _storages.Singletons.Get<OuterIsolineConfigComponent>();
-            var heightSmoothingConfig = _storages.Singletons.Get<HeightSmoothingConfigComponent>();
-            var hydraulicConfig = _storages.Singletons.Get<HydraulicErosionConfigComponent>();
-            var windConfig = _storages.Singletons.Get<WindErosionConfigComponent>();
+            var config = _storages.Get<TerrainViewConfig>();
+            var innerConfig = _storages.Get<InnerIsolineConfig>();
+            var outerConfig = _storages.Get<OuterIsolineConfig>();
+            var heightSmoothingConfig = _storages.Get<HeightSmoothingConfig>();
+            var hydraulicConfig = _storages.Get<HydraulicErosionConfig>();
+            var windConfig = _storages.Get<WindErosionConfig>();
 
             await BuildIsolinesAsync(vertexGrid, config, innerConfig, outerConfig, cancellationToken);
 
@@ -89,22 +87,6 @@ namespace Presentation.Terrain.Systems
         }
 
         /// <summary>
-        ///     Validates that all required singleton config components are present.
-        /// </summary>
-        /// <returns><c>true</c> if all config sets are populated; <c>false</c> with a logged error otherwise.</returns>
-        private bool HasRequiredConfigComponents()
-        {
-            if (_storages.Singletons.Has<TerrainViewConfigComponent>() &&
-                _storages.Singletons.Has<InnerIsolineConfigComponent>() && _storages.Singletons.Has<OuterIsolineConfigComponent>() &&
-                _storages.Singletons.Has<HeightSmoothingConfigComponent>() && _storages.Singletons.Has<HydraulicErosionConfigComponent>() &&
-                _storages.Singletons.Has<WindErosionConfigComponent>())
-                return true;
-
-            Debug.LogError("[TerrainViewGenerationSubSystem] One or more required configs are missing.");
-            return false;
-        }
-
-        /// <summary>
         ///     Collects hex data, builds the vertex grid and applies all isoline transitions
         ///     (hills, elevated terrain, water) on a background thread.
         /// </summary>
@@ -115,9 +97,9 @@ namespace Presentation.Terrain.Systems
         /// <param name="cancellationToken">Token that aborts the work.</param>
         private async UniTask BuildIsolinesAsync(
             VertexGrid vertexGrid,
-            TerrainViewConfigComponent config,
-            InnerIsolineConfigComponent innerConfig,
-            OuterIsolineConfigComponent outerConfig,
+            TerrainViewConfig config,
+            InnerIsolineConfig innerConfig,
+            OuterIsolineConfig outerConfig,
             CancellationToken cancellationToken)
         {
             var hexCoordDomain = CollectHexCoordDomain();
@@ -293,8 +275,8 @@ namespace Presentation.Terrain.Systems
             float innerHeight,
             float outerHeight,
             VertexGrid vertexGrid,
-            in InnerIsolineConfigComponent innerConfig,
-            in OuterIsolineConfigComponent outerConfig,
+            IsolineConfig innerConfig,
+            IsolineConfig outerConfig,
             bool isDepression = false)
         {
             if (sourceHexes.Length == 0)
@@ -303,13 +285,13 @@ namespace Presentation.Terrain.Systems
             var insideSeed = vertexGrid.GetCenterVertexCoord(sourceHexes[0]);
 
             var innerCurveBuilder = new NaturalLineCurveBuilder(
-                innerConfig.BaseFrequency, innerConfig.Octaves, innerConfig.Persistence,
-                innerConfig.Lacunarity, innerConfig.SmoothingPasses, innerConfig.CurveSeed);
+                innerConfig.baseFrequency, innerConfig.octaves, innerConfig.persistence,
+                innerConfig.lacunarity, innerConfig.smoothingPasses, innerConfig.curveSeed);
 
             var innerIsoline = new FieldBasedIsolineBuilder(
                     vertexGrid,
                     innerCurveBuilder,
-                    new IsolineBuilderData(innerHeight, innerConfig.DepthCenter, innerConfig.DepthDeviation, innerConfig.Side))
+                    new IsolineBuilderData(innerHeight, innerConfig.depthCenter, innerConfig.depthDeviation, innerConfig.side))
                 .BuildIsoLine(sourceHexes.AsArray());
 
             if (innerIsoline == null)
@@ -321,13 +303,13 @@ namespace Presentation.Terrain.Systems
                 IsolineSlopeTransition.FillInsideIsoline(vertexGrid, innerIsoline, insideSeed, innerHeight);
 
             var outerCurveBuilder = new NaturalLineCurveBuilder(
-                outerConfig.BaseFrequency, outerConfig.Octaves, outerConfig.Persistence,
-                outerConfig.Lacunarity, outerConfig.SmoothingPasses, outerConfig.CurveSeed);
+                outerConfig.baseFrequency, outerConfig.octaves, outerConfig.persistence,
+                outerConfig.lacunarity, outerConfig.smoothingPasses, outerConfig.curveSeed);
 
             var outerIsoline = new FieldBasedIsolineBuilder(
                     vertexGrid,
                     outerCurveBuilder,
-                    new IsolineBuilderData(outerHeight, outerConfig.DepthCenter, outerConfig.DepthDeviation, outerConfig.Side))
+                    new IsolineBuilderData(outerHeight, outerConfig.depthCenter, outerConfig.depthDeviation, outerConfig.side))
                 .BuildIsoLine(sourceHexes.AsArray());
 
             if (outerIsoline == null)
@@ -345,11 +327,11 @@ namespace Presentation.Terrain.Systems
         ///     Applies the hydraulic erosion pipe model using the loaded config and awaits completion.
         /// </summary>
         /// <param name="vertexGrid">Vertex grid whose heights are eroded in place.</param>
-        /// <param name="hydraulicConfig">Flattened hydraulic erosion config loaded from ECS.</param>
+        /// <param name="hydraulicConfig">Hydraulic erosion config.</param>
         /// <param name="cancellationToken">Cancellation token for skipping work before execution starts.</param>
         private async UniTask ApplyHydraulicErosionAsync(
             VertexGrid vertexGrid,
-            HydraulicErosionConfigComponent hydraulicConfig,
+            HydraulicErosionConfig hydraulicConfig,
             CancellationToken cancellationToken)
         {
             if (cancellationToken.IsCancellationRequested)
@@ -378,12 +360,12 @@ namespace Presentation.Terrain.Systems
         /// </summary>
         /// <param name="vertexGrid">Vertex grid whose heights are eroded in place.</param>
         /// <param name="terrainConfig">Terrain view config carrying the number of wind passes.</param>
-        /// <param name="windConfig">Flattened wind erosion config loaded from ECS.</param>
+        /// <param name="windConfig">Wind erosion config.</param>
         /// <param name="cancellationToken">Cancellation token for skipping work before execution starts.</param>
         private async UniTask ApplyWindErosionAsync(
             VertexGrid vertexGrid,
-            TerrainViewConfigComponent terrainConfig,
-            WindErosionConfigComponent windConfig,
+            TerrainViewConfig terrainConfig,
+            WindErosionConfig windConfig,
             CancellationToken cancellationToken)
         {
             if (cancellationToken.IsCancellationRequested)
@@ -392,10 +374,10 @@ namespace Presentation.Terrain.Systems
             if (!windConfig.EnableWindErosion)
                 return;
 
-            if (terrainConfig.WindErosionPasses <= 0)
+            if (terrainConfig.WindErosionPass <= 0)
                 return;
 
-            var directions = new HexCoord[terrainConfig.WindErosionPasses];
+            var directions = new HexCoord[terrainConfig.WindErosionPass];
             for (var pass = 0; pass < directions.Length; pass++)
             {
                 var directionIndex = Random.Range(0, AxialMath.NeighborCount);
@@ -426,11 +408,11 @@ namespace Presentation.Terrain.Systems
         ///     Offloaded to a background thread via <see cref="UniTask.RunOnThreadPool" /> to avoid blocking the main loop.
         /// </summary>
         /// <param name="vertexGrid">Vertex grid whose heights are smoothed in place.</param>
-        /// <param name="smoothingConfig">Flattened smoothing config loaded from ECS.</param>
+        /// <param name="smoothingConfig">Height smoothing config.</param>
         /// <param name="cancellationToken">Cancellation token for skipping work before the pass starts.</param>
         private async UniTask ApplyFinalHeightSmoothingAsync(
             VertexGrid vertexGrid,
-            HeightSmoothingConfigComponent smoothingConfig,
+            HeightSmoothingConfig smoothingConfig,
             CancellationToken cancellationToken)
         {
             if (cancellationToken.IsCancellationRequested)

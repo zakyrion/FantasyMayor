@@ -12,6 +12,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using Presentation.Terrain.Configs;
 
 namespace Modules.UserInput.Systems
 {
@@ -56,9 +57,6 @@ namespace Modules.UserInput.Systems
                     return;
             }
 
-            if (!_storages.Singletons.Has<TerrainViewConfigComponent>())
-                return;
-
             if (!_clickAction.WasPressedThisFrame())
                 return;
 
@@ -72,7 +70,7 @@ namespace Modules.UserInput.Systems
             if (camera == null)
                 return;
 
-            var cellSize = _storages.Singletons.Get<TerrainViewConfigComponent>().CellSize;
+            var cellSize = _storages.Get<TerrainViewConfig>().CellSize;
             if (cellSize <= 0f)
                 return;
 

@@ -172,12 +172,8 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         // The district's cost config, by DistrictType — same shared lookup BuildDistrictActionSystem uses.
         private DistrictBuildCostConfig ResolveCost(DistrictType type)
         {
-            if (!_storages.Singletons.Has<DistrictBuildCostsConfigComponent>())
-                throw new InvalidOperationException(
-                    "BuildDistrictActionCancelSystem: DistrictBuildCostsConfigComponent singleton component is missing.");
-
             if (!DistrictConfigLookup.TryFind(
-                    _storages.Singletons.Get<DistrictBuildCostsConfigComponent>().Value?.Districts, type, c => c.DistrictType, out var cost))
+                    _storages.Get<DistrictBuildCostsConfig>().Districts, type, c => c.DistrictType, out var cost))
                 throw new InvalidOperationException(
                     $"BuildDistrictActionCancelSystem: no DistrictBuildCostConfig for district type '{type}'.");
 

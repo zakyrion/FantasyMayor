@@ -11,6 +11,8 @@ using Presentation.HexResources.Helpers;
 using Presentation.Terrain.Components;
 using Unity.Collections;
 using UnityEngine;
+using Presentation.HexResources.Configs;
+using Presentation.Terrain.Configs;
 
 namespace Presentation.HexResources.Systems
 {
@@ -49,17 +51,17 @@ namespace Presentation.HexResources.Systems
             if (clayEntities.Length == 0)
                 return;
 
-            if (!TryGetVertexGrid(out var grid) || !_storages.Singletons.Has<ClayViewConfigComponent>())
+            if (!TryGetVertexGrid(out var grid))
                 return;
 
-            if (!_storages.Singletons.Has<TerrainViewConfigComponent>() || !_storages.Singletons.Has<TerrainTextureComponent>() || _terrainViewSet.Count == 0)
+            if (!_storages.Singletons.Has<TerrainTextureComponent>() || _terrainViewSet.Count == 0)
             {
-                Debug.LogWarning("[ClayHexResourceViewSubSystem] Missing terrain config, texture, or view — clay skipped.");
+                Debug.LogWarning("[ClayHexResourceViewSubSystem] Missing terrain texture or view — clay skipped.");
                 return;
             }
 
-            var clayConfig = _storages.Singletons.Get<ClayViewConfigComponent>();
-            var cellSize = _storages.Singletons.Get<TerrainViewConfigComponent>().CellSize;
+            var clayConfig = _storages.Get<ClayViewConfig>();
+            var cellSize = _storages.Get<TerrainViewConfig>().CellSize;
             var texture = _storages.Singletons.Get<TerrainTextureComponent>().Texture;
             _terrainViewSet.TryGetFirst(out var terrainViewEntity);
             var terrainView = terrainViewEntity.GetComponent<TerrainViewComponent>().ObjectRef;

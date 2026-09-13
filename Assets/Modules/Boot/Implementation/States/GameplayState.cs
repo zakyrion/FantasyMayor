@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EcsExtensions;
+using Modules.Boot.Core;
 using Presentation.HexIcons.Components;
 using Presentation.HexIcons.Events;
 using Modules.Turn.Components;
@@ -19,8 +20,8 @@ namespace Modules.Boot.Implementation.States
         private readonly IReadOnlyList<ILateUpdatedSystem> _lateUpdateSystems;
         private readonly EntityStorages _storages;
 
-        public GameMode Mode => GameMode.Gameplay;
-        public GameMode? RequestedMode => null;
+        public AppState Mode => AppState.Gameplay;
+        public AppState? RequestedMode => null;
 
         public GameplayState(
             EntityStorages storages,

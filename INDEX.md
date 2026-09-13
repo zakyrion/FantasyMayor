@@ -13,7 +13,7 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 40 docs — 3 always · 21 trigger · 1 reference · 15 archive · 3 canvas.
+Totals: 44 docs — 2 always · 22 trigger · 1 reference · 19 archive · 3 canvas.
 
 ## Read at start (always)
 
@@ -21,7 +21,6 @@ Read these every session before doing anything else.
 
 - [FantasyMayor — Architecture Reference](ARCHITECTURE.md) — `EntityStore`; `Singletons` is the cover over a private second store and its birth-complete row
 - [CLAUDE.md](CLAUDE.md) — This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-- [FLOW — Remove state param from IUniTaskSystem.Update](Flows/FLOW_REMOVE_STATE_PARAM_IUNITASKSYSTEM.md) — Every resolution is CLOSED, execute in order after a fresh implementation-go.
 
 ## Read on demand (by trigger)
 
@@ -29,6 +28,7 @@ Do **not** preload. Read only when the trigger condition holds.
 
 | Doc | Read it… | What it is |
 |---|---|---|
+| [CODE_STORY_RULES](CODE_STORY_RULES_PROPOSAL.md) | before writing or reviewing a system whose body is an algorithm, and when running the cascade on a class | Код читається як розповідь: послідовність, сюжет, сенс у кожній змінній і в кожному імені. |
 | [DOC_STANDARD.md](DOC_STANDARD.md) | before authoring or reviewing any .md (Flows / Patterns / policy) for standard compliance | Single source of truth for how to write Markdown docs in this project. |
 | [FantasyMayor — ECS & Runtime Conventions](ECS_CONVENTIONS.md) | before writing or editing any ECS system, component, event, config, or query | The ECS/runtime rulebook: where state lives, how systems are decomposed, and the write / collection / |
 | [FLOW_TEMPLATE](FLOW_TEMPLATE.md) | when creating a new Category A FLOW — copy the skeleton below, then fill it | Copy-skeleton for a Category A FLOW: three Rule 2 stages + Decisions, Progress, Acceptance, Amendments shapes. |
@@ -37,8 +37,8 @@ Do **not** preload. Read only when the trigger condition holds.
 | [IAddressable Contract](Patterns/ADDRESSABLE_PATTERNS.md) | before writing/editing/reviewing Addressables, IAddressable, Box<T> or Result<T> code | Single source of truth for addressable loading. Read this; do not grep. |
 | [Pattern — One-Frame Event Cleanup](Patterns/PATTERN_CLEANUP_SYSTEM.md) | before writing any one-frame-event cleanup (and to learn why you usually should not) | **You almost never write a cleanup system.** There is ONE global `EventCleanupSystem` (`EcsExtensions`): a |
 | [Pattern — ECS Data Component](Patterns/PATTERN_COMPONENT.md) | before creating an ECS data component (a struct holding runtime values) | A component is a plain `struct` of runtime values. No behavior, no methods (except equality when it is a |
-| [Pattern — Config (ScriptableObject + Component)](Patterns/PATTERN_CONFIG.md) | before creating a ScriptableObject config and its runtime component | Authored data lives in a `ScriptableObject`, loaded via Addressables, and published as a **singleton component** |
-| [Pattern — Config Loader System](Patterns/PATTERN_CONFIG_LOADER.md) | before creating a config loader system | A one-shot system that runs at `ConfigLoadStep`: loads config SO(s) from Addressables, validates them, and |
+| [Pattern — Config (ScriptableObject)](Patterns/PATTERN_CONFIG.md) | before creating or reading a ScriptableObject config | A config is a `ScriptableObject` kept in `EntityStorages` by type and read via `storages.Get<T>()`. |
+| [Pattern — Config Loader System](Patterns/PATTERN_CONFIG_LOADER.md) | before adding a config to the game or building objects from a config at startup | One installer registration of `ConfigLoaderSystem<T>` loads a config; derived objects are `InstanceObjects` systems. |
 | [Pattern — One-Frame Event (Pulse)](Patterns/PATTERN_EVENT.md) | before creating a one-frame ECS event (pulse) | An event is a **payload-less `struct`** raised on its own entity. It says "something changed — re-read the |
 | [Pattern — Orchestrator + SubSystems](Patterns/PATTERN_ORCHESTRATOR_SUBSYSTEM.md) | before creating an orchestrator + subsystem family (DoD polymorphism / independently ordered parts) | A family of implementations behind one abstract base, DI-collected into an orchestrator that sequences them by |
 | [Pattern — Per-Frame System](Patterns/PATTERN_PERFRAME_SYSTEM.md) | before creating a per-frame system (genuinely continuous logic) | Logic that is genuinely continuous: camera movement, per-frame projection, input polling, selection watching. |
@@ -61,7 +61,7 @@ Reference docs read on demand.
 
 ## Task history (archive)
 
-15 completed FLOW document(s) are retained under `Flows/Archive/`. They preserve task history and are searched on demand; they are not startup context or current-code claims.
+19 completed FLOW document(s) are retained under `Flows/Archive/`. They preserve task history and are searched on demand; they are not startup context or current-code claims.
 
 ## Canvas map (on demand)
 
@@ -71,7 +71,7 @@ Visual maps (Obsidian Canvas). Read/edit via Obsidian MCP; not preloaded.
 |---|---|
 | [DISTRICT_BUILDING_UI](DISTRICT_BUILDING_UI.canvas) | DistrictBuildUISystem |
 | [ECONOMY_ACTORS](ECONOMY_ACTORS.canvas) | Ownables — each carries one OwnerFK + a Tag · My domain view · Owners — actors with an Id used as OwnerFK · Resource… |
-| [WORK](WORK.canvas) | Колись на потім |
+| [WORK](WORK.canvas) | Configs |
 
 <!-- END GENERATED — content below is the agent zone (pass 2), preserved across runs -->
 
@@ -95,7 +95,13 @@ Curate what the script can't derive: current focus, stale docs, cross-doc orient
   `GAME_VISION.md` was deleted the same day — never reconstruct it from git. Balance numbers are the owner's, in
   Unity. The three vision FLOWs (BUILD_UX_DECONGESTION, BASIC_CITY_UI, VISION_UNIFICATION), their three
   RESEARCH satellites, and the synthesis FLOW that wrote this document (FLOW_ECONOMY_POC) are all closed and
-  archived; the owner's verbatim words live there. No Category A FLOW is currently active.
+  archived; the owner's verbatim words live there.
+- **`CODE_STORY_RULES_PROPOSAL.md` is the STANDING algorithm/readability doc (2026-09-09)** — despite the
+  `_PROPOSAL` filename, which the owner kept on purpose. It replaced `CODE_STYLE_RULES_WIP.md` and
+  `CODE_CASCADE_PROPOSAL.md`, both deleted that day together with the four archived cascade/lake FLOWs; never
+  reconstruct any of them from git. The cascade is now two artifacts with two owner gates: **s1** = task
+  statement + algorithm + real data types + what each step mutates; **s2** = compressed pseudocode of the future
+  class (decomposition is born there, never in s1). The last cascade run is archived: `Flows/Archive/FLOW_CASCADE_S2_LAKE.md`.
 - **No UI document exists (2026-09-05).** The owner deleted the main-screen spec (`UISpecs/`), every mockup
   (`design-mockups/`) and `UI_LANGUAGE.md` as not matching the vision; `GENERAL_UI_STYLE.md` died earlier. UI is
   derived anew from `GAME_MECHANICS.md` (§12 holds the model-side facts) as a separate task when the owner opens

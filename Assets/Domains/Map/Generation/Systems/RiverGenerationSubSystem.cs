@@ -12,6 +12,7 @@ using Modules.AxialSystem;
 using Unity.Collections;
 using UnityEngine;
 using Random = UnityEngine.Random;
+using Domains.Map.Generation.Configs;
 
 namespace Domains.Map.Generation.Systems
 {
@@ -52,20 +53,12 @@ namespace Domains.Map.Generation.Systems
 
         public override void Update(EcsExtensions.GameState state)
         {
-            if (!_storages.Singletons.Has<TerrainGenerationConfigComponent>())
-                return;
-
-            var config = _storages.Singletons.Get<TerrainGenerationConfigComponent>();
+            var config = _storages.Get<TerrainGenerationConfig>();
 
             if (config.WaterType != WaterType.River)
                 return;
 
-            if (!_storages.Singletons.Has<RiverConfigComponent>())
-                return;
-
-            var riverConfig = _storages.Singletons.Get<RiverConfigComponent>();
-
-            Generate(config.WaveCount, riverConfig.CornerOffsetTiles);
+            Generate(config.WaveCount, config.RiverConfig.CornerOffsetTiles);
         }
 
         private void Generate(int waveCount, int cornerOffsetTiles)

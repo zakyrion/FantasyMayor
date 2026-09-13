@@ -57,7 +57,7 @@ its OO **tactical** patterns (aggregates/repositories), which ECS expresses as t
 ```clojure
 (def shared-kernel
   {Core                    "Assets/Scripts/Core"                 ;; shared primitives: Box<T>, Result<T>, FrameBox<T>, StateAllowedAttribute — enumerate members via roslyn
-   Ecs.Extensions          "Assets/Scripts/EcsExtensions"       ;; ECS loop contracts + base systems: UpdatedSystem/LateUpdatedSystem, ConfigLoaderSystem, IPrioritizedUniTaskSystem<T>, EventCleanupSystem, GameState; plus the Friflo seams: EntityStorages, SingletonComponents, EventArchetypes, EcsEventExtensions, QueryResultExtensions
+   Ecs.Extensions          "Assets/Scripts/EcsExtensions"       ;; ECS loop contracts + base systems: UpdatedSystem/LateUpdatedSystem, IUniTaskSystem, ConfigLoaderSystem<T>, IValidatableConfig, IPrioritizedUniTaskSystem<T>, EventCleanupSystem, GameState; plus the Friflo seams: EntityStorages (also the config store), SingletonComponents, EventArchetypes, EcsEventExtensions, QueryResultExtensions
    Installers.World        "Assets/Scripts/Installers"           ;; app-root DI: root LifetimeScope, world composition, input wiring, installer orchestration
    :authored-config-assets "Assets/Addressables/Configs/*"})
 ```
@@ -110,7 +110,8 @@ in docs, reviews, and design discussions. The concrete skeleton for each role li
 
 | Role | Base type | Driven by | Lifecycle |
 |---|---|---|---|
-| **Config Loader** | `ConfigLoaderSystem` (`IUniTaskSystem<ConfigLoadStep>`) | Boot bootstrap, once at startup | one-shot; `MarkAsLoaded()` guards re-entry |
+| **Config Loader** | `ConfigLoaderSystem<T>` (`IUniTaskSystem`, `AppState.ConfigLoading`) — generic, one installer registration per config | Boot startup, once | one-shot; loads + validates the SO, `storages.Add<T>` |
+| **Instance Step** | `IUniTaskSystem` with `AppState.InstanceObjects` | Boot startup, once, after every Config Loader | one-shot; builds runtime objects derived from configs |
 | **Pipeline Stage** | `IPrioritizedUniTaskSystem<MapGenerationStep>` | `MapCreation` state, sequential, ascending `Priority` | one-shot async |
 | **Pipeline Orchestrator** | a Pipeline Stage that fans out into SubSystems | `MapCreation` state | one-shot; NO domain logic of its own |
 | **Pipeline SubSystem** | per-orchestrator abstract base (async `ViewSubSystem : IUniTaskSystem<GameState>` or sync `HexResourcesViewSubSystem : ISystem<GameState>`) | its orchestrator, ascending `Priority`, `IsEnabled` honored | one-shot |
@@ -173,7 +174,7 @@ Point-of-code form (tables, key spaces, materializations, self-index exception):
 ## Boot flow (invariants)
 ```clojure
 (def boot-flow
-  {:boot-order   (-> ConfigLoadStep-bootstrap GameModeMachine)   ;; states: #{MainMenu MapCreation MapLoading Gameplay}
+  {:boot-order   (-> AppState.ConfigLoading AppState.InstanceObjects GameModeMachine)   ;; startup steps run IUniTaskSystem by AppState flag; states: #{MainMenu MapCreation MapLoading Gameplay}
    :active-state "ONLY its systems run"                          ;; composition is manual + visible in Boot.Construct; live wiring: dig.py state <GameMode>; semantics: Assets/Modules/Boot/BOOT.md
    :world-init   IPrioritizedUniTaskSystem<MapGenerationStep>    ;; run by the MapCreation state, stages sequential in ascending Priority
    :tick-order   "ascending Priority within a state"})           ;; EventCleanupSystem (int.MaxValue) always last — disposes the frame's event entities
@@ -190,8 +191,8 @@ implementation. Each is a Category B doc in `Patterns/` (also in `INDEX.md`). Th
 | an ECS data component (struct of runtime values; a key component needs `IEquatable`) | `Patterns/PATTERN_COMPONENT.md` |
 | a field-less marker / table discriminator (empty struct) | `Patterns/PATTERN_TAG.md` |
 | a one-frame event (payload-less pulse + `EventTag`) | `Patterns/PATTERN_EVENT.md` |
-| a `ScriptableObject` config + its runtime component (flatten vs wrap-SO) | `Patterns/PATTERN_CONFIG.md` |
-| a config loader (`ConfigLoadStep`, `Box`, validate, `storages.Singletons.Set`) | `Patterns/PATTERN_CONFIG_LOADER.md` |
+| a `ScriptableObject` config (stored by type in `EntityStorages`, `IValidatableConfig`, read via `storages.Get<T>`) | `Patterns/PATTERN_CONFIG.md` |
+| loading a config (`ConfigLoaderSystem<T>` registration) or an `AppState.InstanceObjects` system | `Patterns/PATTERN_CONFIG_LOADER.md` |
 | a world-init pipeline stage (spawn / build once during map creation) | `Patterns/PATTERN_PIPELINE_STAGE.md` |
 | an orchestrator + DI-collected subsystem family (DoD polymorphism) | `Patterns/PATTERN_ORCHESTRATOR_SUBSYSTEM.md` |
 | a polymorphic SO config catalogue materialized into an entity table (many kinds keyed by a shared FK; + optional per-kind evaluator) | `Patterns/PATTERN_POLYMORPHIC_CATALOGUE.md` |

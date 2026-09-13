@@ -37,14 +37,10 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
 
         public UniTask Update(CancellationToken cancellationToken)
         {
-            if (!_storages.Singletons.Has<DistrictOpenConditionsConfigComponent>())
-                throw new InvalidOperationException(
-                    "DistrictOpenConditionSpawnSystem: DistrictOpenConditionsConfigComponent is missing.");
-
             if (cancellationToken.IsCancellationRequested)
                 return UniTask.CompletedTask;
 
-            var conditions = _storages.Singletons.Get<DistrictOpenConditionsConfigComponent>().Value.Conditions;
+            var conditions = _storages.Get<DistrictOpenConditionsConfig>().Conditions;
 
             for (var index = 0; index < conditions.Length; index++)
             {

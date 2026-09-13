@@ -49,10 +49,6 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
             if (!_viewSet.TryGetFirst(out var viewEntity) || !_selectedHexSet.TryGetFirst(out var selectedHexEntity))
                 return;
 
-            if (!_storages.Singletons.Has<HexTerrainIconConfigComponent>())
-                throw new InvalidOperationException(
-                    "HexInfoPanelHeaderSystem: HexTerrainIconConfigComponent is missing.");
-
             var coords = selectedHexEntity.GetComponent<HexSelectedComponent>().Coords;
             var view = viewEntity.GetComponent<HexInfoPanelViewComponent>().View;
             if (view == null)
@@ -63,7 +59,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
             if (!TryGetHexTerrainType(coords, out var terrainType))
                 return;
 
-            var config = _storages.Singletons.Get<HexTerrainIconConfigComponent>().Value;
+            var config = _storages.Get<HexTerrainIconConfig>();
             if (!TryGetTerrainEntry(config, terrainType, out var sprite, out var displayName))
             {
                 // No authored entry yet — the out values already carry the fallback (enum name + null icon,

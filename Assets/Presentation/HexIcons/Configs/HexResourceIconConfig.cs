@@ -2,12 +2,13 @@ using System;
 using System.Collections.Generic;
 using Domains.Map.HexResources.Data;
 using UnityEngine;
+using EcsExtensions;
 
 namespace Presentation.HexIcons.Configs
 {
     [CreateAssetMenu(fileName = "HexResourceIconConfig",
         menuName = "FantasyMayor/HexIcons/HexResourceIconConfig")]
-    public sealed class HexResourceIconConfig : ScriptableObject
+    public sealed class HexResourceIconConfig : ScriptableObject, IValidatableConfig
     {
         [Serializable]
         public struct ResourceIconEntry
@@ -21,5 +22,11 @@ namespace Presentation.HexIcons.Configs
 
         [SerializeField] private ResourceIconEntry[] _entries;
         public IReadOnlyList<ResourceIconEntry> Entries => _entries;
+
+        public void Validate()
+        {
+            if (Entries == null || Entries.Count == 0)
+                throw new InvalidOperationException("HexResourceIconConfig: Entries is null or empty.");
+        }
     }
 }

@@ -3,6 +3,7 @@ using Modules.Boot.Core;
 using Presentation.HexIcons.Systems;
 using VContainer;
 using VContainer.Unity;
+using Presentation.HexIcons.Configs;
 
 namespace Presentation.HexIcons.Installer
 {
@@ -10,8 +11,15 @@ namespace Presentation.HexIcons.Installer
     {
         public void Install(IContainerBuilder builder)
         {
-            builder.Register<HexIconsConfigLoaderSystem>(Lifetime.Singleton)
-                .As<HexIconsConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
+            builder.Register<ConfigLoaderSystem<HexIconsConfig>>(Lifetime.Singleton)
+                .As<IUniTaskSystem>()
+                .WithParameter(AppState.ConfigLoading)
+                .WithParameter("address", ConfigAddresses.HEX_ICONS_CONFIG);
+
+            builder.Register<ConfigLoaderSystem<HexResourceIconConfig>>(Lifetime.Singleton)
+                .As<IUniTaskSystem>()
+                .WithParameter(AppState.ConfigLoading)
+                .WithParameter("address", ConfigAddresses.HEX_RESOURCE_ICON_CONFIG);
 
             builder.Register<HexIconsSpawnSystem>(Lifetime.Singleton)
                 .As<HexIconsSpawnSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();

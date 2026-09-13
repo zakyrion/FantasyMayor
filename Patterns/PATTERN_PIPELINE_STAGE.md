@@ -40,8 +40,7 @@ internal sealed class [Name]System : IPrioritizedUniTaskSystem<MapGenerationStep
         if (!_storages.Singletons.Has<[Prerequisite]Component>())
             throw new InvalidOperationException("[Name]System: [Prerequisite]Component is missing.");
 
-        if (cancellationToken.IsCancellationRequested)
-            return;
+        cancellationToken.ThrowIfCancellationRequested();
 
         // Build content: create rows via _rows.CreateEntity(), publish runtime singleton components, load prefabs.
     }
@@ -60,7 +59,7 @@ internal sealed class [Name]System : IPrioritizedUniTaskSystem<MapGenerationStep
   {:execution           "sequential, ascending Priority, awaited"       ;; a stage may rely on everything lower-priority stages produced — fail loud on a missing prerequisite
    :re-entry            #{"_isLoaded guard" "destroy-and-recreate"}     ;; only if regeneration can re-enter the stage
    :addressable-handle  "keep owned, release in Dispose"                ;; ADDRESSABLE_PATTERNS.md
-   :quiet-return        "cancellationToken.IsCancellationRequested ONLY" ;; own line, never combined with a validity check
+   :cancellation        "cancellationToken.ThrowIfCancellationRequested()" ;; after every await; own line, never combined with a validity check; never a quiet return
    :singleton-view      "publish a …ViewComponent for consumers"
    :singleton-non-queried :singleton-component
    :wiring              ".As<IPrioritizedUniTaskSystem<MapGenerationStep>>" ;; pipeline auto-collects — no Boot.Construct edit

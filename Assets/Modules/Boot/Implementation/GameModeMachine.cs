@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EcsExtensions;
+using Modules.Boot.Core;
 
 namespace Modules.Boot.Implementation
 {
@@ -14,18 +15,18 @@ namespace Modules.Boot.Implementation
     /// </summary>
     public sealed class GameModeMachine : IDisposable
     {
-        private readonly IReadOnlyDictionary<GameMode, IAppState> _states;
+        private readonly IReadOnlyDictionary<AppState, IAppState> _states;
 
         private IAppState _current;
         private bool _entering;
         private CancellationTokenSource _enterCts;
 
-        public GameModeMachine(IReadOnlyDictionary<GameMode, IAppState> states)
+        public GameModeMachine(IReadOnlyDictionary<AppState, IAppState> states)
         {
             _states = states ?? throw new ArgumentNullException(nameof(states));
         }
 
-        public void Switch(GameMode mode)
+        public void Switch(AppState mode)
         {
             _enterCts?.Cancel();
             _enterCts?.Dispose();

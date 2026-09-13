@@ -8,6 +8,7 @@ using JetBrains.Annotations;
 using Modules.Boot.Core;
 using Presentation.Terrain.Components;
 using UnityEngine;
+using Presentation.Terrain.Configs;
 
 namespace Presentation.Terrain.Systems
 {
@@ -36,10 +37,7 @@ namespace Presentation.Terrain.Systems
         /// <inheritdoc />
         public UniTask Update(CancellationToken cancellationToken)
         {
-            if (!_storages.Singletons.Has<TerrainViewConfigComponent>())
-                return UniTask.CompletedTask;
-
-            var cellSize = _storages.Singletons.Get<TerrainViewConfigComponent>().CellSize;
+            var cellSize = _storages.Get<TerrainViewConfig>().CellSize;
 
             foreach (var hexEntity in _hexSet.Entities)
             {

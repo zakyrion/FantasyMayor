@@ -56,6 +56,7 @@ ALLOWLIST = {
     "InputSystem", "EventSystem", "UnityEvent",                    # Unity
     "ChangeEvent", "ScrollView", "ListView", "TreeView", "GridView",  # UI Toolkit / App UI
     "IInstaller",                                                  # VContainer
+    "ILinkComponent",                                              # Friflo.Engine.ECS
 }
 
 DECL_RE = re.compile(r"\b(?:class|struct|interface|enum)\s+([A-Za-z_]\w*)")

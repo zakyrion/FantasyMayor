@@ -11,11 +11,13 @@ using Presentation.UI.MainHud.Components;
 using Presentation.UI.DistrictBuild.Components;
 using VContainer;
 using VContainer.Unity;
+using Presentation.UI.MainHud.HexInfoPanel.Configs;
+using Presentation.UI.MainHud.ResourceBar.Configs;
 
 namespace Presentation.UI.Installer
 {
     /// <summary>
-    ///     Registers the MainUI systems: the generator UI (MainMenu state), the info-panel config loader, the
+    ///     Registers the MainUI systems: the generator UI (MainMenu state), the icon configs, the
     ///     Main UI spawn orchestrator + its window spawn subsystems (generation pipeline), and the per-frame
     ///     view systems (info panel + end-turn state) — the per-frame systems are wired into Gameplay by Boot.
     /// </summary>
@@ -33,14 +35,20 @@ namespace Presentation.UI.Installer
             builder.Register<ShowHexesUISystem>(Lifetime.Scoped)
                 .As<ShowHexesUISystem>();
 
-            builder.Register<HexTerrainIconConfigLoaderSystem>(Lifetime.Singleton)
-                .As<HexTerrainIconConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
+            builder.Register<ConfigLoaderSystem<HexTerrainIconConfig>>(Lifetime.Singleton)
+                .As<IUniTaskSystem>()
+                .WithParameter(AppState.ConfigLoading)
+                .WithParameter("address", ConfigAddresses.HEX_TERRAIN_ICON_CONFIG);
 
-            builder.Register<DistrictIconConfigLoaderSystem>(Lifetime.Singleton)
-                .As<DistrictIconConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
+            builder.Register<ConfigLoaderSystem<DistrictIconConfig>>(Lifetime.Singleton)
+                .As<IUniTaskSystem>()
+                .WithParameter(AppState.ConfigLoading)
+                .WithParameter("address", ConfigAddresses.DISTRICT_ICON_CONFIG);
 
-            builder.Register<InventoryResourceIconConfigLoaderSystem>(Lifetime.Singleton)
-                .As<InventoryResourceIconConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
+            builder.Register<ConfigLoaderSystem<InventoryResourceIconConfig>>(Lifetime.Singleton)
+                .As<IUniTaskSystem>()
+                .WithParameter(AppState.ConfigLoading)
+                .WithParameter("address", ConfigAddresses.INVENTORY_RESOURCE_ICON_CONFIG);
 
             // Main UI spawn — orchestrator (generation pipeline, collected by interface) instantiates the
             // Main UI root and runs the window spawn subsystems (collected as MainHudSpawnSubSystem).

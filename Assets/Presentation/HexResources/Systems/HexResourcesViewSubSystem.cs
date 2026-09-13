@@ -9,6 +9,7 @@ using Friflo.Engine.ECS;
 using Presentation.HexResources.Components;
 using Presentation.Terrain.Components;
 using UnityEngine;
+using Presentation.HexResources.Configs;
 
 namespace Presentation.HexResources.Systems
 {
@@ -34,10 +35,7 @@ namespace Presentation.HexResources.Systems
         {
             prefab = null;
 
-            if (!_storages.Singletons.Has<HexResourcesViewConfigComponent>())
-                return false;
-
-            var viewConfig = _storages.Singletons.Get<HexResourcesViewConfigComponent>().Value;
+            var viewConfig = _storages.Get<HexResourcesViewConfig>();
             foreach (var resource in viewConfig.Resources)
             {
                 if (resource.Type != TargetHexResourceType)
@@ -54,10 +52,7 @@ namespace Presentation.HexResources.Systems
         {
             prefabs = Array.Empty<GameObject>();
 
-            if (!_storages.Singletons.Has<HexResourcesViewConfigComponent>())
-                return false;
-
-            var viewConfig = _storages.Singletons.Get<HexResourcesViewConfigComponent>().Value;
+            var viewConfig = _storages.Get<HexResourcesViewConfig>();
 
             // Managed exception to the "Unity.Collections in ECS systems" rule: the elements are GameObject
             // (managed), which a NativeContainer cannot hold. See ECS_CONVENTIONS.md → Statelessness And

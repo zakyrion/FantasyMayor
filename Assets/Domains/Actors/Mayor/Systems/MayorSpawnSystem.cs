@@ -11,11 +11,12 @@ using Domains.Actors.Mayor.Tags;
 using Domains.Economy.Resource.Helpers;
 using JetBrains.Annotations;
 using Modules.Boot.Core;
+using Domains.Actors.Mayor.Configs;
 
 namespace Domains.Actors.Mayor.Systems
 {
     // One-shot world-init stage: seeds the Mayor id allocator, creates the singleton Mayor actor, and seeds
-    // its starting state from MayorConfigComponent — the inventory loadout, the per-turn AP restore amount
+    // its starting state from MayorConfig — the inventory loadout, the per-turn AP restore amount
     // (MayorAPRestoreComponent), and the starting ActionPoint resource stack (the live AP pool, seeded here
     // because the AP-restore turn phase only runs from turn 2 onward). Open-Closed: a new actor kind adds its
     // own spawn stage, this one never changes.
@@ -43,11 +44,7 @@ namespace Domains.Actors.Mayor.Systems
             if (_storages.Singletons.Has<MayorIdAllocatorComponent>())
                 return UniTask.CompletedTask;
 
-            if (!_storages.Singletons.Has<MayorConfigComponent>())
-                throw new InvalidOperationException(
-                    "MayorSpawnSystem: MayorConfigComponent missing — MayorConfigLoaderSystem must run at ConfigLoadStep first.");
-
-            var config = _storages.Singletons.Get<MayorConfigComponent>();
+            var config = _storages.Get<MayorConfig>();
 
             _storages.Singletons.Set(new MayorIdAllocatorComponent { Next = 1 });
 

@@ -4,7 +4,6 @@ using Domains.Actors.City.Components;
 using Domains.Actors.Mayor.Components;
 using Domains.Economy.District.Data;
 using Domains.Economy.District.Helpers;
-using Domains.Economy.DistrictBuild.Components;
 using Domains.Economy.DistrictBuild.Configs;
 using Domains.Economy.DistrictBuildCost.Components;
 using Domains.Economy.DistrictBuildCost.Configs;
@@ -153,11 +152,11 @@ namespace Presentation.UI.DistrictBuild.Systems
                     $"is {DistrictType.Unknown} — the selection must be a real district or {nameof(DistrictType.None)}, " +
                     "never the error marker.");
 
-            if (type == DistrictType.None || !_storages.Singletons.Has<DistrictBuildCostsConfigComponent>())
+            if (type == DistrictType.None)
                 return false;
 
             return DistrictConfigLookup.TryFind(
-                _storages.Singletons.Get<DistrictBuildCostsConfigComponent>().Value?.Districts, type, c => c.DistrictType, out cost);
+                _storages.Get<DistrictBuildCostsConfig>().Districts, type, c => c.DistrictType, out cost);
         }
 
         private bool TryGetDistrict(DistrictType type, out DistrictBuildConfig district)
@@ -169,11 +168,11 @@ namespace Presentation.UI.DistrictBuild.Systems
                     $"is {DistrictType.Unknown} — the selection must be a real district or {nameof(DistrictType.None)}, " +
                     "never the error marker.");
 
-            if (type == DistrictType.None || !_storages.Singletons.Has<DistrictBuildsConfigComponent>())
+            if (type == DistrictType.None)
                 return false;
 
             return DistrictConfigLookup.TryFind(
-                _storages.Singletons.Get<DistrictBuildsConfigComponent>().Value?.Districts, type, d => d.DistrictType, out district);
+                _storages.Get<DistrictBuildsConfig>().Districts, type, d => d.DistrictType, out district);
         }
 
         // Default payer when the view has no valid selection yet: first allowed owner in canonical order

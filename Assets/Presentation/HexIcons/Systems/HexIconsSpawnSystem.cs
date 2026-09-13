@@ -15,6 +15,7 @@ using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine.UIElements;
 using Object = UnityEngine.Object;
+using Presentation.HexIcons.Configs;
 
 namespace Presentation.HexIcons.Systems
 {
@@ -40,12 +41,7 @@ namespace Presentation.HexIcons.Systems
             if (cancellationToken.IsCancellationRequested)
                 return UniTask.CompletedTask;
 
-            if (!_storages.Singletons.Has<HexIconsConfigComponent>())
-                throw new InvalidOperationException("HexIconsSpawnSystem: HexIconsConfigComponent is missing.");
-
-            var iconConfig = _storages.Singletons.Get<HexIconsConfigComponent>();
-
-            var prefab = iconConfig.Value.Prefab;
+            var prefab = _storages.Get<HexIconsConfig>().Prefab;
             if (prefab == null)
                 throw new InvalidOperationException("HexIconsSpawnSystem: prefab is null.");
 

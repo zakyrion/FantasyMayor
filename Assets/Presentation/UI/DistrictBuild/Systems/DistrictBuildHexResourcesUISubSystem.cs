@@ -1,7 +1,6 @@
 ﻿using System;
 using Domains.Economy.District.Data;
 using Domains.Economy.District.Helpers;
-using Domains.Economy.DistrictBuild.Components;
 using Domains.Economy.DistrictBuild.Configs;
 using Domains.Map.Archetypes;
 using Domains.Map.Hex.Components;
@@ -96,11 +95,11 @@ namespace Presentation.UI.DistrictBuild.Systems
                     $"is {DistrictType.Unknown} — the selection must be a real district or {nameof(DistrictType.None)}, " +
                     "never the error marker.");
 
-            if (type == DistrictType.None || !_storages.Singletons.Has<DistrictBuildsConfigComponent>())
+            if (type == DistrictType.None)
                 return false;
 
             return DistrictConfigLookup.TryFind(
-                _storages.Singletons.Get<DistrictBuildsConfigComponent>().Value?.Districts, type, d => d.DistrictType, out district);
+                _storages.Get<DistrictBuildsConfig>().Districts, type, d => d.DistrictType, out district);
         }
 
         private bool TryGetHexType(HexCoord coords, out HexType type)

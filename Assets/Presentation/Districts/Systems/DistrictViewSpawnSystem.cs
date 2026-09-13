@@ -61,15 +61,11 @@ namespace Presentation.Districts.Systems
             if (!EcsEventExtensions.IsRipe(pulse))
                 return;
 
-            if (!_storages.Singletons.Has<DistrictViewsConfigComponent>())
-                throw new InvalidOperationException(
-                    "DistrictViewSpawnSystem: DistrictViewsConfigComponent singleton component is missing.");
-
             if (!_storages.Singletons.Has<VertexGridComponent>())
                 throw new InvalidOperationException(
                     "DistrictViewSpawnSystem: VertexGridComponent singleton component is missing.");
 
-            var viewsConfig = _storages.Singletons.Get<DistrictViewsConfigComponent>().Value;
+            var viewsConfig = _storages.Get<DistrictViewsConfig>();
             var vertexGrid = _storages.Singletons.Get<VertexGridComponent>().Grid;
 
             // Snapshot-before-iterate: birth via _viewArchetype.CreateEntity() is NOT a structural change,

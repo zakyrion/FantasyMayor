@@ -38,9 +38,9 @@ explore it via the ecs-graph / code headers; this recipe is the generic procedur
 
 ;; ── do NOT use when ─────────────────────────────────────────────────────────
 (cond
-  (one-config-one-shape?)       PATTERN_CONFIG                  ;; flatten or wrap into a singleton component — never spawn a queryable row for a singleton config
-  (homogeneous-read-once-list?) :flattened-singleton-component  ;; cheaper than a table when never queried by key
-  (behavior-on-the-config?)     :NO)                        ;; SO configs stay pure data — the type-switch lives in the subsystems
+  (one-config-one-shape?)       PATTERN_CONFIG                  ;; read the SO via storages.Get<T> — never spawn a queryable row for a singleton config
+  (homogeneous-read-once-list?) PATTERN_CONFIG                  ;; read the SO's array directly — cheaper than a table when never queried by key
+  (behavior-on-the-config?)     :NO)                        ;; SO configs stay pure data (IValidatableConfig.Validate is the only method) — the type-switch lives in the subsystems
 ```
 
 ---
@@ -76,21 +76,24 @@ public sealed class FoosConfig : ScriptableObject
 }
 ```
 
-### 2 — Loader → singleton component (live SO reference)
+### 2 — Loading the container SO
 
-One [config loader](PATTERN_CONFIG_LOADER.md) at `ConfigLoadStep`. It publishes a singleton component that **wraps the
-live SO reference** (not a flattened copy — the orchestrator reads the concrete subclasses later, at
-`MapGenerationStep`) and **retains the addressable `Box`** for the catalogue's lifetime, releasing it in `OnDispose`.
-Validate all entries non-null and **fail loud** — a missing/blank catalogue stops the game at boot, not later
-rule-blind.
+One [`ConfigLoaderSystem<FoosConfig>` registration](PATTERN_CONFIG_LOADER.md) at `AppState.ConfigLoading` puts the
+container SO into `EntityStorages`; the orchestrator reads the concrete subclasses later, at `MapGenerationStep`.
+`FoosConfig` implements `IValidatableConfig` and checks all entries non-null — **fail loud**: a missing/blank
+catalogue stops the game at boot, not later rule-blind.
 
 ```csharp
-public readonly struct FoosConfigComponent : IComponent { public readonly FoosConfig Value; /* ctor */ }
+public sealed class FoosConfig : ScriptableObject, IValidatableConfig
+{
+    // ... _items as above
+    public void Validate() { /* throw on a null array or a null entry */ }
+}
 ```
 
 ### 3 — Spawn orchestrator + Try-pattern subsystem family (routing)
 
-A [pipeline stage](PATTERN_PIPELINE_STAGE.md) orchestrator at `MapGenerationStep` reads the singleton component, iterates
+A [pipeline stage](PATTERN_PIPELINE_STAGE.md) orchestrator at `MapGenerationStep` reads the container SO, iterates
 `Items`, and routes each entry to the **first** subsystem that handles its concrete type. **Fail loud** on a null
 entry or a config type no subsystem matches (a new kind without its subsystem must not pass silently).
 
@@ -114,7 +117,7 @@ internal sealed class FooSpawnSystem : IPrioritizedUniTaskSystem<MapGenerationSt
 
     public UniTask Update(MapGenerationStep state, CancellationToken ct)
     {
-        var items = _storages.Singletons.Get<FoosConfigComponent>().Value.Items;
+        var items = _storages.Get<FoosConfig>().Items;
         foreach (var item in items)
         {
             if (item == null)      throw new /* fail loud: null catalogue entry */;

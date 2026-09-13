@@ -130,11 +130,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
 
         private void ShowInProgress(HexInfoPanelView view, DistrictType districtType, int turnsLeft)
         {
-            if (!_storages.Singletons.Has<DistrictIconConfigComponent>())
-                throw new InvalidOperationException(
-                    "HexInfoPanelDistrictSystem: DistrictIconConfigComponent is missing.");
-
-            var config = _storages.Singletons.Get<DistrictIconConfigComponent>().Value;
+            var config = _storages.Get<DistrictIconConfig>();
             TryGetDistrictIconEntry(config, districtType, out var sprite, out var displayName);
 
             view.ShowDistrictInProgress(sprite, displayName, turnsLeft);

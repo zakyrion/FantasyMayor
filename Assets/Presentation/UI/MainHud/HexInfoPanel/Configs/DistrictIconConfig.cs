@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Domains.Economy.District.Data;
 using UnityEngine;
+using EcsExtensions;
 
 namespace Presentation.UI.MainHud.HexInfoPanel.Configs
 {
@@ -11,7 +12,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Configs
     /// </summary>
     [CreateAssetMenu(fileName = "DistrictIconConfig",
         menuName = "FantasyMayor/MainUI/DistrictIconConfig")]
-    public sealed class DistrictIconConfig : ScriptableObject
+    public sealed class DistrictIconConfig : ScriptableObject, IValidatableConfig
     {
         [Serializable]
         public struct DistrictIconEntry
@@ -28,5 +29,11 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Configs
         [SerializeField] private DistrictIconEntry[] _entries;
 
         public IReadOnlyList<DistrictIconEntry> Entries => _entries;
+
+        public void Validate()
+        {
+            if (Entries == null || Entries.Count == 0)
+                throw new InvalidOperationException("DistrictIconConfig: Entries is null or empty.");
+        }
     }
 }

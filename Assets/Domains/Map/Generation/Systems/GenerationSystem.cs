@@ -13,6 +13,7 @@ using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Boot.Core;
 using Unity.Collections;
+using Domains.Map.Generation.Configs;
 
 namespace Domains.Map.Generation.Systems
 {
@@ -46,12 +47,9 @@ namespace Domains.Map.Generation.Systems
         /// <inheritdoc />
         public UniTask Update(CancellationToken cancellationToken)
         {
-            if (!_storages.Singletons.Has<TerrainGenerationConfigComponent>())
-                return UniTask.CompletedTask;
+            var config = _storages.Get<TerrainGenerationConfig>();
 
-            var config = _storages.Singletons.Get<TerrainGenerationConfigComponent>();
-
-            Generate(in config);
+            Generate(config);
             RunGenerationSubSystems();
             AssignHexTypes();
 
@@ -89,7 +87,7 @@ namespace Domains.Map.Generation.Systems
 
         /// <summary>Creates the flat hex grid for the configured number of waves.</summary>
         /// <param name="config">Terrain generation parameters.</param>
-        private void Generate(in TerrainGenerationConfigComponent config)
+        private void Generate(TerrainGenerationConfig config)
         {
             var hexCount = HexesUtil.GetTotalHexCountForWaves(config.WaveCount);
 

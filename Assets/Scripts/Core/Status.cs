@@ -5,6 +5,5 @@ namespace Core
         Unknow = 0,
         Failed,
         Success,
-        Cancelled,
     }
 }

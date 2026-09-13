@@ -10,17 +10,17 @@ namespace Modules.Boot.Implementation.States
 {
     /// <summary>
     ///     Shows the map generator UI and waits for the Generate request. On request, hides the UI and
-    ///     transitions to <see cref="GameMode.MapCreation" />. (Currently the only screen — the ersatz main menu.)
+    ///     transitions to <see cref="AppState.MapCreation" />. (Currently the only screen — the ersatz main menu.)
     /// </summary>
     public sealed class MainMenuState : IAppState
     {
         private readonly ShowHexesUISystem _ui;
         private readonly Archetype _generateRequests;
 
-        private GameMode? _requestedMode;
+        private AppState? _requestedMode;
 
-        public GameMode Mode => GameMode.MainMenu;
-        public GameMode? RequestedMode => _requestedMode;
+        public AppState Mode => AppState.MainMenu;
+        public AppState? RequestedMode => _requestedMode;
 
         public MainMenuState(EntityStore world, ShowHexesUISystem ui)
         {
@@ -42,7 +42,7 @@ namespace Modules.Boot.Implementation.States
                 return;
 
             // The event entity is cleaned up by EventCleanupSystem once MapCreation starts ticking.
-            _requestedMode = GameMode.MapCreation;
+            _requestedMode = AppState.MapCreation;
         }
 
         private bool HasRipeRequest()

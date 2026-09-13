@@ -25,10 +25,7 @@ namespace Domains.Map.HexResources.Systems
         {
             config = null;
 
-            if (!_storages.Singletons.Has<HexResourcesConfigComponent>())
-                return false;
-
-            var resourcesConfig = _storages.Singletons.Get<HexResourcesConfigComponent>().Value;
+            var resourcesConfig = _storages.Get<HexResourcesConfig>();
             foreach (var resource in resourcesConfig.Resources)
             {
                 if (resource.Type != TargetHexResourceType)

@@ -14,6 +14,8 @@ using Presentation.HexResources.Helpers;
 using Presentation.Terrain.Components;
 using Unity.Collections;
 using UnityEngine;
+using Presentation.HexResources.Configs;
+using Presentation.Terrain.Configs;
 
 namespace Presentation.HexResources.Systems
 {
@@ -66,16 +68,13 @@ namespace Presentation.HexResources.Systems
                 throw new InvalidOperationException(
                     "ForestSpawnSystem: VertexGridComponent singleton component is missing.");
 
-            if (!_storages.Singletons.Has<TerrainViewConfigComponent>() || !_storages.Singletons.Has<HexResourcesViewConfigComponent>())
-                return;
-
             var forestResources = _resourcesByType[HexResourceType.Forest];
             if (forestResources.Count == 0)
                 return;
 
             var vertexGrid = _storages.Singletons.Get<VertexGridComponent>().Grid;
-            var viewConfig = _storages.Singletons.Get<HexResourcesViewConfigComponent>().Value;
-            var cellSize = _storages.Singletons.Get<TerrainViewConfigComponent>().CellSize;
+            var viewConfig = _storages.Get<HexResourcesViewConfig>();
+            var cellSize = _storages.Get<TerrainViewConfig>().CellSize;
 
             if (_root == null)
                 _root = new GameObject("ForestViewRoot").transform;

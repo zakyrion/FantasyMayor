@@ -13,6 +13,7 @@ using Presentation.Terrain.Components;
 using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
+using Presentation.Terrain.Configs;
 
 namespace Presentation.Terrain.Systems
 {
@@ -47,14 +48,8 @@ namespace Presentation.Terrain.Systems
             if (!_storages.Singletons.Has<VertexGridComponent>())
                 throw new InvalidOperationException("TerrainViewTextureSubSystem: VertexGridComponent singleton component is missing.");
 
-            if (!_storages.Singletons.Has<TerrainTextureConfigComponent>() || !_storages.Singletons.Has<TerrainViewConfigComponent>())
-            {
-                Debug.LogError("[TerrainViewTextureSubSystem] Required config is missing.");
-                return;
-            }
-
-            var config = _storages.Singletons.Get<TerrainTextureConfigComponent>();
-            var terrainConfig = _storages.Singletons.Get<TerrainViewConfigComponent>();
+            var config = _storages.Get<TerrainTextureConfig>();
+            var terrainConfig = _storages.Get<TerrainViewConfig>();
             var vertexGrid = _storages.Singletons.Get<VertexGridComponent>().Grid;
 
             // Persistent (not Temp): the map is read inside RunOnThreadPool, so it must outlive the await.
@@ -70,14 +65,14 @@ namespace Presentation.Terrain.Systems
                     () =>
                     {
                         pixels = GeneratePixels(vertexGrid, hexTypeMap, coastline, config, hexSize);
-                        pixels = ApplyBoxBlur(pixels, config.TextureResolution, config.TextureBlurRadius);
+                        pixels = ApplyBoxBlur(pixels, config.textureResolution, config.textureBlurRadius);
                     },
                     cancellationToken: cancellationToken);
 
                 if (cancellationToken.IsCancellationRequested)
                     return;
 
-                var resolution = config.TextureResolution;
+                var resolution = config.textureResolution;
                 var texture = new Texture2D(resolution, resolution, TextureFormat.RGBA32, false)
                 {
                     filterMode = FilterMode.Bilinear,
@@ -162,29 +157,29 @@ namespace Presentation.Terrain.Systems
         ///     the canonical (lex-smallest by q then r) of the three corners. This guarantees each
         ///     triangle is rasterized exactly once with no seams between classification regions.
         ///     Triangles where any corner is a ghost vertex (no owner) are excluded; the thin fringe
-        ///     at the terrain boundary falls back to <see cref="TerrainTextureConfigComponent.FallbackColor" />.
+        ///     at the terrain boundary falls back to <see cref="TerrainTextureConfig.fallbackColor" />.
         /// </summary>
         /// <param name="vertexGrid">Vertex grid with positions and ownership data.</param>
         /// <param name="hexTypeMap">Pre-built hex classification lookup.</param>
-        /// <param name="config">Flattened texture config from ECS.</param>
+        /// <param name="config">Texture config.</param>
         /// <param name="hexSize">Hex cell radius in world units (pointy-top).</param>
         /// <returns>Pixel array ready for <see cref="Texture2D.SetPixels32" />.</returns>
         private Color32[] GeneratePixels(
             VertexGrid vertexGrid,
             NativeParallelHashMap<HexCoord, HexType> hexTypeMap,
             NativeParallelHashSet<HexCoord> coastline,
-            TerrainTextureConfigComponent config,
+            TerrainTextureConfig config,
             float hexSize)
         {
-            var resolution = config.TextureResolution;
+            var resolution = config.textureResolution;
 
             ComputeSquareUVRect(hexTypeMap, hexSize, out var squareMin, out var squareSize);
             if (squareSize <= 0f)
-                return BuildFallbackPixels(resolution * resolution, config.FallbackColor);
+                return BuildFallbackPixels(resolution * resolution, config.fallbackColor);
 
-            var pixels = BuildFallbackPixels(resolution * resolution, config.FallbackColor);
-            var slopeThreshold = config.SlopeThreshold;
-            var hueJitter = config.HueJitterStrength;
+            var pixels = BuildFallbackPixels(resolution * resolution, config.fallbackColor);
+            var slopeThreshold = config.slopeThreshold;
+            var hueJitter = config.hueJitterStrength;
 
             foreach (var coord in vertexGrid.Coords)
             {
@@ -338,7 +333,7 @@ namespace Presentation.Terrain.Systems
             float slope,
             float hexSize,
             float slopeThreshold,
-            in TerrainTextureConfigComponent config,
+            TerrainTextureConfig config,
             NativeParallelHashMap<HexCoord, HexType> hexTypeMap,
             NativeParallelHashSet<HexCoord> coastline)
         {
@@ -393,17 +388,17 @@ namespace Presentation.Terrain.Systems
             bool isCoastline,
             float slope,
             float slopeThreshold,
-            in TerrainTextureConfigComponent config)
+            TerrainTextureConfig config)
         {
             if (isCoastline)
-                return config.CoastlineColor;
+                return config.coastlineColor;
 
             return hexType switch
             {
-                HexType.Mount => slope > slopeThreshold ? config.MountainSteepColor : config.MountainFlatColor,
-                HexType.Bedhill => slope > slopeThreshold ? config.MountainSteepColor : config.BedhillColor,
-                HexType.Water => config.WaterColor,
-                _ => config.PlainColor
+                HexType.Mount => slope > slopeThreshold ? config.mountainSteepColor : config.mountainFlatColor,
+                HexType.Bedhill => slope > slopeThreshold ? config.mountainSteepColor : config.bedhillColor,
+                HexType.Water => config.waterColor,
+                _ => config.plainColor
             };
         }
 

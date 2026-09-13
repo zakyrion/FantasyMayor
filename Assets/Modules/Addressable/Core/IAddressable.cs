@@ -5,6 +5,7 @@ using UnityEngine;
 
 namespace Modules.Addressable.Core
 {
+    // Cancellation is an exception, not a Status: a cancelled load releases what it loaded and throws OperationCanceledException.
     public interface IAddressable
     {
         public UniTask<Result<GameObject>> LoadAndInstanceAsync(string asset, CancellationToken token, Transform root = null);

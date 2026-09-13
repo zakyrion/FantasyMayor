@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Domains.Map.Hex.Data;
 using UnityEngine;
+using EcsExtensions;
 
 namespace Presentation.UI.MainHud.HexInfoPanel.Configs
 {
@@ -11,7 +12,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Configs
     /// </summary>
     [CreateAssetMenu(fileName = "HexTerrainIconConfig",
         menuName = "FantasyMayor/MainUI/HexTerrainIconConfig")]
-    public sealed class HexTerrainIconConfig : ScriptableObject
+    public sealed class HexTerrainIconConfig : ScriptableObject, IValidatableConfig
     {
         [Serializable]
         public struct TerrainIconEntry
@@ -28,5 +29,11 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Configs
         [SerializeField] private TerrainIconEntry[] _entries;
 
         public IReadOnlyList<TerrainIconEntry> Entries => _entries;
+
+        public void Validate()
+        {
+            if (Entries == null || Entries.Count == 0)
+                throw new InvalidOperationException("HexTerrainIconConfig: Entries is null or empty.");
+        }
     }
 }

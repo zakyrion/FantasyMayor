@@ -24,6 +24,7 @@ using UnityEngine.InputSystem;
 using VContainer;
 using VContainer.Unity;
 using Modules.UserInput.Tags;
+using Modules.UserInput.Configs;
 
 namespace Installers.World
 {
@@ -62,8 +63,10 @@ namespace Installers.World
             // Per-frame systems are registered as concrete singletons; Boot wires them into game states by hand.
             builder.Register<EventCleanupSystem>(Lifetime.Singleton).As<EventCleanupSystem>();
             builder.Register<HexSelectionSystem>(Lifetime.Singleton).As<HexSelectionSystem>();
-            builder.Register<CameraMovementConfigLoaderSystem>(Lifetime.Singleton)
-                .As<CameraMovementConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
+            builder.Register<ConfigLoaderSystem<CameraMovementConfig>>(Lifetime.Singleton)
+                .As<IUniTaskSystem>()
+                .WithParameter(AppState.ConfigLoading)
+                .WithParameter("address", ConfigAddresses.CAMERA_MOVEMENT_CONFIG);
             builder.Register<CameraMovementSystem>(Lifetime.Singleton).As<CameraMovementSystem>();
 
             InstallModules(builder);

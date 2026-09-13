@@ -9,13 +9,14 @@ using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 using Random = UnityEngine.Random;
+using Domains.Map.Generation.Configs;
 
 namespace Domains.Map.Generation.Systems
 {
     /// <summary>
     ///     Runs sea generation when invoked by <see cref="GenerationSystem" />.
     ///     Generates a single connected sea body seeded from the map edge and biased to
-    ///     remain near that edge, with area derived from <see cref="SeaConfigComponent.SizeFraction" />.
+    ///     remain near that edge, with area derived from <see cref="SeaConfig.SizeFraction" />.
     /// </summary>
     [UsedImplicitly]
     internal sealed class SeaGenerationSubSystem : GenerationSubSystem
@@ -47,17 +48,12 @@ namespace Domains.Map.Generation.Systems
         /// <param name="state">Current game state.</param>
         public override void Update(GameState state)
         {
-            if (!_storages.Singletons.Has<TerrainGenerationConfigComponent>() || !_storages.Singletons.Has<SeaConfigComponent>())
-                return;
-
-            var terrainConfig = _storages.Singletons.Get<TerrainGenerationConfigComponent>();
+            var terrainConfig = _storages.Get<TerrainGenerationConfig>();
 
             if (terrainConfig.WaterType != WaterType.Sea)
                 return;
 
-            var config = _storages.Singletons.Get<SeaConfigComponent>();
-
-            Generate(in terrainConfig, in config);
+            Generate(terrainConfig, terrainConfig.SeaConfig);
         }
 
         /// <summary>
@@ -185,7 +181,7 @@ namespace Domains.Map.Generation.Systems
         /// </summary>
         /// <param name="terrainConfig">Global terrain generation config.</param>
         /// <param name="config">Sea-specific config.</param>
-        private void Generate(in TerrainGenerationConfigComponent terrainConfig, in SeaConfigComponent config)
+        private void Generate(TerrainGenerationConfig terrainConfig, SeaConfig config)
         {
             var entities = _hexSet.Entities;
             var mapCapacity = math.max(1, entities.Count);

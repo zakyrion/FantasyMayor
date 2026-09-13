@@ -16,6 +16,7 @@ using Presentation.Archetypes;
 using Presentation.Terrain.Components;
 using Unity.Collections;
 using UnityEngine;
+using Presentation.Terrain.Configs;
 
 namespace Presentation.Terrain.Systems
 {
@@ -130,13 +131,7 @@ namespace Presentation.Terrain.Systems
             _terrainViewBox = result.Box;
             var terrainView = _terrainViewBox.Value;
 
-            if (!_storages.Singletons.Has<TerrainViewConfigComponent>())
-            {
-                Debug.LogError("[TerrainViewSystem] TerrainViewConfigComponent is missing.");
-                return;
-            }
-
-            var config = _storages.Singletons.Get<TerrainViewConfigComponent>();
+            var config = _storages.Get<TerrainViewConfig>();
 
             var hexCoords = CollectHexCoords();
             try

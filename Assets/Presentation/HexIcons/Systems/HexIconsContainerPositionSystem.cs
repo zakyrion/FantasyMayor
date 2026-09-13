@@ -11,6 +11,7 @@ using Presentation.HexIcons.Components;
 using Presentation.Terrain.Components;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Presentation.HexIcons.Configs;
 
 namespace Presentation.HexIcons.Systems
 {
@@ -140,11 +141,7 @@ namespace Presentation.HexIcons.Systems
             if (grid == null)
                 throw new InvalidOperationException("HexIconsContainerPositionSystem: VertexGrid is null.");
 
-            if (!_storages.Singletons.Has<HexIconsConfigComponent>())
-                throw new InvalidOperationException(
-                    "HexIconsContainerPositionSystem: HexIconsConfigComponent is missing.");
-
-            var worldYOffset = _storages.Singletons.Get<HexIconsConfigComponent>().Value.WorldYOffset;
+            var worldYOffset = _storages.Get<HexIconsConfig>().WorldYOffset;
             var focusDepth = ComputeFocusDepth(camera);
 
             _pose = FrameBox<FramePose>.OneFrame(

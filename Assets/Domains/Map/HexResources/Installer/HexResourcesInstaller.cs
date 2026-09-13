@@ -3,6 +3,7 @@ using Modules.Boot.Core;
 using Domains.Map.HexResources.Systems;
 using VContainer;
 using VContainer.Unity;
+using Domains.Map.HexResources.Configs;
 
 namespace Domains.Map.HexResources.Installer
 {
@@ -10,8 +11,10 @@ namespace Domains.Map.HexResources.Installer
     {
         public void Install(IContainerBuilder builder)
         {
-            builder.Register<HexResourcesConfigLoaderSystem>(Lifetime.Singleton)
-                .As<HexResourcesConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
+            builder.Register<ConfigLoaderSystem<HexResourcesConfig>>(Lifetime.Singleton)
+                .As<IUniTaskSystem>()
+                .WithParameter(AppState.ConfigLoading)
+                .WithParameter("address", ConfigAddresses.HEX_RESOURCES_CONFIG);
 
             builder.Register<HexResourcesSystem>(Lifetime.Singleton)
                 .As<HexResourcesSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();

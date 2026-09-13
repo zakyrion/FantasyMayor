@@ -25,16 +25,16 @@ interface IAddressable {
     UniTask<Result<GameObject>> LoadAndInstanceAsync       (string asset, CancellationToken token, Transform root = null);
     UniTask<Result<T>>          LoadAndInstanceAsync<T>    (string asset, CancellationToken token, Transform root = null) where T : Component; // instantiates prefab, returns typed component
     UniTask<Result<T>>          LoadAsync<T>               (string asset, CancellationToken token) where T : class; // T != GameObject
+    // all three: a cancelled token → OperationCanceledException, after releasing whatever was loaded
 }
 
 namespace Core;
-enum Status { Unknow = 0, Failed, Success, Cancelled }
+enum Status { Unknow = 0, Failed, Success }
 
 struct Result<T> {
     Box<T> Box;            // valid only when Status == Success
     Status Status;
     static Result<T> Success(T value, Action<T> dispose = null);
-    static Result<T> Cancelled();
     static Result<T> Fail();
 }
 
@@ -50,11 +50,11 @@ readonly struct Box<T> {
 `Box<T>` is a struct wrapping a class `BoxHandle<T>` — copies share the handle; disposing any disposes all.
 
 ## Invariants
-1. `Status.Success` → exactly one `result.Box.Dispose()`. Leak otherwise (handle + instance for `LoadAndInstanceAsync`).
-2. `Status != Success` → do nothing; impl already cleaned up. Box is `default`.
+1. The `Box`, not the `Status`, decides release: `Exist` says something is inside, and then exactly one owner calls `Dispose()`. Leak otherwise (handle + instance for `LoadAndInstanceAsync`).
+2. `Status != Success` → the `Box` is empty; `Dispose()` on an empty or `default` Box is a no-op, so an unconditional release in `finally` is safe.
 3. Release of `LoadAndInstanceAsync` destroys the `GameObject`. Never `Object.Destroy` it yourself.
 4. `LoadAsync<GameObject>` is guarded → `Fail`. Use `LoadAndInstanceAsync` for prefabs.
-5. After every await re-check **both** `token.IsCancellationRequested` and `result.Status`. Dispose if cancelled post-success.
+5. Cancellation is an exception, not a `Status`: a cancelled call throws `OperationCanceledException` and no `Box` reaches you. After your own later awaits call `token.ThrowIfCancellationRequested()`, and release boxes you still hold in `try/finally`.
 6. One owner per `Box<T>`. Disposed box → set field to `Box<T>.Empty()`.
 7. Always inject `IAddressable` via constructor. Never touch `UnityEngine.AddressableAssets.Addressables` outside the impl.
 8. Any class that stores a `Box<T>` field must implement `IDisposable` (or otherwise route disposal).
@@ -63,8 +63,9 @@ readonly struct Box<T> {
 
 ### Load non-GameObject asset
 ```csharp
-var r = await _addressable.LoadAsync<MyConfig>("MyConfigAddress", token);
-if (token.IsCancellationRequested || r.Status != Status.Success) return;
+var r = await _addressable.LoadAsync<MyConfig>("MyConfigAddress", token);   // throws on cancel
+if (r.Status != Status.Success)
+    throw new InvalidOperationException("Failed to load MyConfig by address 'MyConfigAddress'.");
 _box = r.Box;
 // use _box.Value
 // teardown: _box.Dispose(); _box = Box<MyConfig>.Empty();
@@ -72,27 +73,34 @@ _box = r.Box;
 
 ### Load + instantiate prefab, expose typed component
 ```csharp
-var r = await _addressable.LoadAndInstanceAsync("UI/MyPanel", token, parent);
-if (token.IsCancellationRequested || r.Status != Status.Success) return Box<MyPanel>.Empty();
+var r = await _addressable.LoadAndInstanceAsync("UI/MyPanel", token, parent);   // throws on cancel
+if (r.Status != Status.Success)
+    throw new InvalidOperationException("Failed to load prefab 'UI/MyPanel'.");
 var c = r.Box.Value.GetComponent<MyPanel>();
-if (c == null) { r.Box.Dispose(); return Box<MyPanel>.Empty(); }
+if (c == null) { r.Box.Dispose(); throw new InvalidOperationException("Prefab 'UI/MyPanel' has no MyPanel component."); }
 return Box<MyPanel>.Wrap(c, _ => r.Box.Dispose()); // disposal cascades to instance + handle
 ```
 
 ### Sequential loads with rollback
 ```csharp
-var a = await Load<A>(KEY_A, t); if (t.IsCancellationRequested || !a.Exist) return;
-var b = await Load<B>(KEY_B, t); if (t.IsCancellationRequested || !b.Exist) { a.Dispose(); return; }
-var c = await Load<C>(KEY_C, t); if (t.IsCancellationRequested || !c.Exist) { a.Dispose(); b.Dispose(); return; }
-_a = a; _b = b; _c = c; // commit to fields
+var a = Box<A>.Empty(); var b = Box<B>.Empty(); var c = Box<C>.Empty();
+try
+{
+    a = await Load<A>(KEY_A, t);
+    b = await Load<B>(KEY_B, t);
+    c = await Load<C>(KEY_C, t);
+    _a = a; _b = b; _c = c;                                      // commit: the fields own the handles now
+    a = Box<A>.Empty(); b = Box<B>.Empty(); c = Box<C>.Empty();  // so finally releases nothing
+}
+finally
+{
+    DisposeBox(ref a); DisposeBox(ref b); DisposeBox(ref c);     // cancel or failure: release what loaded before it
+}
 
 async UniTask<Box<T>> Load<T>(string addr, CancellationToken t) where T : class {
-    var r = await _addressable.LoadAsync<T>(addr, t);
-    if (t.IsCancellationRequested || r.Status == Status.Cancelled) return Box<T>.Empty();
-    if (r.Status != Status.Success || !r.Box.Exist) {
-        Debug.LogError($"Failed to load asset by address '{addr}'.");
-        return Box<T>.Empty();
-    }
+    var r = await _addressable.LoadAsync<T>(addr, t);            // throws on cancel
+    if (r.Status != Status.Success || !r.Box.Exist)
+        throw new InvalidOperationException($"Failed to load asset by address '{addr}'.");
     return r.Box;
 }
 ```
@@ -111,12 +119,11 @@ static void DisposeBox<T>(ref Box<T> b) {
 }
 ```
 
-### ECS handoff
-Loader system retains `Box<T>` ownership; component carries `Value` only.
-Config components are stored as **singleton components** (see `Patterns/PATTERN_CONFIG.md`), not
-in a queryable entity table:
+### Config handoff
+Configs are the one deliberate exception to invariant 1: `ConfigLoaderSystem<T>` keeps only `Box.Value` and never
+disposes the `Box` — a config lives for the whole session (see `Patterns/PATTERN_CONFIG.md`):
 ```csharp
-_storages.Singletons.Set(new MyConfigComponent { Value = _config.Value });
+_storages.Add(result.Box.Value);
 ```
 
 ## Anti-patterns
@@ -125,14 +132,14 @@ _storages.Singletons.Set(new MyConfigComponent { Value = _config.Value });
 | `LoadAsync<T>(nameof(T), token)` | `nameof(T)` is the literal `"T"`, not the type name | explicit address const |
 | `LoadAsync<GameObject>(...)` | guarded → `Fail` | `LoadAndInstanceAsync` |
 | `Object.Destroy(result.Box.Value)` | release already destroys → double-destroy | just `Box.Dispose()` |
-| Dispose on `Failed` / `Cancelled` | nothing to release; ownership confusion | branch on `Success` |
 | Store `Box.Value`, drop `Box` | leaks handle (and instance) | store the `Box<T>` |
 | Same `Box<T>` passed to two owners | both call Dispose; ambiguous lifetime | one owner; re-wrap with separate release |
 | Read `Value` without `Exist` / `Status` check | throws | check first |
-| Skip token re-check after await | caller-side cancellation missed | check token AND status |
+| `if (token.IsCancellationRequested) return;` | the caller sees a completed task and carries on over unfinished work | `token.ThrowIfCancellationRequested()` |
+| Release in a branch right before the throw | every exit path needs its own copy; one gets missed | `try/finally` |
 | `Box<T>` field with no `IDisposable` | leak across scope teardown | implement disposal (see pattern) |
 
 ## Conventions
 - Address keys: `private const string FOO_BAR_CONFIG = "FooBarConfig";` (SCREAMING_SNAKE_CASE field, value = addressable address).
-- Loaders: `Modules/<Feature>/Systems/<Feature>ConfigLoaderSystem.cs`. ECS components: `Modules/<Feature>/Components/<Name>ConfigComponent { public <Name>Config Value; }`.
+- Configs: no loader file and no component — one `ConfigLoaderSystem<[Name]Config>` registration in the feature installer, address passed via `WithParameter("address", ConfigAddresses.[NAME]_CONFIG)`; every config address lives in `ConfigAddresses` (`Patterns/PATTERN_CONFIG_LOADER.md`).
 - If a situation does not match any pattern above, stop and ask before inventing a new one.

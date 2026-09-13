@@ -4,6 +4,7 @@ using Presentation.HexResources.Systems;
 using UnityEngine;
 using VContainer;
 using VContainer.Unity;
+using Presentation.HexResources.Configs;
 
 namespace Presentation.HexResources.Installer
 {
@@ -11,11 +12,15 @@ namespace Presentation.HexResources.Installer
     {
         public void Install(IContainerBuilder builder)
         {
-            builder.Register<HexResourcesViewConfigLoaderSystem>(Lifetime.Singleton)
-                .As<HexResourcesViewConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
+            builder.Register<ConfigLoaderSystem<HexResourcesViewConfig>>(Lifetime.Singleton)
+                .As<IUniTaskSystem>()
+                .WithParameter(AppState.ConfigLoading)
+                .WithParameter("address", ConfigAddresses.HEX_RESOURCES_VIEW_CONFIG);
 
-            builder.Register<ClayViewConfigLoaderSystem>(Lifetime.Singleton)
-                .As<ClayViewConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
+            builder.Register<ConfigLoaderSystem<ClayViewConfig>>(Lifetime.Singleton)
+                .As<IUniTaskSystem>()
+                .WithParameter(AppState.ConfigLoading)
+                .WithParameter("address", ConfigAddresses.CLAY_VIEW_CONFIG);
 
             builder.Register<HexResourcesViewSystem>(Lifetime.Singleton)
                 .As<HexResourcesViewSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();

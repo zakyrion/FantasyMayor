@@ -1,7 +1,7 @@
 ---
 category: B
 read: trigger
-trigger: "before creating a config loader system"
+trigger: "before adding a config to the game or building objects from a config at startup"
 tags: [pattern, config, systems]
 related:
   - "[ARCHITECTURE](../ARCHITECTURE.md)"
@@ -10,65 +10,67 @@ related:
 
 # Pattern — Config Loader System
 
-A one-shot system that runs at `ConfigLoadStep`: loads config SO(s) from Addressables, validates them, and
-publishes singleton component(s). Subclass `ConfigLoaderSystem`. One approach.
+One installer registration of `ConfigLoaderSystem<T>` loads a config; derived objects are `InstanceObjects` systems.
 
-## Skeleton
+## Loading a config — one registration
+
+```csharp
+builder.Register<ConfigLoaderSystem<[ConfigName]>>(Lifetime.Singleton)
+    .As<IUniTaskSystem>()
+    .WithParameter(AppState.ConfigLoading)
+    .WithParameter("address", ConfigAddresses.[CONFIG_NAME]);
+```
+
+`ConfigLoaderSystem<T>` loads the asset, throws when the load fails, calls `Validate()` when the SO implements
+`IValidatableConfig`, and puts the SO into `EntityStorages`. It never releases the asset. No subclass, no
+per-config loader file.
+
+## Building objects from configs — an InstanceObjects system
 
 ```csharp
 [UsedImplicitly]
-internal sealed class [Name]ConfigLoaderSystem : ConfigLoaderSystem
+public sealed class [Name]SpawnSystem : IUniTaskSystem
 {
-    private const string [Name]ConfigKey = "[addressable key]";
     private readonly EntityStorages _storages;
 
-    public [Name]ConfigLoaderSystem(IAddressable addressable, EntityStorages storages) : base(addressable)
+    public [Name]SpawnSystem(AppState appState, EntityStorages storages)
     {
+        AppState = appState;
         _storages = storages;
     }
 
-    protected override async UniTask LoadConfigsAsync(CancellationToken cancellationToken)
+    public AppState AppState { get; }
+
+    public UniTask Execute(CancellationToken cancellationToken)
     {
-        var configBox = Box<[ConfigName]>.Empty();
-        try
-        {
-            configBox = await LoadConfigAsync<[ConfigName]>([Name]ConfigKey, cancellationToken);
-            if (cancellationToken.IsCancellationRequested)
-                return;
+        var config = _storages.Get<[ConfigName]>();
+        _storages.Singletons.Set(new [Name]Component { Value = new [RuntimeObject](config.Field) });
 
-            // Validate BEFORE publishing — throw on any authoring violation (null entries, dup keys, empty).
-            // e.g. throw new InvalidOperationException("[Name]ConfigLoaderSystem: entry N is null.");
+        return UniTask.CompletedTask;
+    }
 
-            _storages.Singletons.Set([Name]ConfigComponent.FromConfig(configBox.Value));   // FLATTEN variant
-            MarkAsLoaded();
-        }
-        finally
-        {
-            DisposeBox(ref configBox);   // FLATTEN: release the SO after copying
-        }
+    public void Dispose()
+    {
     }
 }
 ```
 
-**WRAP variant** (component holds the live SO reference): do NOT dispose the box in `finally` — retain it in a
-field and release in `OnDispose`, because the published component points at the SO.
-
 ```csharp
-private Box<[ConfigName]> _config = Box<[ConfigName]>.Empty();
-// ...in LoadConfigsAsync: _config = await LoadConfigAsync<...>(...); _storages.Singletons.Set(new [Name]ConfigComponent(_config.Value)); MarkAsLoaded();
-protected override void OnDispose() => DisposeBox(ref _config);
+builder.Register<[Name]SpawnSystem>(Lifetime.Singleton)
+    .As<IUniTaskSystem>()
+    .WithParameter(AppState.InstanceObjects);
 ```
 
 ## Rules
 
 ```clojure
 (def config-loader-rules
-  {:box-flatten  "release in finally"
-   :box-wrap     "RETAIN in a field, release in OnDispose"   ;; disposing while the component holds the SO reference would dangle it (PATTERN_CONFIG)
-   :order        (-> validate MarkAsLoaded)                  ;; publishing garbage and continuing hides the bug — fail loud; LoadConfigAsync already throws on failed load, keep it
-   :publish      "_storages.Singletons.Set"                  ;; never a queryable entity table for the config itself
-   :loader       {:may      "build derived runtime singleton components"  ;; e.g. a grid from the config
-                  :must-not "per-frame or gameplay logic"}
-   :quiet-return "cancellationToken.IsCancellationRequested ONLY"
-   :wiring       "installer .As<IUniTaskSystem<ConfigLoadStep>>"})  ;; Boot runs all loaders sequentially at startup; addressable ownership: ADDRESSABLE_PATTERNS.md
+  {:loader       "ConfigLoaderSystem<T> only — registered per config type in the feature's installer"
+   :address      "a const in ConfigAddresses (Ecs.Extensions), passed via WithParameter(\"address\", …) — never a string literal"  ;; SCREAMING_SNAKE_CASE named by the config type; value = the addressable entry name
+   :runner       "Boot runs every IUniTaskSystem whose AppState flag matches: ConfigLoading, then InstanceObjects, then MainMenu"  ;; one after another, in registration order
+   :validation   "inside the SO (IValidatableConfig) — never in a system"
+   :instance-step {:may      "build runtime singleton components or objects derived from configs"  ;; e.g. VertexGridSpawnSystem → VertexGridComponent
+                   :must-not "load assets or run per-frame / gameplay logic"}
+   :cancellation "ThrowIfCancellationRequested after every await"   ;; never a quiet return
+   :never        #{"a …ConfigComponent" "a per-config loader subclass" "releasing a config"}})
 ```

@@ -3,19 +3,63 @@ using Modules.Boot.Core;
 using Presentation.Terrain.Systems;
 using VContainer;
 using VContainer.Unity;
+using Presentation.Terrain.Configs;
+using Presentation.Terrain.Data;
 
 namespace Presentation.Terrain.Installer
 {
     /// <summary>
-    ///     Configures the hex-related services, config-load systems, and per-frame view systems
-    ///     that belong to the TerrainView module.
+    ///     Configures the TerrainView configs, the vertex-grid instance step, and the generation and per-frame
+    ///     view systems that belong to the TerrainView module.
     /// </summary>
     public sealed class TerrainViewInstaller : IInstaller
     {
         public void Install(IContainerBuilder builder)
         {
-            builder.Register<TerrainViewConfigLoaderSystem>(Lifetime.Singleton)
-                .As<TerrainViewConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
+            builder.Register<ConfigLoaderSystem<InnerIsolineConfig>>(Lifetime.Singleton)
+                .As<IUniTaskSystem>()
+                .WithParameter(AppState.ConfigLoading)
+                .WithParameter("address", ConfigAddresses.INNER_ISOLINE_CONFIG);
+
+            builder.Register<ConfigLoaderSystem<OuterIsolineConfig>>(Lifetime.Singleton)
+                .As<IUniTaskSystem>()
+                .WithParameter(AppState.ConfigLoading)
+                .WithParameter("address", ConfigAddresses.OUTER_ISOLINE_CONFIG);
+
+            builder.Register<ConfigLoaderSystem<HeightSmoothingConfig>>(Lifetime.Singleton)
+                .As<IUniTaskSystem>()
+                .WithParameter(AppState.ConfigLoading)
+                .WithParameter("address", ConfigAddresses.HEIGHT_SMOOTHING_CONFIG);
+
+            builder.Register<ConfigLoaderSystem<WindErosionConfig>>(Lifetime.Singleton)
+                .As<IUniTaskSystem>()
+                .WithParameter(AppState.ConfigLoading)
+                .WithParameter("address", ConfigAddresses.WIND_EROSION_CONFIG);
+
+            builder.Register<ConfigLoaderSystem<HydraulicErosionConfig>>(Lifetime.Singleton)
+                .As<IUniTaskSystem>()
+                .WithParameter(AppState.ConfigLoading)
+                .WithParameter("address", ConfigAddresses.HYDRAULIC_EROSION_CONFIG);
+
+            builder.Register<ConfigLoaderSystem<TerrainViewConfig>>(Lifetime.Singleton)
+                .As<IUniTaskSystem>()
+                .WithParameter(AppState.ConfigLoading)
+                .WithParameter("address", ConfigAddresses.TERRAIN_VIEW_CONFIG);
+
+            builder.Register<ConfigLoaderSystem<TerrainTextureConfig>>(Lifetime.Singleton)
+                .As<IUniTaskSystem>()
+                .WithParameter(AppState.ConfigLoading)
+                .WithParameter("address", ConfigAddresses.TERRAIN_TEXTURE_CONFIG);
+
+            builder.Register<ConfigLoaderSystem<WaterViewConfig>>(Lifetime.Singleton)
+                .As<IUniTaskSystem>()
+                .WithParameter(AppState.ConfigLoading)
+                .WithParameter("address", ConfigAddresses.WATER_VIEW_CONFIG);
+
+            builder.Register<VertexGridSpawnSystem>(Lifetime.Singleton)
+                .As<IUniTaskSystem>()
+                .WithParameter(AppState.InstanceObjects);
+
             builder.Register<TerrainViewSystem>(Lifetime.Singleton)
                 .As<TerrainViewSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
             builder.Register<HexSelectionViewLoadingSystem>(Lifetime.Singleton)

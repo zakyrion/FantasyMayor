@@ -24,32 +24,45 @@ using VContainer;
 namespace Modules.Boot.Implementation
 {
     /// <summary>
-    ///     Entry point MonoBehaviour. Runs the one-time config bootstrap, then hands control to a
-    ///     <see cref="GameModeMachine" /> whose states are wired here by hand: Boot knows every module and
-    ///     decides which systems belong to which <see cref="GameMode" />. Systems remain DI singletons —
-    ///     only their grouping into states is manual.
+    ///     Entry point MonoBehaviour. Runs the one-time startup steps (<see cref="AppState.ConfigLoading" />, then
+    ///     <see cref="AppState.InstanceObjects" />), then hands control to a <see cref="GameModeMachine" /> whose
+    ///     states are wired here by hand: Boot knows every module and decides which systems belong to which
+    ///     <see cref="AppState" />. Systems remain DI singletons — only their grouping into states is manual.
     /// </summary>
     public class Boot : MonoBehaviour
     {
-        private IReadOnlyList<IUniTaskSystem<ConfigLoadStep>> _configLoadSystems;
+        private IReadOnlyList<IUniTaskSystem> _startupSystems;
         private GameModeMachine _machine;
-        private bool _configsLoaded;
+        private bool _startupCompleted;
 
         private async UniTask Start()
         {
             Debug.Log($"Starting {GetType().Name}");
             Application.targetFrameRate = 60;
 
-            var loadConfigs = new UniTaskSequentialSystem<ConfigLoadStep>(_configLoadSystems);
-            await loadConfigs.Update(CancellationToken.None);
+            await ExecuteStartupStep(AppState.ConfigLoading, CancellationToken.None);
+            await ExecuteStartupStep(AppState.InstanceObjects, CancellationToken.None);
 
-            _configsLoaded = true;
-            _machine.Switch(GameMode.MainMenu);
+            _startupCompleted = true;
+            _machine.Switch(AppState.MainMenu);
+        }
+
+        // Systems of one step run one after another, in registration order.
+        private async UniTask ExecuteStartupStep(AppState step, CancellationToken cancellationToken)
+        {
+            foreach (var system in _startupSystems)
+            {
+                if ((system.AppState & step) == 0)
+                    continue;
+
+                cancellationToken.ThrowIfCancellationRequested();
+                await system.Execute(cancellationToken);
+            }
         }
 
         private void Update()
         {
-            if (!_configsLoaded)
+            if (!_startupCompleted)
                 return;
 
             _machine.Tick(new GameState(Time.deltaTime));
@@ -57,7 +70,7 @@ namespace Modules.Boot.Implementation
 
         private void LateUpdate()
         {
-            if (!_configsLoaded)
+            if (!_startupCompleted)
                 return;
 
             _machine.LateTick(new GameState(Time.deltaTime));
@@ -69,12 +82,12 @@ namespace Modules.Boot.Implementation
         }
 
         /// <summary>
-        ///     Receives the config-load bootstrap, the generation pipeline, and every per-frame system as
-        ///     concrete singletons, then manually composes the state machine.
+        ///     Receives the startup systems (config loading and instance steps), the generation pipeline, and every
+        ///     per-frame system as concrete singletons, then manually composes the state machine.
         /// </summary>
         [Inject]
         public void Construct(
-            IReadOnlyList<IUniTaskSystem<ConfigLoadStep>> configLoadSystems,
+            IReadOnlyList<IUniTaskSystem> startupSystems,
             IReadOnlyList<IPrioritizedUniTaskSystem<MapGenerationStep>> generationPipeline,
             ShowHexesUISystem showHexesUI,
             HexSelectionSystem hexSelection,
@@ -105,7 +118,7 @@ namespace Modules.Boot.Implementation
             CameraMovementSystem cameraMovement,
             EntityStorages storages)
         {
-            _configLoadSystems = configLoadSystems;
+            _startupSystems = startupSystems;
 
             var mainMenu = new MainMenuState(storages.World, showHexesUI);
 
@@ -128,12 +141,12 @@ namespace Modules.Boot.Implementation
 
             var mapLoading = new MapLoadingState();
 
-            _machine = new GameModeMachine(new Dictionary<GameMode, IAppState>
+            _machine = new GameModeMachine(new Dictionary<AppState, IAppState>
             {
-                [GameMode.MainMenu] = mainMenu,
-                [GameMode.MapCreation] = mapCreation,
-                [GameMode.MapLoading] = mapLoading,
-                [GameMode.Gameplay] = gameplay
+                [AppState.MainMenu] = mainMenu,
+                [AppState.MapCreation] = mapCreation,
+                [AppState.MapLoading] = mapLoading,
+                [AppState.Gameplay] = gameplay
             });
         }
     }

@@ -2,73 +2,50 @@ using System;
 using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
+using JetBrains.Annotations;
 using Modules.Addressable.Core;
 using Modules.Boot.Core;
+using UnityEngine;
 
 namespace EcsExtensions
 {
-    public abstract class ConfigLoaderSystem : IUniTaskSystem<ConfigLoadStep>
+    // One instance per config type, registered in an installer:
+    // Register<ConfigLoaderSystem<X>>().As<IUniTaskSystem>().WithParameter(AppState.ConfigLoading).WithParameter("address", ConfigAddresses.X).
+    // The loaded asset is never released — configs live for the whole session (see EntityStorages).
+    [UsedImplicitly]
+    public sealed class ConfigLoaderSystem<T> : IUniTaskSystem where T : ScriptableObject
     {
+        private readonly string _address;
         private readonly IAddressable _addressable;
+        private readonly EntityStorages _storages;
 
-        protected bool IsDisposed { get; private set; }
-        protected bool IsLoaded { get; private set; }
-
-        protected ConfigLoaderSystem(IAddressable addressable)
+        public ConfigLoaderSystem(AppState appState, string address, IAddressable addressable, EntityStorages storages)
         {
+            if (string.IsNullOrEmpty(address))
+                throw new ArgumentException($"Address for {typeof(T).Name} is empty.", nameof(address));
+
+            AppState = appState;
+            _address = address;
             _addressable = addressable;
+            _storages = storages;
         }
 
-        public async UniTask Update(CancellationToken cancellationToken)
+        public AppState AppState { get; }
+
+        public async UniTask Execute(CancellationToken cancellationToken)
         {
-            if (IsDisposed)
-                throw new ObjectDisposedException(GetType().Name);
+            var result = await _addressable.LoadAsync<T>(_address, cancellationToken);
+            if (result.Status != Status.Success)
+                throw new InvalidOperationException($"Failed to load {typeof(T).Name} by address '{_address}'.");
 
-            if (IsLoaded)
-                return;
+            var config = result.Box.Value;
+            if (config is IValidatableConfig validatable)
+                validatable.Validate();
 
-            await LoadConfigsAsync(cancellationToken);
+            _storages.Add(config);
         }
 
         public void Dispose()
-        {
-            if (IsDisposed)
-                return;
-
-            IsDisposed = true;
-            OnDispose();
-        }
-
-        protected abstract UniTask LoadConfigsAsync(CancellationToken cancellationToken);
-
-        protected void DisposeBox<T>(ref Box<T> box)
-        {
-            if (!box.Exist)
-                return;
-
-            box.Dispose();
-            box = Box<T>.Empty();
-        }
-
-        protected async UniTask<Box<T>> LoadConfigAsync<T>(string address, CancellationToken cancellationToken) where T : class
-        {
-            var result = await _addressable.LoadAsync<T>(address, cancellationToken);
-
-            if (cancellationToken.IsCancellationRequested || result.Status == Status.Cancelled)
-                return Box<T>.Empty();
-
-            if (result.Status != Status.Success || !result.Box.Exist)
-                throw new Exception($"Failed to load terrain config by address '{address}'.");
-
-            return result.Box;
-        }
-
-        protected void MarkAsLoaded()
-        {
-            IsLoaded = true;
-        }
-
-        protected virtual void OnDispose()
         {
         }
     }

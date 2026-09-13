@@ -56,17 +56,11 @@ namespace Presentation.HexIcons.Systems
             if (!_storages.Singletons.Has<HexIconsViewComponent>())
                 throw new InvalidOperationException(
                     "HexIconsVisibilitySystem: HexIconsViewComponent is missing.");
-            if (!_storages.Singletons.Has<HexIconsConfigComponent>())
-                throw new InvalidOperationException(
-                    "HexIconsVisibilitySystem: HexIconsConfigComponent is missing.");
-            if (!_storages.Singletons.Has<HexResourceIconConfigComponent>())
-                throw new InvalidOperationException(
-                    "HexIconsVisibilitySystem: HexResourceIconConfigComponent is missing.");
 
             var isVisible = _storages.Singletons.Get<HexIconsVisibilityComponent>().IsVisible;
             var view = _storages.Singletons.Get<HexIconsViewComponent>().View;
-            var iconSize = _storages.Singletons.Get<HexIconsConfigComponent>().Value.IconSize;
-            var entries = _storages.Singletons.Get<HexResourceIconConfigComponent>().Value.Entries;
+            var iconSize = _storages.Get<HexIconsConfig>().IconSize;
+            var entries = _storages.Get<HexResourceIconConfig>().Entries;
 
             foreach (var containerEntity in _containerSet.Entities)
             {

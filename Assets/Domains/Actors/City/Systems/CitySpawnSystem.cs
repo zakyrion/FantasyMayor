@@ -11,11 +11,12 @@ using Domains.Kernel.Data;
 using Domains.Economy.Resource.Helpers;
 using JetBrains.Annotations;
 using Modules.Boot.Core;
+using Domains.Actors.City.Configs;
 
 namespace Domains.Actors.City.Systems
 {
     // One-shot world-init stage: seeds the City id allocator, creates the City actor row, and seeds its
-    // inventory loadout from CityConfigComponent (ResourceTypes the author omits start at 0). Open-Closed:
+    // inventory loadout from CityConfig (ResourceTypes the author omits start at 0). Open-Closed:
     // a new actor kind adds its own spawn stage, this one never changes.
     [UsedImplicitly]
     internal sealed class CitySpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
@@ -41,11 +42,7 @@ namespace Domains.Actors.City.Systems
             if (_storages.Singletons.Has<CityIdAllocatorComponent>())
                 return UniTask.CompletedTask;
 
-            if (!_storages.Singletons.Has<CityConfigComponent>())
-                throw new InvalidOperationException(
-                    "CitySpawnSystem: CityConfigComponent missing — CityConfigLoaderSystem must run at ConfigLoadStep first.");
-
-            var config = _storages.Singletons.Get<CityConfigComponent>();
+            var config = _storages.Get<CityConfig>();
 
             _storages.Singletons.Set(new CityIdAllocatorComponent { Next = 1 });
 

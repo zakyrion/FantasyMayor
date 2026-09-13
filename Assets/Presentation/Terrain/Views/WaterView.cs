@@ -4,6 +4,7 @@ using Presentation.Terrain.Components;
 using Unity.Collections;
 using UnityEngine;
 using UnityEngine.Rendering;
+using Presentation.Terrain.Configs;
 
 namespace Presentation.Terrain.Views
 {
@@ -70,8 +71,8 @@ namespace Presentation.Terrain.Views
         ///     avoiding material instance allocation.
         ///     Must be called from the main thread.
         /// </summary>
-        /// <param name="config">Flattened water config component carrying all stylistic values.</param>
-        public void ApplyConfig(in WaterViewConfigComponent config)
+        /// <param name="config">Water config carrying all stylistic values.</param>
+        public void ApplyConfig(WaterViewConfig config)
         {
             var meshRenderer = _meshFilter.GetComponent<MeshRenderer>();
             if (meshRenderer == null)
@@ -80,22 +81,22 @@ namespace Presentation.Terrain.Views
                 return;
             }
 
-            _propertyBlock.SetColor(ShallowColorId, config.ShallowColor);
-            _propertyBlock.SetColor(DeepColorId, config.DeepColor);
-            _propertyBlock.SetFloat(WaveSpeedId, config.WaveSpeed);
-            _propertyBlock.SetVector(WaveScaleId, new Vector4(config.WaveScale.x, config.WaveScale.y, 0f, 0f));
-            _propertyBlock.SetVector(WaveScale2Id, new Vector4(config.WaveScale2.x, config.WaveScale2.y, 0f, 0f));
-            _propertyBlock.SetVector(FlowDirectionId, new Vector4(config.FlowDirection.x, config.FlowDirection.y, 0f, 0f));
-            _propertyBlock.SetFloat(FlowSpeedId, config.FlowSpeed);
-            _propertyBlock.SetFloat(FoamStrengthId, config.FoamStrength);
-            _propertyBlock.SetFloat(FoamWidthId, config.FoamWidth);
-            _propertyBlock.SetFloat(FresnelPowerId, config.FresnelPower);
-            _propertyBlock.SetFloat(TransparencyId, config.Transparency);
-            _propertyBlock.SetFloat(WaveAmplitudeId, config.WaveAmplitude);
-            _propertyBlock.SetFloat(WaveFrequencyId, config.WaveFrequency);
+            _propertyBlock.SetColor(ShallowColorId, config.shallowColor);
+            _propertyBlock.SetColor(DeepColorId, config.deepColor);
+            _propertyBlock.SetFloat(WaveSpeedId, config.waveSpeed);
+            _propertyBlock.SetVector(WaveScaleId, new Vector4(config.waveScale.x, config.waveScale.y, 0f, 0f));
+            _propertyBlock.SetVector(WaveScale2Id, new Vector4(config.waveScale2.x, config.waveScale2.y, 0f, 0f));
+            _propertyBlock.SetVector(FlowDirectionId, new Vector4(config.flowDirection.x, config.flowDirection.y, 0f, 0f));
+            _propertyBlock.SetFloat(FlowSpeedId, config.flowSpeed);
+            _propertyBlock.SetFloat(FoamStrengthId, config.foamStrength);
+            _propertyBlock.SetFloat(FoamWidthId, config.foamWidth);
+            _propertyBlock.SetFloat(FresnelPowerId, config.fresnelPower);
+            _propertyBlock.SetFloat(TransparencyId, config.transparency);
+            _propertyBlock.SetFloat(WaveAmplitudeId, config.waveAmplitude);
+            _propertyBlock.SetFloat(WaveFrequencyId, config.waveFrequency);
 
-            if (config.WaveNormalMap != null)
-                _propertyBlock.SetTexture(WaveNormalMapId, config.WaveNormalMap);
+            if (config.waveNormalMap != null)
+                _propertyBlock.SetTexture(WaveNormalMapId, config.waveNormalMap);
 
             meshRenderer.SetPropertyBlock(_propertyBlock);
         }

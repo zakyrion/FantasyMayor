@@ -3,6 +3,7 @@ using Modules.Boot.Core;
 using Domains.Map.Generation.Systems;
 using VContainer;
 using VContainer.Unity;
+using Domains.Map.Generation.Configs;
 
 namespace Domains.Map.Generation.Installer
 {
@@ -10,8 +11,10 @@ namespace Domains.Map.Generation.Installer
     {
         public void Install(IContainerBuilder builder)
         {
-            builder.Register<TerrainGenerationConfigLoaderSystem>(Lifetime.Singleton)
-                .As<TerrainGenerationConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
+            builder.Register<ConfigLoaderSystem<TerrainGenerationConfig>>(Lifetime.Singleton)
+                .As<IUniTaskSystem>()
+                .WithParameter(AppState.ConfigLoading)
+                .WithParameter("address", ConfigAddresses.TERRAIN_GENERATION_CONFIG);
             builder.Register<GenerationSystem>(Lifetime.Singleton)
                 .As<GenerationSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
 

@@ -1,31 +1,38 @@
 ---
 category: B
 read: trigger
-trigger: "before creating a ScriptableObject config and its runtime component"
+trigger: "before creating or reading a ScriptableObject config"
 tags: [pattern, config]
 related:
   - "[ARCHITECTURE](../ARCHITECTURE.md)"
   - "[PATTERN_CONFIG_LOADER](PATTERN_CONFIG_LOADER.md)"
 ---
 
-# Pattern — Config (ScriptableObject + Component)
+# Pattern — Config (ScriptableObject)
 
-Authored data lives in a `ScriptableObject`, loaded via Addressables, and published as a **singleton component**
-that is the runtime source of truth. The SO is an authoring artifact only; runtime systems read the component
-— except a catalogue component that deliberately wraps the SO reference (see below).
+A config is a `ScriptableObject` kept in `EntityStorages` by type and read via `storages.Get<T>()`.
 
 ## 1. The ScriptableObject
 
 ```csharp
+using System;
+using EcsExtensions;
 using UnityEngine;
 
 namespace Domains.[Domain].[Feature].Configs
 {
     [CreateAssetMenu(fileName = "[ConfigName]", menuName = "FantasyMayor/[Group]/[ConfigName]")]
-    public sealed class [ConfigName] : ScriptableObject
+    public sealed class [ConfigName] : ScriptableObject, IValidatableConfig
     {
         [SerializeField] private [FieldType] _field;
         public [FieldType] Field => _field;
+
+        // Optional: implement IValidatableConfig only when the authored data can be wrong.
+        public void Validate()
+        {
+            if (_field == null)
+                throw new InvalidOperationException("[ConfigName]: Field is null.");
+        }
     }
 }
 ```
@@ -37,36 +44,25 @@ namespace Domains.[Domain].[Feature].Configs
 public [ItemConfig][] Items => _items;
 ```
 
-## 2. The component (runtime source of truth)
+**Two assets of one shape** — the storage key is the type, so each stored instance needs its own type: an abstract
+base with one sealed subclass per asset (`IsolineConfig` → `InnerIsolineConfig`, `OuterIsolineConfig`).
 
-Two shapes — pick by what the SO holds:
+## 2. Reading it
 
-- **Flatten (default for scalar / tunable data):** copy values out; the loader releases the SO after copying.
-  ```csharp
-  public struct [Name]ConfigComponent : IComponent
-  {
-      public [FieldType] Field;
-      public static [Name]ConfigComponent FromConfig([ConfigName] c) =>
-          new [Name]ConfigComponent { Field = c.Field };
-  }
-  ```
-- **Wrap the SO reference (catalogues / engine references — prefabs, sprites, sub-config lists):** the
-  component holds the live SO reference; the loader keeps the addressable handle alive for its lifetime.
-  ```csharp
-  public readonly struct [Name]ConfigComponent : IComponent
-  {
-      public readonly [ConfigName] Value;
-      public [Name]ConfigComponent([ConfigName] value) => Value = value;
-  }
-  ```
+```csharp
+var config = _storages.Get<[ConfigName]>();   // throws when the config was not loaded
+```
 
 ## Rules
 
 ```clojure
 (def config-rules
-  {SO          :authoring-only                       ;; runtime reads the component (storages.Singletons.Get<[Name]ConfigComponent>()), never the asset — except the wrap variant, whose whole job is carrying the SO reference
-   :shape      {#{scalar-tunables}                :flatten          ;; copy values out; loader releases the SO after copying — no asset lifetime to manage
-                #{engine-refs sub-config-lists}   :wrap-live-SO-ref} ;; a flattened copy would lose them; the norm for catalogues — record the wrapped component in ecs-graph
-   :validation "at load, in the loader"             ;; one-entry-per-type, no nulls, non-empty — PATTERN_CONFIG_LOADER, never inside the SO
-   :storage    "singleton component via storages.Singletons.Set"})  ;; never a queryable entity table for a singleton config; storage taxonomy: ECS_CONVENTIONS
+  {:storage     "EntityStorages by type — storages.Add<T> at load, storages.Get<T> everywhere else"  ;; never a …ConfigComponent, never a queryable entity table
+   :read        "the SO itself; no copy, no flatten"                    ;; Get<T> throws — no Has-guard and no silent skip around it
+   :lifetime    "loaded once at AppState.ConfigLoading, never released"  ;; configs live for the whole session
+   :mutation    :never                                                   ;; arrays are shared by every reader — read-only, no defensive clone
+   :key         "one stored instance per type"                           ;; a second asset of the same shape = a sealed subclass
+   :validation  "IValidatableConfig.Validate on the SO; the loader calls it before Add"  ;; one-entry-per-type, no nulls, non-empty — throw
+   :derived     "objects built from a config belong to an AppState.InstanceObjects system"  ;; PATTERN_CONFIG_LOADER
+   :off-thread  "reading SO fields inside RunOnThreadPool is allowed"})  ;; plain immutable managed data, not store access (ECS_CONVENTIONS → Threading)
 ```

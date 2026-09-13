@@ -11,7 +11,7 @@ namespace Modules.Boot.Implementation.States
     ///     Builds a fresh world: runs the one-shot generation pipeline
     ///     (<see cref="IPrioritizedUniTaskSystem{T}" /> for <see cref="MapGenerationStep" />) in priority order,
     ///     then ticks its per-frame systems for a few "settle" frames (e.g. event cleanup) before transitioning
-    ///     to <see cref="GameMode.Gameplay" />. View building is done synchronously inside the pipeline.
+    ///     to <see cref="AppState.Gameplay" />. View building is done synchronously inside the pipeline.
     /// </summary>
     public sealed class MapCreationState : IAppState
     {
@@ -25,8 +25,8 @@ namespace Modules.Boot.Implementation.States
 
         private int _settledFrames;
 
-        public GameMode Mode => GameMode.MapCreation;
-        public GameMode? RequestedMode { get; private set; }
+        public AppState Mode => AppState.MapCreation;
+        public AppState? RequestedMode { get; private set; }
 
         public MapCreationState(
             IReadOnlyList<IPrioritizedUniTaskSystem<MapGenerationStep>> pipeline,
@@ -63,7 +63,7 @@ namespace Modules.Boot.Implementation.States
 
             _settledFrames++;
             if (_settledFrames >= SettleFrames)
-                RequestedMode = GameMode.Gameplay;
+                RequestedMode = AppState.Gameplay;
         }
     }
 }

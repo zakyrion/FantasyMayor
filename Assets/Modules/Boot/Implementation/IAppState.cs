@@ -1,6 +1,7 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EcsExtensions;
+using Modules.Boot.Core;
 
 namespace Modules.Boot.Implementation
 {
@@ -13,10 +14,10 @@ namespace Modules.Boot.Implementation
     public interface IAppState
     {
         /// <summary>The mode this state represents.</summary>
-        GameMode Mode { get; }
+        AppState Mode { get; }
 
         /// <summary>Non-null when the state wants the machine to switch to another mode.</summary>
-        GameMode? RequestedMode { get; }
+        AppState? RequestedMode { get; }
 
         /// <summary>Runs the (possibly async) entry sequence; ticking is suspended until this completes.</summary>
         UniTask EnterAsync(CancellationToken cancellationToken);

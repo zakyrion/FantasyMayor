@@ -1,10 +1,12 @@
 using Domains.Map.Generation.Data;
 using UnityEngine;
+using System;
+using EcsExtensions;
 
 namespace Domains.Map.Generation.Configs
 {
     [CreateAssetMenu(fileName = "TerrainGenerationConfig", menuName = "FantasyMayor/Terrain/TerrainGenerationConfig")]
-    public class TerrainGenerationConfig : ScriptableObject
+    public class TerrainGenerationConfig : ScriptableObject, IValidatableConfig
     {
         [Header("Spawn Settings")]
         [SerializeField] private int _waveCount = 5;
@@ -51,5 +53,28 @@ namespace Domains.Map.Generation.Configs
         public WaterType WaterType => _waterType;
 
         public int WaveCount => _waveCount;
+
+        public void Validate()
+        {
+            switch (WaterType)
+            {
+                case WaterType.River:
+                    if (RiverConfig == null)
+                        throw new InvalidOperationException($"{nameof(RiverConfig)} is not assigned in TerrainGenerationConfig but WaterType is River.");
+                    break;
+                case WaterType.Lake:
+                    if (LakeConfig == null)
+                        throw new InvalidOperationException($"{nameof(LakeConfig)} is not assigned in TerrainGenerationConfig but WaterType is Lake.");
+                    break;
+                case WaterType.Sea:
+                    if (SeaConfig == null)
+                        throw new InvalidOperationException($"{nameof(SeaConfig)} is not assigned in TerrainGenerationConfig but WaterType is Sea.");
+                    break;
+                case WaterType.None:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(WaterType), WaterType, "Unhandled WaterType.");
+            }
+        }
     }
 }

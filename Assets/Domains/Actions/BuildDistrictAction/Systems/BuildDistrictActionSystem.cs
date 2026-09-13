@@ -170,12 +170,8 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         // no cost config is a broken invariant (the UI only offers configured districts), not a benign default.
         private DistrictBuildCostConfig ResolveCost(DistrictType type)
         {
-            if (!_storages.Singletons.Has<DistrictBuildCostsConfigComponent>())
-                throw new InvalidOperationException(
-                    "BuildDistrictActionSystem: DistrictBuildCostsConfigComponent singleton component is missing.");
-
             if (!DistrictConfigLookup.TryFind(
-                    _storages.Singletons.Get<DistrictBuildCostsConfigComponent>().Value?.Districts, type, c => c.DistrictType, out var cost))
+                    _storages.Get<DistrictBuildCostsConfig>().Districts, type, c => c.DistrictType, out var cost))
                 throw new InvalidOperationException(
                     $"BuildDistrictActionSystem: no DistrictBuildCostConfig for district type '{type}'.");
 

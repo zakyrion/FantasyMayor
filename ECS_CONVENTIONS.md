@@ -16,10 +16,13 @@ error conventions every system must follow. Layering, taxonomy, and the recipe i
 ## State Storage Taxonomy
 
 Four state shapes are backed by exactly two `EntityStore` instances. Pick the shape by asking how
-many instances exist and whether a consumer must FIND the state through an entity query.
+many instances exist and whether a consumer must FIND the state through an entity query. Authored
+configs are not ECS state: they sit beside the stores in `EntityStorages` as `ScriptableObject`
+references keyed by type.
 
-**Apply via:** a loaded config is always a singleton component — the config-loader procedure that
-publishes it is `Patterns/PATTERN_CONFIG_LOADER.md`.
+**Apply via:** a loaded config is never a component — it is added with `storages.Add<T>` by
+`ConfigLoaderSystem<T>` and read with `storages.Get<T>` (`Patterns/PATTERN_CONFIG.md`,
+`Patterns/PATTERN_CONFIG_LOADER.md`).
 
 | Storage | Use when | Access | Registry |
 |---|---|---|---|
@@ -27,11 +30,13 @@ publishes it is `Patterns/PATTERN_CONFIG_LOADER.md`.
 | **Singleton component** | exactly ONE value, and NO consumer needs it in an entity query | `storages.Singletons.Get/Has/Set` | `SingletonArchetypes.Singleton` in the ecs-graph |
 | **One-frame event entity** | a signal that something changed; consumed by every Reactive System exactly once, the frame AFTER it is raised | `storages.World.CreateEvent(payload)`; `EventCleanupSystem` deletes it once ripe (Event Lifecycle below) | the ecs-graph (`/ecs-graph`) |
 | **Singleton entity** | exactly ONE row, but it MUST appear in entity queries (a per-frame system anchors its tick on it, or another system reads it through its archetype) | `storages.World`: its own declared archetype + tag, read through that table | the ecs-graph (`/ecs-graph`) |
+| **Config** (not an `EntityStore`) | an authored `ScriptableObject`, loaded once at `AppState.ConfigLoading` and immutable for the session | `storages.Add<T>` (loader only) / `storages.Get<T>` — throws when not loaded | `ConfigLoaderSystem<T>` registrations in the di-graph (`/di-graph`) |
 
 ```clojure
 (def storage-registry-law  ;; FM-14, 2026-08-06
   {:registry         EntityStorages             ;; the ONLY DI-registered entry point to ECS storage
-   :members          #{World Singletons}        ;; exactly two; a third member needs a new architecture decision
+   :members          #{World Singletons}        ;; exactly two stores; a third needs a new architecture decision
+   :configs          "Add<T>/Get<T> over a Type → ScriptableObject map — not a store, never released"  ;; owner decision 2026-09-13, Flows/Archive/FLOW_CONFIG_STORAGE.md
    :world            "the shared game EntityStore — entity tables, indexes, singleton entities, and one-frame events"
    :singletons       SingletonComponents        ;; public cover over a private second EntityStore + its one hidden row
    :store-creation   "EntityStorages constructs World; SingletonComponents privately constructs the second store — no other app code creates or exposes one"
@@ -45,9 +50,9 @@ Singleton component contract:
 - `SingletonComponents` hides both its store and the ONE row. The row is born from
   `SingletonArchetypes.Singleton` with its complete composition and exactly one `SingletonTag`;
   consumers cannot query it or add undeclared columns.
-- All loaded configs are singleton components (`Patterns/PATTERN_CONFIG.md`). Runtime singleton
-  state follows the same access shape: `CameraComponent`, `VertexGridComponent`,
-  `TerrainTextureComponent`, `HexIconsViewComponent`, `HexIconsVisibilityComponent`.
+- Configs are NOT singleton components (`Patterns/PATTERN_CONFIG.md`). Singleton components hold
+  runtime state only: `CameraComponent`, `VertexGridComponent`, `TerrainTextureComponent`,
+  `HexIconsViewComponent`, `HexIconsVisibilityComponent`.
 - DECLARED and INITIALIZED are separate sets. `Set<T>` throws when `T` is undeclared, `Get<T>`
   throws before the first write, and `Has<T>` answers whether the value has been initialized — it
   does not inspect physical column presence.
@@ -182,6 +187,27 @@ the launching `TurnProcessorSystem` keeps zero mutable fields.
 - Enums can't be `NativeHashSet`/`NativeParallelHashMap` **keys** (no `IEquatable<T>`) — key on the
   underlying `int`. As a **value** an enum is fine (`unmanaged`).
 - In `MonoBehaviour` (view) code, `System.Collections.Generic` is fine.
+
+**The rule underneath Ban 2 — zero-allocation is about LIFETIME, not type.** Ban 2 picks the
+containers; this states what it is picking them *for*. The owner's definition (2026-09-07):
+
+```clojure
+(def zero-allocation
+  {:correct "памʼять виділена на початку і звільнена в кінці роботи алгоритму чи сутності.
+             Можна використовувати structure, spans, native collections, все що ми можемо
+             гарантувати в рамках unity може бути вручні вичищено"
+   :error   "значний обʼєм памʼяті залишилася в кучі і чекає GC проходу"})
+```
+
+The question to ask of any allocation is **"who frees this, and when?"** — a deterministic answer
+at the end of the algorithm's (or entity's) work is a pass. Structs, `Span<T>`/`ReadOnlySpan<T>`,
+`Unity.Collections` containers and any buffer claimed once and released at the end all qualify.
+What fails is a significant volume of managed memory left for a GC pass — classically, a fresh
+managed array or `List` built **per call** inside a loop. Do not read the rule as "managed types
+are forbidden": that tests the type instead of the lifetime, over-restricts legitimate
+allocate-once-hold-for-the-run buffers, and hides the actual question. `Allocator.Temp`
+(frame rewind) and a single owner that disposes once are the standard shapes; the cost model for
+Temp is Law 2 under Threading And Native Memory.
 
 ## Component Writes
 
@@ -444,13 +470,16 @@ An entity "table" is defined by its archetype, and every filter MUST name the ta
 - **Forbidden:** silent `return` / `return UniTask.CompletedTask` on a missing prerequisite, and
   `Debug.LogWarning(...)` + skip. A "completed" step that did nothing hides the bug — the goal is a
   working game or a hard, visible failure, not a pile of warnings.
-- Validate at the source (the config loader throws on `!Exist`) AND keep a defensive throw at the
+- Validate at the source (a config validates itself in `IValidatableConfig.Validate`, run by
+  `ConfigLoaderSystem<T>` before the config becomes visible) AND keep a defensive throw at the
   consumer as a second barrier — do not assume validation happened elsewhere.
-- `cancellationToken.IsCancellationRequested` is the ONE legitimate quiet `return`. Keep it on its own
-  line, separate from error conditions (never `if (cancelled || !valid) return;`).
+- Cancellation is signalled by `cancellationToken.ThrowIfCancellationRequested()`, never by a quiet
+  `return`: a returned task reads as *completed* to the awaiting caller, which then carries on over
+  unfinished work. Keep it on its own line, separate from error conditions.
+- Release what cancelled work already owns in `try/finally`, not in a branch before the throw.
 - Clean up partial work before throwing (e.g. `Object.Destroy(instance)`).
 - Exception type is not critical; `InvalidOperationException` with a message is the codebase default
-  (see `TerrainGenerationConfigLoaderSystem`).
+  (see `ConfigLoaderSystem<T>`, `EntityStorages.Get<T>`).
 
 ## Open Directions — NOT rules
 

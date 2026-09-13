@@ -9,13 +9,15 @@ using Modules.UserInput.Components;
 using Presentation.Terrain.Components;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Modules.UserInput.Configs;
+using Presentation.Terrain.Configs;
 
 namespace Modules.UserInput.Systems
 {
     /// <summary>
     ///     Drives player-controlled camera movement each LateUpdate tick.
     ///     Reads <see cref="CameraComponent" />, <see cref="PlayerInputComponent" />, and
-    ///     <see cref="CameraMovementConfigComponent" /> to apply WASD panning, drag panning,
+    ///     <see cref="CameraMovementConfig" /> to apply WASD panning, drag panning,
     ///     bounds clamping, and smoothed zoom.
     /// </summary>
     [UsedImplicitly]
@@ -67,14 +69,14 @@ namespace Modules.UserInput.Systems
                     return;
             }
 
-            if (!_storages.Singletons.Has<CameraMovementConfigComponent>() || !_storages.Singletons.Has<CameraComponent>())
+            if (!_storages.Singletons.Has<CameraComponent>())
                 return;
 
             var camera = _storages.Singletons.Get<CameraComponent>().Camera;
             if (camera == null)
                 return;
 
-            var config = _storages.Singletons.Get<CameraMovementConfigComponent>();
+            var config = _storages.Get<CameraMovementConfig>();
             var cameraTransform = camera.transform;
 
             MoveCamera(cameraTransform, config, state.DeltaTime);
@@ -89,10 +91,10 @@ namespace Modules.UserInput.Systems
         /// <returns><c>true</c> when bounds were successfully computed and cached.</returns>
         private bool TryComputeBounds()
         {
-            if (!_storages.Singletons.Has<TerrainViewConfigComponent>() || _hexArchetype.Count == 0)
+            if (_hexArchetype.Count == 0)
                 return false;
 
-            var cellSize = _storages.Singletons.Get<TerrainViewConfigComponent>().CellSize;
+            var cellSize = _storages.Get<TerrainViewConfig>().CellSize;
 
             var minX = float.MaxValue;
             var maxX = float.MinValue;
@@ -172,14 +174,14 @@ namespace Modules.UserInput.Systems
         /// <summary>
         ///     Zooms by dollying the camera strictly along its own forward axis, so the tilt (pitch) and FOV
         ///     stay fixed and only the camera height changes. Accumulated scroll ticks move the target height
-        ///     (clamped to <see cref="CameraMovementConfigComponent.MinHeight" />/<c>MaxHeight</c>); deltaTime
+        ///     (clamped to <see cref="CameraMovementConfig.MinHeight" />/<c>MaxHeight</c>); deltaTime
         ///     drives the lerp. The forward translation is solved from the desired height delta so the camera
         ///     stays on its view line — X/Z shift together with Y and the framed point does not jump.
         /// </summary>
         /// <param name="cameraTransform">Transform of the camera being controlled.</param>
-        /// <param name="config">Zoom settings loaded into ECS.</param>
+        /// <param name="config">Zoom settings.</param>
         /// <param name="deltaTime">Frame delta time in seconds.</param>
-        private void ApplyDolly(UnityEngine.Transform cameraTransform, in CameraMovementConfigComponent config, float deltaTime)
+        private void ApplyDolly(UnityEngine.Transform cameraTransform, CameraMovementConfig config, float deltaTime)
         {
             var pos = cameraTransform.position;
             var forward = cameraTransform.forward;
@@ -215,9 +217,9 @@ namespace Modules.UserInput.Systems
         ///     button state — event-based canceled callbacks are not relied upon.
         /// </summary>
         /// <param name="cameraTransform">Transform of the camera being controlled.</param>
-        /// <param name="config">Pan settings loaded into ECS.</param>
+        /// <param name="config">Pan settings.</param>
         /// <param name="deltaTime">Frame delta time in seconds.</param>
-        private void MoveCamera(UnityEngine.Transform cameraTransform, in CameraMovementConfigComponent config, float deltaTime)
+        private void MoveCamera(UnityEngine.Transform cameraTransform, CameraMovementConfig config, float deltaTime)
         {
             var right = Vector3.ProjectOnPlane(cameraTransform.right, Vector3.up).normalized;
             var forward = Vector3.ProjectOnPlane(cameraTransform.forward, Vector3.up).normalized;

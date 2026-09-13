@@ -1,6 +1,7 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EcsExtensions;
+using Modules.Boot.Core;
 
 namespace Modules.Boot.Implementation.States
 {
@@ -11,8 +12,8 @@ namespace Modules.Boot.Implementation.States
     /// </summary>
     public sealed class MapLoadingState : IAppState
     {
-        public GameMode Mode => GameMode.MapLoading;
-        public GameMode? RequestedMode => null;
+        public AppState Mode => AppState.MapLoading;
+        public AppState? RequestedMode => null;
 
         public UniTask EnterAsync(CancellationToken cancellationToken)
         {

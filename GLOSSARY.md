@@ -35,7 +35,7 @@ GAME_MECHANICS block in `:domain`; the `?` is filled, never guessed, when the co
    "resource (inventory) | ресурс"                    {:domain Economy/Resource               :anchors [ResourceComponent]}
    "resource bar | панель ресурсів"                   {:domain Presentation.UI/ResourceBar    :anchors [ResourceBarViewComponent]}
    "hex resource (natural) | природний ресурс"        {:domain Map/HexResources               :anchors [HexResourceComponent]}
-   "hex icon overlay | іконки на гексах"              {:domain Presentation/HexIcons          :anchors [HexIconsVisibilityComponent HexIconsConfigComponent]}
+   "hex icon overlay | іконки на гексах"              {:domain Presentation/HexIcons          :anchors [HexIconsVisibilityComponent HexIconsConfig]}
    "hex info panel | панель інформації гекса"         {:domain Presentation.UI/HexInfoPanel   :anchors [HexInfoPanelViewComponent]}
    "hex selection | вибір гекса"                      {:domain Presentation.UI                :anchors [SelectedHexChangedEvent HexSelectedComponent]}
    ;; ── model-only terms (2026-09-05, GAME_MECHANICS) — no code anchor yet; fill :anchors when the code lands ──

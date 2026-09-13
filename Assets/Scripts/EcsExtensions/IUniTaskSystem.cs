@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using Modules.Boot.Core;
 
 namespace EcsExtensions
 {
@@ -12,10 +13,14 @@ namespace EcsExtensions
     {
         /// <summary>
         ///     Updates the system once.
-        ///     Does nothing if <see cref="IsEnabled" /> is false.
         /// </summary>
         /// <param name="cancellationToken">The token used to cancel current update.</param>
         /// <returns>A task that represents the asynchronous update.</returns>
         UniTask Update(CancellationToken cancellationToken);
+    }
+
+    public interface IUniTaskSystem : IDisposable, IAppStateSystem
+    {
+        UniTask Execute(CancellationToken cancellationToken);
     }
 }

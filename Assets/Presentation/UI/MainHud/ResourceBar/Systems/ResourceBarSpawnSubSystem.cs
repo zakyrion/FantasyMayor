@@ -7,6 +7,7 @@ using Presentation.UI.MainHud.ResourceBar.Views;
 using Presentation.UI.MainHud.Systems;
 using UnityEngine;
 using EcsExtensions;
+using Presentation.UI.MainHud.ResourceBar.Configs;
 
 namespace Presentation.UI.MainHud.ResourceBar.Systems
 {
@@ -36,12 +37,7 @@ namespace Presentation.UI.MainHud.ResourceBar.Systems
                 throw new InvalidOperationException(
                     "ResourceBarSpawnSubSystem: ResourceBarView is missing from the Main UI prefab.");
 
-            if (!_storages.Singletons.Has<InventoryResourceIconConfigComponent>())
-                throw new InvalidOperationException(
-                    "ResourceBarSpawnSubSystem: InventoryResourceIconConfigComponent missing — " +
-                    "InventoryResourceIconConfigLoaderSystem must run at ConfigLoadStep first.");
-
-            view.Build(_storages.Singletons.Get<InventoryResourceIconConfigComponent>().Value.Entries);
+            view.Build(_storages.Get<InventoryResourceIconConfig>().Entries);
             view.Hide();
 
             var entity = _archetype.CreateEntity();
