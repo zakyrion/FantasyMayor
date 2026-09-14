@@ -1,8 +1,7 @@
 {
   "schemaVersion": 1,
   "tools": [
-    "claude",
-    "codex"
+    "claude"
   ],
   "flowRoot": "Flows"
 }

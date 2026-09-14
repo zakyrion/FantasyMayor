@@ -205,7 +205,7 @@
  :exclusive false                      ;; the copy IS this canon — after separation the project runs one framework, not two
  :notation-ecs-ext "CLAUDE.md declares a project-scoped ECS reading of the notation; it stays project-scoped"
  :openspec :removed-2026-08-05         ;; the CLI remains installed; it returns only on the owner's direct ask
- :codex-leg "Codex reads the .agents/skills/sdd-* skills; AGENTS.md and Tools/gen_agents.py were retired 2026-08-30"
+ :tools #{claude}                      ;; codex dropped from config.json 2026-09-14 (0.3.0 update) — no .agents/, no Codex skills, repo or global
  :updating "any git checkout of the package regenerates the managed files: `npx --yes github:zakyrion/sdd-flow update .`, a global install from github, or a pulled checkout the global CLI is linked to — the owner has not fixed one; `update` never touches this file"
  :tooling "Tools/gen_index.py PRUNE and Tools/doc_lint.py SKIP_DIRS must keep .sdd-flow — the framework's own .md files carry no category/read frontmatter, and giving them any would break `update`"}
 ```
