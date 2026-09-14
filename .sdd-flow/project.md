@@ -147,13 +147,11 @@
 # Shape
 
 ```clojure
-{:flow-home "Flows/FLOW_<TASK>.md"
- :archive "Flows/Archive/"
- :sections FLOW_TEMPLATE.md            ;; three Rule 2 stages; the template is the only home of the shape
- :durable "Findings, Decisions, Disproven and Attempted live in the Contract stage and survive the plan drop"
- :research-document "RESEARCH_TEMPLATE.md → Flows/RESEARCH_<TOPIC>.md, archived together with the FLOW that links it"
- :lifecycle DOC_STANDARD.md            ;; active / contract / archive fate rules, and the Rule 2d harvest split
- :overrides "none — this arrangement fills the framework's template, it does not replace it"}
+{:flow-home "the canon's — Flows/<TASK>/FLOW.md; legacy flat Flows/FLOW_<TASK>.md exist only in Flows/Archive/"
+ :sections "the canon's .sdd-flow/templates/ — no project template"   ;; FLOW_TEMPLATE.md and RESEARCH_TEMPLATE.md deleted 2026-09-14
+ :lifecycle "the canon's"
+ :adds {:frontmatter "DOC_STANDARD.md → Frontmatter: active FLOW read: always + status: partial; archived read: archive + status: implemented — so INDEX.md sees active work"}
+ :overrides "none"}
 ```
 
 # Canon copy

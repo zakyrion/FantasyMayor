@@ -180,8 +180,9 @@ def lint(docs):
         d = os.path.dirname(p)
         normalized = p.replace(os.sep, "/")
         # broken relative links — frontmatter `related` + body (code fences skipped:
-        # examples inside fences are illustrations, not live links)
-        targets = LINK_RE.findall(m["_block"]) + LINK_RE.findall(FENCE_RE.sub("", m["_body"]))
+        # examples inside fences are illustrations, not live links); archived history is never checked
+        targets = [] if normalized.startswith("Flows/Archive/") else \
+            LINK_RE.findall(m["_block"]) + LINK_RE.findall(FENCE_RE.sub("", m["_body"]))
         for t in targets:
             if t.startswith(("http://", "https://")):
                 continue
@@ -192,26 +193,23 @@ def lint(docs):
                 issues.append(f"{p}: broken link → {t}")
         # category-scoped fields
         if m["category"] == "A":
-            is_flow = (normalized.startswith("Flows/FLOW_") or
-                       normalized.startswith("Flows/Archive/FLOW_"))
+            # sdd-flow task folder Flows/<TASK>/FLOW.md, or the legacy flat Flows/FLOW_<TASK>.md;
+            # section shape is the canon's and is never checked here
+            is_flow = (normalized.startswith("Flows/") and not normalized.startswith("Flows/Archive/") and
+                       (normalized.endswith("/FLOW.md") or os.path.basename(normalized).startswith("FLOW_")))
             if not m["status"]:
                 issues.append(f"{p}: Category A doc missing status")
             elif m["status"] not in ("partial", "implemented"):
                 issues.append(f"{p}: bad Category A status {m['status']!r}")
             if is_flow:
-                headings = ["# 1 · Request", "# 2 · Contract", "# 3 · Plan"]
-                positions = [m["_body"].find(h) for h in headings]
-                if any(i == -1 for i in positions) or positions != sorted(positions):
-                    issues.append(f"{p}: Category A FLOW needs Request → Contract → Plan sections in order")
                 if m["status"] == "partial" and m["read"] != "always":
                     issues.append(f"{p}: active partial FLOW must be read: always")
                 if m["read"] == "always" and m["status"] != "partial":
                     issues.append(f"{p}: implemented FLOW cannot stay in the session-start set")
             if m["read"] == "archive":
-                # FLOW_* = archived task flows; RESEARCH_* = archived deep-research maps (DOC_STANDARD research-map genre)
-                if not (normalized.startswith("Flows/Archive/FLOW_") or
-                        normalized.startswith("Flows/Archive/RESEARCH_")):
-                    issues.append(f"{p}: read: archive requires Flows/Archive/FLOW_*.md or RESEARCH_*.md")
+                # archived task history — a whole task folder or a legacy flat FLOW_*/RESEARCH_* file
+                if not normalized.startswith("Flows/Archive/"):
+                    issues.append(f"{p}: read: archive requires a path under Flows/Archive/")
                 if m["status"] != "implemented":
                     issues.append(f"{p}: archived FLOW must be implemented")
                 if re.search(r"^code_refs:", m["_block"], re.M):

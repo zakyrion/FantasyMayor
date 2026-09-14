@@ -13,14 +13,14 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 45 docs — 2 always · 23 trigger · 1 reference · 19 archive · 3 canvas.
+Totals: 42 docs — 2 always · 21 trigger · 0 reference · 19 archive · 3 canvas.
 
 ## Read at start (always)
 
 Read these every session before doing anything else.
 
 - [CLAUDE.md](CLAUDE.md) — How to work in FantasyMayor. The lifecycle is sdd-flow's and is not restated here; this file
-- [Request](Flows/DOC_AGENT_REVIEW/FLOW.md) — {:status :active
+- [Request](Flows/DOC_AGENT_REVIEW/FLOW.md) — 
 
 ## Read on demand (by trigger)
 
@@ -32,7 +32,6 @@ Do **not** preload. Read only when the trigger condition holds.
 | [CODE_STORY_RULES](CODE_STORY_RULES_PROPOSAL.md) | before writing or reviewing a system whose body is an algorithm, and when running the cascade on a class | Код читається як розповідь: послідовність, сюжет, сенс у кожній змінній і в кожному імені. |
 | [DOC_STANDARD.md](DOC_STANDARD.md) | before authoring or reviewing any .md (Flows / Patterns / policy) for standard compliance | Single source of truth for how to write Markdown docs in this project. |
 | [FantasyMayor — ECS & Runtime Conventions](ECS_CONVENTIONS.md) | before writing or editing any ECS system, component, event, config, or query | The ECS/runtime rulebook: where state lives, how systems are decomposed, and the write / collection / |
-| [FLOW_TEMPLATE](FLOW_TEMPLATE.md) | when creating a new Category A FLOW — copy the skeleton below, then fill it | Copy-skeleton for a Category A FLOW: three Rule 2 stages + Decisions, Progress, Acceptance, Amendments shapes. |
 | [GAME_MECHANICS](GAME_MECHANICS.md) | before any game-design work: the core loop, economy, actors, elites, population needs, land and slots, buildings, the exchange, politics, consequences | The mayor creates opportunities for autonomous elites; the city comes to depend on them and never commands them. |
 | [GLOSSARY — domain vocabulary → code anchors](GLOSSARY.md) | when a domain term (any language) needs its canonical code name before searching roslyn / ecs-graph / di-graph | Map from human vocabulary (game-design terms, Ukrainian/English synonyms, abbreviations) to the |
 | [IAddressable Contract](Patterns/ADDRESSABLE_PATTERNS.md) | before writing/editing/reviewing Addressables, IAddressable, Box<T> or Result<T> code | Single source of truth for addressable loading. Read this; do not grep. |
@@ -50,7 +49,6 @@ Do **not** preload. Read only when the trigger condition holds.
 | [Pattern — ECS Tag](Patterns/PATTERN_TAG.md) | before creating an ECS tag (field-less marker / table discriminator) | A tag is an **empty `struct`** that marks an entity. It carries no data; its presence IS the information. |
 | [Pattern — Transaction Entity (cross-domain behavior)](Patterns/PATTERN_TRANSACTION_ENTITY.md) | before building any multi-step behavior that spans more than one subdomain (a cross-domain transaction) | A multi-step behavior that spans subdomains gets exactly ONE home: a **transaction entity** in the |
 | [Pattern — View ↔ System](Patterns/PATTERN_VIEW_SYSTEM.md) | before creating a MonoBehaviour view + its driving system, or wiring how a view and its system talk | A MonoBehaviour View is dumb chrome driven by its System; they talk directly: C# event in, push-to-view out, never ECS. |
-| [RESEARCH_TEMPLATE](RESEARCH_TEMPLATE.md) | when starting a deep-research pass (sdd-deep-research) — copy the skeleton below → Flows/RESEARCH_<TOPIC>.md | Copy-skeleton for a deep-research document: conditions, prior belief, trade-off map, disconfirmation, verdict. |
 
 ## Reference map (on demand)
 
@@ -58,7 +56,6 @@ Reference docs read on demand.
 
 | Doc | Cat | Status | What it is |
 |---|---|---|---|
-| [Як читати і писати Clojure-інструкції](CLOJURE_GUIDE.md) | B | — | Людський підручник до Clojure-нотації задач і правил: реальний синтаксис Clojure як мова |
 
 ## Task history (archive)
 
