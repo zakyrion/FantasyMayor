@@ -11,13 +11,12 @@
 # Entry
 
 ```clojure
-{:entry INDEX.md                       ;; decreed by CLAUDE.md → "Start Working"; a doc INDEX does not list is invisible by rule
- :read-always #{ARCHITECTURE.md
-                CLAUDE.md
+{:entry INDEX.md                       ;; CLAUDE.md § 1 Session start; a doc INDEX does not list is invisible by rule
+ :read-always #{CLAUDE.md
                 "any Category A FLOW with status: partial — reconstruct its stage, findings, decisions, disproven, attempted"}
- :never-preload #{GAMEPLAY_FOUNDATION.md            ;; explicit user request only — never on session start, never by keyword
-                  "anything INDEX.md does not send you to"}
- :read-priority "INDEX carries always | trigger | reference per doc — follow it, do not wander the vault"}
+ :never-preload #{"anything INDEX.md does not send you to"}
+ :read-priority "INDEX carries always | trigger | reference per doc — follow it, do not wander the vault"
+ :task-docs "CLAUDE.md § 2 request-routing fills the statement's :read from INDEX triggers (+ ARCHITECTURE.md, ECS_CONVENTIONS.md for an engineering task)"}
 ```
 
 # Tools
@@ -129,37 +128,14 @@
 # Bans
 
 ```clojure
-{:never #{"Unity project builds, dotnet build, msbuild, xbuild, Unity CLI builds"
-          "generating or hand-writing Unity .meta files"
-          "reading .unity scenes or scene-serialized assets without the owner's explicit allowance in the current task"
-          "editing .md through vault_patch / vault_write"
-          "hand-editing the derived graph artifacts"
-          "editing between INDEX.md's BEGIN/END GENERATED markers"
-          "spawning the project's retired discovery/arch/asset scouts"
-          "proposing automated test infrastructure — the owner's stance is playtest + fail-loud throws"
-          "a silent skip on a missing prerequisite — throw instead"}
- :ask-first #{ARCHITECTURE.md
-              "editing Flows / Patterns / the INDEX agent zone / a canvas after a code change"
-              "Unity-side authoring — prefabs, .asset, scenes, addressable entries are the owner's territory"}
+{:home "CLAUDE.md § 3 Project bans — (def bans); the owner keeps project bans there so they bind every session"
  :enforced-elsewhere ".claude/hooks/graph-gate.py (PreToolUse deny/ask) and Tools/githooks/pre-commit"}
 ```
 
 # Ceremonies
 
 ```clojure
-[{:ceremony session-start
-  :runs-at "the beginning of a session"
-  :owner "/fantasymayor-session-start"
-  :steps "the command file states them"
-  :lifecycle-hook :research-entry}
-
- {:ceremony flow-close
-  :runs-at "the owner's explicit ask to close a task — never automatically"
-  :owner "/flow-close"
-  :steps "the command file IS their home — the canon carries no close ritual of its own"
-  :lifecycle-hook :done-contract}
-
- {:ceremony index-regen
+[{:ceremony index-regen
   :runs-at "after any frontmatter or first-line change"
   :owner "python3 Tools/gen_index.py (pass 1) + the agent's curated zone (pass 2)"}
 
@@ -187,13 +163,8 @@
  :status :reference                     ;; separated 2026-08-30 — CLAUDE.md now measures 0 in sync, 0 drifted
  :was {:at "2026-08-30" :measured "CLAUDE.md and AGENTS.md, both 8 in sync, 10 drifted, 8 local-only, 16 not copied"}
  :residue-moved-here #{prior-art done-contract deep-research attempted disproven}
- :deliberate-patches [{:definition flow-progress
-                       :why "no canon equivalent for the progress shape; the owner declined promotion, so it stays in CLAUDE.md as a stated patch"
-                       :at "2026-08-30"}
-                      {:definition blocked-outcome
-                       :why "no canon equivalent; same decision"
-                       :at "2026-08-30"}]
- :project-scoped #{notation-ecs-ext openspec-policy}   ;; the project's own rules — local-only by right, never promotion candidates
+ :deliberate-patches []                 ;; flow-progress and blocked-outcome deleted 2026-09-14 — 0.3.0 carries # Progress and the blocked branch; owner: no local patches
+ :project-scoped #{notation-ecs-ext request-routing bans commit}   ;; the project's own rules in CLAUDE.md — local-only by right, never promotion candidates
  :renamed-canon #{research-depth task-normalization}   ;; deleted with the copy — bodies matched (def research) / (def normalization)
  :retired "AGENTS.md, Tools/gen_agents.py, the session-start canon-sync step and the pre-commit branch that guarded them (owner's decision, 2026-08-30)"}
 ```

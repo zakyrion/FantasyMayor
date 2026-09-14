@@ -1,6 +1,7 @@
 ---
 category: C
-read: always
+read: trigger
+trigger: before any engineering task — request routing puts it into :read
 tags: [architecture, ecs, conventions]
 related:
   - "[DOC_STANDARD](DOC_STANDARD.md)"
@@ -178,6 +179,20 @@ Point-of-code form (tables, key spaces, materializations, self-index exception):
    :active-state "ONLY its systems run"                          ;; composition is manual + visible in Boot.Construct; live wiring: dig.py state <GameMode>; semantics: Assets/Modules/Boot/BOOT.md
    :world-init   IPrioritizedUniTaskSystem<MapGenerationStep>    ;; run by the MapCreation state, stages sequential in ascending Priority
    :tick-order   "ascending Priority within a state"})           ;; EventCleanupSystem (int.MaxValue) always last — disposes the frame's event entities
+```
+
+## Code shape
+
+```clojure
+(def code-shape
+  {:structure "the simplest structure that solves the task"
+   :pattern-only-when "cardinality or real complexity demands it — never because a doc or a code comment mentions it"
+   :examples #{"a one-element set needs no snapshot"
+               "a one-line tag swap needs no subsystem family"}
+   :comments {:home "a short comment ON the thing itself (class header / method), updated in the same diff — intent, non-obvious invariants, contracts"
+              :only-where "the logic stops being simple and unambiguous"
+              :never #{"a comment about ANOTHER file — link by name only, or move the fact to its owner"
+                       "boilerplate XML documentation"}}})
 ```
 
 ## Pattern Recipes

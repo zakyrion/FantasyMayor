@@ -13,14 +13,14 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 44 docs — 2 always · 22 trigger · 1 reference · 19 archive · 3 canvas.
+Totals: 45 docs — 2 always · 23 trigger · 1 reference · 19 archive · 3 canvas.
 
 ## Read at start (always)
 
 Read these every session before doing anything else.
 
-- [FantasyMayor — Architecture Reference](ARCHITECTURE.md) — `EntityStore`; `Singletons` is the cover over a private second store and its birth-complete row
-- [CLAUDE.md](CLAUDE.md) — This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+- [CLAUDE.md](CLAUDE.md) — How to work in FantasyMayor. The lifecycle is sdd-flow's and is not restated here; this file
+- [Request](Flows/DOC_AGENT_REVIEW/FLOW.md) — {:status :active
 
 ## Read on demand (by trigger)
 
@@ -28,6 +28,7 @@ Do **not** preload. Read only when the trigger condition holds.
 
 | Doc | Read it… | What it is |
 |---|---|---|
+| [FantasyMayor — Architecture Reference](ARCHITECTURE.md) | before any engineering task — request routing puts it into :read | `EntityStore`; `Singletons` is the cover over a private second store and its birth-complete row |
 | [CODE_STORY_RULES](CODE_STORY_RULES_PROPOSAL.md) | before writing or reviewing a system whose body is an algorithm, and when running the cascade on a class | Код читається як розповідь: послідовність, сюжет, сенс у кожній змінній і в кожному імені. |
 | [DOC_STANDARD.md](DOC_STANDARD.md) | before authoring or reviewing any .md (Flows / Patterns / policy) for standard compliance | Single source of truth for how to write Markdown docs in this project. |
 | [FantasyMayor — ECS & Runtime Conventions](ECS_CONVENTIONS.md) | before writing or editing any ECS system, component, event, config, or query | The ECS/runtime rulebook: where state lives, how systems are decomposed, and the write / collection / |

@@ -18,7 +18,7 @@ Copy-skeleton for a Category A FLOW: three Rule 2 stages + Decisions, Progress, 
    :frontmatter {:category "A" :read "always" :status "partial"}  ;; + code_refs when the contract reasons about code
    :shape-home "the FLOW shape lives ONLY here; DOC_STANDARD owns lifecycle and fate rules"
    :fill-rule "? stays ? until the user closes it — never invent"
-   :close "the canon close-ritual block (CLAUDE.md) — /flow-close on the Claude side"})
+   :close "/sdd-flow:close"})
 ```
 
 ---
