@@ -34,7 +34,8 @@ A doc may hold ONLY content that does not decay when code drifts:
   {:task-folder   "Flows/<TASK>/ | Flows/Archive/<TASK>/"  ;; sdd-flow task folder — shape, sections and lifecycle are .sdd-flow/FLOW_CONTRACT.md + .sdd-flow/templates/
    :research-map  "Flows/RESEARCH_<TOPIC>.md"               ;; standalone sdd-deep-research deliverable; inside a task it lives in the task folder
    :recipe        "Patterns/PATTERN_*.md"  ;; one-approach-per-file skeleton for a code role; changes when the convention changes
-   :policy        "root *.md"              ;; ARCHITECTURE / ECS_CONVENTIONS / CLAUDE / this file / GENERAL_UI_STYLE / GLOSSARY
+   :project-skill ".claude/skills/fantasymayor-*/SKILL.md"  ;; a procedure run at its CLAUDE.md § 2 :skills point — decisions made at a moment, never a copy of an ARCHITECTURE law; skill frontmatter (name, description) only, not listed in INDEX
+   :policy        "root *.md"              ;; ARCHITECTURE / CLAUDE / this file / GENERAL_UI_STYLE / GLOSSARY
    :never         "present-tense mirror of code state"})  ;; current-state prose, rosters, wiring — tools own those
 ```
 
@@ -107,7 +108,7 @@ editor), instruction semantics (nothing evaluates).
 |---|---|---|---|
 | **A — Task FLOW** | An sdd-flow task folder and its documents (Rule 2) | `Flows/<TASK>/*`, `Flows/RESEARCH_*.md`, `Flows/Archive/*` (legacy flat `Flows/FLOW_*.md` included) | Shape and lifecycle are the sdd-flow canon; archived FLOWs are immutable task history, not current-code claims. |
 | **B — Template / Reference** | How to build new code, or how to use a tricky API | `Patterns/PATTERN_*.md` (incl. `ADDRESSABLE_PATTERNS.md`) | Do **not** strip. Keep accurate, keep complete. Examples use placeholder names (`Foo*`, `My*`) or live anchors that pass doc-lint. |
-| **C — Policy** | Project-wide rules | `CLAUDE.md`, `ARCHITECTURE.md`, `ECS_CONVENTIONS.md`, `GENERAL_UI_STYLE.md`, `GLOSSARY.md`, this file | Rules and orientation. Change by user decision only. |
+| **C — Policy** | Project-wide rules | `CLAUDE.md`, `ARCHITECTURE.md`, `GENERAL_UI_STYLE.md`, `GLOSSARY.md`, this file | Rules and orientation. Change by user decision only. |
 
 ---
 

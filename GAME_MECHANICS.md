@@ -16,7 +16,7 @@ The mayor creates opportunities for autonomous elites; the city comes to depend 
 > written on 2026-09-05 as a clean copy from GAME_VISION revision 5, the three vision FLOWs, three research passes and the
 > owner's summary of the same day; GAME_VISION was deleted the same day and is not to be reconstructed. The owner's
 > verbatim words live in `Flows/Archive/` (FLOW_BUILD_UX_DECONGESTION, FLOW_VISION_UNIFICATION, FLOW_BASIC_CITY_UI,
-> FLOW_ECONOMY_POC). It says what the game does, not how code implements it (`ARCHITECTURE.md`, `ECS_CONVENTIONS.md`).
+> FLOW_ECONOMY_POC). It says what the game does, not how code implements it (`ARCHITECTURE.md`).
 >
 > **What it is not.** No balance numbers: the owner tunes them in Unity. No scenarios, no district types or names, no
 > elite names, no elite characters or traits. No UI: no UI document exists; §12 holds only the model-side facts a future

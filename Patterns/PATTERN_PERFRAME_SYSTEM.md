@@ -25,7 +25,7 @@ public sealed class [Name]System : UpdatedSystem   // or LateUpdatedSystem
 
     public override int Priority => ExecutionPriority;
 
-    // DI injects EntityStorages — never a bare EntityStore (ECS_CONVENTIONS → State Storage Taxonomy).
+    // DI injects EntityStorages — never a bare EntityStore.
     public [Name]System(EntityStorages storages)
         : base(storages.World, [Domain]Archetypes.[Table](storages.World))   // work table OR tick anchor, resolved from its holder
     {
@@ -47,7 +47,7 @@ public sealed class [Name]System : UpdatedSystem   // or LateUpdatedSystem
    LateUpdatedSystem    {:when "observe final frame state"}   ;; after camera / gameplay writes
    :state               "none across frames"                  ;; persistent → component / singleton component; this-frame-only → PreUpdate + FrameBox<T>; genuinely unavoidable → [StateAllowed("reason")], a reviewed exception
    :shared-inputs       "PreUpdate(GameState) resolve + fail-loud, carry in FrameBox<T>" ;; frame-stamped: stale reads throw, Dispose drops refs; field carries [StateAllowed]; FORBIDDEN in UniTask systems — await spans frames, the box goes stale
-   :scan-diff-each-tick "god-system smell — make it reactive" ;; emit a pulse where the change happens (ECS_CONVENTIONS → Decomposition)
+   :scan-diff-each-tick "god-system smell — make it reactive" ;; emit a pulse where the change happens (ARCHITECTURE → Systems, decomposition)
    :view-output         "push ONE value at a time"            ;; ResourceBar pattern — never build a managed snapshot inside a system
    :wiring              "concrete in installer + hand-wired in Boot.Construct"})  ;; almost always Gameplay; a system not wired into a state never runs
 ```

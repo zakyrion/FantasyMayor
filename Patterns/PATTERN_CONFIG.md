@@ -64,5 +64,5 @@ var config = _storages.Get<[ConfigName]>();   // throws when the config was not 
    :key         "one stored instance per type"                           ;; a second asset of the same shape = a sealed subclass
    :validation  "IValidatableConfig.Validate on the SO; the loader calls it before Add"  ;; one-entry-per-type, no nulls, non-empty — throw
    :derived     "objects built from a config belong to an AppState.InstanceObjects system"  ;; PATTERN_CONFIG_LOADER
-   :off-thread  "reading SO fields inside RunOnThreadPool is allowed"})  ;; plain immutable managed data, not store access (ECS_CONVENTIONS → Threading)
+   :off-thread  "reading SO fields inside RunOnThreadPool is allowed"})  ;; plain immutable managed data, not store access (ARCHITECTURE → Threading)
 ```

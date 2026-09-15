@@ -5,7 +5,6 @@ tags: [contract, process, rules]
 related:
   - "[INDEX](INDEX.md)"
   - "[ARCHITECTURE](ARCHITECTURE.md)"
-  - "[ECS_CONVENTIONS](ECS_CONVENTIONS.md)"
 ---
 
 # CLAUDE.md
@@ -32,18 +31,29 @@ The sdd-flow canon is installed at `.sdd-flow/` (`FLOW_CONTRACT.md` + `reference
 ```clojure
 (def request-routing
   {:first "invoke the framework skill that fits — never handle a request outside it"
-   :skills {sdd-clojure-flow  "any request: normalization, deliverable kind, gates, FLOW"
-            /sdd-flow:resume  "an active FLOW exists"
-            sdd-deep-research "a question with no fast right answer — only on the owner's word"
-            sdd-cascade       "a confirmed map carries :path :cascade"}
+   :skills {sdd-clojure-flow            "any request: normalization, deliverable kind, gates, FLOW"
+            /sdd-flow:resume            "an active FLOW exists"
+            sdd-deep-research           "a question with no fast right answer — only on the owner's word"
+            sdd-cascade                 "a confirmed map carries :path :cascade"
+            fantasymayor-pattern-choice "a statement for work that creates or changes code — run before the statement is shown"
+            fantasymayor-placement      "an implementation map that names new files, types, asmdef references or installers — run before the map is shown"}
    :statement (-> (:read   (-> "read INDEX.md"
                                "match the task statement against each doc's trigger; every doc whose trigger holds goes into :read"
-                               (cond (engineering-task?) "add ARCHITECTURE.md and ECS_CONVENTIONS.md, whatever the triggers say" ;; canon definition, .sdd-flow/FLOW_CONTRACT.md
+                               (cond (engineering-task?) "add ARCHITECTURE.md, whatever the triggers say" ;; canon definition, .sdd-flow/FLOW_CONTRACT.md
                                      :else               "only the trigger matches — :read may be empty")))
+                  (:skills "the result of every fantasymayor-* skill whose :skills entry holds for this statement; the recipes fantasymayor-pattern-choice returns go into :read as well")
                   (:tools  "entries of .sdd-flow/project.md # Tools whose :prefer-when holds for this task")
-                  (:accept "entries of .sdd-flow/project.md # Meters whose :when holds for this task"))
-   :show "all three together with the task statement — the owner confirms or corrects them"
+                  (:accept (cond (changes-code? task) "code-verification + entries of .sdd-flow/project.md # Meters whose :when holds"
+                                 :else                "entries of .sdd-flow/project.md # Meters whose :when holds for this task")))
+   :show "all four together with the task statement — the owner confirms or corrects them"
    :read-when "the docs in :read are read once the statement is confirmed"})
+
+(def code-verification
+  (-> (:step-1 "mcp__roslyn__get_diagnostics — solutionPath FantasyMayor.sln, scoped to the changed files; target: clean")
+      (:step-2 "/arch-check on the changed scope; target: no violation the change introduced")
+      (:step-3 (when (ecs-changed?)
+                 (:then "python3 ~/.claude/skills/ecs-graph/scripts/ecsg.py tags; target: exactly one tag per archetype and per query binding, no runtime tag writes")))
+      (:step-4 "the owner's Unity check; target: compiles and behaves — the final authority")))
 ```
 
 ## 3. Project bans

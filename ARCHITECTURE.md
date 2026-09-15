@@ -5,180 +5,181 @@ trigger: before any engineering task — request routing puts it into :read
 tags: [architecture, ecs, conventions]
 related:
   - "[DOC_STANDARD](DOC_STANDARD.md)"
-  - "[ECS_CONVENTIONS](ECS_CONVENTIONS.md)"
 ---
 
 # FantasyMayor — Architecture Reference
 
-> **PERMISSION-GATED POLICY.** This file changes only with the user's explicit permission: the PreToolUse
-> hook turns any agent edit into a user-approval ask, and approving that prompt IS the permission. Without
-> it, flag the needed change to the user instead of writing it. Policy only — no living rosters:
-> the module/domain inventory is the folder tree + `ecsg.py` / `dig.py` / roslyn (module MDs are
-> abolished — knowledge lives in code comments and tools); asmdef layering is `Tools/asmdef_reach.py`;
-> per-role skeletons are `Patterns/` (picker below); point-of-code conventions are
-> `ECS_CONVENTIONS.md` — read it before writing or editing any ECS system, component, event,
-> config, or query.
-> Style: mechanizable rules here are Clojure rule blocks — `(def subject {…})` maps,
-> `cond` branching, `#{}` alternatives; extend in kind, one `:key value ;; why` entry
-> per rule; prose is reserved for the "why". The notation is defined ONCE — the
-> canonical glossary is `~/.claude/CLAUDE.md` → "Clojure instruction notation" (already
-> in every agent's context); the authoring spec is `DOC_STANDARD.md` → Rule Style.
+Runtime laws of FantasyMayor code: systems, entities, events, threading, code shape.
 
 ## Stack
 - Engine: Unity · ECS: `Friflo.Engine.ECS` 3.6 (DoD style, not Unity DOTS) · DI: `VContainer` · Async: `UniTask`
-- ECS storage: `EntityStorages` names exactly two members — `World` is the entity/event
-  `EntityStore`; `Singletons` is the cover over a private second store and its birth-complete row
-- Assets: `Addressables` · Input: `InputSystem` · Rendering: URP · UI: `UI Toolkit` (UXML/USS) with
-  `Unity App UI` (`com.unity.dt.app-ui`) as the component foundation — see `GENERAL_UI_STYLE.md` §15
+- Assets: `Addressables` · Input: `InputSystem` · Rendering: URP · UI: `UI Toolkit` (UXML/USS) + `Unity App UI` (`com.unity.dt.app-ui`)
 
-## Layers
-Three top-level code layers; boundaries are enforced by asmdef references (`Tools/asmdef_reach.py`):
-
+## Systems
 ```clojure
-(def layers
-  {:domain       "Assets/Domains/<Name>/"   ;; game-rule bounded context (DDD-strategic): owns its entity tables + turn-phase logic; pure data+logic, NO view/render dependency
-   :presentation "Assets/Presentation/"     ;; render/view tier — two asms: Presentation (world/scene views: terrain, hex resources, icons), Presentation.UI (screen-space HUD, UI Toolkit + App UI)
-   :module       "Assets/Modules/"})        ;; engine-facing infrastructure: addressables, input, cameras, canvas, boot, config providers, shared kernels
+(def decomposition
+  {:split-when #{"the system both creates and destroys the same kind of content"
+                 "it diffs world state every frame to find out what changed"
+                 "it holds more than two unrelated query families"
+                 "it runs in several game states for different reasons"}
+   :split-into {:startup-bulk   "a one-shot pipeline stage or subsystem inside map creation"
+                :runtime-duty   "one reactive system per responsibility"
+                :shared-compute "a stateless helper in Helpers/"}})
 
-(def depends
-  {:domain->domain       "substrate → agents → verbs DAG only" ;; Map/Economy (leaves) → Actors → Actions; owner-keyed logic lives in Actors/Actions, NEVER in the owner-agnostic Economy substrate
-   :presentation->domain "one-way, onto what it renders"       ;; domains never depend on presentation
-   :domain->module       "shared kernels only"                 ;; e.g. AxialSystem, CurveBuilders
-   :namespaces           "follow folders"})                    ;; Domains.Map.Hex.*, Presentation.Terrain.*, Presentation.UI.MainHud.ResourceBar.*
+(def reactive
+  {:is         "the default for runtime logic and the only reactive mechanism in the project"
+   :event      {:is "a one-frame event; its component is ordinary data — the values the consumer needs"}
+   :consumer   {:anchors-on "the event's own archetype — zero cost while no event exists" :gate "IsRipe"}
+   :reaction   #{"act on the event component's values directly"
+                 "reconcile: build the current set from world state, diff it, act on the difference"}
+   :reconcile-gives "a second or coalesced event finds nothing to do; a missed event is repaired by the next one"
+   :timing     "never assume a same-frame reaction — a chain of events costs one frame per link"
+   :emitters   "may land later: the consumer can be built first as a dormant scaffold"
+   :per-frame  {:only-when "the logic is genuinely continuous and cannot be reactive"}
+   :component-change-observers {:never #{"store.OnComponentAdded" "store.OnComponentRemoved" "store.OnTagsChanged" "any value-change observer"}
+                                :instead "raise an event next to the write"
+                                :adopting-one "a design decision for the whole project, never a local one"}})
+
+(def stateless-systems
+  {:rule         "a system holds no mutable per-instance state"
+   :not-state    #{"readonly DI dependencies and store handles"
+                   "query caches — Archetype, ArchetypeQuery, ComponentIndex — resolved once in the constructor"
+                   "const and static readonly values"}
+   :state        #{"any reassignable field"
+                   "a readonly field whose contents change across frames: collections, arrays, StringBuilder, native buffers held between ticks"}
+   :default-home "a status flag, an in-flight marker, a progress counter, a running or completed bit, a handle to what is being processed — domain state on an entity, or single-instance state outside the system"
+   :escape       {:order [:component FrameBox StateAllowedAttribute]
+                  :component "move the state onto an entity or into single-instance state — always tried first"
+                  FrameBox "state valid only for a bounded number of frames"
+                  StateAllowedAttribute "a reviewed exception, always with a reason"}
+   :checked-by   "/arch-check"})
+
+(def system-collections
+  (cond
+    (monobehaviour-view? code)
+    {:collections "System.Collections.Generic allowed — a view is not a system"}
+
+    (runs-once-or-a-few-times? system)
+    {:examples    #{"startup step" "config loader" "map-creation pipeline stage or subsystem"}
+     :collections "System.Collections.Generic allowed"}
+
+    (runs-repeatedly? system)
+    {:examples    #{"per-frame system" "reactive system — every event" "turn phase — every turn"}
+     :rule        "zero-allocation: memory claimed at the start of a run is released at its end; nothing is left for the GC"
+     :collections "Unity.Collections native containers, structs, spans"
+     :never       "a managed collection or array built per run"
+     :except      "elements of a managed type (GameObject, view reference) — a System.Collections.Generic collection allocated once and held"
+     :enum-key    "an enum cannot key a NativeHashSet or NativeParallelHashMap — key on its underlying int; as a value an enum is fine"}))
+
+(def native-allocator
+  {:lifetime (cond (lives-within-one-frame? memory)   Allocator.Temp
+                   (lives-within-four-frames? memory) Allocator.TempJob
+                   :else                              "Allocator.Persistent, or a System.Collections.Generic collection — released by one named owner")
+   :async    {:never "Allocator.Temp — it is bound to its thread, and an async system may continue off the main thread"}
+   :temp-on  (cond (main-thread?)  "the frame's Temp block, rewound at the end of the frame"
+                   (inside-a-job?) "the job's Temp block, rewound at the end of the job"
+                   :else           :never)
+   :breach   "an error, never a recommendation — /arch-check reports what it can see statically"})
 ```
 
-**Why this shape.** This is **DDD-strategic bounded contexts + a layered presentation tier**, on top of a
-**DoD/ECS** data substrate. DDD (Evans) deliberately isolates the domain model from UI/infra, so pulling
-all views into one layer is *pro*-DDD, not vertical-slice. DoD's "no hierarchy" is about data/types
-(flat tables, composition, no inheritance — see the Table Rule, `ECS_CONVENTIONS.md`); it is orthogonal
-to this code-layering. We borrow DDD's **strategic** half (contexts, ubiquitous language, layering), not
-its OO **tactical** patterns (aggregates/repositories), which ECS expresses as tables + systems.
-
-## Shared kernel (app skeleton)
+## Entities
 ```clojure
-(def shared-kernel
-  {Core                    "Assets/Scripts/Core"                 ;; shared primitives: Box<T>, Result<T>, FrameBox<T>, StateAllowedAttribute — enumerate members via roslyn
-   Ecs.Extensions          "Assets/Scripts/EcsExtensions"       ;; ECS loop contracts + base systems: UpdatedSystem/LateUpdatedSystem, IUniTaskSystem, ConfigLoaderSystem<T>, IValidatableConfig, IPrioritizedUniTaskSystem<T>, EventCleanupSystem, GameState; plus the Friflo seams: EntityStorages (also the config store), SingletonComponents, EventArchetypes, EcsEventExtensions, QueryResultExtensions
-   Installers.World        "Assets/Scripts/Installers"           ;; app-root DI: root LifetimeScope, world composition, input wiring, installer orchestration
-   :authored-config-assets "Assets/Addressables/Configs/*"})
+(def table-rule
+  {:table      "a key component + a discriminator (tag-law :discriminator), together in one declared archetype"
+   :filter     {:requires "the table's archetype" :never "a bare key component — a union of every table sharing that key space"}
+   :sweep      "iterate the table's archetype itself — no query object"
+   :keyed-join "a ComponentIndex over the key column, declared once in the constructor"
+   :cross-archetype-query {:only-when "the filter genuinely spans several archetypes" :requires "reviewed with the owner, never introduced unilaterally"}
+   :join       {:is "a lookup by key value at the point of use" :never "a stored Entity reference from one table's row to another table's row"}
+   :index      {:only-when "a hot join — read every frame or many times per turn" :never "an index for a click-frequency lookup — scan the archetype"}})
+
+(def tag-law
+  {:archetype       {:requires "exactly one tag in every archetype declaration" :never "two identity tags — that row cannot exist"}
+   :discriminator   (cond (category-tag? tag) "the tag is a kind marker shared by several tables; the …ViewComponent discriminates the table"
+                          :else               "the tag is the table discriminator")
+   :event-archetype {:exempt "every event carries EventTag; its archetype is named by the event component"}
+   :state           {:is "…StateComponent wrapping an enum" :never "a toggled tag" :write "flipped through AddComponent, change-only"}
+   :kind            {:is "…KindComponent wrapping an enum" :never "a second tag" :write "set once at birth"}
+   :enum-columns    "a state or kind column is a legal self-index key: IIndexedComponent<TEnum> over the family's own rows, read as index[value]"})
+
+(def key-role-law
+  {:pk         {:type "…IdComponent" :is "the row's own identity" :owner "exactly one table, paired with its tag" :index "unique by contract — the engine does not enforce it"}
+   :fk         {:type "…FKComponent" :is "a reference from another table's row into the owner's key space" :never "the owner's PK type" :index "1:N"}
+   :data       {:type "…Component" :is "an attribute value" :never "keying the indexes of two different tables"}
+   :enum-space {:is "a key space with no PK table" :owner-side :data :referencing-side :fk}
+   :self-index {:allowed-when "every row carrying the Data component belongs to one table; the lookup value may come from outside"
+                :never "the same Data type indexed across two tables — split it into a PK + FK pair"}})
+
+(def component-index
+  {:keyed-on         "the component type, across every table that carries it — the key type carries the role, the tag carries the table"
+   :maintained-by    "the write call: AddComponent re-files the row, deleting the entity drops it"
+   :pk-uniqueness    "a duplicate key returns both rows without an error — check at the allocation site and throw there"
+   :bucket-cap       "at most 100 entities per identical key value — insert and remove are O(N) over the duplicates"
+   :one-fk-per-space "an entity holds one component per type, so at most one FK into a key space; two references need their own pair of FK types — a design decision"
+   :key-equality     "the component declares IIndexedComponent<TValue> and returns the key from GetIndexedValue(); an enum works directly, a struct key implements IEquatable"})
+
+(def archetype-law
+  {:home      {:is "one static <Assembly>Archetypes holder per assembly that declares archetypes"
+               :assembly "the asmdef name without dots and without the Domains. prefix"
+               :exempt ["shared kernel" "app-root"]}
+   :reach     "an archetype names only components its assembly can reference"
+   :shape     "each member returns the live Archetype: store.GetArchetype(ComponentTypes.Get<…>(), Tags.Get<…>()) in the method body; the store arrives as a parameter"
+   :state     "the holder stores nothing"
+   :owner     "a system keeps the Archetype it uses in a readonly field, resolved once in the constructor"
+   :birth     {:is "archetype.CreateEntity() — the row is born with every column at default" :never "a bare store.CreateEntity() at a call site"}
+   :bulk      "archetype.CreateEntities(n); EnsureCapacity(n) first when the count is known"
+   :values    "assign the new row to a local entity variable, then write — never chain writes off the creating call"
+   :arity-cap "ComponentTypes.Get and Tags.Get take at most 5 type arguments"})
+
+(def birth-completeness
+  {:rule        "an entity is born carrying every column it will ever hold"
+   :presence    {:never "a predicate" :instead "a sentinel value — Unknown, Idle, an empty box"}
+   :composition {:never "an optional column" :change "delete the row and create a new one in its archetype, carrying the PK/FK value over"}
+   :never       #{"RemoveComponent" "RemoveTag" "a late AddComponent of a column the archetype does not name — it migrates the row out of its archetype"}})
+
+(def component-writes
+  {:write       "entity.AddComponent(value) — the upsert; under birth completeness always a plain value write"
+   :never       #{"mutating through a ref into component storage — an index re-files only on the write call"
+                  "treating GetComponent<T>() as a handle to mutate"}
+   :change-only "compare first, write on difference — rewriting the same value re-files indexed rows for nothing"})
+
+(def links
+  {:persistent   {:is "a stable domain key: the owner's …IdComponent, referenced as that space's …FKComponent" :never "a stored Entity handle"}
+   :runtime-only {:is "non-serialized, lifetime-coupled, usually view-layer" :may "hold a direct reference or an Entity handle"}
+   :resolution   "a key lookup that misses throws"})
 ```
 
-## Placement
+## Events
 ```clojure
-(def place  ;; {what-the-new-code-is destination}
-  {:domain-rule "Assets/Domains/<Domain>/<Feature>/" ;; the bounded context that owns the rule; a NEW domain = deliberate architecture decision
-   :world-view  "Assets/Presentation/<SubArea>/"
-   :hud         "Assets/Presentation/UI/<Window>/"
-   :infra       "Assets/Modules/<FeatureName>/"
-   :di-feature  "<Feature>/Installer/"
-   :di-app-root "Assets/Scripts/Installers/"          ;; cross-cutting / app-root only
-   :ui-assets   "<Feature>/Prefabs/"})                ;; prefabs, uxml, uss
+(def event-lifecycle
+  {:archetype  "EventTag + EventFrameComponent + the event component, resolved by EventArchetypes.Of<T>(store)"
+   :raise      "store.CreateEvent(new TEvent { … }) — stamps the frame inside the creating call"
+   :ripe       "a consumer acts only while IsRipe(entity) — the frame after birth"
+   :delivery   "every consumer exactly once, independent of system priority"
+   :cleanup    "EventCleanupSystem, Priority int.MaxValue, deletes ripe events at the end of that frame"
+   :priorities {:order "execution only" :never "a rule that a consumer must sit above or below its producer"}})
 ```
 
-## Feature folder layout (every layer)
+## Threading
 ```clojure
-(def feature-folders  ;; {folder {:contains … :never …}}
-  {"Components/" {:contains "pure data structs"           :never "logic, side effects"}
-   "Tags/"       {:contains "tag components"}
-   "Events/"     {:contains "one-frame event components"}
-   "Configs/"    {:contains "ScriptableObject class defs"  :never "runtime logic, config assets"}
-   "Data/"       {:contains "collections, records, enums"  :never "ECS systems, MonoBehaviours"}
-   "Systems/"    {:contains "ECS systems + orchestration"  :never "view logic, config definitions"}
-   "Helpers/"    {:contains "stateless computation"        :never "cross-frame state, entity ownership"}
-   "Views/"      {:contains "MonoBehaviour view layer"     :never "business logic"}
-   "Prefabs/"    {:contains "module-scoped prefabs, uxml, uss"}
-   "Installer/"  {:contains "VContainer registration ONLY"}})
-```
+(def store-thread
+  {:main-thread-only "every store call — create, AddComponent, GetComponent, delete, index lookups, raising events"
+   :off-thread       "computation over plain data and native containers only; reading ScriptableObject config fields counts as plain data"
+   :bridge           "await UniTask.SwitchToMainThread() before the first store call; SwitchToThreadPool for more computation"
+   :bridge-cost      "a hop to the main thread resumes at the next Update — about one frame"
+   :never            "an off-thread store write — an indexed column re-files its row on write, so it corrupts the index"})
 
-## DI composition
-```clojure
-(def di-composition
-  {:lifetime-scope    WorldInstaller                              ;; ONLY — app-root composition = WorldInstaller.Configure()
-   :installer         "plain class : VContainer.IInstaller"
-   :installer-mono    {:only-when "it owns [SerializeField] data"}
-   :install-order     "explicit in Configure()"                   ;; dependencies before dependents
-   :storage-registry  EntityStorages                              ;; RegisterInstance once in WorldInstaller; bare EntityStore is NEVER a DI service
-   :storage-members   #{World Singletons}                         ;; callers name the storage they mean; exact contracts: ECS_CONVENTIONS → State Storage Taxonomy
-   :per-frame-system  "register CONCRETE, .As<TheSystem>()"       ;; never As<IUpdatedSystem> — Boot injects concretes and wires states by hand
-   :public-api-module "Core/ contract asm + Implementation/ asm"});; canonical examples: Addressable, MainCanvas, Boot
-```
-
-## System Taxonomy
-
-Canonical vocabulary. Every system in the project plays exactly ONE of these roles. Use these names
-in docs, reviews, and design discussions. The concrete skeleton for each role lives in `Patterns/` — see
-**Pattern Recipes** below.
-
-| Role | Base type | Driven by | Lifecycle |
-|---|---|---|---|
-| **Config Loader** | `ConfigLoaderSystem<T>` (`IUniTaskSystem`, `AppState.ConfigLoading`) — generic, one installer registration per config | Boot startup, once | one-shot; loads + validates the SO, `storages.Add<T>` |
-| **Instance Step** | `IUniTaskSystem` with `AppState.InstanceObjects` | Boot startup, once, after every Config Loader | one-shot; builds runtime objects derived from configs |
-| **Pipeline Stage** | `IPrioritizedUniTaskSystem<MapGenerationStep>` | `MapCreation` state, sequential, ascending `Priority` | one-shot async |
-| **Pipeline Orchestrator** | a Pipeline Stage that fans out into SubSystems | `MapCreation` state | one-shot; NO domain logic of its own |
-| **Pipeline SubSystem** | per-orchestrator abstract base (async `ViewSubSystem : IUniTaskSystem<GameState>` or sync `HexResourcesViewSubSystem : ISystem<GameState>`) | its orchestrator, ascending `Priority`, `IsEnabled` honored | one-shot |
-| **Per-frame System** | `UpdatedSystem` / `LateUpdatedSystem` (dispatch over an `Archetype` or a cross-archetype `ArchetypeQuery`) | the ACTIVE game state only | every frame; must justify why it cannot be reactive |
-| **Reactive System** | `UpdatedSystem` anchored on `EventArchetypes.Of<TEvent>(store)` | a one-frame pulse, consumed while `IsRipe`; zero idle cost | pulse → reconcile against current state, idempotent |
-| **Cleanup** | `EventCleanupSystem`, `Priority = int.MaxValue` | every active state, runs last | deletes every RIPE `EventTag` entity each tick |
-
-Role invariants (policy — hold regardless of the template you follow):
-```clojure
-(def role-invariants
-  {:startup-bulk-work #{pipeline-stage sub-system}             ;; one-frame events die at tick end (EventCleanupSystem) — startup is never event-driven
-   :runtime-logic     reactive-system                          ;; the DEFAULT
-   :per-frame-system  {:requires "written justification"}      ;; missing justification = decomposition smell (ECS_CONVENTIONS → Decomposition Rules)
-   :orchestrator      {:contains :no-domain-logic}
-   :sub-system        {:exists-only-under orchestrator}
-   :naming            {#{orchestrator stage} "…System"
-                       sub-system            "…SubSystem"
-                       reactive              "intent-name"}    ;; ForestSpawnSystem, HexIconsVisibilitySystem — no mandated …ReactiveSystem suffix
-   :type-name         :self-sufficient-without-namespace})     ;; repeat the feature name (DistrictBuildCostConfig, never a bare Config); drop only a pure non-disambiguating domain prefix (GenerationSystem, not MapGenerationSystem); full rule + exceptions: ECS_CONVENTIONS → Naming & Construction
-```
-
-**Turn pipeline (module `Turn`) — same roles, different scope.** The Orchestrator/SubSystem roles are
-reused for turn processing, but turn-scoped: re-run every turn on a `NextTurnEvent` pulse, unlike the
-one-shot `MapCreation` pipeline. The phase base is `TurnPhaseSubSystem`; the launcher is the per-frame
-`TurnProcessorSystem` (it polls the in-flight run each frame, so it is justified as a Per-frame System,
-not reactive). The phase set runs **inline on the main thread** — phases do store I/O, and store I/O is
-main-thread only (`ECS_CONVENTIONS.md` → Threading And Native Memory, Law 1). A thread-pool hop is the
-launcher's to introduce, and only for phases that compute without touching the store.
-
-## Tag Law (entity identity)
-```clojure
-(def tag-law  ;; 2026-07-08; strengthened 2026-07-15 FM-11 — universal, machine-checkable
-  {:entity {:requires "EXACTLY 1 tag — its identity / table discriminator"}  ;; the tag defines the entity's boundary
-   :filter {:requires "exactly 1 tag in every archetype declaration"}  ;; 2 identity tags = a row that cannot exist = a dead filter
-   :category-tag UITag                                        ;; a shared kind-marker satisfies the law (identity rides on the *ViewComponent)
-   :event-filter :exempt                                      ;; a reactive system is anchored on the event's own archetype — the event IS the filter
-   :state "…StateComponent (enum) — never a toggled tag"      ;; a runtime marker is a state COLUMN; the AddComponent upsert re-indexes its self-index
-   :kind  "…KindComponent (enum) — never a second tag"        ;; a subtype marker is a kind COLUMN; per-kind access = self-index lookup
-   :why "tag = archetype identity → deterministic archetype attribution in the ecs-graph"})
-```
-```clojure
-(def key-role-law  ;; 2026-07-15 FM-11 — a key's role is visible in its TYPE
-  {:pk   "…IdComponent — the row's own identity; exactly ONE owner table"
-   :fk   "…FKComponent — another table's reference into the owner's space; ALWAYS a separate type, never the owner's PK type"
-   :data "…Component — attribute value; never a map key shared across tables (self-index exception: ECS_CONVENTIONS)"
-   :why "a shared key TYPE re-creates the bare-key UNION at the type level; separate types make the compiler enforce the Table Rule"})
-```
-Point-of-code form (tables, key spaces, materializations, self-index exception): `ECS_CONVENTIONS.md` → Table Rule.
-
-## Cross-domain behavior (transactions)
-```clojure
-(def cross-domain-behavior  ;; 2026-07-08 — the unit above single-domain systems
-  {:transaction   "ONE entity in the verb domain"       ;; PATTERN_TRANSACTION_ENTITY — all session state rides on it; commands mutate it; stage = tag swap
-   :ui            :projection                           ;; reads the entity, raises command pulses, owns no transaction state
-   :completion    "fact entity in the substrate domain" ;; views render facts, never verbs
-   :flow-contract "Flows/FLOW_<NAME>.md"                ;; one behavior = one contract doc (events, ownership, ordering, gap list); code comments link to it, never retell it
-   :why "a behavior with no single owner degrades into state copies + stale prose at every seam"})
-```
-
-## Boot flow (invariants)
-```clojure
-(def boot-flow
-  {:boot-order   (-> AppState.ConfigLoading AppState.InstanceObjects GameModeMachine)   ;; startup steps run IUniTaskSystem by AppState flag; states: #{MainMenu MapCreation MapLoading Gameplay}
-   :active-state "ONLY its systems run"                          ;; composition is manual + visible in Boot.Construct; live wiring: dig.py state <GameMode>; semantics: Assets/Modules/Boot/BOOT.md
-   :world-init   IPrioritizedUniTaskSystem<MapGenerationStep>    ;; run by the MapCreation state, stages sequential in ascending Priority
-   :tick-order   "ascending Priority within a state"})           ;; EventCleanupSystem (int.MaxValue) always last — disposes the frame's event entities
+(def structural-change
+  {:is      #{AddComponent RemoveComponent AddTag RemoveTag}
+   :is-not  "birth by an archetype — archetype.CreateEntity() migrates nothing"
+   :throws  "inside an enumeration — also for an AddComponent into a column the archetype already names, and for an unrelated entity; the guard is store-wide"
+   :delete  "not a structural change, but it mutates the set being enumerated"
+   :idiom   (-> "collect entity.Id into a NativeList<int>"
+                "close the enumeration"
+                "re-fetch each id via store.TryGetEntityById"
+                "spawn and write in that second pass")
+   :never   "snapshotting Entity values — an Entity is not unmanaged"
+   :base    "UpdatedSystem already snapshots for its subclasses"})
 ```
 
 ## Code shape
@@ -193,32 +194,35 @@ Point-of-code form (tables, key spaces, materializations, self-index exception):
               :only-where "the logic stops being simple and unambiguous"
               :never #{"a comment about ANOTHER file — link by name only, or move the fact to its owner"
                        "boilerplate XML documentation"}}})
+
+(def naming
+  {:suffix            {:data "…Component" :tag "…Tag" :event "…Event" :fk "…FKComponent — the owner key's name with FK before Component"}
+   :type-name         {:rule "clear without the namespace — C# Framework Design Guidelines"
+                       :repeat "the feature name, always: <Feature>CostConfig, never a bare Config"
+                       :strip "only a pure domain prefix that adds no clarity"
+                       :never "disambiguation through a using alias or a namespace qualifier"}
+   :prefix-exceptions #{"an FK/PK identity component or a table discriminator referenced across domains" "a DI installer — <Domain>Installer"}
+   :static            {:only-when "the type is a stateless utility with no fields"}})
+
+(def output-methods
+  {:may-fail   {:shape "bool Try…(in inputs, out or ref outputs)" :caller "branches on the bool"}
+   :sure-single-output "return the value"
+   :never      #{"inferring success from the output — null, Count == 0, Length == 0"
+                 "passing a collection the method writes by value — pass it by ref"}
+   :inline     "a single-use private helper that reads fields and unfolds the caller's linear flow stays inline; extract only a signature-complete method that is reused or self-contained"})
+
+(def fail-loud
+  {:rule      "a step that cannot do its job throws a descriptive exception naming what is missing"
+   :never     #{"a silent return or return UniTask.CompletedTask on a missing prerequisite" "Debug.LogWarning and skip"}
+   :validate  "at the source (IValidatableConfig.Validate) and again at the consumer"
+   :cancel    {:signal "cancellationToken.ThrowIfCancellationRequested() on its own line" :never "a quiet return"}
+   :cleanup   #{"release what cancelled work owns in try/finally" "clean up partial work before throwing"}
+   :exception "InvalidOperationException with a message by default"})
 ```
 
-## Pattern Recipes
-
-Minimal, **one-approach-per-file** skeletons — read the matching recipe instead of copying a live
-implementation. Each is a Category B doc in `Patterns/` (also in `INDEX.md`). This file owns the
-*taxonomy*, `ECS_CONVENTIONS.md` owns the *conventions*, the recipes own the *procedure*.
-
-| Read when you are creating… | Recipe |
-|---|---|
-| an ECS data component (struct of runtime values; a key component needs `IEquatable`) | `Patterns/PATTERN_COMPONENT.md` |
-| a field-less marker / table discriminator (empty struct) | `Patterns/PATTERN_TAG.md` |
-| a one-frame event (payload-less pulse + `EventTag`) | `Patterns/PATTERN_EVENT.md` |
-| a `ScriptableObject` config (stored by type in `EntityStorages`, `IValidatableConfig`, read via `storages.Get<T>`) | `Patterns/PATTERN_CONFIG.md` |
-| loading a config (`ConfigLoaderSystem<T>` registration) or an `AppState.InstanceObjects` system | `Patterns/PATTERN_CONFIG_LOADER.md` |
-| a world-init pipeline stage (spawn / build once during map creation) | `Patterns/PATTERN_PIPELINE_STAGE.md` |
-| an orchestrator + DI-collected subsystem family (DoD polymorphism) | `Patterns/PATTERN_ORCHESTRATOR_SUBSYSTEM.md` |
-| a polymorphic SO config catalogue materialized into an entity table (many kinds keyed by a shared FK; + optional per-kind evaluator) | `Patterns/PATTERN_POLYMORPHIC_CATALOGUE.md` |
-| a per-frame system (continuous logic; `PreUpdate` + `FrameBox`) | `Patterns/PATTERN_PERFRAME_SYSTEM.md` |
-| a reactive system (event-driven — the DEFAULT for runtime logic) | `Patterns/PATTERN_REACTIVE_SYSTEM.md` |
-| a reactive system whose event handling has several independently-ordered parts (reactive trigger + subsystem fan-out) | `Patterns/PATTERN_REACTIVE_ORCHESTRATOR_SYSTEM.md` |
-| a multi-step behavior spanning more than one subdomain (transaction entity + flow contract) | `Patterns/PATTERN_TRANSACTION_ENTITY.md` |
-| one-frame event cleanup (and why you almost never write one) | `Patterns/PATTERN_CLEANUP_SYSTEM.md` |
-
 ## Known deviations
-- The repository is partially standardized, not fully uniform — a deviation that matters is noted in a
-  code comment at the deviation site, not here.
-- `Assets/Scripts/Extentions` is a legacy typo-named folder — existing structure, not a naming
-  standard; do not "fix" it.
+```clojure
+(def deviations
+  {:record "a code comment at the deviation site"
+   :never  "a list of deviations in this document"})
+```

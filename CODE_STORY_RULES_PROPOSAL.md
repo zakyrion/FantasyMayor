@@ -9,7 +9,6 @@ tags:
   - story
 related:
   - "[ARCHITECTURE](ARCHITECTURE.md)"
-  - "[ECS_CONVENTIONS](ECS_CONVENTIONS.md)"
 ---
 
 # CODE_STORY_RULES
@@ -22,7 +21,7 @@ related:
 (def standing
   {:status  :standing                       ;; чинний документ проєкту з 2026-09-09
    :replaced CODE_STYLE_RULES_WIP.md        ;; видалений того ж дня; однойменні правила тут беруть верх
-   :scope   "нижче ARCHITECTURE.md і ECS_CONVENTIONS.md — вони лишаються старшими"
+   :scope   "нижче ARCHITECTURE.md — він лишається старшим"
    :history "останній прогін каскаду — Flows/Archive/FLOW_CASCADE_S2_LAKE.md; FLOW_CASCADE_S1_REDESIGN не зберігся"})
 ```
 
@@ -574,8 +573,8 @@ private readonly struct LakeRunNumbers
               :ззовні   "не звільняємо"}
    :one-place "кожна структура має рівно одне місце звільнення — його вибирає :lives"
    :never  "вкладені try/finally заради Dispose — звільнення не керує відступами"
-   :allocator Allocator.Temp
-   :zero-allocation "детермінований час життя, не заборона типів — ECS_CONVENTIONS.md → zero-allocation"
+   :allocator "за часом життя — ARCHITECTURE.md → Systems, native-allocator"
+   :zero-allocation "детермінований час життя, не заборона типів — ARCHITECTURE.md → Systems, system-collections"
    :params "helper, якому треба >3 параметрів, — або абзац того, хто кличе, або його параметри є одним записом (правило 8)"
    :case   {:is     "вісім колекцій у конструкторі, вісім Dispose — і пʼять із них живуть лише в зшиванні"
             :should "два іменники прогону в конструкторі; середини — using var у Build; scratch зшивання — using var у самому зшиванні"}

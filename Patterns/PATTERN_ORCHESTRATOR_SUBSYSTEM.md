@@ -39,7 +39,7 @@ public sealed class [Feature]SubSystem : [Name]SubSystem
     private const int ExecutionPriority = [N];
     public override int Priority => ExecutionPriority;
 
-    // DI injects EntityStorages — never a bare EntityStore (ECS_CONVENTIONS → State Storage Taxonomy).
+    // DI injects EntityStorages — never a bare EntityStore.
     public [Feature]SubSystem(EntityStorages storages) : base(storages.World) { }
 
     public override void Run([Args])
@@ -75,5 +75,5 @@ public [Name]System(IReadOnlyList<[Name]SubSystem> subSystems /*, EntityStorages
                      :own    "each subsystem resolves its own archetypes / indices in its ctor"}  ;; store-owned, nothing to dispose
    :priority-scope  "children WITHIN the orchestrator only"      ;; unrelated to pipeline-stage priorities
    :routing-variant "bool TrySpawn(config), first match wins, fail loud on none"  ;; DoD polymorphism
-   :naming          "no domain prefix on [Name]/[Feature]"})     ;; namespace carries it; [Domain]Installer keeps its prefix (the documented exception; ECS_CONVENTIONS → Naming & Construction)
+   :naming          "no domain prefix on [Name]/[Feature]"})     ;; namespace carries it; [Domain]Installer keeps its prefix (the documented exception; ARCHITECTURE → Code shape, naming)
 ```

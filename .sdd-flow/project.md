@@ -16,7 +16,7 @@
                 "any Category A FLOW with status: partial — reconstruct its stage, findings, decisions, disproven, attempted"}
  :never-preload #{"anything INDEX.md does not send you to"}
  :read-priority "INDEX carries always | trigger | reference per doc — follow it, do not wander the vault"
- :task-docs "CLAUDE.md § 2 request-routing fills the statement's :read from INDEX triggers (+ ARCHITECTURE.md, ECS_CONVENTIONS.md for an engineering task)"}
+ :task-docs "CLAUDE.md § 2 request-routing fills the statement's :read from INDEX triggers (+ ARCHITECTURE.md for an engineering task)"}
 ```
 
 # Tools
@@ -98,17 +98,7 @@
 # Meters
 
 ```clojure
-[{:meter "mcp__roslyn__get_diagnostics — solutionPath FantasyMayor.sln, scoped to the edited project/files"
-  :target "clean on the edited scope"
-  :when :code-changed
-  :note "a pre-check that filters plain C# errors out of the round-trip; it never replaces the owner's Unity check"}
-
- {:meter "the owner's Unity-side check"
-  :target "compiles and behaves"
-  :when "only the owner can verify it"
-  :authority :final}                    ;; the agent never runs Unity, dotnet, msbuild or Unity CLI builds
-
- {:meter "python3 Tools/doc_lint.py --quiet"
+[{:meter "python3 Tools/doc_lint.py --quiet"
   :target "ghost-claim count not grown"
   :when :docs-changed}
 
@@ -123,6 +113,11 @@
  {:meter "python3 ~/.claude/skills/di-graph/scripts/dig.py stats"
   :target "curated: true, no ghost nodes"
   :when :di-changed}]
+```
+
+```clojure
+{:code-verification "CLAUDE.md § 2 (def code-verification) — roslyn diagnostics, /arch-check, ecsg.py tags, the owner's Unity check; joins :accept of every statement that changes code"
+ :project-skills    "CLAUDE.md § 2 :skills — fantasymayor-pattern-choice, fantasymayor-placement (.claude/skills/)"}
 ```
 
 # Bans

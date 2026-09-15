@@ -38,7 +38,7 @@ public sealed class [Name]System : UpdatedSystem
 
     public override int Priority => SystemPriorities.RuntimeTick.[Name];
 
-    // DI injects EntityStorages — never a bare EntityStore (ECS_CONVENTIONS → State Storage Taxonomy).
+    // DI injects EntityStorages — never a bare EntityStore.
     public [Name]System(EntityStorages storages, IReadOnlyList<[Name]SubSystem> subSystems)
         : base(storages.World, EventArchetypes.Of<[Name]Event>(storages.World))   // the pulse's archetype drives the system
     {
@@ -46,7 +46,7 @@ public sealed class [Name]System : UpdatedSystem
         _subSystems = subSystems.OrderBy(s => s.Priority).ToArray();
     }
 
-    // The pulse carries no payload — each subsystem reconciles against CURRENT store state (idempotent).
+    // Subsystems act on the event's values or reconcile against CURRENT store state.
     protected override void Update(GameState state, in Entity pulse)
     {
         if (!EcsEventExtensions.IsRipe(pulse))
@@ -54,7 +54,7 @@ public sealed class [Name]System : UpdatedSystem
 
         for (var i = 0; i < _subSystems.Count; i++)
             if (_subSystems[i].IsEnabled)
-                _subSystems[i].Run(/* shared args */);
+                _subSystems[i].Run(/* shared args, the event's values */);
     }
 }
 ```
@@ -75,13 +75,15 @@ yet.
 
 ```clojure
 (def reactive-orchestrator-rules
-  {:driven-by       "EventArchetypes.Of<TheEvent>"                ;; zero cost while no pulse exists; the event is payload-less (PATTERN_EVENT) — persistent truth lives in singleton components / on entities
-   :on-pulse        "subsystems reconcile, never delta"           ;; each Run() rebuilds from CURRENT state and diffs — idempotent
-   :ripe-gate       "IsRipe(pulse) or return"                     ;; the orchestrator gates ONCE, before the fan-out — a subsystem never re-checks (ECS_CONVENTIONS → Event Lifecycle)
+  {:driven-by       "EventArchetypes.Of<TheEvent>"                ;; zero cost while no pulse exists
+   :on-pulse        #{"subsystems act on the event's values"
+                      "subsystems reconcile against CURRENT state"} ;; a reconciling Run() rebuilds and diffs — idempotent
+   :ripe-gate       "IsRipe(pulse) or return"                     ;; the orchestrator gates ONCE, before the fan-out — a subsystem never re-checks (ARCHITECTURE → Events)
    :orchestrator    {:contains :no-domain-logic}                  ;; sort by Priority, skip IsEnabled==false, Run — ALL real work is in the subsystems
    :subsystem       "plain IDisposable, NOT a system"             ;; [StateAllowed] on the orchestrator's list; query caches live in each subsystem
    :di-subsystem    ".As<[Feature]SubSystem, [Name]SubSystem>()"  ;; register AS the base so VContainer fills the list
    :di-orchestrator "concrete + wired in Boot.Construct"          ;; per-frame/reactive systems are grouped into a GameMode by hand
    :empty-collection :forbidden                                   ;; no subsystems yet → reactive shell (no list injection) until the first one lands
-   :structural-while-iterating :forbidden})                       ;; snapshot entity.Id into NativeList<int>, re-fetch via TryGetEntityById, then delete/modify
+   :structural-in-update :safe                                    ;; UpdatedSystem snapshots the driving archetype's ids and calls Update(state, entity) outside its enumeration
+   :structural-in-own-enumeration :forbidden})                    ;; an enumeration a subsystem opens itself: snapshot entity.Id into NativeList<int>, re-fetch via TryGetEntityById, then delete/modify (ARCHITECTURE → Threading, structural-change)
 ```

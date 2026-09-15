@@ -13,7 +13,7 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 42 docs — 2 always · 21 trigger · 0 reference · 19 archive · 3 canvas.
+Totals: 41 docs — 2 always · 20 trigger · 0 reference · 19 archive · 3 canvas.
 
 ## Read at start (always)
 
@@ -28,10 +28,9 @@ Do **not** preload. Read only when the trigger condition holds.
 
 | Doc | Read it… | What it is |
 |---|---|---|
-| [FantasyMayor — Architecture Reference](ARCHITECTURE.md) | before any engineering task — request routing puts it into :read | `EntityStore`; `Singletons` is the cover over a private second store and its birth-complete row |
+| [FantasyMayor — Architecture Reference](ARCHITECTURE.md) | before any engineering task — request routing puts it into :read | Runtime laws of FantasyMayor code: systems, entities, events, threading, code shape. |
 | [CODE_STORY_RULES](CODE_STORY_RULES_PROPOSAL.md) | before writing or reviewing a system whose body is an algorithm, and when running the cascade on a class | Код читається як розповідь: послідовність, сюжет, сенс у кожній змінній і в кожному імені. |
 | [DOC_STANDARD.md](DOC_STANDARD.md) | before authoring or reviewing any .md (Flows / Patterns / policy) for standard compliance | Single source of truth for how to write Markdown docs in this project. |
-| [FantasyMayor — ECS & Runtime Conventions](ECS_CONVENTIONS.md) | before writing or editing any ECS system, component, event, config, or query | The ECS/runtime rulebook: where state lives, how systems are decomposed, and the write / collection / |
 | [GAME_MECHANICS](GAME_MECHANICS.md) | before any game-design work: the core loop, economy, actors, elites, population needs, land and slots, buildings, the exchange, politics, consequences | The mayor creates opportunities for autonomous elites; the city comes to depend on them and never commands them. |
 | [GLOSSARY — domain vocabulary → code anchors](GLOSSARY.md) | when a domain term (any language) needs its canonical code name before searching roslyn / ecs-graph / di-graph | Map from human vocabulary (game-design terms, Ukrainian/English synonyms, abbreviations) to the |
 | [IAddressable Contract](Patterns/ADDRESSABLE_PATTERNS.md) | before writing/editing/reviewing Addressables, IAddressable, Box<T> or Result<T> code | Single source of truth for addressable loading. Read this; do not grep. |
@@ -39,13 +38,13 @@ Do **not** preload. Read only when the trigger condition holds.
 | [Pattern — ECS Data Component](Patterns/PATTERN_COMPONENT.md) | before creating an ECS data component (a struct holding runtime values) | A component is a plain `struct` of runtime values. No behavior, no methods (except equality when it is a |
 | [Pattern — Config (ScriptableObject)](Patterns/PATTERN_CONFIG.md) | before creating or reading a ScriptableObject config | A config is a `ScriptableObject` kept in `EntityStorages` by type and read via `storages.Get<T>()`. |
 | [Pattern — Config Loader System](Patterns/PATTERN_CONFIG_LOADER.md) | before adding a config to the game or building objects from a config at startup | One installer registration of `ConfigLoaderSystem<T>` loads a config; derived objects are `InstanceObjects` systems. |
-| [Pattern — One-Frame Event (Pulse)](Patterns/PATTERN_EVENT.md) | before creating a one-frame ECS event (pulse) | An event is a **payload-less `struct`** raised on its own entity. It says "something changed — re-read the |
+| [Pattern — One-Frame Event (Pulse)](Patterns/PATTERN_EVENT.md) | before creating a one-frame ECS event (pulse) | An event is a **`struct`** raised on its own entity; its fields are the values the consumer needs. |
 | [Pattern — Orchestrator + SubSystems](Patterns/PATTERN_ORCHESTRATOR_SUBSYSTEM.md) | before creating an orchestrator + subsystem family (DoD polymorphism / independently ordered parts) | A family of implementations behind one abstract base, DI-collected into an orchestrator that sequences them by |
 | [Pattern — Per-Frame System](Patterns/PATTERN_PERFRAME_SYSTEM.md) | before creating a per-frame system (genuinely continuous logic) | Logic that is genuinely continuous: camera movement, per-frame projection, input polling, selection watching. |
 | [Pattern — Pipeline Stage (one-shot, world-init)](Patterns/PATTERN_PIPELINE_STAGE.md) | before creating a world-init pipeline stage (build/spawn content once during map creation) | One-shot async construction during map creation: spawn entities/views, build runtime singleton components, load |
 | [Pattern — Polymorphic Config Catalogue → Entity Table](Patterns/PATTERN_POLYMORPHIC_CATALOGUE.md) | before creating a polymorphic ScriptableObject config catalogue that materializes into an entity table (many kinds keyed by a shared FK), or a per-kind polymorphic system family over such a table | A **heterogeneous** set of authored rules/effects — many *kinds*, each with its own parameters — that you (1) author as |
 | [Pattern — Reactive Orchestrator System (pulse → fan-out)](Patterns/PATTERN_REACTIVE_ORCHESTRATOR_SYSTEM.md) | before creating a reactive system whose event handling has several independently-ordered parts (fan-out) | A [reactive system](PATTERN_REACTIVE_SYSTEM.md) whose handling is **too big for one file**: on the pulse it fans |
-| [Pattern — Reactive System (pulse + reconcile)](Patterns/PATTERN_REACTIVE_SYSTEM.md) | before creating a reactive (event-driven) system | **The default for runtime logic.** Responds to a one-frame [event](PATTERN_EVENT.md): the event's archetype |
+| [Pattern — Reactive System (event-driven)](Patterns/PATTERN_REACTIVE_SYSTEM.md) | before creating a reactive (event-driven) system | **The default for runtime logic.** Responds to a one-frame [event](PATTERN_EVENT.md) through its archetype. |
 | [Pattern — ECS Tag](Patterns/PATTERN_TAG.md) | before creating an ECS tag (field-less marker / table discriminator) | A tag is an **empty `struct`** that marks an entity. It carries no data; its presence IS the information. |
 | [Pattern — Transaction Entity (cross-domain behavior)](Patterns/PATTERN_TRANSACTION_ENTITY.md) | before building any multi-step behavior that spans more than one subdomain (a cross-domain transaction) | A multi-step behavior that spans subdomains gets exactly ONE home: a **transaction entity** in the |
 | [Pattern — View ↔ System](Patterns/PATTERN_VIEW_SYSTEM.md) | before creating a MonoBehaviour view + its driving system, or wiring how a view and its system talk | A MonoBehaviour View is dumb chrome driven by its System; they talk directly: C# event in, push-to-view out, never ECS. |
@@ -83,8 +82,8 @@ Curate what the script can't derive: current focus, stale docs, cross-doc orient
 - **Pattern recipes (`Patterns/PATTERN_*.md`)** are the granular, one-approach-per-file skeletons for the ECS
   building blocks (component / tag / event / config / config-loader / pipeline-stage / orchestrator+subsystem /
   per-frame / reactive / cleanup). **Read the matching recipe instead of opening a live system as a reference.**
-  They replace the retired `SYSTEMTEMPLATE.md` / `CONFIGTEMPLATE.md` monoliths; the picker index is
-  `ARCHITECTURE.md` → **Pattern Recipes**.
+  They replace the retired `SYSTEMTEMPLATE.md` / `CONFIGTEMPLATE.md` monoliths; the picker is the project skill
+  `fantasymayor-pattern-choice`, run from CLAUDE.md § 2.
 - **`WORK.canvas` is the user's living task-intake scratchpad** — he states tasks there as a graphic
   scheme instead of text. It always changes and contains nothing finished: never treat it as stale,
   orphaned, or a deletion candidate.

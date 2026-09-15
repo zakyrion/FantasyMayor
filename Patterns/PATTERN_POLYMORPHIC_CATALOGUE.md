@@ -10,7 +10,6 @@ related:
   - "[PATTERN_PIPELINE_STAGE](PATTERN_PIPELINE_STAGE.md)"
   - "[PATTERN_TAG](PATTERN_TAG.md)"
   - "[ARCHITECTURE](../ARCHITECTURE.md)"
-  - "[ECS_CONVENTIONS](../ECS_CONVENTIONS.md)"
 ---
 
 # Pattern — Polymorphic Config Catalogue → Entity Table
