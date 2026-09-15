@@ -28,7 +28,7 @@ related:
  :path :direct                          ;; документи, не алгоритмічний код
  :mode "крок за кроком: один документ = один крок; обговорення — власник каже, що подобається і що ні; правки після його слова"
  :where {:step-1 CLAUDE.md :next "називає власник після прийняття кроку"}
- :off-limits #{Assets/ "видалені документи — не відновлювати" ".sdd-flow/ canon-файли (байт-в-байт з пакетом)"}
+ :off-limits #{"Assets/" "видалені документи — не відновлювати" ".sdd-flow/ canon-файли (байт-в-байт з пакетом)"}
  :decided #{"FLOW тільки на цю задачу, у формі папки 0.3.0"
             "ARCHITECTURE.md змінюється тільки з дозволу власника"
             "долю flow-progress / blocked-outcome вирішуємо тут"}
@@ -479,13 +479,42 @@ related:
           :structural-in-update "PATTERN_REACTIVE_SYSTEM і PATTERN_REACTIVE_ORCHESTRATOR_SYSTEM: структурні зміни в Update безпечні (база знімає id), заборонені лише у власному переборі системи; те саме уточнення в :use UpdatedSystem скіла pattern-choice"
           :global-claude-md "опис arch-check у ~/.claude/CLAUDE.md — під помилки часу життя алокатора"}
   :verified-by "власник: «1 - так 2 - лишаємо 3 - виправ 4 - онови»"
-  :reason "чотири речі, помічені під час виконання :skills-split-go"}]
+  :reason "чотири речі, помічені під час виконання :skills-split-go"}
+
+ {:decision :code-comments-delete
+  :status :confirmed
+  :supersedes :merge-answers
+  :at "2026-09-15"
+  :value "коментарі в Assets/*.cs, що згадують ECS_CONVENTIONS (12) або payload-less (8), видалити скрізь; архів не чіпати; вузол ECONOMY_ACTORS.canvas — поза цим (canvas — :ask-first, дозволу не було)"
+  :verified-by "власник: «1 - видаляй ці коментарі скрізь 2 - так»; grep по Assets/*.cs 2026-09-15 — 12 і 8 файлів"
+  :reason "було (:merge-answers :code-comments): коментарі поки не чіпати; нове: власник помітив, що видалений документ «ще звідкись лізе», і наказав видалити"}
+
+ {:decision :comment-granularity
+  :status :open
+  :at "2026-09-15"
+  :value ?}
+
+ {:decision :evaluator-command-buffer
+  :status :open
+  :at "2026-09-15"
+  :value ?
+  :verified-by "власник: «3 - command buffer instead» — відповідь на питання, чия передумова спростована (# Disproven)"}
+
+ {:decision :review-stays-active
+  :status :confirmed
+  :at "2026-09-15"
+  :value "DOC_AGENT_REVIEW лишається активним паралельно із задачею розширення ecs-graph"
+  :verified-by "власник: «9 - поки що залиш»"
+  :reason "власник не закриває ревʼю"}]
 ```
 
 # Disproven
 
 ```clojure
-[]
+[{:hypothesis "DistrictOpenConditionEvaluatorSystem пише в store поза головним потоком (виведено з його коментаря «legal off-thread under Law 1»)"
+  :refuted-by "TurnProcessorSystem.RunTurnAsync викликає TurnPhaseRunner.RunAsync без перемикання потоку; у Modules/Turn і Domains/Economy/DistrictOpenCondition нема SwitchToThreadPool / SwitchToMainThread / Task.Run — фази й Evaluate() виконуються на головному потоці; коментар хибний, код store-thread не порушує"
+  :at "2026-09-15"
+  :details "# Decisions → :evaluator-command-buffer"}]
 ```
 
 # Attempted
@@ -523,7 +552,7 @@ related:
               "рефакторинг репо під ARCHITECTURE.md: Map/Hex/Utils і Map/Generation/Utils → Helpers; Installer/ на рівень асемблі — Map/Generation|HexResources|Pathfinding, Presentation/Terrain|HexResources|Districts|HexIcons; Presentation/Terrain/Isolines|Smooth|CurveBuilders → Helpers; Domains/Actions/Systems на рівні домену (не спільна роль); Assets/Flows/DistrictBuild: подія → Presentation.UI, asmdef видалити; видалити Assets/Scripts/Utils, Spawner, Extentions; рольові папки всередині Core/ і Implementation/ у Addressable, Boot (+ States/), MainCanvas, у корені CurveBuilders і AxialSystem, у Domains/Map/Pathfinding; TurnPhaseSubSystem.IsEnabled — змінний стан у системі; shared kernel → модулі: IUniTaskSystem : IAppStateSystem (Boot.Core), ConfigLoaderSystem → IAddressable (Addressables.Core); UserInput → Domains.Map, Presentation; WorldInstaller: PlayerInput через UserInputArchetypes.PlayerInput, порядок InstallModules «спершу залежності»"
               "DOC_STANDARD: правило «жодних живих назв у правилах документа»"
               "PATTERN_CONFIG досі описує EntityStorages — чекає задачі рефакторингу сховища"
-              "задача одразу після цієї: розширити ecs-graph — реалізації патерна, відрізнити реактивні системи від per-frame (ребра reacts_to)"
+              "задача паралельно з цією (:review-stays-active): розширити ecs-graph — реалізації патерна, відрізнити реактивні системи від per-frame (ребра reacts_to); відповіді 2026-09-15: усі 15 рецептів, зв'язок рецепт → ознака в коді інструмента, родини — ребро inherits в ecs-graph і roslyn обидва, база закомічена ~/.claude af626ef; відкрито: форма запиту; свій FLOW — після підтвердження постановки"
               "відкрито: PATTERN_TRANSACTION_ENTITY.md:94 — :flow-contract Flows/FLOW_<NAME>.md (стара форма); в ARCHITECTURE.md прибрано" "відкрито: DOC_STANDARD згадує видалений GENERAL_UI_STYLE.md" "3 привиди HexIdComponent: PATTERN_COMPONENT.md:42, PATTERN_TRANSACTION_ENTITY.md:51 і :72"}
  :resume-context "Кроки 1-2 закомічені 2026-09-14, крок 3 — 2026-09-15. Крок 3 (ARCHITECTURE.md): злиття з ECS_CONVENTIONS, валідація, розбиття на два проєктні скіли (.claude/skills/fantasymayor-*) з місцями виклику в CLAUDE.md § 2 і процедурою code-verification. Наступний крок називає власник. Далі: окрема задача розширення ecs-graph; рефакторинг коду з :remaining — окремо."}
 ```
@@ -569,5 +598,20 @@ related:
                           "tag-law-check — крок перевірки коду в CLAUDE.md"
                           "кожне правило в одному місці; скіл = процедура + посилання на закон"}
                :open #{}}
-  :confirmed true}]                     ;; 2026-09-15: відкриті питання закриті рішеннями :skills-split-answers … :skills-split-go
+  :confirmed true}                      ;; 2026-09-15: відкриті питання закриті рішеннями :skills-split-answers … :skills-split-go
+
+ {:received-at "2026-09-15"
+  :raw-request ["ECS_CONVENTIONS - ще звідкись лізе хоча файл видалено\nтреба розширити ecs-graph для додаткового пошуку по патернах"
+                "1 - видаляй ці коментарі скрізь\n2 - так\n3 - command buffer instead\n4 - все\n5 - не зрозумів запитання\n6 - в коді інстурмента\n7 - обоє\n8 - спершу коміть, без різниці в яку гілку\n9 - поки що залиш"]
+  :normalized {:task :delete-stale-code-comments
+               :goal "у коді не лишається коментарів, що посилаються на видалений ECS_CONVENTIONS.md або на скасоване правило payload-less"
+               :path :direct
+               :where "Assets/*.cs — лише коментарі"   ;; розширення :off-limits Assets/ цього контракту
+               :off-limits #{"код поза коментарями" Flows/Archive/ ECONOMY_ACTORS.canvas}
+               :decided #{":code-comments-delete"}
+               :open #{":comment-granularity" ":evaluator-command-buffer"}
+               :result "grep ECS_CONVENTIONS і payload-less по Assets/*.cs = 0"}
+  :confirmed false}
+ ;; 2026-09-15: відповіді 4, 6, 7, 8 належать задачі ecs-graph — у її FLOW після підтвердження постановки; 8 виконано: база ecs-graph закомічена в ~/.claude af626ef (main)
+ ]
 ```
