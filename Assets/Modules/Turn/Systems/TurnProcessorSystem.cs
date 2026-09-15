@@ -21,6 +21,7 @@ namespace Modules.Turn.Systems
     ///     main-thread only.
     /// </summary>
     [UsedImplicitly]
+    [SystemRole(SystemRoleKind.PerFrame)]
     public sealed class TurnProcessorSystem : IUpdatedSystem
     {
         private readonly Archetype _nextTurnPulses;

@@ -1,6 +1,6 @@
 ---
 name: fantasymayor-pattern-choice
-description: Pick the Patterns/ recipes and shared-kernel types every code part of a FantasyMayor task needs, find what already implements them, and check the Tag Law before a new tag or archetype. Use when a FantasyMayor task statement is formed for work that creates or changes code (CLAUDE.md § 2 puts the recipes into :read and the result into :skills), or when the user invokes fantasymayor-pattern-choice.
+description: Pick the Patterns/ recipes and shared-kernel types every code part of a FantasyMayor task needs, find what already implements them, and check the tag law — one main tag plus label tags — before a new tag or archetype. Use when a FantasyMayor task statement is formed for work that creates or changes code (CLAUDE.md § 2 puts the recipes into :read and the result into :skills), or when the user invokes fantasymayor-pattern-choice.
 ---
 
 # Pattern choice
@@ -112,9 +112,9 @@ The recipe, the shared-kernel type and the live family behind every code part of
 
 ```clojure
 (def instances
-  {:systems  "python3 ~/.claude/skills/ecs-graph/scripts/ecsg.py systems --role <role> — roles: per_frame, pipeline_stage, sub_system, turn_phase"
-   :reactive "python3 ~/.claude/skills/ecs-graph/scripts/ecsg.py explain <System> — a reacts_to edge marks a reactive system; ecs-graph lists reactive systems under per_frame"
-   :families "mcp__roslyn__find_implementations on the recipe's base type or interface — the family's abstract base and its members"
+  {:systems  "python3 .claude/skills/fantasymayor-graph/scripts/fmgraph.py systems --role <role> — roles: reactive, per_frame, cleanup, pipeline_stage, turn_phase, startup_step, sub_system"
+   :recipe   "fmgraph.py pattern <RECIPE> — the recipe's live instances with decided_by base | marker | lexical and deviations; zero instances come with what the signature lacks"
+   :families "fmgraph.py pattern PATTERN_ORCHESTRATOR_SUBSYSTEM, and mcp__roslyn__get_type_hierarchy direction Descendants on an abstract base; mcp__roslyn__find_implementations only on an interface"
    :use      #{"join an existing family" "pick a free priority" "avoid a duplicate"}
    :template "the recipe, never a live implementation"
    :never    "a list of implementations written into a document"})
@@ -124,7 +124,7 @@ The recipe, the shared-kernel type and the live family behind every code part of
 
 ```clojure
 (def tag-law-before
-  (-> (:step-1 "python3 ~/.claude/skills/ecs-graph/scripts/ecsg.py explain <Tag> — which archetypes already carry the tag")
+  (-> (:step-1 "fmgraph.py explain <Tag> — which archetypes carry the tag, as main tag or as label")
       (:step-2 "hold the result against ARCHITECTURE.md → Entities, tag-law")
       (:result "the archetypes that already carry the tag, under :tags of the skill result")))
 ```

@@ -10,6 +10,7 @@ using JetBrains.Annotations;
 using Presentation.UI.Archetypes;
 using Presentation.UI.DistrictBuild.Components;
 using Presentation.UI.DistrictBuild.Tags;
+using Presentation.UI.DistrictBuild.Views;
 using UnityEngine;
 
 namespace Presentation.UI.DistrictBuild.Systems
@@ -21,6 +22,7 @@ namespace Presentation.UI.DistrictBuild.Systems
     // selection as active. On the view's row-click (local C# event) it writes the selection, then calls the
     // orchestrator-provided Repopulate to re-run the other section subsystems (the view stays World-free).
     [UsedImplicitly]
+    [ViewSubscriber(typeof(DistrictBuildListUIView))]
     public sealed class DistrictBuildListUISubSystem : DistrictBuildUISubSystem
     {
         private readonly EntityStorages _storages;

@@ -75,5 +75,5 @@ The FK component lives in the OWNER's feature folder, next to its PK — one spa
    :index-bucket    {:max 100}                                 ;; entities per identical key value — insert/remove is O(N) over duplicates
    :fk-per-space    {:max 1}                                   ;; one component instance per type per entity — a 2-refs relationship gets its own FK type pair
    :birth-column    "every column is named by the archetype"   ;; adding a component to a live entity migrates it out of its archetype (ARCHITECTURE → Entities, birth-completeness)
-   :component-shape #{roslyn ecs-graph}})                      ;; fields/types are tool-derivable — never restate them in module docs
+   :component-shape #{roslyn fantasymayor-graph}})                      ;; fields/types are tool-derivable — never restate them in module docs
 ```

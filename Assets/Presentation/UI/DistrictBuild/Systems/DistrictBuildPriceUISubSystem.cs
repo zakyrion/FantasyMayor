@@ -27,6 +27,7 @@ namespace Presentation.UI.DistrictBuild.Systems
     // lives in the view (not ECS): this reads view.SelectedOwner and re-renders on the view's PayerChanged.
     // Reads ECS directly (no read-model).
     [UsedImplicitly]
+    [ViewSubscriber(typeof(DistrictBuildPriceUIView))]
     public sealed class DistrictBuildPriceUISubSystem : DistrictBuildUISubSystem
     {
         private readonly EntityStorages _storages;
@@ -38,7 +39,7 @@ namespace Presentation.UI.DistrictBuild.Systems
         private readonly ComponentIndex<MayorIdFKComponent, int> _mayorResources;
         private readonly ComponentIndex<CityIdFKComponent, int> _cityResources;
 
-        // The chrome view lives on an ENTITY (UITag), not as a singleton component — resolve it the way the orchestrator does.
+        // The chrome view lives on an ENTITY (DistrictBuildUITag), not as a singleton component — resolve it the way the orchestrator does.
         private readonly Archetype _chrome;
 
         private bool _hooked;
@@ -130,7 +131,7 @@ namespace Presentation.UI.DistrictBuild.Systems
             PushConfirmGate(affordable);
         }
 
-        // Drives the chrome confirm button (owned by DistrictBuildUIView, which lives on the UITag chrome entity — NOT a
+        // Drives the chrome confirm button (owned by DistrictBuildUIView, which lives on the DistrictBuildUITag chrome entity — NOT a
         // singleton component). Affordability is known only here, so the price section is the single source of truth for the
         // gate — it stays in sync on both populate and payer switch because Render is the choke point for both.
         private void PushConfirmGate(bool affordable)

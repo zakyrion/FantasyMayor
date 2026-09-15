@@ -52,7 +52,7 @@ The sdd-flow canon is installed at `.sdd-flow/` (`FLOW_CONTRACT.md` + `reference
   (-> (:step-1 "mcp__roslyn__get_diagnostics — solutionPath FantasyMayor.sln, scoped to the changed files; target: clean")
       (:step-2 "/arch-check on the changed scope; target: no violation the change introduced")
       (:step-3 (when (ecs-changed?)
-                 (:then "python3 ~/.claude/skills/ecs-graph/scripts/ecsg.py tags; target: exactly one tag per archetype and per query binding, no runtime tag writes")))
+                 (:then "python3 .claude/skills/fantasymayor-graph/scripts/fmgraph.py tags; target: exactly one main tag per archetype, label tags shown apart, 0 deviations, no runtime tag writes")))
       (:step-4 "the owner's Unity check; target: compiles and behaves — the final authority")))
 ```
 
@@ -60,11 +60,11 @@ The sdd-flow canon is installed at `.sdd-flow/` (`FLOW_CONTRACT.md` + `reference
 
 ```clojure
 (def bans
-  {:never #{"Unity builds, dotnet build, msbuild, xbuild, Unity CLI builds"
+  {:never #{"builds of the Unity project — Unity builds, dotnet build / msbuild / xbuild of its csproj or sln, Unity CLI builds; Tools/MarkerShapeAnalyzer is outside the ban"
             "generating or hand-writing Unity .meta files — stop and ask"
             "reading .unity scenes or scene-serialized assets without the owner's allowance in the current task"
             "editing .md through vault_patch / vault_write"
-            "hand-editing .ecs-graph/ and .di-graph/ artifacts"
+            "hand-editing .fantasymayor-graph/ artifacts"
             "editing between INDEX.md's BEGIN/END GENERATED markers"
             "recreating module / domain / presentation .md files — module knowledge is code comments + tools"
             "proposing automated test infrastructure"
@@ -90,7 +90,7 @@ The sdd-flow canon is installed at `.sdd-flow/` (`FLOW_CONTRACT.md` + `reference
 
 ```clojure
 (def notation-ecs-ext  ;; 2026-07-17 — project-scoped notation extension (ECS); universal forms stay global
-  {:entity-shape "(def <Archetype> {:archetype … :tag … :pk … :fk … :kind … :state … :data …}) — one map = one entity; keys anchor to tag-law / key-role-law (ARCHITECTURE.md)"
-   :set-cardinality "the FIELD decides the #{} reading: singular-valued key (:home, :tag) → global 'one of'; collection-valued key (:data, :fk) → ALL members, unordered, no duplicates (= ECS composition)"
-   :tag-never-set "a #{} under :tag is not alternative syntax — it DISPLAYS a Tag Law violation (2 identity tags)"})
+  {:entity-shape "(def <Archetype> {:archetype … :tag … :labels … :pk … :fk … :kind … :state … :data …}) — one map = one entity; :tag is the main tag, :labels the label tags; keys anchor to tag-law / key-role-law (ARCHITECTURE.md)"
+   :set-cardinality "the FIELD decides the #{} reading: singular-valued key (:home, :tag) → global 'one of'; collection-valued key (:data, :fk, :labels) → ALL members, unordered, no duplicates (= ECS composition)"
+   :tag-never-set "a #{} under :tag is not alternative syntax — it DISPLAYS a Tag Law violation (2 main tags) — label tags go under :labels"})
 ```

@@ -2,13 +2,12 @@
 """PreToolUse gate — keeps the MAIN agent OUT of the graph artifact dirs (ad-hoc read/write) and turns
 any main-agent edit of a permission-gated policy doc (ARCHITECTURE.md) into a user-approval ASK.
 
-Both graphs are DETERMINISTIC now: `build_graph.py` (ecs) and `build_di_graph.py` (di) each extract AND
-curate in ONE call (no LLM STEP-2 for either graph anymore), so the main agent MAY run either directly.
-What stays denied is ad-hoc reaching into the `.ecs-graph/` / `.di-graph/` artifacts — query through the
-read-only CLIs `ecsg.py` / `dig.py`, rebuild through the two build scripts, and never poke the JSON by hand.
+The graph is DETERMINISTIC: `fmgraph.py build` extracts AND curates in ONE call (no LLM), so the main agent
+MAY run it directly. What stays denied is ad-hoc reaching into the `.fantasymayor-graph/` artifacts — query and
+rebuild through the one CLI `fmgraph.py`, never poke the JSON by hand.
 
 This closes the Bash bypass that a Write/Edit-only ban misses: a redirect, an inline
-`python3 -c "... json.dump(open('.ecs-graph/graph.json','w'))"`, `tee`, `sed -i`, `cp`/`mv`,
+`python3 -c "... json.dump(open('.fantasymayor-graph/graph.json','w'))"`, `tee`, `sed -i`, `cp`/`mv`,
 or `cat`/`jq` reaching into the graph dirs.
 
 Applies ONLY to the main agent; subagents are exempt. Reads the hook JSON from stdin; prints a deny/ask
@@ -19,10 +18,10 @@ import json
 import re
 import sys
 
-GRAPH_DIR_RE = re.compile(r"\.(?:ecs|di)-graph\b")   # matches .ecs-graph / .di-graph anywhere in a path/command
-# Both graph builders are deterministic (extract + curate in one call), alongside the read-only query CLIs —
-# the MAIN agent may run all of them directly, including the writes they make into their own graph dir.
-GRAPH_EXES = {"ecsg.py", "dig.py", "build_graph.py", "build_di_graph.py"}
+GRAPH_DIR_RE = re.compile(r"\.fantasymayor-graph\b")   # matches .fantasymayor-graph anywhere in a path/command
+# The one graph CLI builds and queries — the MAIN agent may run it directly, including the writes it makes
+# into its own graph dir.
+GRAPH_EXES = {"fmgraph.py"}
 # Permission-gated policy docs: an agent edit becomes a user-approval ASK, not a silent write.
 APPROVAL_DOCS = ("ARCHITECTURE.md",)
 BASH_WRITE_EXES = {"sed", "tee", "cp", "mv", "rm", "truncate"}  # write-capable bash vectors onto a gated doc
@@ -32,9 +31,8 @@ APPROVAL_ASK = ("ARCHITECTURE.md is policy: it changes ONLY with the user's expl
 # wrappers to skip when finding a pipeline segment's real executable
 WRAPPERS = {"python", "python3", "uv", "run", "time", "nice", "env", "sudo", "command", "exec", "xargs"}
 
-GRAPH_DIR_DENY = ("Direct Bash access to .ecs-graph/ / .di-graph/ (writing or reading the graph "
-                  "artifacts ad-hoc) is denied in the main session. Query via ecsg.py / dig.py; "
-                  "rebuild via build_graph.py / build_di_graph.py — both are deterministic one-pass builds.")
+GRAPH_DIR_DENY = ("Direct Bash access to .fantasymayor-graph/ (writing or reading the graph artifacts ad-hoc) "
+                  "is denied in the main session. Query and rebuild via fmgraph.py — one deterministic CLI.")
 
 
 def deny(reason: str):
@@ -76,12 +74,12 @@ def _segment_exe(segment: str) -> str:
         break
     if i >= len(toks):
         return ""
-    return toks[i].rsplit("/", 1)[-1]  # basename, so /path/ecsg.py -> ecsg.py
+    return toks[i].rsplit("/", 1)[-1]  # basename, so /path/fmgraph.py -> fmgraph.py
 
 
 def bash_is_gated(cmd: str):
-    """Deny a Bash command that reaches into the graph dirs, unless its executable is one of the sanctioned
-    graph tools (the two deterministic builders + the read-only query CLIs). Gate per pipeline segment by its
+    """Deny a Bash command that reaches into the graph dirs, unless its executable is the sanctioned
+    graph tool (the one graph CLI fmgraph.py). Gate per pipeline segment by its
     EXECUTABLE, so a mere mention of a graph dir as an argument to `cat`/`jq`/`sed` is what triggers the ban."""
     for seg in re.split(r"\|\||&&|;|\||\n", cmd):
         exe = _segment_exe(seg)
@@ -107,8 +105,8 @@ def main():
     if tool in ("Write", "Edit"):
         fp = (ti.get("file_path", "") or "").replace("\\", "/")
         if GRAPH_DIR_RE.search(fp):
-            deny("Writing the graph artifacts (.ecs-graph/ / .di-graph/) by hand is denied — they are "
-                 "generated. Rebuild via build_graph.py / build_di_graph.py.")
+            deny("Writing the graph artifacts (.fantasymayor-graph/) by hand is denied — they are generated. "
+                 "Rebuild via fmgraph.py build.")
         if _needs_approval(fp):
             ask(APPROVAL_ASK)
         return

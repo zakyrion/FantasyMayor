@@ -9,9 +9,9 @@ using JetBrains.Annotations;
 
 namespace Domains.Economy.DistrictOpenCondition.Systems
 {
-    // Handles SingleDistrictOpenConditionConfig: creates one entity carrying the gated district type (FK), the
-    // shared condition discriminator, and its kind + state columns (SingleOpen / Closed). No payload — the rule
-    // has no params.
+    // Handles SingleDistrictOpenConditionConfig: creates one entity carrying the gated district type (FK), its
+    // archetype's main tag beside the family label, and its kind + state columns (SingleOpen / Closed). No payload —
+    // the rule has no params.
     [UsedImplicitly]
     internal sealed class DistrictSingleOpenConditionSpawnSubSystem : DistrictOpenConditionSpawnSubSystem
     {

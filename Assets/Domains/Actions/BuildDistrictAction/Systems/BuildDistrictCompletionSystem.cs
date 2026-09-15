@@ -29,6 +29,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
     ///     precedent as <c>TurnProcessorSystem</c>.
     /// </summary>
     [UsedImplicitly]
+    [SystemRole(SystemRoleKind.Reactive)]
     public sealed class BuildDistrictCompletionSystem : IUpdatedSystem
     {
         private readonly EntityStorages _storages;

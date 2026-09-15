@@ -29,19 +29,12 @@
   :never-for "generic-typed ECS/DI relationships — roslyn is blind to them"
   :invoke "mcp__roslyn__*"}
 
- {:tool ecs-graph
-  :is "derived DoD/ECS graph (Friflo.Engine.ECS)"
-  :answers "archetypes, which system writes/reads a component, event producer→consumer, Table-Rule PK/FK, singletons"
-  :prefer-when "the question is about ECS relationships rather than syntax"
+ {:tool fantasymayor-graph
+  :is "derived code graph: ECS (Friflo.Engine.ECS) + DI (VContainer) + recipe instances"
+  :answers "archetypes with main and label tags, which system writes/reads a component, event producer→consumer, Table-Rule PK/FK, singletons; what a type is registered as, Lifetime, installer, injectors, collection fill, GameMode; system roles; instances of the 15 Patterns/ recipes"
+  :prefer-when "the question is about ECS or DI relationships or recipe instances rather than syntax"
   :never-for "hand-reading or hand-editing the graph artifacts — the graph-gate hook denies it"
-  :invoke "python3 ~/.claude/skills/ecs-graph/scripts/ecsg.py (rebuild: build_graph.py)"}
-
- {:tool di-graph
-  :is "derived VContainer injection graph"
-  :answers "what a type is registered as, with which Lifetime, by which installer; who injects it; what fills a collection injection; which GameMode a system runs in"
-  :prefer-when "the question is about DI wiring rather than syntax"
-  :never-for "hand-reading or hand-editing the graph artifacts"
-  :invoke "python3 ~/.claude/skills/di-graph/scripts/dig.py (rebuild: build_di_graph.py)"}
+  :invoke "python3 .claude/skills/fantasymayor-graph/scripts/fmgraph.py <command> (rebuild: build)"}
 
  {:tool doc_lint
   :is "symbol-claim linter over the vault's .md files"
@@ -69,7 +62,7 @@
  {:tool GLOSSARY.md
   :is "domain vocabulary → code anchor map"
   :answers "the canonical code name behind a domain term, in any language"
-  :prefer-when "before searching roslyn / ecs-graph / di-graph for a term the user named in prose"}
+  :prefer-when "before searching roslyn / fantasymayor-graph for a term the user named in prose"}
 
  {:tool obsidian-mcp
   :is "the vault's search and navigation path"
@@ -106,17 +99,13 @@
   :target "INDEX skeleton regenerated, lint clean"
   :when "a doc's frontmatter or first line changed"}
 
- {:meter "python3 ~/.claude/skills/ecs-graph/scripts/ecsg.py stats"
-  :target "curated: true, no ghost nodes"
-  :when :ecs-changed}
-
- {:meter "python3 ~/.claude/skills/di-graph/scripts/dig.py stats"
-  :target "curated: true, no ghost nodes"
-  :when :di-changed}]
+ {:meter "python3 .claude/skills/fantasymayor-graph/scripts/fmgraph.py check"
+  :target "curated: true, integrity clean, no new warnings"
+  :when #{:ecs-changed :di-changed}}]
 ```
 
 ```clojure
-{:code-verification "CLAUDE.md § 2 (def code-verification) — roslyn diagnostics, /arch-check, ecsg.py tags, the owner's Unity check; joins :accept of every statement that changes code"
+{:code-verification "CLAUDE.md § 2 (def code-verification) — roslyn diagnostics, /arch-check, fmgraph.py tags, the owner's Unity check; joins :accept of every statement that changes code"
  :project-skills    "CLAUDE.md § 2 :skills — fantasymayor-pattern-choice, fantasymayor-placement (.claude/skills/)"}
 ```
 
@@ -135,8 +124,8 @@
   :owner "python3 Tools/gen_index.py (pass 1) + the agent's curated zone (pass 2)"}
 
  {:ceremony graph-rebuild
-  :runs-at "after changing an ECS archetype or DI wiring"
-  :owner "build_graph.py / build_di_graph.py — deterministic, one pass, no LLM"}]
+  :runs-at "after changing an ECS archetype, DI wiring or a marker"
+  :owner "fmgraph.py build — deterministic, one pass, no LLM"}]
 ```
 
 # Shape

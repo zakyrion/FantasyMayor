@@ -2,6 +2,7 @@ using Domains.Actions.BuildDistrictAction.Components;
 using Domains.Actions.Components;
 using Domains.Actors.Components;
 using Domains.Economy.District.Components;
+using EcsExtensions;
 using Friflo.Engine.ECS;
 
 namespace Domains.Actions.Archetypes
@@ -20,6 +21,6 @@ namespace Domains.Actions.Archetypes
             store.GetArchetype(
                 ComponentTypes.Get<DistrictIdFKComponent, ActionIdComponent, BuildDistrictTurnsComponent,
                     ActorTypeComponent>(),
-                Tags.Get<BuildDistrictInProgressTag>());
+                Tags.Get<BuildDistrictInProgressTag, TransactionTag>());
     }
 }

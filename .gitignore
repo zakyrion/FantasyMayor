@@ -6,15 +6,15 @@
 # graphify knowledge graph — local-only, regenerated on demand, never tracked
 /graphify-out/
 
-# ecs-graph DoD/ECS knowledge graph — derived, regenerated on demand, never tracked
-/.ecs-graph/
-
-# di-graph VContainer DI knowledge graph — derived, regenerated on demand, never tracked
-/.di-graph/
+# fantasymayor-graph code graph (ECS + DI + recipes) — derived, regenerated on demand, never tracked
+/.fantasymayor-graph/
 
 # Local editor / OS noise (solo dev, one machine)
 .idea/
 .DS_Store
+/Tools/MarkerShapeAnalyzer/bin/
+/Tools/MarkerShapeAnalyzer/obj/
+__pycache__/
 
 /[Ll]ibrary/
 /[Tt]emp/
@@ -47,6 +47,7 @@
 ExportedObj/
 .consulo/
 *.csproj
+!/Tools/MarkerShapeAnalyzer/MarkerShapeAnalyzer.csproj
 *.unityproj
 *.sln
 *.suo

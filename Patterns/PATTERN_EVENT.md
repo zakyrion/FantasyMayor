@@ -56,5 +56,5 @@ frame or an asmdef boundary the C# call can't reach, and then a SYSTEM raises it
    :feedback-loop      {:never "populate→command→populate on one-frame events"}  ;; each lap now costs a frame instead of deadlocking — still wrong: restructure so data flows one way (proven 2026-07-08 on the district-build draft attempt)
    :raise-thread       "main thread ONLY"                             ;; every store call is main-thread (ARCHITECTURE → Threading); off-thread compute hops back before raising
    :lossy-producer     "level-triggered doorbell"                     ;; producer that can't control its frame window (turn phase, async): RE-RAISE every turn/tick while the condition holds + consumer reconciles state, never trusts one delivery — a lost pulse costs latency, never correctness (decreed: FLOW_DISTRICT_BUILD → ordering-invariants :completion-pulse)
-   :producer->consumer ecs-graph})
+   :producer->consumer fantasymayor-graph})
 ```

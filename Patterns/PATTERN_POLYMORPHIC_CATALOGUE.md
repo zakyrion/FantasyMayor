@@ -24,7 +24,7 @@ What it adds on top — and what no single pattern states — is the **materiali
 discriminators**, the **routing vs non-routing** orchestrator split, and the **dual-host** reuse of one subsystem family.
 
 **Canonical implementation:** `Economy.DistrictOpenCondition` (`Assets/Domains/Economy/DistrictOpenCondition/`) —
-explore it via the ecs-graph / code headers; this recipe is the generic procedure.
+explore it via fantasymayor-graph pattern PATTERN_POLYMORPHIC_CATALOGUE / code headers; this recipe is the generic procedure.
 
 ## When to use / when NOT
 
@@ -151,13 +151,14 @@ internal sealed class BarFooSpawnSubSystem : FooSpawnSubSystem
 
 ### 4 — The entity table (one row per authored entry)
 
-Every row shares a **key** + THE discriminator tag (exactly one — Tag Law); kind and evaluator
+Every row shares a **key** + its archetype's main tag (exactly one — Tag Law), with the family label tag beside it when the family spans several archetypes; kind and evaluator
 output are enum COLUMNS, never extra tags:
 
 | Slot | Role | Shape |
 |---|---|---|
 | Key component (FK) | which subject this entry is about | the subject space's `…FKComponent` (key-role law) |
-| Discriminator tag | "this row is a Foo" — the row's ONLY tag, named by the archetype | `DistrictOpenConditionTag` |
+| Main tag | "this row is a Foo" — the row's ONLY main tag, named by the archetype | `DistrictSingleOpenConditionTag` |
+| Family label tag | the family its archetypes share — [TagLabel], never a filter | `DistrictOpenConditionTag` |
 | Kind component | which kind this row is | `FooKindComponent { FooKind Value }` — `IIndexedComponent<FooKind>`, written once at birth |
 | Payload component (per kind) | the kind's parameters | plain component, named by that kind's archetype |
 | State component (optional) | result the evaluator reconciles | `FooStateComponent { FooState Value }` — `IIndexedComponent<FooState>`, change-only writes |
@@ -223,9 +224,9 @@ The loud/quiet asymmetry is deliberate — see the `;;` notes above.
 ```clojure
 (def per-kind-rule
   {:kind                 "FooKindComponent { FooKind Value }"  ;; ONE enum component per family, every row carries it, written once at birth
-   :selection            "self-index ComponentIndex<FooKindComponent, FooKind>[kind]"  ;; never a second tag, never payload-presence sniffing
+   :selection            "self-index ComponentIndex<FooKindComponent, FooKind>[kind]"  ;; never a second main tag, never payload-presence sniffing
    :payload              {:only-when "the kind has parameters"} ;; part of that kind's archetype — presence is NOT the kind selector (Birth Completeness)
-   :second-tag           :NEVER                                 ;; breaks 1-entity-1-tag (Tag Law)
+   :second-main-tag      :NEVER                                 ;; breaks one main tag per archetype (Tag Law)
    :key-as-discriminator :NEVER})                               ;; the key is the SUBJECT (1:N per key expected); the kind names the RULE
 ```
 
@@ -241,7 +242,7 @@ Both inject the same `IReadOnlyList<FooEvaluatorSubSystem>` and just loop `Evalu
 ## DI wiring (collection injection)
 
 In the domain installer, `Singleton` everything; register each subsystem **as the abstract base** so VContainer fills
-the `IReadOnlyList<TBase>` (see [di-graph](../ARCHITECTURE.md) — collection resolution):
+the `IReadOnlyList<TBase>` (see `fmgraph.py resolve <TBase>` — collection resolution):
 
 ```csharp
 builder.Register<FooSpawnSystem>(Lifetime.Singleton).As<IPrioritizedUniTaskSystem<MapGenerationStep>>();
@@ -267,8 +268,8 @@ Three pieces, orchestrator untouched:
   {:container-SO       "FooConfig[] items; base carries ONLY the shared key; concretes pure data"
    :loader             "wraps live SO ref, RETAINS the Box, fails loud on null/empty, releases on dispose"
    :spawn-orchestrator "fail loud on null entry / unhandled type; subsystems bool TrySpawn — Try-pattern"
-   :row                "key(FK) + ONE discriminator tag + kind component (+ payload, + state); consumers query the TABLE, never the bare key"
-   :kind               "enum FooKindComponent on every row — selection via the kind self-index, never a second tag"
+   :row                "key(FK) + ONE main tag (+ the family label tag) + kind component (+ payload, + state); consumers query the TABLE, never the bare key"
+   :kind               "enum FooKindComponent on every row — selection via the kind self-index, never a second main tag"
    :evaluator          {:if-present "non-routing, reads its kind-slice, joins by key through a ComponentIndex, reconciles the state component change-only"}
    :dual-host          {:only-when "two lifecycles needed"}  ;; both reuse ONE subsystem list
    :di                 "all Singleton; subsystems .As<AbstractBase>(); collected field [StateAllowed]"})

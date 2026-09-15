@@ -85,7 +85,7 @@ Runtime laws of FantasyMayor code: systems, entities, events, threading, code sh
 ## Entities
 ```clojure
 (def table-rule
-  {:table      "a key component + a discriminator (tag-law :discriminator), together in one declared archetype"
+  {:table      "a key component + a discriminator (tag-law :main-tag), together in one declared archetype"
    :filter     {:requires "the table's archetype" :never "a bare key component — a union of every table sharing that key space"}
    :sweep      "iterate the table's archetype itself — no query object"
    :keyed-join "a ComponentIndex over the key column, declared once in the constructor"
@@ -94,13 +94,19 @@ Runtime laws of FantasyMayor code: systems, entities, events, threading, code sh
    :index      {:only-when "a hot join — read every frame or many times per turn" :never "an index for a click-frequency lookup — scan the archetype"}})
 
 (def tag-law
-  {:archetype       {:requires "exactly one tag in every archetype declaration" :never "two identity tags — that row cannot exist"}
-   :discriminator   (cond (category-tag? tag) "the tag is a kind marker shared by several tables; the …ViewComponent discriminates the table"
-                          :else               "the tag is the table discriminator")
-   :event-archetype {:exempt "every event carries EventTag; its archetype is named by the event component"}
+  {:archetype       {:requires "exactly one main tag in every archetype declaration, written first in Tags.Get" :never "two main tags — that row cannot exist"}
+   :main-tag        {:is "the table discriminator — the identity of the entity type; systems filter by the archetype it names"
+                     :unique "one main tag names one archetype"
+                     :exempt "EventTag — the main tag of every event archetype"}
+   :label-tag       {:is "a role or membership marker beside the main tag — a struct marked [TagLabel]"
+                     :role "TagLabelRole.Transaction marks a transaction entity; no role = membership"
+                     :count "0-4 beside the main tag — Tags.Get takes at most 5 type arguments"
+                     :never "a query filter"}
+   :event-archetype {:exempt "every event carries EventTag as its main tag; its archetype is named by the event component"}
    :state           {:is "…StateComponent wrapping an enum" :never "a toggled tag" :write "flipped through AddComponent, change-only"}
-   :kind            {:is "…KindComponent wrapping an enum" :never "a second tag" :write "set once at birth"}
-   :enum-columns    "a state or kind column is a legal self-index key: IIndexedComponent<TEnum> over the family's own rows, read as index[value]"})
+   :kind            {:is "…KindComponent wrapping an enum" :never "a second main tag" :write "set once at birth"}
+   :enum-columns    "a state or kind column is a legal self-index key: IIndexedComponent<TEnum> over the family's own rows, read as index[value]"
+   :checked-by      "fantasymayor-graph tags; MarkerShapeAnalyzer for [TagLabel]"})
 
 (def key-role-law
   {:pk         {:type "…IdComponent" :is "the row's own identity" :owner "exactly one table, paired with its tag" :index "unique by contract — the engine does not enforce it"}
@@ -136,6 +142,11 @@ Runtime laws of FantasyMayor code: systems, entities, events, threading, code sh
    :presence    {:never "a predicate" :instead "a sentinel value — Unknown, Idle, an empty box"}
    :composition {:never "an optional column" :change "delete the row and create a new one in its archetype, carrying the PK/FK value over"}
    :never       #{"RemoveComponent" "RemoveTag" "a late AddComponent of a column the archetype does not name — it migrates the row out of its archetype"}})
+
+(def view-boundary
+  {:view       "a MonoBehaviour view never creates an entity or raises an event, and never receives EntityStorages or EntityStore"
+   :instead    "it raises a C# event; its driving system subscribes and writes the store (PATTERN_VIEW_SYSTEM)"
+   :checked-by "fantasymayor-graph pattern PATTERN_VIEW_SYSTEM — deviations"})
 
 (def component-writes
   {:write       "entity.AddComponent(value) — the upsert; under birth completeness always a plain value write"

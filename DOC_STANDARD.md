@@ -15,7 +15,7 @@ Read this before creating or editing any `.md` file.
 
 > **Module/domain/presentation MDs are ABOLISHED (2026-07-09) — never recreate them.** Present-tense
 > narrative about code state rots faster than curation keeps up. Module knowledge lives in code
-> comments (distance zero), tools (`roslyn` / `ecs-graph` / `di-graph`), commit messages, and the
+> comments (distance zero), tools (`roslyn` / `fantasymayor-graph`), commit messages, and the
 > genres below. `Tools/doc_lint.py` lint-checks every doc's symbol claims against the code.
 
 ---
@@ -43,8 +43,7 @@ A doc may hold ONLY content that does not decay when code drifts:
 ;; ── structural facts: a tool owns them, a doc NEVER does ────────────────────
 (def tool-owns
   {#{types signatures references hierarchy outline}                   roslyn-mcp
-   #{writers readers reactive-consumers archetypes PK-FK priorities}  ecs-graph
-   #{registered-as Lifetime installer injectors collections GameMode} di-graph
+   #{writers readers reactive-consumers archetypes PK-FK priorities registered-as Lifetime installer injectors collections GameMode recipe-instances} fantasymayor-graph
    #{asmdef-reachability layering}                                    Tools/asmdef_reach.py
    :doc-symbol-claims                                                 Tools/doc_lint.py
    :domain-term->code-anchor                                          GLOSSARY.md})

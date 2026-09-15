@@ -72,7 +72,7 @@ public override void Dispose()
 
 ```clojure
 (def view-system-rules
-  {:view       {:is "MonoBehaviour, dumb" :never #{"inject the EntityStore" "create entities" "raise an ECS pulse to its own system"}}
+  {:view       {:is "MonoBehaviour, dumb" :never #{"inject the EntityStore" "create entities" "raise an ECS pulse to its own system"}}  ;; ARCHITECTURE → Entities, view-boundary
    :in         "local C# event (`event Action<T>`); the driving system/subsystem subscribes directly"
    :out        "push-to-view, one value at a time — never a managed snapshot built in the system (PATTERN_PERFRAME_SYSTEM)"
    :subscribe  {:once "guard with a bool — the view outlives the system" :unhook "in Dispose"}

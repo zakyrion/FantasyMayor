@@ -1,7 +1,7 @@
 ---
 category: C
 read: trigger
-trigger: "when a domain term (any language) needs its canonical code name before searching roslyn / ecs-graph / di-graph"
+trigger: "when a domain term (any language) needs its canonical code name before searching roslyn / fantasymayor-graph"
 tags: [glossary, vocabulary, navigation]
 related:
   - "[ARCHITECTURE](ARCHITECTURE.md)"
@@ -12,8 +12,8 @@ related:
 
 Map from human vocabulary (game-design terms, Ukrainian/English synonyms, abbreviations) to the
 **canonical code names** to start a tool search from. One Clojure entry per CONCEPT — this file grows
-by concepts (~1 entry per new mechanic), never by classes; the anchors feed `roslyn` / `ecsg.py` /
-`dig.py`, which always return the current truth. Maintained by the main agent at milestone syncs (with the user's approval).
+by concepts (~1 entry per new mechanic), never by classes; the anchors feed `roslyn` / `fmgraph.py`,
+which always return the current truth. Maintained by the main agent at milestone syncs (with the user's approval).
 
 Format: one map — key = `"alias | alias | …"` (the human terms), value = `{:domain <owner> :anchors
 [Name1 Name2 …]}`; anchors are bare type names, 2–4 per concept, verified against the graph before saving. A model-only concept that has no code yet carries `:anchors ?` and names its

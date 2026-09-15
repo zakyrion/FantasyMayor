@@ -29,6 +29,8 @@ namespace Presentation.UI.DistrictBuild.Systems
     ///     reconciles its own view from ECS (orchestrator + subsystem family, like DistrictOpenConditionSpawnSystem).
     /// </summary>
     [UsedImplicitly]
+    [SystemRole(SystemRoleKind.PerFrame)]
+    [ViewSubscriber(typeof(DistrictBuildUIView))]
     public sealed class DistrictBuildUISystem : UpdatedSystem, IDisposable
     {
         private readonly EntityStorages _storages;

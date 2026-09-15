@@ -35,6 +35,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
     ///     verb row via <c>DistrictIdFKComponent</c> + cancel); row staged <c>Built</c> → district-details block.
     /// </summary>
     [UsedImplicitly]
+    [ViewSubscriber(typeof(HexInfoPanelView))]
     public sealed class HexInfoPanelDistrictSystem : UpdatedSystem, IDisposable
     {
         private readonly EntityStorages _storages;

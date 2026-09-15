@@ -9,8 +9,8 @@ using JetBrains.Annotations;
 
 namespace Domains.Economy.DistrictOpenCondition.Systems
 {
-    // Handles DistrictExistConditionConfig: creates one entity carrying the gated district type (FK), the
-    // required-district payload, the condition discriminator tag, and its kind + state columns (Exist / Closed).
+    // Handles DistrictExistConditionConfig: creates one entity carrying the gated district type (FK), the required-district
+    // payload, its archetype's main tag beside the family label, and its kind + state columns (Exist / Closed).
     [UsedImplicitly]
     internal sealed class DistrictExistConditionSpawnSubSystem : DistrictOpenConditionSpawnSubSystem
     {
