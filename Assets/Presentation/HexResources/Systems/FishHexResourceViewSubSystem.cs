@@ -1,3 +1,5 @@
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using EcsExtensions;
 using JetBrains.Annotations;
 using Domains.Map.HexResources.Data;
@@ -15,8 +17,9 @@ namespace Presentation.HexResources.Systems
         {
         }
 
-        public override void Update(GameState state)
+        public override UniTask Update(CancellationToken cancellationToken)
         {
+            return UniTask.CompletedTask;
         }
     }
 }

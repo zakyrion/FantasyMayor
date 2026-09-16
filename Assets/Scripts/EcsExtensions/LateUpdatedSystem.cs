@@ -1,4 +1,5 @@
 using Friflo.Engine.ECS;
+using Modules.Boot.Core;
 using Unity.Collections;
 
 namespace EcsExtensions
@@ -20,17 +21,24 @@ namespace EcsExtensions
         /// <inheritdoc />
         public abstract int Priority { get; }
 
+        /// <inheritdoc />
+        public AppState AppState { get; }
+
+        /// <param name="appState">The game states this system belongs to.</param>
         /// <param name="store">The store to re-fetch entities from after the id snapshot.</param>
         /// <param name="archetype">The single archetype this system iterates each frame.</param>
-        protected LateUpdatedSystem(EntityStore store, Archetype archetype)
+        protected LateUpdatedSystem(AppState appState, EntityStore store, Archetype archetype)
         {
+            AppState = appState;
             _archetypeStore = store;
             _archetype = archetype;
         }
 
+        /// <param name="appState">The game states this system belongs to.</param>
         /// <param name="query">A query spanning more than one archetype this system iterates each frame.</param>
-        protected LateUpdatedSystem(ArchetypeQuery query)
+        protected LateUpdatedSystem(AppState appState, ArchetypeQuery query)
         {
+            AppState = appState;
             _query = query;
         }
 

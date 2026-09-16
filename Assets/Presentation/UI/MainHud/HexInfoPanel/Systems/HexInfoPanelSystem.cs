@@ -4,6 +4,7 @@ using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
+using Modules.Boot.Core;
 using Presentation.Archetypes;
 using Presentation.Terrain.Components;
 using Presentation.Terrain.Events;
@@ -29,8 +30,8 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
 
         public override int Priority => SystemPriorities.RuntimeTick.HexInfoPanel;
 
-        public HexInfoPanelSystem(EntityStorages storages)
-            : base(storages.World, EventArchetypes.Of<SelectedHexChangedEvent>(storages.World))
+        public HexInfoPanelSystem(AppState appState, EntityStorages storages)
+            : base(appState, storages.World, EventArchetypes.Of<SelectedHexChangedEvent>(storages.World))
         {
             _viewSet = PresentationUIArchetypes.HexInfoPanel(storages.World);
             _selectedHexSet = PresentationArchetypes.HexSelection(storages.World);

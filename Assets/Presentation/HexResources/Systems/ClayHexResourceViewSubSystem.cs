@@ -1,4 +1,6 @@
-﻿using Domains.Map.Archetypes;
+﻿using System.Threading;
+using Cysharp.Threading.Tasks;
+using Domains.Map.Archetypes;
 using Domains.Map.Hex.Components;
 using Domains.Map.HexResources.Data;
 using EcsExtensions;
@@ -45,19 +47,19 @@ namespace Presentation.HexResources.Systems
             _hexSet = MapArchetypes.Hex(storages.World);
         }
 
-        public override void Update(GameState state)
+        public override UniTask Update(CancellationToken cancellationToken)
         {
             var clayEntities = GetTargetResourceEntities();
             if (clayEntities.Length == 0)
-                return;
+                return UniTask.CompletedTask;
 
             if (!TryGetVertexGrid(out var grid))
-                return;
+                return UniTask.CompletedTask;
 
             if (!_storages.Singletons.Has<TerrainTextureComponent>() || _terrainViewSet.Count == 0)
             {
                 Debug.LogWarning("[ClayHexResourceViewSubSystem] Missing terrain texture or view — clay skipped.");
-                return;
+                return UniTask.CompletedTask;
             }
 
             var clayConfig = _storages.Get<ClayViewConfig>();
@@ -69,12 +71,12 @@ namespace Presentation.HexResources.Systems
             if (texture == null || terrainView == null)
             {
                 Debug.LogWarning("[ClayHexResourceViewSubSystem] Terrain texture or view reference is null — clay skipped.");
-                return;
+                return UniTask.CompletedTask;
             }
 
             var radius = clayConfig.DepressionRadius * cellSize;
             if (radius <= 0f)
-                return; // clay config not authored yet — nothing to deform or paint
+                return UniTask.CompletedTask; // clay config not authored yet — nothing to deform or paint
 
             InitializePainter(texture, cellSize);
 
@@ -96,6 +98,8 @@ namespace Presentation.HexResources.Systems
 
             terrainView.ApplyHeightsFromVertexGrid(grid);
             _painter.Apply();
+
+            return UniTask.CompletedTask;
         }
 
         public override void Dispose()

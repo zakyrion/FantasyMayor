@@ -8,6 +8,7 @@ using Domains.Economy.District.Events;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
+using Modules.Boot.Core;
 using Unity.Collections;
 
 namespace Domains.Actions.BuildDistrictAction.Systems
@@ -37,10 +38,13 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         private readonly Archetype _buildDistrictsInProgress;
         private readonly ComponentIndex<DistrictIdComponent, int> _districtsById;
 
+        public AppState AppState { get; }
+
         public int Priority => SystemPriorities.RuntimeTick.BuildDistrictCompletion;
 
-        public BuildDistrictCompletionSystem(EntityStorages storages)
+        public BuildDistrictCompletionSystem(AppState appState, EntityStorages storages)
         {
+            AppState = appState;
             _storages = storages;
             _completePulses = EventArchetypes.Of<BuildDistrictCompleteEvent>(storages.World);
             _buildDistrictsInProgress = ActionsArchetypes.BuildDistrictInProgress(storages.World);

@@ -8,6 +8,7 @@ using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
+using Modules.Boot.Core;
 using Presentation.Archetypes;
 using Presentation.Districts.Components;
 using Presentation.Districts.Configs;
@@ -46,8 +47,8 @@ namespace Presentation.Districts.Systems
 
         public override int Priority => SystemPriorities.RuntimeTick.DistrictViewSpawn;
 
-        public DistrictViewSpawnSystem(EntityStorages storages)
-            : base(storages.World, EventArchetypes.Of<DistrictTableChangedEvent>(storages.World))
+        public DistrictViewSpawnSystem(AppState appState, EntityStorages storages)
+            : base(appState, storages.World, EventArchetypes.Of<DistrictTableChangedEvent>(storages.World))
         {
             _storages = storages;
 

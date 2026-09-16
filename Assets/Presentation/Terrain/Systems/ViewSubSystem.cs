@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EcsExtensions;
@@ -6,10 +7,10 @@ namespace Presentation.Terrain.Systems
 {
     /// <summary>
     ///     Abstract base for asynchronous terrain-view subsystems executed sequentially
-    ///     by a view orchestrator. Provides <see cref="Priority" /> for execution ordering
+    ///     by <see cref="TerrainViewSystem" />. Provides <see cref="Priority" /> for execution ordering
     ///     and <see cref="IsEnabled" /> for skipping disabled steps.
     /// </summary>
-    internal abstract class ViewSubSystem : IUniTaskSystem<GameState>
+    internal abstract class ViewSubSystem : IPrioritizedUniTaskSystem, IDisposable
     {
         /// <summary>
         ///     Determines whether this subsystem participates in the update loop.
@@ -20,6 +21,9 @@ namespace Presentation.Terrain.Systems
         ///     Execution order within the view pipeline. Lower values run first.
         /// </summary>
         public abstract int Priority { get; }
+
+        /// <inheritdoc />
+        public Type OrchestratorType => typeof(TerrainViewSystem);
 
         /// <inheritdoc />
         public abstract UniTask Update(CancellationToken cancellationToken);

@@ -1,11 +1,12 @@
 using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using EcsExtensions;
 using JetBrains.Annotations;
 using Presentation.UI.MainHud.ContextTabs.Components;
 using Presentation.UI.MainHud.ContextTabs.Data;
 using Presentation.UI.MainHud.ContextTabs.Views;
 using Presentation.UI.MainHud.Systems;
-using UnityEngine;
-using EcsExtensions;
 
 namespace Presentation.UI.MainHud.ContextTabs.Systems
 {
@@ -24,13 +25,15 @@ namespace Presentation.UI.MainHud.ContextTabs.Systems
 
         public override int Priority => SystemPriorities.SubSystems.MainHudSpawn.ContextTabs;
 
-        public ContextTabsSpawnSubSystem(EntityStorages storages)
+        public ContextTabsSpawnSubSystem(EntityStorages storages) : base(storages)
         {
             _storages = storages;
         }
 
-        public override void Prepare(GameObject mainUi)
+        public override UniTask Update(CancellationToken cancellationToken)
         {
+            var mainUi = ReadMainHudRoot();
+
             // GetComponentInChildren (not GetComponent): the view carries its own UIDocument, so it lives on a
             // child GameObject of the Main UI root, not the root itself.
             var view = mainUi.GetComponentInChildren<ContextTabsView>(true);
@@ -42,6 +45,8 @@ namespace Presentation.UI.MainHud.ContextTabs.Systems
             _storages.Singletons.Set(new ContextTabsViewComponent(view));
             _storages.Singletons.Set(new ActiveContextTabComponent(DefaultTab));
             view.SetActive(DefaultTab);
+
+            return UniTask.CompletedTask;
         }
     }
 }

@@ -7,6 +7,7 @@ using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
+using Modules.Boot.Core;
 using Presentation.Archetypes;
 using Presentation.Districts.Components;
 using Unity.Collections;
@@ -39,8 +40,8 @@ namespace Presentation.Districts.Systems
 
         public override int Priority => SystemPriorities.RuntimeTick.DistrictBuildProgressViewDespawn;
 
-        public DistrictBuildProgressViewDespawnSystem(EntityStorages storages)
-            : base(storages.World, EventArchetypes.Of<DistrictTableChangedEvent>(storages.World))
+        public DistrictBuildProgressViewDespawnSystem(AppState appState, EntityStorages storages)
+            : base(appState, storages.World, EventArchetypes.Of<DistrictTableChangedEvent>(storages.World))
         {
             _storages = storages;
             _districts = EconomyArchetypes.District(storages.World);

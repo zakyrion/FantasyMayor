@@ -12,11 +12,11 @@ using Presentation.UI.GeneratorMenu.Views;
 namespace Presentation.UI.GeneratorMenu.Systems
 {
     /// <summary>
-    ///     Loads and instantiates the hex generator UI during the <see cref="FirstUIStep" /> boot phase.
-    ///     Runs once; subsequent calls to <see cref="Update" /> are no-ops.
+    ///     Loads and instantiates the hex generator UI on <see cref="Modules.Boot.Core.AppState.MainMenu" /> entry.
+    ///     Runs once; subsequent calls to <see cref="Execute" /> are no-ops.
     /// </summary>
     [UsedImplicitly]
-    public class ShowHexesUISystem : IUniTaskSystem<FirstUIStep>
+    public class ShowHexesUISystem : IUniTaskSystem
     {
         private const string HexGeneratorUIPath = "UI/HexGeneratorUI";
 
@@ -26,8 +26,11 @@ namespace Presentation.UI.GeneratorMenu.Systems
         private bool _isDisposed;
         private bool _isLoaded;
 
-        public ShowHexesUISystem(IMainCanvasProvider canvasProvider, IAddressable addressable)
+        public AppState AppState { get; }
+
+        public ShowHexesUISystem(AppState appState, IMainCanvasProvider canvasProvider, IAddressable addressable)
         {
+            AppState = appState;
             _canvasProvider = canvasProvider;
             _addressable = addressable;
             _uiBox = Box<HexesUI>.Empty();
@@ -37,7 +40,7 @@ namespace Presentation.UI.GeneratorMenu.Systems
         ///     Loads and instantiates the hex UI prefab under the main canvas. Idempotent after first successful load.
         /// </summary>
         /// <param name="cancellationToken">Token to abort the async load.</param>
-        public async UniTask Update(CancellationToken cancellationToken)
+        public async UniTask Execute(CancellationToken cancellationToken)
         {
             if (_isDisposed)
                 throw new ObjectDisposedException(GetType().Name);

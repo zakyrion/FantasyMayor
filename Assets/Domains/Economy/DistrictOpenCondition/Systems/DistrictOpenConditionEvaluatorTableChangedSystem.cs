@@ -5,10 +5,11 @@ using EcsExtensions;
 using Friflo.Engine.ECS;
 using Domains.Economy.District.Events;
 using JetBrains.Annotations;
+using Modules.Boot.Core;
 
 namespace Domains.Economy.DistrictOpenCondition.Systems
 {
-    // Reactive host (3rd, sibling of the MapGenerationStep bootstrap and TurnPhaseSubSystem hosts): re-runs the
+    // Reactive host (3rd, sibling of the map-creation-stage bootstrap and turn-phase hosts): re-runs the
     // condition-evaluator subsystem family on every DistrictTableChangedEvent{Planned/Built/Removed} pulse, so a
     // confirm or cancel re-gates the buildable list within the SAME turn instead of waiting for the next Preview
     // pass. No evaluation logic of its own.
@@ -21,8 +22,8 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
         public override int Priority => SystemPriorities.RuntimeTick.DistrictOpenConditionEvaluatorTableChanged;
 
         public DistrictOpenConditionEvaluatorTableChangedSystem(
-            EntityStorages storages, IReadOnlyList<DistrictOpenConditionEvaluatorSubSystem> subSystems)
-            : base(storages.World, EventArchetypes.Of<DistrictTableChangedEvent>(storages.World))
+            AppState appState, EntityStorages storages, IReadOnlyList<DistrictOpenConditionEvaluatorSubSystem> subSystems)
+            : base(appState, storages.World, EventArchetypes.Of<DistrictTableChangedEvent>(storages.World))
         {
             _subSystems = subSystems
                 .OrderBy(system => system.Priority)

@@ -6,6 +6,8 @@ using Domains.Economy.Installer;
 using Installers.Addressable;
 using Presentation.Terrain.Installer;
 using Modules.Boot.Core;
+using Modules.Boot.Implementation;
+using Modules.Boot.Implementation.States;
 using Presentation.HexIcons.Installer;
 using Domains.Map.HexResources.Installer;
 using Presentation.HexResources.Installer;
@@ -60,16 +62,31 @@ namespace Installers.World
 
             world.CreateEntity(new PlayerInputComponent { PlayerInput = _playerInput }, Tags.Get<PlayerInputTag>());
 
-            // Per-frame systems are registered as concrete singletons; Boot wires them into game states by hand.
-            builder.Register<EventCleanupSystem>(Lifetime.Singleton).As<EventCleanupSystem>();
-            builder.Register<HexSelectionSystem>(Lifetime.Singleton).As<HexSelectionSystem>();
-            builder.Register<ConfigLoaderSystem<CameraMovementConfig>>(Lifetime.Singleton)
-                .As<IUniTaskSystem>()
-                .WithParameter(AppState.ConfigLoading)
+            // Every first-order system is registered through RegisterAppStateSystem, which exposes it as
+            // IAppStateSystem with its AppState flags; each game state finds its own kept systems by filtering
+            // that flag set (AppStateSystems.Filter) — nothing here wires a system into a state by hand.
+            builder.RegisterAppStateSystem<EventCleanupSystem>(Lifetime.Singleton,
+                AppState.Initialization | AppState.ConfigLoading | AppState.InstanceObjects | AppState.MainMenu |
+                AppState.MapCreation | AppState.MapLoading | AppState.Gameplay | AppState.GameOver);
+            builder.RegisterAppStateSystem<HexSelectionSystem>(Lifetime.Singleton, AppState.Gameplay);
+            builder.RegisterAppStateSystem<ConfigLoaderSystem<CameraMovementConfig>>(Lifetime.Singleton, AppState.ConfigLoading)
                 .WithParameter("address", ConfigAddresses.CAMERA_MOVEMENT_CONFIG);
-            builder.Register<CameraMovementSystem>(Lifetime.Singleton).As<CameraMovementSystem>();
+            builder.RegisterAppStateSystem<CameraMovementSystem>(Lifetime.Singleton, AppState.Gameplay);
 
             InstallModules(builder);
+
+            // Every game state is registered here, in AppState order, so GameModeMachine can file each under
+            // its own mode; Boot only injects the machine and never names a state or a system.
+            builder.Register<InitializationState>(Lifetime.Singleton).As<IAppState>();
+            builder.Register<ConfigLoadingState>(Lifetime.Singleton).As<IAppState>();
+            builder.Register<InstanceObjectsState>(Lifetime.Singleton).As<IAppState>();
+            builder.Register<MainMenuState>(Lifetime.Singleton).As<IAppState>();
+            builder.Register<MapCreationState>(Lifetime.Singleton).As<IAppState>();
+            builder.Register<MapLoadingState>(Lifetime.Singleton).As<IAppState>();
+            builder.Register<GameplayState>(Lifetime.Singleton).As<IAppState>();
+            builder.Register<GameOverState>(Lifetime.Singleton).As<IAppState>();
+
+            builder.Register<GameModeMachine>(Lifetime.Singleton);
         }
 
         private void InstallModules(IContainerBuilder builder)

@@ -1,11 +1,12 @@
-using JetBrains.Annotations;
-using UnityEngine;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using EcsExtensions;
+using JetBrains.Annotations;
 
 namespace Presentation.UI.DistrictBuild.Systems
 {
     // ДІЇ populator (dormant scaffold): the district-action model is a later slice, so there is nothing to
-    // reconcile yet. Exists so the section family stays uniform and the seam is wired; Populate is a no-op.
+    // reconcile yet. Exists so the section family stays uniform and the seam is wired; Update is a no-op.
     [UsedImplicitly]
     public sealed class DistrictBuildActionsUISubSystem : DistrictBuildUISubSystem
     {
@@ -15,8 +16,9 @@ namespace Presentation.UI.DistrictBuild.Systems
         {
         }
 
-        public override void Populate(GameObject root)
+        public override UniTask Update(CancellationToken cancellationToken)
         {
+            return UniTask.CompletedTask;
         }
     }
 }

@@ -15,14 +15,14 @@ using Presentation.UI.DistrictBuild.Views;
 namespace Presentation.UI.DistrictBuild.Systems
 {
     /// <summary>
-    ///     World-init pipeline step (priority 810). Instantiates the district-build overlay — a SEPARATE
+    ///     Map-creation stage (priority 810). Instantiates the district-build overlay — a SEPARATE
     ///     UIDocument from the shared Main UI, authored with a higher sort order so it renders above the HUD and
     ///     its full-screen scrim blocks input below — under the main canvas, resolves its view, publishes the
     ///     view singleton, and leaves it hidden. DistrictBuildUISystem reveals it on the build request.
     ///     Owns the single addressable handle for the overlay (mirrors the loading half of MainHudSpawnSystem).
     /// </summary>
     [UsedImplicitly]
-    internal sealed class DistrictBuildUISpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
+    internal sealed class DistrictBuildUISpawnSystem : IPipelineStageSystem
     {
         private const string DistrictBuildActionPath = "UI/DistrictBuildAction";
 
@@ -31,19 +31,23 @@ namespace Presentation.UI.DistrictBuild.Systems
         private readonly EntityStorages _storages;
         private readonly Archetype _archetype;
 
+        public AppState AppState { get; }
+
         public int Priority => SystemPriorities.WorldInit.DistrictBuildUiSpawn;
 
-        public DistrictBuildUISpawnSystem(EntityStorages storages,
+        public DistrictBuildUISpawnSystem(AppState appState,
+            EntityStorages storages,
             IAddressable addressable,
             IMainCanvasProvider canvasProvider)
         {
+            AppState = appState;
             _addressable = addressable;
             _canvasProvider = canvasProvider;
             _storages = storages;
             _archetype = PresentationUIArchetypes.DistrictBuildUI(storages.World);
         }
 
-        public async UniTask Update(CancellationToken cancellationToken)
+        public async UniTask Execute(CancellationToken cancellationToken)
         {
             if (_storages.Singletons.Get<DistrictBuildUIRootComponent>().RootBox.Exist)
                 return;

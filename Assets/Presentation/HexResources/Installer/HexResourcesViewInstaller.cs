@@ -12,32 +12,25 @@ namespace Presentation.HexResources.Installer
     {
         public void Install(IContainerBuilder builder)
         {
-            builder.Register<ConfigLoaderSystem<HexResourcesViewConfig>>(Lifetime.Singleton)
-                .As<IUniTaskSystem>()
-                .WithParameter(AppState.ConfigLoading)
+            builder.RegisterAppStateSystem<ConfigLoaderSystem<HexResourcesViewConfig>>(Lifetime.Singleton, AppState.ConfigLoading)
                 .WithParameter("address", ConfigAddresses.HEX_RESOURCES_VIEW_CONFIG);
 
-            builder.Register<ConfigLoaderSystem<ClayViewConfig>>(Lifetime.Singleton)
-                .As<IUniTaskSystem>()
-                .WithParameter(AppState.ConfigLoading)
+            builder.RegisterAppStateSystem<ConfigLoaderSystem<ClayViewConfig>>(Lifetime.Singleton, AppState.ConfigLoading)
                 .WithParameter("address", ConfigAddresses.CLAY_VIEW_CONFIG);
 
-            builder.Register<HexResourcesViewSystem>(Lifetime.Singleton)
-                .As<HexResourcesViewSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
+            builder.RegisterAppStateSystem<HexResourcesViewSystem>(Lifetime.Singleton, AppState.MapCreation);
 
-            // Reactive runtime forest systems are event-driven (idle until a pulse). Concrete registration:
-            // Boot wires them into the Gameplay state by hand.
-            builder.Register<ForestSpawnSystem>(Lifetime.Singleton)
-                .As<ForestSpawnSystem>();
-            builder.Register<ForestDespawnSystem>(Lifetime.Singleton)
-                .As<ForestDespawnSystem>();
+            // Reactive runtime forest systems are event-driven (idle until a pulse). A first-order per-frame
+            // system: its state membership is its AppState flags, resolved through IAppStateSystem.
+            builder.RegisterAppStateSystem<ForestSpawnSystem>(Lifetime.Singleton, AppState.Gameplay);
+            builder.RegisterAppStateSystem<ForestDespawnSystem>(Lifetime.Singleton, AppState.Gameplay);
 
             builder.Register<ForestHexResourceViewSubSystem>(Lifetime.Singleton)
-                .As<ForestHexResourceViewSubSystem, HexResourcesViewSubSystem>();
+                .As<IPrioritizedUniTaskSystem>();
             builder.Register<ClayHexResourceViewSubSystem>(Lifetime.Singleton)
-                .As<ClayHexResourceViewSubSystem, HexResourcesViewSubSystem>();
+                .As<IPrioritizedUniTaskSystem>();
             builder.Register<FishHexResourceViewSubSystem>(Lifetime.Singleton)
-                .As<FishHexResourceViewSubSystem, HexResourcesViewSubSystem>();
+                .As<IPrioritizedUniTaskSystem>();
         }
     }
 }

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EcsExtensions;
@@ -11,29 +10,31 @@ using Modules.Turn.Components;
 namespace Modules.Boot.Implementation.States
 {
     /// <summary>
-    ///     Steady-state play. Ticks its update and late-update systems every frame in priority order.
-    ///     Does not auto-transition — returning to the menu (with world teardown) is a separate concern.
+    ///     Steady-state play. Runs the systems flagged <see cref="AppState.Gameplay" />, ticking its update and
+    ///     late-update systems every frame in priority order. Does not request a transition — returning to the
+    ///     menu (with world teardown) is a separate concern.
     /// </summary>
     public sealed class GameplayState : IAppState
     {
-        private readonly IReadOnlyList<IUpdatedSystem> _updateSystems;
-        private readonly IReadOnlyList<ILateUpdatedSystem> _lateUpdateSystems;
+        private readonly AppStateSystems _systems;
         private readonly EntityStorages _storages;
 
         public AppState Mode => AppState.Gameplay;
         public AppState? RequestedMode => null;
 
-        public GameplayState(
-            EntityStorages storages,
-            IReadOnlyList<IUpdatedSystem> updateSystems,
-            IReadOnlyList<ILateUpdatedSystem> lateUpdateSystems)
+        public GameplayState(EntityStorages storages, IReadOnlyList<IAppStateSystem> allSystems)
         {
             _storages = storages;
-            _updateSystems = updateSystems.OrderBy(system => system.Priority).ToArray();
-            _lateUpdateSystems = lateUpdateSystems.OrderBy(system => system.Priority).ToArray();
+            _systems = AppStateSystems.Filter(Mode, allSystems);
         }
 
-        public UniTask EnterAsync(CancellationToken cancellationToken)
+        public async UniTask EnterAsync(CancellationToken cancellationToken)
+        {
+            await _systems.RunEntryAsync(cancellationToken);
+            SeedStartOfPlay();
+        }
+
+        private void SeedStartOfPlay()
         {
             // Producer (variant B): write the initial visibility state, then raise a one-frame event so the
             // consumer renders icons on the first Gameplay tick. The player toggles this later via UI by
@@ -45,20 +46,16 @@ namespace Modules.Boot.Implementation.States
             // The game opens on the first Mayor Phase = turn 1; TurnCountSystem increments it on each
             // turn boundary. Seeded here so the turn cluster can show "Хід N" from the first frame.
             _storages.Singletons.Set(new TurnCountComponent(1));
-
-            return UniTask.CompletedTask;
         }
 
         public void Tick(GameState state)
         {
-            foreach (var system in _updateSystems)
-                system.Update(state);
+            _systems.Tick(state);
         }
 
         public void LateTick(GameState state)
         {
-            foreach (var system in _lateUpdateSystems)
-                system.Update(state);
+            _systems.LateTick(state);
         }
 
         public void Exit()

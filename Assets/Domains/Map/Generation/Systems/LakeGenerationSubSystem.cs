@@ -1,4 +1,6 @@
-﻿using Domains.Map.Archetypes;
+﻿using System.Threading;
+using Cysharp.Threading.Tasks;
+using Domains.Map.Archetypes;
 using Domains.Map.Generation.Components;
 using Domains.Map.Generation.Data;
 using Domains.Map.Hex.Components;
@@ -45,15 +47,17 @@ namespace Domains.Map.Generation.Systems
         /// <summary>
         ///     Runs lake generation when the active terrain config requests <see cref="WaterType.Lake" />.
         /// </summary>
-        /// <param name="state">Current game state.</param>
-        public override void Update(GameState state)
+        /// <param name="cancellationToken">Token used to cancel the run.</param>
+        public override UniTask Update(CancellationToken cancellationToken)
         {
             var terrainConfig = _storages.Get<TerrainGenerationConfig>();
 
             if (terrainConfig.WaterType != WaterType.Lake)
-                return;
+                return UniTask.CompletedTask;
 
             Generate(terrainConfig, terrainConfig.LakeConfig);
+
+            return UniTask.CompletedTask;
         }
 
         /// <summary>

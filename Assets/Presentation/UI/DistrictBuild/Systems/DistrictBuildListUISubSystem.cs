@@ -1,4 +1,6 @@
-﻿using System;
+using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
 using Domains.Economy.DistrictOpenCondition.Components;
@@ -11,7 +13,6 @@ using Presentation.UI.Archetypes;
 using Presentation.UI.DistrictBuild.Components;
 using Presentation.UI.DistrictBuild.Tags;
 using Presentation.UI.DistrictBuild.Views;
-using UnityEngine;
 
 namespace Presentation.UI.DistrictBuild.Systems
 {
@@ -41,7 +42,7 @@ namespace Presentation.UI.DistrictBuild.Systems
             _selectionSet = PresentationUIArchetypes.DistrictBuildSelection(storages.World);
         }
 
-        public override void Populate(GameObject root)
+        public override UniTask Update(CancellationToken cancellationToken)
         {
             var view = _storages.Singletons.Get<DistrictBuildListUIViewComponent>().View;
 
@@ -82,6 +83,8 @@ namespace Presentation.UI.DistrictBuild.Systems
                 var type = entity.GetComponent<DistrictTypeFKComponent>().Value;
                 view.AddDistrict(type, type == selected);
             }
+
+            return UniTask.CompletedTask;
         }
 
         private bool HasRipeRequest()

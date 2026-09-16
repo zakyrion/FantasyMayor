@@ -4,10 +4,10 @@ using Cysharp.Threading.Tasks;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
+using Modules.Boot.Core;
 using Modules.Turn.Components;
 using Modules.Turn.Data;
 using Modules.Turn.Events;
-using Modules.Turn.Helpers;
 using UnityEngine;
 
 namespace Modules.Turn.Systems
@@ -25,18 +25,24 @@ namespace Modules.Turn.Systems
     public sealed class TurnProcessorSystem : IUpdatedSystem
     {
         private readonly Archetype _nextTurnPulses;
-        private readonly IReadOnlyList<TurnPhaseSubSystem> _phases;
-        private readonly TurnPhaseRunner _runner = new();
+
+        [StateAllowed]
+        private readonly IReadOnlyList<IPrioritizedUniTaskSystem> _phases;
+
         private readonly EntityStorages _storages;
+
+        public AppState AppState { get; }
 
         public bool IsEnabled { get; set; } = true;
 
         public int Priority => SystemPriorities.RuntimeTick.TurnProcessor;
 
-        public TurnProcessorSystem(EntityStorages storages, IReadOnlyList<TurnPhaseSubSystem> phases)
+        public TurnProcessorSystem(
+            AppState appState, EntityStorages storages, IReadOnlyList<IPrioritizedUniTaskSystem> allSubSystems)
         {
+            AppState = appState;
             _storages = storages;
-            _phases = phases;
+            _phases = OrchestratorSubSystems.SelectForOrchestrator(typeof(TurnProcessorSystem), allSubSystems);
             _nextTurnPulses = EventArchetypes.Of<NextTurnEvent>(storages.World);
         }
 
@@ -78,7 +84,7 @@ namespace Modules.Turn.Systems
         {
             var token = StatusMonitor.Token;
 
-            await _runner.RunAsync(_phases, token);
+            await OrchestratorSubSystems.RunAsync(_phases, token);
 
             _storages.Singletons.Set(new TurnProcessorComponent { Status = TurnProcessorStatus.Completed });
         }

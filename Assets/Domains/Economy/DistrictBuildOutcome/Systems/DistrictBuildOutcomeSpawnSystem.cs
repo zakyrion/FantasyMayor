@@ -5,71 +5,59 @@ using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
 using EcsExtensions;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Boot.Core;
+using Domains.Economy.Archetypes;
 using Domains.Economy.DistrictBuildOutcome.Configs;
-using Domains.Economy.DistrictBuildOutcome.Components;
 
 namespace Domains.Economy.DistrictBuildOutcome.Systems{
-    // Pipeline Orchestrator (MapGenerationStep, one-shot): reads the loaded outcomes catalogue and routes each
-    // authored config to the subsystem that handles its concrete type, materializing one entity per outcome.
-    // No domain logic of its own — entity construction lives in the per-type subsystems. Fails loud on a null
-    // entry or a config type no subsystem handles. Priority 930 keeps it in the domain-spawn cluster, after the
-    // DistrictOpenCondition spawn (920) / bootstrap (925).
+    // Map-creation stage: reads the loaded outcomes catalogue and lets every DI-collected subsystem walk it for
+    // the entries of its own kind, materializing one entity per outcome. No domain logic of its own — entity
+    // construction lives in the per-type subsystems. Fails loud when a catalogue entry got no row. Priority 930
+    // keeps it in the domain-spawn cluster, after the DistrictOpenCondition spawn (920) / bootstrap (925).
     [UsedImplicitly]
-    internal sealed class DistrictBuildOutcomeSpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
+    internal sealed class DistrictBuildOutcomeSpawnSystem : IPipelineStageSystem
     {
         private readonly EntityStorages _storages;
 
         [StateAllowed]
-        private readonly IReadOnlyList<DistrictBuildOutcomeSpawnSubSystem> _subSystems;
+        private readonly IReadOnlyList<IPrioritizedUniTaskSystem> _subSystems;
+
+        private readonly Archetype _outcomeRows;
+
+        public AppState AppState { get; }
 
         public int Priority => SystemPriorities.WorldInit.DistrictBuildOutcomeSpawn;
 
         public DistrictBuildOutcomeSpawnSystem(
-            EntityStorages storages, IReadOnlyList<DistrictBuildOutcomeSpawnSubSystem> subSystems)
+            AppState appState, EntityStorages storages, IReadOnlyList<IPrioritizedUniTaskSystem> allSubSystems)
         {
+            AppState = appState;
             _storages = storages;
-            _subSystems = subSystems
-                .OrderBy(system => system.Priority)
-                .ToArray();
+            _subSystems = OrchestratorSubSystems.SelectForOrchestrator(typeof(DistrictBuildOutcomeSpawnSystem), allSubSystems);
+            _outcomeRows = EconomyArchetypes.BuildOutcome(storages.World);
         }
 
-        public UniTask Update(CancellationToken cancellationToken)
+        public async UniTask Execute(CancellationToken cancellationToken)
         {
-            if (cancellationToken.IsCancellationRequested)
-                return UniTask.CompletedTask;
+            await OrchestratorSubSystems.RunAsync(_subSystems, cancellationToken);
+            EnsureEveryOutcomeSpawned();
+        }
 
+        // Every catalogue entry is validated non-null at load (IValidatableConfig) — a row missing here means an
+        // outcome kind no subsystem handles (fail loud, decision c14-unhandled-entry-throws).
+        private void EnsureEveryOutcomeSpawned()
+        {
             var outcomes = _storages.Get<DistrictBuildOutcomesConfig>().Outcomes;
 
-            for (var index = 0; index < outcomes.Length; index++)
+            if (_outcomeRows.Count != outcomes.Length)
             {
-                var outcome = outcomes[index];
-                if (outcome == null)
-                    throw new InvalidOperationException(
-                        $"BuildDistrictOutcomeSpawnSystem: outcome entry at index {index} is null.");
-
-                if (!TrySpawn(outcome))
-                    throw new InvalidOperationException(
-                        $"BuildDistrictOutcomeSpawnSystem: no subsystem handles outcome type " +
-                        $"{outcome.GetType().Name}.");
+                var kinds = outcomes.Select(outcome => outcome.GetType().Name).Distinct();
+                throw new InvalidOperationException(
+                    $"DistrictBuildOutcomeSpawnSystem: {_outcomeRows.Count} outcome rows spawned, " +
+                    $"{outcomes.Length} catalogue entries expected. Catalogue kinds: {string.Join(", ", kinds)}.");
             }
-
-            return UniTask.CompletedTask;
-        }
-
-        private bool TrySpawn(DistrictBuildOutcomeConfig outcome)
-        {
-            for (var i = 0; i < _subSystems.Count; i++)
-            {
-                if (!_subSystems[i].IsEnabled)
-                    continue;
-
-                if (_subSystems[i].TrySpawn(outcome))
-                    return true;
-            }
-
-            return false;
         }
 
         public void Dispose()

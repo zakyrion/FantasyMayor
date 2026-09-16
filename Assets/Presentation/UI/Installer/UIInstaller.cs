@@ -17,9 +17,10 @@ using Presentation.UI.MainHud.ResourceBar.Configs;
 namespace Presentation.UI.Installer
 {
     /// <summary>
-    ///     Registers the MainUI systems: the generator UI (MainMenu state), the icon configs, the
-    ///     Main UI spawn orchestrator + its window spawn subsystems (generation pipeline), and the per-frame
-    ///     view systems (info panel + end-turn state) — the per-frame systems are wired into Gameplay by Boot.
+    ///     Registers the MainUI systems: the generator UI (AppState.MainMenu), the icon configs
+    ///     (AppState.ConfigLoading), the Main UI and district-build overlay spawn stages (AppState.MapCreation)
+    ///     plus their sub-system families on the sub-system contract, and the per-frame/reactive view systems
+    ///     (AppState.Gameplay) — each registration carries its own AppState flags, so no state is wired by hand.
     /// </summary>
     public sealed class UIInstaller : IInstaller
     {
@@ -32,70 +33,54 @@ namespace Presentation.UI.Installer
                 storages.Singletons.Set(new DistrictBuildUIRootComponent());
             });
 
-            builder.Register<ShowHexesUISystem>(Lifetime.Scoped)
-                .As<ShowHexesUISystem>();
+            builder.RegisterAppStateSystem<ShowHexesUISystem>(Lifetime.Scoped, AppState.MainMenu);
 
-            builder.Register<ConfigLoaderSystem<HexTerrainIconConfig>>(Lifetime.Singleton)
-                .As<IUniTaskSystem>()
-                .WithParameter(AppState.ConfigLoading)
+            builder.RegisterAppStateSystem<ConfigLoaderSystem<HexTerrainIconConfig>>(Lifetime.Singleton, AppState.ConfigLoading)
                 .WithParameter("address", ConfigAddresses.HEX_TERRAIN_ICON_CONFIG);
 
-            builder.Register<ConfigLoaderSystem<DistrictIconConfig>>(Lifetime.Singleton)
-                .As<IUniTaskSystem>()
-                .WithParameter(AppState.ConfigLoading)
+            builder.RegisterAppStateSystem<ConfigLoaderSystem<DistrictIconConfig>>(Lifetime.Singleton, AppState.ConfigLoading)
                 .WithParameter("address", ConfigAddresses.DISTRICT_ICON_CONFIG);
 
-            builder.Register<ConfigLoaderSystem<InventoryResourceIconConfig>>(Lifetime.Singleton)
-                .As<IUniTaskSystem>()
-                .WithParameter(AppState.ConfigLoading)
+            builder.RegisterAppStateSystem<ConfigLoaderSystem<InventoryResourceIconConfig>>(Lifetime.Singleton, AppState.ConfigLoading)
                 .WithParameter("address", ConfigAddresses.INVENTORY_RESOURCE_ICON_CONFIG);
 
-            // Main UI spawn — orchestrator (generation pipeline, collected by interface) instantiates the
-            // Main UI root and runs the window spawn subsystems (collected as MainHudSpawnSubSystem).
-            builder.Register<MainHudSpawnSystem>(Lifetime.Singleton)
-                .As<MainHudSpawnSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
+            // Main UI spawn — a map-creation pipeline stage (AppState.MapCreation) that instantiates the Main UI
+            // root and runs its kept sub-systems (MainHudSpawnSubSystem, collected on the sub-system contract).
+            builder.RegisterAppStateSystem<MainHudSpawnSystem>(Lifetime.Singleton, AppState.MapCreation);
             builder.Register<HexInfoPanelSpawnSubSystem>(Lifetime.Singleton)
-                .As<HexInfoPanelSpawnSubSystem, MainHudSpawnSubSystem>();
+                .As<IPrioritizedUniTaskSystem>();
             builder.Register<TurnPanelSpawnSubSystem>(Lifetime.Singleton)
-                .As<TurnPanelSpawnSubSystem, MainHudSpawnSubSystem>();
+                .As<IPrioritizedUniTaskSystem>();
             builder.Register<ContextTabsSpawnSubSystem>(Lifetime.Singleton)
-                .As<ContextTabsSpawnSubSystem, MainHudSpawnSubSystem>();
+                .As<IPrioritizedUniTaskSystem>();
             builder.Register<ResourceBarSpawnSubSystem>(Lifetime.Singleton)
-                .As<ResourceBarSpawnSubSystem, MainHudSpawnSubSystem>();
+                .As<IPrioritizedUniTaskSystem>();
 
             // District-build overlay — its OWN UIDocument (separate from the shared Main UI), so it has its own
-            // spawn orchestrator in the generation pipeline rather than a Main UI spawn subsystem.
-            builder.Register<DistrictBuildUISpawnSystem>(Lifetime.Singleton)
-                .As<DistrictBuildUISpawnSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
+            // spawn stage in the map-creation pipeline rather than a Main UI spawn subsystem.
+            builder.RegisterAppStateSystem<DistrictBuildUISpawnSystem>(Lifetime.Singleton, AppState.MapCreation);
 
-            // Per-frame view systems, wired into GameplayState by Boot (concrete singletons).
-            builder.Register<HexInfoPanelSystem>(Lifetime.Singleton)
-                .As<HexInfoPanelSystem>();
-            builder.Register<HexInfoPanelHeaderSystem>(Lifetime.Singleton)
-                .As<HexInfoPanelHeaderSystem>();
-            builder.Register<HexInfoPanelResourcesSystem>(Lifetime.Singleton)
-                .As<HexInfoPanelResourcesSystem>();
-            builder.Register<ResourceBarSystem>(Lifetime.Singleton)
-                .As<ResourceBarSystem>();
-            builder.Register<HexInfoPanelDistrictSystem>(Lifetime.Singleton)
-                .As<HexInfoPanelDistrictSystem>();
-            builder.Register<DistrictBuildUISystem>(Lifetime.Singleton)
-                .As<DistrictBuildUISystem>();
-            // Section populators collected by DistrictBuildUISystem (IReadOnlyList<DistrictBuildUISubSystem>).
+            // Per-frame and reactive view systems — AppState.Gameplay flags their own registration; no state
+            // filters or wires them by hand.
+            builder.RegisterAppStateSystem<HexInfoPanelSystem>(Lifetime.Singleton, AppState.Gameplay);
+            builder.RegisterAppStateSystem<HexInfoPanelHeaderSystem>(Lifetime.Singleton, AppState.Gameplay);
+            builder.RegisterAppStateSystem<HexInfoPanelResourcesSystem>(Lifetime.Singleton, AppState.Gameplay);
+            builder.RegisterAppStateSystem<ResourceBarSystem>(Lifetime.Singleton, AppState.Gameplay);
+            builder.RegisterAppStateSystem<HexInfoPanelDistrictSystem>(Lifetime.Singleton, AppState.Gameplay);
+            builder.RegisterAppStateSystem<DistrictBuildUISystem>(Lifetime.Singleton, AppState.Gameplay);
+            // Section populators, kept by DistrictBuildUISystem through the sub-system contract (OrchestratorType
+            // == typeof(DistrictBuildUISystem)).
             builder.Register<DistrictBuildListUISubSystem>(Lifetime.Singleton)
-                .As<DistrictBuildListUISubSystem, DistrictBuildUISubSystem>();
+                .As<IPrioritizedUniTaskSystem>();
             builder.Register<DistrictBuildHexResourcesUISubSystem>(Lifetime.Singleton)
-                .As<DistrictBuildHexResourcesUISubSystem, DistrictBuildUISubSystem>();
+                .As<IPrioritizedUniTaskSystem>();
             builder.Register<DistrictBuildPriceUISubSystem>(Lifetime.Singleton)
-                .As<DistrictBuildPriceUISubSystem, DistrictBuildUISubSystem>();
+                .As<IPrioritizedUniTaskSystem>();
             builder.Register<DistrictBuildActionsUISubSystem>(Lifetime.Singleton)
-                .As<DistrictBuildActionsUISubSystem, DistrictBuildUISubSystem>();
-            builder.Register<TurnPanelViewSystem>(Lifetime.Singleton)
-                .As<TurnPanelViewSystem>();
-            builder.Register<ContextTabSelectionSystem>(Lifetime.Singleton)
-                .As<ContextTabSelectionSystem>();
-            builder.Register<ContextTabsAvailabilitySystem>(Lifetime.Singleton)
-                .As<ContextTabsAvailabilitySystem>();
+                .As<IPrioritizedUniTaskSystem>();
+            builder.RegisterAppStateSystem<TurnPanelViewSystem>(Lifetime.Singleton, AppState.Gameplay);
+            builder.RegisterAppStateSystem<ContextTabSelectionSystem>(Lifetime.Singleton, AppState.Gameplay);
+            builder.RegisterAppStateSystem<ContextTabsAvailabilitySystem>(Lifetime.Singleton, AppState.Gameplay);
         }
     }
 }

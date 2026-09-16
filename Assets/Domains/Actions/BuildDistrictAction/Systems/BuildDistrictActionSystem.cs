@@ -21,6 +21,7 @@ using Domains.Map.Hex.Components;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
+using Modules.Boot.Core;
 
 namespace Domains.Actions.BuildDistrictAction.Systems
 {
@@ -60,8 +61,8 @@ namespace Domains.Actions.BuildDistrictAction.Systems
 
         public override int Priority => SystemPriorities.RuntimeTick.BuildDistrictAction;
 
-        public BuildDistrictActionSystem(EntityStorages storages)
-            : base(storages.World, EventArchetypes.Of<DistrictBuildConfirmedEvent>(storages.World))
+        public BuildDistrictActionSystem(AppState appState, EntityStorages storages)
+            : base(appState, storages.World, EventArchetypes.Of<DistrictBuildConfirmedEvent>(storages.World))
         {
             _storages = storages;
 

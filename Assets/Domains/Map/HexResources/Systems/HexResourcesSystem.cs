@@ -1,6 +1,6 @@
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
+using Core;
 using Cysharp.Threading.Tasks;
 using EcsExtensions;
 using JetBrains.Annotations;
@@ -10,38 +10,32 @@ namespace Domains.Map.HexResources.Systems
 {
     /// <summary>
     ///     World-init pipeline step (priority 200). Runs all registered resource generation subsystems
-    ///     in priority order. Driven by the Boot world-init orchestrator, not by an event subscription.
+    ///     in priority order. Run by MapCreation's entry pipeline in Priority order, not by an event subscription.
     /// </summary>
     [UsedImplicitly]
-    internal sealed class HexResourcesSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
+    internal sealed class HexResourcesSystem : IPipelineStageSystem
     {
-        private readonly IReadOnlyList<HexResourcesSubSystem> _resourceSubSystems;
+        [StateAllowed]
+        private readonly IReadOnlyList<IPrioritizedUniTaskSystem> _subSystems;
+
+        /// <inheritdoc />
+        public AppState AppState { get; }
 
         /// <inheritdoc />
         public int Priority => SystemPriorities.WorldInit.HexResources;
 
-        public HexResourcesSystem(IReadOnlyList<HexResourcesSubSystem> resourceSubSystems)
+        /// <param name="appState">The game state this pipeline stage belongs to.</param>
+        /// <param name="allSubSystems">Every sub-system on the contract; this host keeps the ones naming it.</param>
+        public HexResourcesSystem(AppState appState, IReadOnlyList<IPrioritizedUniTaskSystem> allSubSystems)
         {
-            _resourceSubSystems = resourceSubSystems
-                .OrderBy(system => system.Priority)
-                .ToArray();
+            AppState = appState;
+            _subSystems = OrchestratorSubSystems.SelectForOrchestrator(typeof(HexResourcesSystem), allSubSystems);
         }
 
         /// <inheritdoc />
-        public UniTask Update(CancellationToken cancellationToken)
+        public async UniTask Execute(CancellationToken cancellationToken)
         {
-            // Resource generation is one-shot; deltaTime is irrelevant, so a default GameState is passed through.
-            var gameState = default(GameState);
-
-            foreach (var resourceSubSystem in _resourceSubSystems)
-            {
-                if (!resourceSubSystem.IsEnabled)
-                    continue;
-
-                resourceSubSystem.Update(gameState);
-            }
-
-            return UniTask.CompletedTask;
+            await OrchestratorSubSystems.RunAsync(_subSystems, cancellationToken);
         }
 
         /// <inheritdoc />

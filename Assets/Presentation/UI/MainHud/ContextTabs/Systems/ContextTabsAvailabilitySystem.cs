@@ -1,6 +1,7 @@
 ﻿using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
+using Modules.Boot.Core;
 using Presentation.Archetypes;
 using Presentation.Terrain.Events;
 using Presentation.UI.MainHud.ContextTabs.Components;
@@ -25,8 +26,8 @@ namespace Presentation.UI.MainHud.ContextTabs.Systems
 
         public override int Priority => SystemPriorities.RuntimeTick.ContextTabsAvailability;
 
-        public ContextTabsAvailabilitySystem(EntityStorages storages)
-            : base(storages.World, EventArchetypes.Of<SelectedHexChangedEvent>(storages.World))
+        public ContextTabsAvailabilitySystem(AppState appState, EntityStorages storages)
+            : base(appState, storages.World, EventArchetypes.Of<SelectedHexChangedEvent>(storages.World))
         {
             _storages = storages;
             _selectedHexSet = PresentationArchetypes.HexSelection(storages.World);

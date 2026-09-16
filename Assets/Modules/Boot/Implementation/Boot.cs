@@ -1,76 +1,52 @@
-using System.Collections.Generic;
-using System.Threading;
-using Cysharp.Threading.Tasks;
+using System;
 using EcsExtensions;
-using Domains.Actions.BuildDistrictAction.Systems;
 using Modules.Boot.Core;
-using Modules.Boot.Implementation.States;
-using Domains.Economy.DistrictOpenCondition.Systems;
-using Presentation.Districts.Systems;
-using Presentation.HexIcons.Systems;
-using Presentation.HexResources.Systems;
-using Presentation.UI.MainHud.ContextTabs.Systems;
-using Presentation.UI.DistrictBuild.Systems;
-using Presentation.UI.MainHud.TurnPanel.Systems;
-using Presentation.UI.GeneratorMenu.Systems;
-using Presentation.UI.MainHud.HexInfoPanel.Systems;
-using Presentation.UI.MainHud.ResourceBar.Systems;
-using Presentation.Terrain.Systems;
-using Modules.Turn.Systems;
-using Modules.UserInput.Systems;
 using UnityEngine;
 using VContainer;
 
 namespace Modules.Boot.Implementation
 {
     /// <summary>
-    ///     Entry point MonoBehaviour. Runs the one-time startup steps (<see cref="AppState.ConfigLoading" />, then
-    ///     <see cref="AppState.InstanceObjects" />), then hands control to a <see cref="GameModeMachine" /> whose
-    ///     states are wired here by hand: Boot knows every module and decides which systems belong to which
-    ///     <see cref="AppState" />. Systems remain DI singletons — only their grouping into states is manual.
+    ///     Entry point MonoBehaviour. Owns no system and drives no state itself: it only tells
+    ///     <see cref="GameModeMachine" /> when to switch and into which mode. On <see cref="Start" /> it walks
+    ///     <see cref="StartupOrder" /> one mode at a time, advancing as each one's entry completes; from
+    ///     <see cref="AppState.MainMenu" /> on, it applies whatever mode the current state requests. Every state
+    ///     and every first-order system is composed by the container from registrations — Boot names neither.
     /// </summary>
     public class Boot : MonoBehaviour
     {
-        private IReadOnlyList<IUniTaskSystem> _startupSystems;
-        private GameModeMachine _machine;
-        private bool _startupCompleted;
-
-        private async UniTask Start()
+        private static readonly AppState[] StartupOrder =
         {
-            Debug.Log($"Starting {GetType().Name}");
-            Application.targetFrameRate = 60;
+            AppState.Initialization, AppState.ConfigLoading, AppState.InstanceObjects, AppState.MainMenu
+        };
 
-            await ExecuteStartupStep(AppState.ConfigLoading, CancellationToken.None);
-            await ExecuteStartupStep(AppState.InstanceObjects, CancellationToken.None);
+        private GameModeMachine _machine;
 
-            _startupCompleted = true;
-            _machine.Switch(AppState.MainMenu);
+        /// <summary>Receives the machine the container composed from every registered <see cref="IAppState" />.</summary>
+        [Inject]
+        public void Construct(GameModeMachine machine)
+        {
+            _machine = machine;
         }
 
-        // Systems of one step run one after another, in registration order.
-        private async UniTask ExecuteStartupStep(AppState step, CancellationToken cancellationToken)
+        private void Start()
         {
-            foreach (var system in _startupSystems)
-            {
-                if ((system.AppState & step) == 0)
-                    continue;
-
-                cancellationToken.ThrowIfCancellationRequested();
-                await system.Execute(cancellationToken);
-            }
+            Application.targetFrameRate = 60;
+            _machine.Switch(StartupOrder[0]);
         }
 
         private void Update()
         {
-            if (!_startupCompleted)
+            if (!_machine.IsEntryCompleted)
                 return;
 
             _machine.Tick(new GameState(Time.deltaTime));
+            AdvanceMode();
         }
 
         private void LateUpdate()
         {
-            if (!_startupCompleted)
+            if (!_machine.IsEntryCompleted)
                 return;
 
             _machine.LateTick(new GameState(Time.deltaTime));
@@ -78,76 +54,28 @@ namespace Modules.Boot.Implementation
 
         private void OnDestroy()
         {
-            _machine?.Dispose();
+            _machine?.Stop();
         }
 
         /// <summary>
-        ///     Receives the startup systems (config loading and instance steps), the generation pipeline, and every
-        ///     per-frame system as concrete singletons, then manually composes the state machine.
+        ///     Switches into the next mode of <see cref="StartupOrder" /> while the startup walk still has one,
+        ///     otherwise into whatever mode the current state requests.
         /// </summary>
-        [Inject]
-        public void Construct(
-            IReadOnlyList<IUniTaskSystem> startupSystems,
-            IReadOnlyList<IPrioritizedUniTaskSystem<MapGenerationStep>> generationPipeline,
-            ShowHexesUISystem showHexesUI,
-            HexSelectionSystem hexSelection,
-            HexSelectionViewSystem hexSelectionView,
-            ForestSpawnSystem forestSpawn,
-            ForestDespawnSystem forestDespawn,
-            DistrictViewSpawnSystem districtViewSpawn,
-            DistrictBuildProgressViewSpawnSystem districtBuildProgressViewSpawn,
-            DistrictBuildProgressViewDespawnSystem districtBuildProgressViewDespawn,
-            HexIconsContainerPositionSystem hexIconsContainerPosition,
-            HexIconsVisibilitySystem hexIconsVisibility,
-            HexInfoPanelSystem hexInfoPanel,
-            HexInfoPanelHeaderSystem hexInfoPanelHeader,
-            HexInfoPanelResourcesSystem hexInfoPanelResources,
-            HexInfoPanelDistrictSystem hexInfoPanelDistrict,
-            DistrictBuildUISystem districtBuildUI,
-            BuildDistrictActionSystem buildDistrictAction,
-            BuildDistrictActionCancelSystem buildDistrictActionCancel,
-            BuildDistrictCompletionSystem buildDistrictCompletion,
-            DistrictOpenConditionEvaluatorTableChangedSystem districtOpenConditionEvaluatorTableChanged,
-            ResourceBarSystem resourceBar,
-            TurnPanelViewSystem turnPanelViewSystem,
-            ContextTabSelectionSystem contextTabSelection,
-            ContextTabsAvailabilitySystem contextTabsAvailability,
-            TurnProcessorSystem turnProcessor,
-            TurnCountSystem turnCount,
-            EventCleanupSystem eventCleanup,
-            CameraMovementSystem cameraMovement,
-            EntityStorages storages)
+        private void AdvanceMode()
         {
-            _startupSystems = startupSystems;
+            var nextMode = NextStartupMode(_machine.CurrentMode) ?? _machine.RequestedMode;
+            if (nextMode.HasValue)
+                _machine.Switch(nextMode.Value);
+        }
 
-            var mainMenu = new MainMenuState(storages.World, showHexesUI);
-
-            // Forest is built one-shot inside the generation pipeline now; only event cleanup needs to run
-            // during the settle frames.
-            var mapCreation = new MapCreationState(generationPipeline, eventCleanup);
-
-            var gameplay = new GameplayState(
-                storages,
-                new IUpdatedSystem[]
-                {
-                    hexSelection, hexSelectionView, forestSpawn, forestDespawn, districtViewSpawn, hexIconsVisibility,
-                    hexInfoPanel, hexInfoPanelHeader, hexInfoPanelResources, hexInfoPanelDistrict,
-                    districtBuildUI, buildDistrictAction, districtBuildProgressViewSpawn, buildDistrictActionCancel,
-                    buildDistrictCompletion, districtBuildProgressViewDespawn, districtOpenConditionEvaluatorTableChanged,
-                    resourceBar, turnPanelViewSystem, contextTabSelection,
-                    contextTabsAvailability, turnProcessor, turnCount, eventCleanup
-                },
-                new ILateUpdatedSystem[] { cameraMovement, hexIconsContainerPosition });
-
-            var mapLoading = new MapLoadingState();
-
-            _machine = new GameModeMachine(new Dictionary<AppState, IAppState>
-            {
-                [AppState.MainMenu] = mainMenu,
-                [AppState.MapCreation] = mapCreation,
-                [AppState.MapLoading] = mapLoading,
-                [AppState.Gameplay] = gameplay
-            });
+        /// <summary>
+        ///     Names the startup mode after <paramref name="currentMode" />, or nothing once it is the last of
+        ///     <see cref="StartupOrder" /> or outside it.
+        /// </summary>
+        private static AppState? NextStartupMode(AppState currentMode)
+        {
+            var index = Array.IndexOf(StartupOrder, currentMode);
+            return index >= 0 && index < StartupOrder.Length - 1 ? StartupOrder[index + 1] : (AppState?)null;
         }
     }
 }

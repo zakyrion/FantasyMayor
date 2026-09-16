@@ -1,3 +1,6 @@
+using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using EcsExtensions;
 using Domains.Map.HexResources.Components;
 using Domains.Map.HexResources.Configs;
@@ -5,13 +8,14 @@ using Domains.Map.HexResources.Data;
 
 namespace Domains.Map.HexResources.Systems
 {
-    internal abstract class HexResourcesSubSystem : EcsExtensions.ISystem<GameState>
+    internal abstract class HexResourcesSubSystem : IPrioritizedUniTaskSystem, IDisposable
     {
         private readonly EntityStorages _storages;
 
         public bool IsEnabled { get; set; } = true;
 
         public abstract int Priority { get; }
+        public Type OrchestratorType => typeof(HexResourcesSystem);
         protected abstract HexResourceType TargetHexResourceType { get; }
 
         protected HexResourcesSubSystem(EntityStorages storages)
@@ -19,7 +23,7 @@ namespace Domains.Map.HexResources.Systems
             _storages = storages;
         }
 
-        public abstract void Update(GameState state);
+        public abstract UniTask Update(CancellationToken cancellationToken);
 
         protected bool TryGetResourceConfig(out ResourceConfig config)
         {

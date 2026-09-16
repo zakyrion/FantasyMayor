@@ -7,6 +7,7 @@ using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
+using Modules.Boot.Core;
 using Presentation.Archetypes;
 using Presentation.HexResources.Components;
 using Presentation.HexResources.Events;
@@ -42,8 +43,8 @@ namespace Presentation.HexResources.Systems
 
         public override int Priority => SystemPriorities.RuntimeTick.ForestSpawn;
 
-        public ForestSpawnSystem(EntityStorages storages)
-            : base(storages.World, EventArchetypes.Of<ForestHexAppearedEvent>(storages.World))
+        public ForestSpawnSystem(AppState appState, EntityStorages storages)
+            : base(appState, storages.World, EventArchetypes.Of<ForestHexAppearedEvent>(storages.World))
         {
             _storages = storages;
             _resourcesByType = storages.World.ComponentIndex<HexResourceComponent, HexResourceType>();

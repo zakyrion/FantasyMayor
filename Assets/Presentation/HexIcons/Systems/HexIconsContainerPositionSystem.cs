@@ -5,6 +5,7 @@ using Domains.Map.Hex.Utils;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
+using Modules.Boot.Core;
 using Modules.Cameras.Components;
 using Presentation.Archetypes;
 using Presentation.HexIcons.Components;
@@ -49,8 +50,11 @@ namespace Presentation.HexIcons.Systems
 
         public int Priority => SystemPriorities.RuntimeTick.HexIconsContainerPosition;
 
-        public HexIconsContainerPositionSystem(EntityStorages storages)
+        public AppState AppState { get; }
+
+        public HexIconsContainerPositionSystem(AppState appState, EntityStorages storages)
         {
+            AppState = appState;
             _storages = storages;
             _containerSet = PresentationArchetypes.HexIconContainer(storages.World);
         }

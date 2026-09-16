@@ -1,4 +1,6 @@
-﻿using Domains.Map.Archetypes;
+﻿using System.Threading;
+using Cysharp.Threading.Tasks;
+using Domains.Map.Archetypes;
 using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Data;
 using Domains.Map.HexResources.Components;
@@ -34,12 +36,12 @@ namespace Domains.Map.HexResources.Systems
             _hexResourceArchetype = MapArchetypes.HexResource(storages.World);
         }
 
-        public override void Update(GameState state)
+        public override UniTask Update(CancellationToken cancellationToken)
         {
             if (!TryGetResourceConfig(out var baseConfig))
             {
                 Debug.Log("[ForestResourceGenerationSubSystem] Config not found — skipping.");
-                return;
+                return UniTask.CompletedTask;
             }
 
             var config = (ForestResourceConfig)baseConfig;
@@ -51,7 +53,7 @@ namespace Domains.Map.HexResources.Systems
             if (hexEntities.Count == 0)
             {
                 Debug.Log("[ForestResourceGenerationSubSystem] No hex entities — skipping.");
-                return;
+                return UniTask.CompletedTask;
             }
 
             var hexCapacity = math.max(1, hexEntities.Count);
@@ -75,7 +77,7 @@ namespace Domains.Map.HexResources.Systems
                 }
 
                 if (availableList.Length == 0)
-                    return;
+                    return UniTask.CompletedTask;
 
                 var zoneCount = Random.Range(config.ZoneCount.x, config.ZoneCount.y + 1);
                 var windDir = Random.Range(0, AxialMath.NeighborCount);
@@ -104,6 +106,8 @@ namespace Domains.Map.HexResources.Systems
                 waterCoords.Dispose();
                 availableList.Dispose();
             }
+
+            return UniTask.CompletedTask;
         }
 
         private void AddEligibleNeighbors(

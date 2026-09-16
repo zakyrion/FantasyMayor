@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
@@ -14,37 +13,39 @@ using Presentation.UI.MainHud.Components;
 namespace Presentation.UI.MainHud.Systems
 {
     /// <summary>
-    ///     World-init pipeline step (priority 800). Instantiates the shared Main UI prefab (<c>UI/MainUI</c>,
-    ///     which carries every window's view) under the main canvas, then hands that GameObject to each
-    ///     registered <see cref="MainHudSpawnSubSystem" /> in priority order so it can resolve its view and
+    ///     Map-creation stage (priority 800). Instantiates the shared Main UI prefab (<c>UI/MainUI</c>,
+    ///     which carries every window's view) under the main canvas, then runs every kept
+    ///     <see cref="MainHudSpawnSubSystem" />, in priority order, so each can resolve its view and
     ///     publish its component. Owns the single addressable handle for the whole Main UI.
     /// </summary>
     [UsedImplicitly]
-    internal sealed class MainHudSpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
+    internal sealed class MainHudSpawnSystem : IPipelineStageSystem
     {
         private const string MainUIPath = "MainHUD";
 
         private readonly IAddressable _addressable;
         private readonly IMainCanvasProvider _canvasProvider;
-        private readonly IReadOnlyList<MainHudSpawnSubSystem> _subSystems;
+        private readonly IReadOnlyList<IPrioritizedUniTaskSystem> _subSystems;
         private readonly EntityStorages _storages;
+
+        public AppState AppState { get; }
 
         public int Priority => SystemPriorities.WorldInit.MainHudSpawn;
 
-        public MainHudSpawnSystem(EntityStorages storages,
+        public MainHudSpawnSystem(AppState appState,
+            EntityStorages storages,
             IAddressable addressable,
             IMainCanvasProvider canvasProvider,
-            IReadOnlyList<MainHudSpawnSubSystem> subSystems)
+            IReadOnlyList<IPrioritizedUniTaskSystem> allSubSystems)
         {
+            AppState = appState;
             _addressable = addressable;
             _canvasProvider = canvasProvider;
             _storages = storages;
-            _subSystems = subSystems
-                .OrderBy(system => system.Priority)
-                .ToArray();
+            _subSystems = OrchestratorSubSystems.SelectForOrchestrator(typeof(MainHudSpawnSystem), allSubSystems);
         }
 
-        public async UniTask Update(CancellationToken cancellationToken)
+        public async UniTask Execute(CancellationToken cancellationToken)
         {
             if (_storages.Singletons.Get<MainHudComponent>().RootBox.Exist)
                 return;
@@ -74,13 +75,7 @@ namespace Presentation.UI.MainHud.Systems
             });
 
             // Subsystems do not instantiate — each pulls its view off the shared Main UI instance.
-            foreach (var subSystem in _subSystems)
-            {
-                if (!subSystem.IsEnabled)
-                    continue;
-
-                subSystem.Prepare(result.Box.Value);
-            }
+            await OrchestratorSubSystems.RunAsync(_subSystems, cancellationToken);
         }
 
         public void Dispose()

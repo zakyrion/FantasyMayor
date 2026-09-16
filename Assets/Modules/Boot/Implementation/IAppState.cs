@@ -6,10 +6,12 @@ using Modules.Boot.Core;
 namespace Modules.Boot.Implementation
 {
     /// <summary>
-    ///     A single high-level game state. The machine calls <see cref="EnterAsync" /> once on entry, then
-    ///     <see cref="Tick" /> / <see cref="LateTick" /> every frame while active, then <see cref="Exit" /> on leave.
-    ///     A state requests a transition by exposing a non-null <see cref="RequestedMode" />; the machine reads it
-    ///     after each <see cref="Tick" /> and switches. The state resets it on the next <see cref="EnterAsync" />.
+    ///     A single high-level game state. <see cref="GameModeMachine" /> calls <see cref="EnterAsync" /> once on
+    ///     entry, then <see cref="Tick" /> / <see cref="LateTick" /> every frame while active, then
+    ///     <see cref="Exit" /> on leave; Boot suspends ticking until entry completes. A state requests a
+    ///     transition by exposing a non-null <see cref="RequestedMode" />; Boot reads it after each
+    ///     <see cref="Tick" /> and orders the machine to switch. The state resets it on the next
+    ///     <see cref="EnterAsync" />.
     /// </summary>
     public interface IAppState
     {

@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using Domains.Map.Archetypes;
 using Domains.Map.Generation.Components;
 using Domains.Map.Generation.Data;
@@ -51,14 +53,16 @@ namespace Domains.Map.Generation.Systems
             _hexSet = MapArchetypes.Hex(storages.World);
         }
 
-        public override void Update(EcsExtensions.GameState state)
+        public override UniTask Update(CancellationToken cancellationToken)
         {
             var config = _storages.Get<TerrainGenerationConfig>();
 
             if (config.WaterType != WaterType.River)
-                return;
+                return UniTask.CompletedTask;
 
             Generate(config.WaveCount, config.RiverConfig.CornerOffsetTiles);
+
+            return UniTask.CompletedTask;
         }
 
         private void Generate(int waveCount, int cornerOffsetTiles)

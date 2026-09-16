@@ -1,5 +1,6 @@
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
+using Modules.Boot.Core;
 using Unity.Collections;
 
 namespace EcsExtensions
@@ -20,8 +21,12 @@ namespace EcsExtensions
         /// <inheritdoc />
         public int Priority => SystemPriorities.RuntimeTick.EventCleanup;
 
-        public EventCleanupSystem(EntityStorages storages)
+        /// <inheritdoc />
+        public AppState AppState { get; }
+
+        public EventCleanupSystem(AppState appState, EntityStorages storages)
         {
+            AppState = appState;
             _storages = storages;
             _events = storages.World.Query().AllTags(Tags.Get<EventTag>());
         }

@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Domains.Map.Archetypes;
@@ -8,6 +7,7 @@ using Domains.Map.Generation.Utils;
 using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Data;
 using Domains.Map.Hex.Utils;
+using Core;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
@@ -20,40 +20,43 @@ namespace Domains.Map.Generation.Systems
     /// <summary>
     ///     World-init pipeline step (priority 100). Creates the hex grid, runs generation subsystems
     ///     by priority, and synchronizes terrain tags with the final level of each hex.
-    ///     Driven by the Boot world-init orchestrator, not by an event subscription.
+    ///     Run by MapCreation's entry pipeline in Priority order, not by an event subscription.
     /// </summary>
     [UsedImplicitly]
-    internal sealed class GenerationSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
+    internal sealed class GenerationSystem : IPipelineStageSystem
     {
-        private readonly IReadOnlyList<GenerationSubSystem> _generationSubSystems;
         private readonly Archetype _hexArchetype;
         private readonly EntityStorages _storages;
+
+        [StateAllowed]
+        private readonly IReadOnlyList<IPrioritizedUniTaskSystem> _subSystems;
+
+        /// <inheritdoc />
+        public AppState AppState { get; }
 
         /// <inheritdoc />
         public int Priority => SystemPriorities.WorldInit.Generation;
 
+        /// <param name="appState">The game state this pipeline stage belongs to.</param>
         /// <param name="storages">Named ECS storages used to query and populate the game world.</param>
-        /// <param name="generationSubSystems">Generation subsystems executed in priority order.</param>
-        public GenerationSystem(EntityStorages storages, IReadOnlyList<GenerationSubSystem> generationSubSystems)
+        /// <param name="allSubSystems">Every sub-system on the contract; this host keeps the ones naming it.</param>
+        public GenerationSystem(AppState appState, EntityStorages storages, IReadOnlyList<IPrioritizedUniTaskSystem> allSubSystems)
         {
+            AppState = appState;
             _storages = storages;
             _hexArchetype = MapArchetypes.Hex(storages.World);
 
-            _generationSubSystems = generationSubSystems
-                .OrderBy(system => system.Priority)
-                .ToArray();
+            _subSystems = OrchestratorSubSystems.SelectForOrchestrator(typeof(GenerationSystem), allSubSystems);
         }
 
         /// <inheritdoc />
-        public UniTask Update(CancellationToken cancellationToken)
+        public async UniTask Execute(CancellationToken cancellationToken)
         {
             var config = _storages.Get<TerrainGenerationConfig>();
 
             Generate(config);
-            RunGenerationSubSystems();
+            await OrchestratorSubSystems.RunAsync(_subSystems, cancellationToken);
             AssignHexTypes();
-
-            return UniTask.CompletedTask;
         }
 
         /// <inheritdoc />
@@ -98,20 +101,6 @@ namespace Domains.Map.Generation.Systems
                 var entity = _hexArchetype.CreateEntity();
                 entity.AddComponent(new HexIdPKComponent { Coords = hexCoords });
                 entity.AddComponent(new HexLevelComponent { Level = 0 });
-            }
-        }
-
-        private void RunGenerationSubSystems()
-        {
-            // Generation is one-shot; deltaTime is irrelevant, so a default GameState is passed through.
-            var state = default(GameState);
-
-            foreach (var generationSubSystem in _generationSubSystems)
-            {
-                if (!generationSubSystem.IsEnabled)
-                    continue;
-
-                generationSubSystem.Update(state);
             }
         }
     }

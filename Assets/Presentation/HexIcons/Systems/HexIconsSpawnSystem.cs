@@ -20,7 +20,7 @@ using Presentation.HexIcons.Configs;
 namespace Presentation.HexIcons.Systems
 {
     [UsedImplicitly]
-    internal sealed class HexIconsSpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
+    internal sealed class HexIconsSpawnSystem : IPipelineStageSystem
     {
         private readonly EntityStorages _storages;
         private readonly Archetype _containerArchetype;
@@ -28,15 +28,18 @@ namespace Presentation.HexIcons.Systems
         // Cached at spawn for the container builders.
         private HexIconsView _view;
 
+        public AppState AppState { get; }
+
         public int Priority => SystemPriorities.WorldInit.HexIconsSpawn;
 
-        public HexIconsSpawnSystem(EntityStorages storages)
+        public HexIconsSpawnSystem(AppState appState, EntityStorages storages)
         {
+            AppState = appState;
             _storages = storages;
             _containerArchetype = PresentationArchetypes.HexIconContainer(storages.World);
         }
 
-        public UniTask Update(CancellationToken cancellationToken)
+        public UniTask Execute(CancellationToken cancellationToken)
         {
             if (cancellationToken.IsCancellationRequested)
                 return UniTask.CompletedTask;

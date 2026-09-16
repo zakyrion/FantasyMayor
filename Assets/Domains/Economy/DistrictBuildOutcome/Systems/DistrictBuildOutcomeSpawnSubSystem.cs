@@ -1,27 +1,30 @@
 ﻿using System;
-using Friflo.Engine.ECS;
-using Domains.Economy.DistrictBuildOutcome.Configs;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using EcsExtensions;
 
 namespace Domains.Economy.DistrictBuildOutcome.Systems{
     // Abstract base for a per-type outcome spawner. One concrete subsystem per concrete BuildDistrictOutcomeConfig
-    // type (DoD polymorphism: one base, one implementation per outcome kind). The orchestrator routes each
-    // authored config to the subsystem that handles its concrete type.
-    internal abstract class DistrictBuildOutcomeSpawnSubSystem : IDisposable
+    // type (DoD polymorphism: one base, one implementation per outcome kind). The host
+    // (DistrictBuildOutcomeSpawnSystem) collects every subsystem naming it through OrchestratorType and each walks
+    // the catalogue itself for the entries of its own kind.
+    internal abstract class DistrictBuildOutcomeSpawnSubSystem : IPrioritizedUniTaskSystem, IDisposable
     {
-        protected readonly EntityStore World;
+        protected readonly EntityStorages Storages;
 
         public bool IsEnabled { get; set; } = true;
 
+        public Type OrchestratorType => typeof(DistrictBuildOutcomeSpawnSystem);
+
         public abstract int Priority { get; }
 
-        protected DistrictBuildOutcomeSpawnSubSystem(EntityStore world)
+        protected DistrictBuildOutcomeSpawnSubSystem(EntityStorages storages)
         {
-            World = world;
+            Storages = storages;
         }
 
-        // Try-pattern: returns false when this subsystem does not handle the config's concrete type. On a match
-        // it creates the outcome entity and returns true. The caller branches on the bool (Collector rule).
-        public abstract bool TrySpawn(DistrictBuildOutcomeConfig config);
+        // Walks the catalogue for this subsystem's concrete config kind and creates one entity per matching entry.
+        public abstract UniTask Update(CancellationToken cancellationToken);
 
         public virtual void Dispose()
         {

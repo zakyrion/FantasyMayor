@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
@@ -21,20 +20,23 @@ using Presentation.Terrain.Configs;
 namespace Presentation.Terrain.Systems
 {
     /// <summary>
-    ///     World-init pipeline step (priority 300). Loads the TerrainView prefab via <see cref="IAddressable" />,
+    ///     Map-creation pipeline stage (priority 300). Loads the TerrainView prefab via <see cref="IAddressable" />,
     ///     generates the base mesh, runs all <see cref="ViewSubSystem" /> subsystems by priority, applies the
     ///     final heights, and publishes a <see cref="TerrainViewComponent" /> entity.
     ///     Retains ownership of the underlying <see cref="Box{T}" />; disposal destroys the instantiated prefab.
     ///     Cancellation is owned by the orchestrator and flows in through the update token.
     /// </summary>
     [UsedImplicitly]
-    internal sealed class TerrainViewSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
+    internal sealed class TerrainViewSystem : IPipelineStageSystem
     {
         private const string TERRAIN_VIEW_ADDRESS = "TerrainView";
 
         private readonly IAddressable _addressable;
         private readonly Archetype _hexSet;
-        private readonly IReadOnlyList<ViewSubSystem> _viewSubSystems;
+
+        [StateAllowed("DI-collected sub-systems, selected once by the constructor and read only by the awaited run.")]
+        private readonly IReadOnlyList<IPrioritizedUniTaskSystem> _subSystems;
+
         private readonly EntityStorages _storages;
         private readonly Archetype _terrainViewArchetype;
 
@@ -42,25 +44,28 @@ namespace Presentation.Terrain.Systems
         private Entity? _terrainViewEntity;
 
         /// <inheritdoc />
+        public AppState AppState { get; }
+
+        /// <inheritdoc />
         public int Priority => SystemPriorities.WorldInit.TerrainView;
 
+        /// <param name="appState">The game state this pipeline stage runs under.</param>
         /// <param name="storages">Named ECS storages used for game-world entity creation.</param>
         /// <param name="addressable">Addressable loader used to load and instantiate the TerrainView prefab.</param>
-        /// <param name="viewSubSystems">View subsystems executed after mesh generation, ordered by priority.</param>
-        public TerrainViewSystem(EntityStorages storages, IAddressable addressable, IReadOnlyList<ViewSubSystem> viewSubSystems)
+        /// <param name="allSubSystems">Every registered sub-system; this host keeps only its own <see cref="ViewSubSystem" /> parts.</param>
+        public TerrainViewSystem(AppState appState, EntityStorages storages, IAddressable addressable, IReadOnlyList<IPrioritizedUniTaskSystem> allSubSystems)
         {
+            AppState = appState;
             _storages = storages;
             _addressable = addressable;
             _terrainViewBox = Box<Views.TerrainView>.Empty();
             _hexSet = MapArchetypes.Hex(storages.World);
             _terrainViewArchetype = PresentationArchetypes.TerrainView(storages.World);
-            _viewSubSystems = viewSubSystems
-                .OrderBy(s => s.Priority)
-                .ToArray();
+            _subSystems = OrchestratorSubSystems.SelectForOrchestrator(typeof(TerrainViewSystem), allSubSystems);
         }
 
         /// <inheritdoc />
-        public UniTask Update(CancellationToken cancellationToken)
+        public UniTask Execute(CancellationToken cancellationToken)
         {
             return LoadAndSetupAsync(cancellationToken);
         }
@@ -146,7 +151,7 @@ namespace Presentation.Terrain.Systems
             if (cancellationToken.IsCancellationRequested)
                 return;
 
-            await RunViewSubSystemsAsync(cancellationToken);
+            await OrchestratorSubSystems.RunAsync(_subSystems, cancellationToken);
 
             if (cancellationToken.IsCancellationRequested)
                 return;
@@ -180,24 +185,6 @@ namespace Presentation.Terrain.Systems
 
             var texture = _storages.Singletons.Get<TerrainTextureComponent>().Texture;
             terrainView.ApplyTexture(texture);
-        }
-
-        /// <summary>
-        ///     Runs all enabled view subsystems in priority order, awaiting each before proceeding.
-        /// </summary>
-        /// <param name="cancellationToken">Token that aborts the pipeline.</param>
-        private async UniTask RunViewSubSystemsAsync(CancellationToken cancellationToken)
-        {
-            foreach (var subSystem in _viewSubSystems)
-            {
-                if (cancellationToken.IsCancellationRequested)
-                    return;
-
-                if (!subSystem.IsEnabled)
-                    continue;
-
-                await subSystem.Update(cancellationToken);
-            }
         }
     }
 }

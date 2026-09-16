@@ -15,24 +15,27 @@ using Domains.Actors.City.Configs;
 
 namespace Domains.Actors.City.Systems
 {
-    // One-shot world-init stage: seeds the City id allocator, creates the City actor row, and seeds its
+    // Map-creation stage: seeds the City id allocator, creates the City actor row, and seeds its
     // inventory loadout from CityConfig (ResourceTypes the author omits start at 0). Open-Closed:
     // a new actor kind adds its own spawn stage, this one never changes.
     [UsedImplicitly]
-    internal sealed class CitySpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
+    internal sealed class CitySpawnSystem : IPipelineStageSystem
     {
         private readonly EntityStorages _storages;
         private readonly Archetype _cityArchetype;
 
+        public AppState AppState { get; }
+
         public int Priority => SystemPriorities.WorldInit.CitySpawn;
 
-        public CitySpawnSystem(EntityStorages storages)
+        public CitySpawnSystem(AppState appState, EntityStorages storages)
         {
+            AppState = appState;
             _storages = storages;
             _cityArchetype = ActorsArchetypes.City(storages.World);
         }
 
-        public UniTask Update(CancellationToken cancellationToken)
+        public UniTask Execute(CancellationToken cancellationToken)
         {
             if (cancellationToken.IsCancellationRequested)
                 return UniTask.CompletedTask;

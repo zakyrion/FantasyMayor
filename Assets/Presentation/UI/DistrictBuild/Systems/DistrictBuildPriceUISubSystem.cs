@@ -1,4 +1,6 @@
-﻿using System;
+using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using Domains.Actors.Archetypes;
 using Domains.Actors.City.Components;
 using Domains.Actors.Mayor.Components;
@@ -17,7 +19,6 @@ using Presentation.UI.Archetypes;
 using Presentation.UI.DistrictBuild.Components;
 using Presentation.UI.DistrictBuild.Tags;
 using Presentation.UI.DistrictBuild.Views;
-using UnityEngine;
 
 namespace Presentation.UI.DistrictBuild.Systems
 {
@@ -57,7 +58,7 @@ namespace Presentation.UI.DistrictBuild.Systems
             _chrome = PresentationUIArchetypes.DistrictBuildUI(storages.World);
         }
 
-        public override void Populate(GameObject root)
+        public override UniTask Update(CancellationToken cancellationToken)
         {
             var view = _storages.Singletons.Get<DistrictBuildPriceUIViewComponent>().View;
 
@@ -69,6 +70,8 @@ namespace Presentation.UI.DistrictBuild.Systems
             }
 
             Render(view);
+
+            return UniTask.CompletedTask;
         }
 
         private void OnPayerChanged(ActorType owner)

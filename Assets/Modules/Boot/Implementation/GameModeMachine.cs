@@ -8,58 +8,65 @@ using Modules.Boot.Core;
 namespace Modules.Boot.Implementation
 {
     /// <summary>
-    ///     Drives the active <see cref="IAppState" />. Only the active state ticks; while a state's
-    ///     <see cref="IAppState.EnterAsync" /> is in flight, ticking is suspended. A state-requested transition
-    ///     (<see cref="IAppState.RequestedMode" />) is applied after the tick. Entry of one state can be cancelled
-    ///     by a subsequent switch or by disposal.
+    ///     Files every <see cref="IAppState" /> under its mode and carries out <see cref="Switch" />. Boot decides
+    ///     when to switch and reads <see cref="IsEntryCompleted" /> before ticking — the machine never switches on
+    ///     its own. Entry of one state can be cancelled by a subsequent switch or by <see cref="Stop" />.
     /// </summary>
-    public sealed class GameModeMachine : IDisposable
+    public sealed class GameModeMachine
     {
-        private readonly IReadOnlyDictionary<AppState, IAppState> _states;
+        private readonly IReadOnlyDictionary<AppState, IAppState> _statesByMode;
 
         private IAppState _current;
         private bool _entering;
         private CancellationTokenSource _enterCts;
 
-        public GameModeMachine(IReadOnlyDictionary<AppState, IAppState> states)
+        /// <summary>The mode of the current state.</summary>
+        public AppState CurrentMode => _current.Mode;
+
+        /// <summary>The mode the current state requests, or nothing.</summary>
+        public AppState? RequestedMode => _current.RequestedMode;
+
+        /// <summary>Whether a state is current and its entry has finished.</summary>
+        public bool IsEntryCompleted => _current != null && !_entering;
+
+        public GameModeMachine(IReadOnlyList<IAppState> states)
         {
-            _states = states ?? throw new ArgumentNullException(nameof(states));
+            var statesByMode = new Dictionary<AppState, IAppState>(states.Count);
+            foreach (var state in states)
+                statesByMode.Add(state.Mode, state);
+
+            _statesByMode = statesByMode;
         }
 
+        /// <summary>Leaves the current state and starts the entry of the state filed under <paramref name="mode" />.</summary>
+        /// <exception cref="KeyNotFoundException"><paramref name="mode" /> has no state filed.</exception>
         public void Switch(AppState mode)
         {
             _enterCts?.Cancel();
             _enterCts?.Dispose();
 
             _current?.Exit();
-            _current = _states[mode];
+            _current = _statesByMode[mode];
 
             _entering = true;
             _enterCts = new CancellationTokenSource();
             EnterAsync(_current, _enterCts.Token).Forget();
         }
 
+        /// <summary>Ticks the current state.</summary>
         public void Tick(GameState state)
         {
-            if (_entering || _current == null)
-                return;
-
             _current.Tick(state);
-
-            var requested = _current.RequestedMode;
-            if (requested.HasValue)
-                Switch(requested.Value);
         }
 
+        /// <summary>Late-ticks the current state.</summary>
         public void LateTick(GameState state)
         {
-            if (_entering || _current == null)
-                return;
-
             _current.LateTick(state);
         }
 
-        public void Dispose()
+        /// <summary>Cancels an entry in flight and exits the current state.</summary>
+        public void Stop()
         {
             _enterCts?.Cancel();
             _enterCts?.Dispose();

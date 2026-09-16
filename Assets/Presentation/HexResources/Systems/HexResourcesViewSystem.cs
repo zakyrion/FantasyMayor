@@ -1,6 +1,6 @@
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
+using Core;
 using Cysharp.Threading.Tasks;
 using EcsExtensions;
 using JetBrains.Annotations;
@@ -9,39 +9,31 @@ using Modules.Boot.Core;
 namespace Presentation.HexResources.Systems
 {
     /// <summary>
-    ///     World-init pipeline step (priority 400). Runs all registered resource view subsystems
-    ///     in priority order. Driven by the Boot world-init orchestrator, not by an event subscription.
+    ///     Map-creation pipeline stage (priority 400). Runs all registered resource view subsystems
+    ///     in priority order.
     /// </summary>
     [UsedImplicitly]
-    internal sealed class HexResourcesViewSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
+    internal sealed class HexResourcesViewSystem : IPipelineStageSystem
     {
-        private readonly IReadOnlyList<HexResourcesViewSubSystem> _viewSubSystems;
+        [StateAllowed("DI-collected sub-systems, selected once by the constructor and read only by the awaited run.")]
+        private readonly IReadOnlyList<IPrioritizedUniTaskSystem> _subSystems;
+
+        /// <inheritdoc />
+        public AppState AppState { get; }
 
         /// <inheritdoc />
         public int Priority => SystemPriorities.WorldInit.HexResourcesView;
 
-        public HexResourcesViewSystem(IReadOnlyList<HexResourcesViewSubSystem> viewSubSystems)
+        public HexResourcesViewSystem(AppState appState, IReadOnlyList<IPrioritizedUniTaskSystem> allSubSystems)
         {
-            _viewSubSystems = viewSubSystems
-                .OrderBy(system => system.Priority)
-                .ToArray();
+            AppState = appState;
+            _subSystems = OrchestratorSubSystems.SelectForOrchestrator(typeof(HexResourcesViewSystem), allSubSystems);
         }
 
         /// <inheritdoc />
-        public UniTask Update(CancellationToken cancellationToken)
+        public async UniTask Execute(CancellationToken cancellationToken)
         {
-            // View building is one-shot; deltaTime is irrelevant, so a default GameState is passed through.
-            var gameState = default(GameState);
-
-            foreach (var viewSubSystem in _viewSubSystems)
-            {
-                if (!viewSubSystem.IsEnabled)
-                    continue;
-
-                viewSubSystem.Update(gameState);
-            }
-
-            return UniTask.CompletedTask;
+            await OrchestratorSubSystems.RunAsync(_subSystems, cancellationToken);
         }
 
         /// <inheritdoc />

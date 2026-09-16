@@ -2,6 +2,7 @@
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
+using Modules.Boot.Core;
 using Modules.Cameras.Components;
 using Modules.UserInput.Archetypes;
 using Modules.UserInput.Components;
@@ -35,11 +36,12 @@ namespace Modules.UserInput.Systems
         /// <inheritdoc />
         public override int Priority => SystemPriorities.RuntimeTick.HexSelection;
 
+        /// <param name="appState">The game states this system belongs to.</param>
         /// <param name="storages">Named ECS storages used to query camera, config, and selection state.</param>
-        public HexSelectionSystem(EntityStorages storages)
+        public HexSelectionSystem(AppState appState, EntityStorages storages)
             // Anchored on the single PlayerInputComponent entity so Update ticks once per frame;
             // the camera itself is a singleton component (CameraComponent), read via storages.Singletons below.
-            : base(storages.World, UserInputArchetypes.PlayerInput(storages.World))
+            : base(appState, storages.World, UserInputArchetypes.PlayerInput(storages.World))
         {
             _storages = storages;
             _playerInputArchetype = UserInputArchetypes.PlayerInput(storages.World);

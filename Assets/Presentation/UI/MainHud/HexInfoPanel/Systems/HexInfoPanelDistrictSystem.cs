@@ -10,6 +10,7 @@ using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
+using Modules.Boot.Core;
 using Modules.Turn.Events;
 using Presentation.Archetypes;
 using Presentation.Terrain.Components;
@@ -54,8 +55,8 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
 
         public override int Priority => SystemPriorities.RuntimeTick.HexInfoPanelDistrict;
 
-        public HexInfoPanelDistrictSystem(EntityStorages storages)
-            : base(storages.World.Query()
+        public HexInfoPanelDistrictSystem(AppState appState, EntityStorages storages)
+            : base(appState, storages.World.Query()
                 .AnyComponents(ComponentTypes.Get<SelectedHexChangedEvent, TurnCompletedEvent, DistrictTableChangedEvent>()))
         {
             _storages = storages;

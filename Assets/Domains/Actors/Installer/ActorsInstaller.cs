@@ -13,21 +13,15 @@ namespace Domains.Actors.Installer
     {
         public void Install(IContainerBuilder builder)
         {
-            builder.Register<ConfigLoaderSystem<CityConfig>>(Lifetime.Singleton)
-                .As<IUniTaskSystem>()
-                .WithParameter(AppState.ConfigLoading)
+            builder.RegisterAppStateSystem<ConfigLoaderSystem<CityConfig>>(Lifetime.Singleton, AppState.ConfigLoading)
                 .WithParameter("address", ConfigAddresses.CITY_CONFIG);
 
-            builder.Register<ConfigLoaderSystem<MayorConfig>>(Lifetime.Singleton)
-                .As<IUniTaskSystem>()
-                .WithParameter(AppState.ConfigLoading)
+            builder.RegisterAppStateSystem<ConfigLoaderSystem<MayorConfig>>(Lifetime.Singleton, AppState.ConfigLoading)
                 .WithParameter("address", ConfigAddresses.MAYOR_CONFIG);
 
-            builder.Register<CitySpawnSystem>(Lifetime.Singleton)
-                .As<CitySpawnSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
+            builder.RegisterAppStateSystem<CitySpawnSystem>(Lifetime.Singleton, AppState.MapCreation);
 
-            builder.Register<MayorSpawnSystem>(Lifetime.Singleton)
-                .As<MayorSpawnSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
+            builder.RegisterAppStateSystem<MayorSpawnSystem>(Lifetime.Singleton, AppState.MapCreation);
         }
     }
 }

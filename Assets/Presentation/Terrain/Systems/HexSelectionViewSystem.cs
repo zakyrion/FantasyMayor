@@ -4,6 +4,7 @@ using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
+using Modules.Boot.Core;
 using Presentation.Archetypes;
 using Presentation.Terrain.Components;
 using Presentation.Terrain.Events;
@@ -34,8 +35,8 @@ namespace Presentation.Terrain.Systems
         /// <inheritdoc />
         public override int Priority => SystemPriorities.RuntimeTick.HexSelectionView;
 
-        public HexSelectionViewSystem(EntityStorages storages)
-            : base(storages.World, EventArchetypes.Of<SelectedHexChangedEvent>(storages.World))
+        public HexSelectionViewSystem(AppState appState, EntityStorages storages)
+            : base(appState, storages.World, EventArchetypes.Of<SelectedHexChangedEvent>(storages.World))
         {
             _storages = storages;
             _viewSet = PresentationArchetypes.HexSelectionView(storages.World);

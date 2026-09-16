@@ -6,7 +6,8 @@
         "Core",
         "Addressables.Core",
         "Boot.Core",
-        "Unity.Collections"
+        "Unity.Collections",
+        "VContainer"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

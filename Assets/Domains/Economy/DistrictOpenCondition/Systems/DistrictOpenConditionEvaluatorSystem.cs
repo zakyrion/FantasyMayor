@@ -12,7 +12,7 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
 {
     // Turn phase (tail / Preview band): every turn, re-runs the condition-evaluator subsystem family so
     // DistrictOpenStateComponent stays correct for the next Mayor Phase. Turn 1 is covered separately by the
-    // sibling MapGenerationStep host (DistrictOpenConditionEvaluatorBootstrapSystem) — both share the same
+    // sibling map-creation-stage host (DistrictOpenConditionEvaluatorBootstrapSystem) — both share the same
     // DI-collected subsystem family, no evaluation logic is duplicated. No domain logic of its own.
     [UsedImplicitly]
     internal sealed class DistrictOpenConditionEvaluatorSystem : TurnPhaseSubSystem

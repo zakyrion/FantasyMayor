@@ -13,7 +13,7 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 48 docs — 1 always · 20 trigger · 0 reference · 27 archive · 3 canvas.
+Totals: 51 docs — 1 always · 20 trigger · 0 reference · 30 archive · 3 canvas.
 
 ## Read at start (always)
 
@@ -57,7 +57,7 @@ Reference docs read on demand.
 
 ## Task history (archive)
 
-27 completed FLOW document(s) are retained under `Flows/Archive/`. They preserve task history and are searched on demand; they are not startup context or current-code claims.
+30 completed FLOW document(s) are retained under `Flows/Archive/`. They preserve task history and are searched on demand; they are not startup context or current-code claims.
 
 ## Canvas map (on demand)
 

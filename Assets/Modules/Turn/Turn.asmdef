@@ -5,7 +5,8 @@
         "Core",
         "Ecs.Extensions",
         "VContainer",
-        "UniTask"
+        "UniTask",
+        "Boot.Core"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

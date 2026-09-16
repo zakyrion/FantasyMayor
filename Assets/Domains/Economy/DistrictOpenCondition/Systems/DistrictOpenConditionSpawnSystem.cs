@@ -5,71 +5,59 @@ using System.Threading;
 using Core;
 using Cysharp.Threading.Tasks;
 using EcsExtensions;
-using Domains.Economy.DistrictOpenCondition.Components;
 using Domains.Economy.DistrictOpenCondition.Configs;
+using Domains.Economy.DistrictOpenCondition.Tags;
+using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Boot.Core;
 
 namespace Domains.Economy.DistrictOpenCondition.Systems
 {
-    // Pipeline Orchestrator (MapGenerationStep, one-shot): reads the loaded conditions catalogue and routes each
-    // authored config to the subsystem that handles its concrete type, materializing one entity per condition.
-    // No domain logic of its own — entity construction lives in the per-type subsystems. Fails loud on a null
-    // entry or a config type no subsystem handles.
+    // Map-creation stage: reads the loaded conditions catalogue and lets every DI-collected subsystem walk it for
+    // the entries of its own kind, materializing one entity per condition. No domain logic of its own — entity
+    // construction lives in the per-type subsystems. Fails loud when a catalogue entry got no row.
     [UsedImplicitly]
-    internal sealed class DistrictOpenConditionSpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
+    internal sealed class DistrictOpenConditionSpawnSystem : IPipelineStageSystem
     {
         private readonly EntityStorages _storages;
 
         [StateAllowed]
-        private readonly IReadOnlyList<DistrictOpenConditionSpawnSubSystem> _subSystems;
+        private readonly IReadOnlyList<IPrioritizedUniTaskSystem> _subSystems;
+
+        private readonly ArchetypeQuery _conditionRows;
+
+        public AppState AppState { get; }
 
         public int Priority => SystemPriorities.WorldInit.DistrictOpenConditionSpawn;
 
         public DistrictOpenConditionSpawnSystem(
-            EntityStorages storages, IReadOnlyList<DistrictOpenConditionSpawnSubSystem> subSystems)
+            AppState appState, EntityStorages storages, IReadOnlyList<IPrioritizedUniTaskSystem> allSubSystems)
         {
+            AppState = appState;
             _storages = storages;
-            _subSystems = subSystems
-                .OrderBy(system => system.Priority)
-                .ToArray();
+            _subSystems = OrchestratorSubSystems.SelectForOrchestrator(typeof(DistrictOpenConditionSpawnSystem), allSubSystems);
+            _conditionRows = storages.World.Query().AllTags(Friflo.Engine.ECS.Tags.Get<DistrictOpenConditionTag>());
         }
 
-        public UniTask Update(CancellationToken cancellationToken)
+        public async UniTask Execute(CancellationToken cancellationToken)
         {
-            if (cancellationToken.IsCancellationRequested)
-                return UniTask.CompletedTask;
+            await OrchestratorSubSystems.RunAsync(_subSystems, cancellationToken);
+            EnsureEveryConditionSpawned();
+        }
 
+        // Every catalogue entry is validated non-null at load (IValidatableConfig) — a row missing here means a
+        // condition kind no subsystem handles (fail loud, decision c14-unhandled-entry-throws).
+        private void EnsureEveryConditionSpawned()
+        {
             var conditions = _storages.Get<DistrictOpenConditionsConfig>().Conditions;
 
-            for (var index = 0; index < conditions.Length; index++)
+            if (_conditionRows.Count != conditions.Length)
             {
-                var condition = conditions[index];
-                if (condition == null)
-                    throw new InvalidOperationException(
-                        $"DistrictOpenConditionSpawnSystem: condition entry at index {index} is null.");
-
-                if (!TrySpawn(condition))
-                    throw new InvalidOperationException(
-                        $"DistrictOpenConditionSpawnSystem: no subsystem handles condition type " +
-                        $"{condition.GetType().Name}.");
+                var kinds = conditions.Select(condition => condition.GetType().Name).Distinct();
+                throw new InvalidOperationException(
+                    $"DistrictOpenConditionSpawnSystem: {_conditionRows.Count} condition rows spawned, " +
+                    $"{conditions.Length} catalogue entries expected. Catalogue kinds: {string.Join(", ", kinds)}.");
             }
-
-            return UniTask.CompletedTask;
-        }
-
-        private bool TrySpawn(DistrictOpenConditionConfig condition)
-        {
-            for (var i = 0; i < _subSystems.Count; i++)
-            {
-                if (!_subSystems[i].IsEnabled)
-                    continue;
-
-                if (_subSystems[i].TrySpawn(condition))
-                    return true;
-            }
-
-            return false;
         }
 
         public void Dispose()

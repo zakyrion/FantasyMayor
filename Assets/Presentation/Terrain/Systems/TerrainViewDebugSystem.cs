@@ -13,11 +13,11 @@ using Presentation.Terrain.Configs;
 namespace Presentation.Terrain.Systems
 {
     /// <summary>
-    ///     World-init pipeline step (priority 600). Draws debug rays per hex coloured by terrain level.
+    ///     Map-creation pipeline stage (priority 600). Draws debug rays per hex coloured by terrain level.
     ///     Runs last, after all view geometry exists.
     /// </summary>
     [UsedImplicitly]
-    internal sealed class TerrainViewDebugSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
+    internal sealed class TerrainViewDebugSystem : IPipelineStageSystem
     {
         private const float RayHeight = 5f;
         private const float RayDuration = 5f;
@@ -26,16 +26,20 @@ namespace Presentation.Terrain.Systems
         private readonly Archetype _hexSet;
 
         /// <inheritdoc />
+        public AppState AppState { get; }
+
+        /// <inheritdoc />
         public int Priority => SystemPriorities.WorldInit.TerrainViewDebug;
 
-        public TerrainViewDebugSystem(EntityStorages storages)
+        public TerrainViewDebugSystem(AppState appState, EntityStorages storages)
         {
+            AppState = appState;
             _storages = storages;
             _hexSet = MapArchetypes.Hex(storages.World);
         }
 
         /// <inheritdoc />
-        public UniTask Update(CancellationToken cancellationToken)
+        public UniTask Execute(CancellationToken cancellationToken)
         {
             var cellSize = _storages.Get<TerrainViewConfig>().CellSize;
 

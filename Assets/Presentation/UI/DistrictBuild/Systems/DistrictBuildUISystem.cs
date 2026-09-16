@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using Core;
+using Cysharp.Threading.Tasks;
 using Domains.Actions.BuildDistrictAction.Events;
 using Domains.Economy.District.Data;
 using Domains.Kernel.Data;
@@ -10,6 +10,7 @@ using Flows.DistrictBuild.Events;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
+using Modules.Boot.Core;
 using Presentation.Archetypes;
 using Presentation.Terrain.Components;
 using Presentation.UI.Archetypes;
@@ -25,8 +26,9 @@ namespace Presentation.UI.DistrictBuild.Systems
     ///     subscribes to the view's Confirmed (read the ECS selection → raise the cross-domain
     ///     <see cref="DistrictBuildConfirmedEvent" /> → hide) and Closed (hide) events. Re-populate on a section
     ///     selection change is a direct call from the section subsystem via the Repopulate callback this system hands
-    ///     each of them. It owns NO domain logic — it only sequences into the section populators, each of which
-    ///     reconciles its own view from ECS (orchestrator + subsystem family, like DistrictOpenConditionSpawnSystem).
+    ///     each of them. It owns NO domain logic — it only keeps its sections through the sub-system contract
+    ///     (<see cref="OrchestratorSubSystems" />) and runs them; each section reconciles its own view from ECS
+    ///     (orchestrator + subsystem family, like DistrictOpenConditionSpawnSystem).
     /// </summary>
     [UsedImplicitly]
     [SystemRole(SystemRoleKind.PerFrame)]
@@ -35,10 +37,10 @@ namespace Presentation.UI.DistrictBuild.Systems
     {
         private readonly EntityStorages _storages;
 
-        // DI-collected section populators. Ordered once; fixed composition, not per-frame state — hence
-        // [StateAllowed] (mirrors DistrictOpenConditionSpawnSystem).
+        // Kept sub-systems of this orchestrator, in ascending Priority — fixed composition, not per-frame state,
+        // hence [StateAllowed] (mirrors DistrictOpenConditionSpawnSystem).
         [StateAllowed]
-        private readonly IReadOnlyList<DistrictBuildUISubSystem> _subSystems;
+        private readonly IReadOnlyList<IPrioritizedUniTaskSystem> _subSystems;
 
         private readonly Archetype _requestedSet;
         private readonly Archetype _selectedHexSet;
@@ -49,22 +51,34 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public override int Priority => SystemPriorities.RuntimeTick.DistrictBuildUi;
 
-        public DistrictBuildUISystem(EntityStorages storages, IReadOnlyList<DistrictBuildUISubSystem> subSystems)
-            : base(storages.World, PresentationUIArchetypes.DistrictBuildUI(storages.World))
+        public DistrictBuildUISystem(AppState appState, EntityStorages storages, IReadOnlyList<IPrioritizedUniTaskSystem> allSubSystems)
+            : base(appState, storages.World, PresentationUIArchetypes.DistrictBuildUI(storages.World))
         {
             _storages = storages;
-            _subSystems = subSystems
-                .OrderBy(system => system.Priority)
-                .ToArray();
+            _subSystems = OrchestratorSubSystems.SelectForOrchestrator(typeof(DistrictBuildUISystem), allSubSystems);
 
             // Hand each populator the re-populate callback: a section that changes the shared selection (List) calls
             // it to re-run every section against the new state — the direct C# replacement for the re-populate pulse.
-            for (var i = 0; i < _subSystems.Count; i++)
-                _subSystems[i].Repopulate = PopulateSections;
+            HandRepopulateToSections();
 
             _requestedSet = EventArchetypes.Of<DistrictBuildUIRequestedEvent>(storages.World);
             _selectedHexSet = PresentationArchetypes.HexSelection(storages.World);
             _selectionArchetype = PresentationUIArchetypes.DistrictBuildSelection(storages.World);
+        }
+
+        // Every kept part must be a district-build section — only that family names this host as its
+        // OrchestratorType, so anything else here is a mistyped OrchestratorType elsewhere.
+        private void HandRepopulateToSections()
+        {
+            foreach (var part in _subSystems)
+            {
+                var section = part as DistrictBuildUISubSystem;
+                if (section == null)
+                    throw new InvalidOperationException(
+                        $"DistrictBuildUISystem: kept a sub-system of type {part.GetType().Name} that is not a {nameof(DistrictBuildUISubSystem)}.");
+
+                section.Repopulate = PopulateSections;
+            }
         }
 
         protected override void Update(GameState state, in Entity entity)
@@ -184,15 +198,20 @@ namespace Presentation.UI.DistrictBuild.Systems
                 entity.DeleteEntity();
         }
 
-        // Each section subsystem reconciles its own view from the current ECS selection; the orchestrator only
-        // sequences them by Priority and hands over the overlay root.
+        // Runs every enabled section in Priority order through the sub-system contract, and requires the run to
+        // finish inside this call: no section awaits today, so a main-thread run completes synchronously — a
+        // pending run means a section started waiting, which this host cannot yet keep and poll on its own tick
+        // (decision :c13-async-parts-in-update-host). The Status check comes first because GetResult on a pending
+        // UniTask throws and returns its source to the pool.
         private void PopulateSections()
         {
-            var root = _storages.Singletons.Get<DistrictBuildUIRootComponent>().RootBox.Value;
+            var run = OrchestratorSubSystems.RunAsync(_subSystems, StatusMonitor.Token);
 
-            for (var i = 0; i < _subSystems.Count; i++)
-                if (_subSystems[i].IsEnabled)
-                    _subSystems[i].Populate(root);
+            if (run.Status == UniTaskStatus.Pending)
+                throw new InvalidOperationException(
+                    "DistrictBuildUISystem: a section awaited past PopulateSections — every section must complete synchronously.");
+
+            run.GetAwaiter().GetResult();
         }
 
         public void Dispose()

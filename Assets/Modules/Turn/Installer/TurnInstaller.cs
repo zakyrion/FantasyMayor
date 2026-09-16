@@ -1,4 +1,5 @@
 using EcsExtensions;
+using Modules.Boot.Core;
 using Modules.Turn.Components;
 using Modules.Turn.Data;
 using Modules.Turn.Systems;
@@ -15,14 +16,12 @@ namespace Modules.Turn.Installer
                 container.Resolve<EntityStorages>().Singletons.Set(
                     new TurnProcessorComponent { Status = TurnProcessorStatus.Idle }));
 
-            // Turn phases are registered by their owning domain (.As<…, TurnPhaseSubSystem>()); VContainer
-            // collects them into the IReadOnlyList<TurnPhaseSubSystem> that TurnProcessorSystem consumes.
-            // First phase: Domains.Actions.MayorActionPointsRestoreSubSystem (see ActionsInstaller).
-            builder.Register<TurnProcessorSystem>(Lifetime.Singleton)
-                .As<TurnProcessorSystem>();
+            // Turn phases are registered by their owning domain, exposed as the sub-system contract
+            // (IPrioritizedUniTaskSystem); VContainer collects them into the list TurnProcessorSystem filters by
+            // OrchestratorType. First phase: Domains.Actions.MayorAPRestoreSubSystem (see ActionsInstaller).
+            builder.RegisterAppStateSystem<TurnProcessorSystem>(Lifetime.Singleton, AppState.Gameplay);
 
-            builder.Register<TurnCountSystem>(Lifetime.Singleton)
-                .As<TurnCountSystem>();
+            builder.RegisterAppStateSystem<TurnCountSystem>(Lifetime.Singleton, AppState.Gameplay);
         }
     }
 }

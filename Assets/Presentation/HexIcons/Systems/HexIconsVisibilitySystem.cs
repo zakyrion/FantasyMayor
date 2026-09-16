@@ -7,6 +7,7 @@ using Domains.Map.HexResources.Data;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
+using Modules.Boot.Core;
 using Presentation.Archetypes;
 using Presentation.HexIcons.Components;
 using Presentation.HexIcons.Configs;
@@ -34,8 +35,8 @@ namespace Presentation.HexIcons.Systems
 
         public override int Priority => SystemPriorities.RuntimeTick.HexIconsVisibility;
 
-        public HexIconsVisibilitySystem(EntityStorages storages)
-            : base(storages.World, EventArchetypes.Of<HexIconsVisibilityChangedEvent>(storages.World))
+        public HexIconsVisibilitySystem(AppState appState, EntityStorages storages)
+            : base(appState, storages.World, EventArchetypes.Of<HexIconsVisibilityChangedEvent>(storages.World))
         {
             _storages = storages;
             _containerSet = PresentationArchetypes.HexIconContainer(storages.World);

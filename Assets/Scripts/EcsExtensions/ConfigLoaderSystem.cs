@@ -10,7 +10,7 @@ using UnityEngine;
 namespace EcsExtensions
 {
     // One instance per config type, registered in an installer:
-    // Register<ConfigLoaderSystem<X>>().As<IUniTaskSystem>().WithParameter(AppState.ConfigLoading).WithParameter("address", ConfigAddresses.X).
+    // builder.RegisterAppStateSystem<ConfigLoaderSystem<X>>(Lifetime.Singleton, AppState.ConfigLoading).WithParameter("address", ConfigAddresses.X).
     // The loaded asset is never released — configs live for the whole session (see EntityStorages).
     [UsedImplicitly]
     public sealed class ConfigLoaderSystem<T> : IUniTaskSystem where T : ScriptableObject

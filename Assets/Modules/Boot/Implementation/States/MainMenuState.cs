@@ -1,48 +1,51 @@
+using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Friflo.Engine.ECS;
 using EcsExtensions;
 using Modules.Boot.Core;
-using Presentation.UI.GeneratorMenu.Systems;
 using Domains.Map.Generation.Components;
 
 namespace Modules.Boot.Implementation.States
 {
     /// <summary>
-    ///     Shows the map generator UI and waits for the Generate request. On request, hides the UI and
-    ///     transitions to <see cref="AppState.MapCreation" />. (Currently the only screen — the ersatz main menu.)
+    ///     Runs the systems flagged <see cref="AppState.MainMenu" /> — today only ShowHexesUISystem, which loads
+    ///     and shows the map generator UI on entry — and watches for a ripe Generate request to transition to
+    ///     <see cref="AppState.MapCreation" />. (Currently the only screen — the ersatz main menu.)
     /// </summary>
     public sealed class MainMenuState : IAppState
     {
-        private readonly ShowHexesUISystem _ui;
         private readonly Archetype _generateRequests;
+        private readonly AppStateSystems _systems;
 
         private AppState? _requestedMode;
 
         public AppState Mode => AppState.MainMenu;
         public AppState? RequestedMode => _requestedMode;
 
-        public MainMenuState(EntityStore world, ShowHexesUISystem ui)
+        public MainMenuState(EntityStorages storages, IReadOnlyList<IAppStateSystem> allSystems)
         {
-            _ui = ui;
-            _generateRequests = EventArchetypes.Of<TerrainGenerationGenerateEventComponent>(world);
+            _generateRequests = EventArchetypes.Of<TerrainGenerationGenerateEventComponent>(storages.World);
+            _systems = AppStateSystems.Filter(Mode, allSystems);
         }
 
         public async UniTask EnterAsync(CancellationToken cancellationToken)
         {
             _requestedMode = null;
-            // Idempotent: loads the UI on first entry, no-op afterwards.
-            await _ui.Update(cancellationToken);
-            _ui.Show();
+            await _systems.RunEntryAsync(cancellationToken);
         }
 
         public void Tick(GameState state)
         {
-            if (!HasRipeRequest())
-                return;
+            RequestMapCreationOnRipeRequest();
+            _systems.Tick(state);
+        }
 
-            // The event entity is cleaned up by EventCleanupSystem once MapCreation starts ticking.
-            _requestedMode = AppState.MapCreation;
+        private void RequestMapCreationOnRipeRequest()
+        {
+            if (HasRipeRequest())
+                // The event entity is cleaned up by EventCleanupSystem once MapCreation starts ticking.
+                _requestedMode = AppState.MapCreation;
         }
 
         private bool HasRipeRequest()
@@ -56,11 +59,11 @@ namespace Modules.Boot.Implementation.States
 
         public void LateTick(GameState state)
         {
+            _systems.LateTick(state);
         }
 
         public void Exit()
         {
-            _ui.Hide();
         }
     }
 }

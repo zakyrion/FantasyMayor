@@ -2,6 +2,7 @@ using System;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
+using Modules.Boot.Core;
 using Presentation.UI.MainHud.ContextTabs.Components;
 using Presentation.UI.MainHud.ContextTabs.Data;
 using Presentation.UI.MainHud.ContextTabs.Events;
@@ -21,8 +22,8 @@ namespace Presentation.UI.MainHud.ContextTabs.Systems
 
         public override int Priority => SystemPriorities.RuntimeTick.ContextTabSelection;
 
-        public ContextTabSelectionSystem(EntityStorages storages)
-            : base(storages.World, EventArchetypes.Of<ContextTabChangedEvent>(storages.World))
+        public ContextTabSelectionSystem(AppState appState, EntityStorages storages)
+            : base(appState, storages.World, EventArchetypes.Of<ContextTabChangedEvent>(storages.World))
         {
             _storages = storages;
         }

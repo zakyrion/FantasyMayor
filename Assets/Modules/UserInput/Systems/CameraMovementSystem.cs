@@ -3,6 +3,7 @@ using Domains.Map.Hex.Components;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
+using Modules.Boot.Core;
 using Modules.Cameras.Components;
 using Modules.UserInput.Archetypes;
 using Modules.UserInput.Components;
@@ -47,11 +48,12 @@ namespace Modules.UserInput.Systems
         /// <inheritdoc />
         public override int Priority => SystemPriorities.RuntimeTick.Camera;
 
+        /// <param name="appState">The game states this system belongs to.</param>
         /// <param name="storages">Named ECS storages used to build the game-world entity set.</param>
-        public CameraMovementSystem(EntityStorages storages)
+        public CameraMovementSystem(AppState appState, EntityStorages storages)
             // Anchored on the single PlayerInputComponent entity so Update ticks once per frame;
             // the camera itself is a singleton component (CameraComponent), read via storages.Singletons below.
-            : base(storages.World, UserInputArchetypes.PlayerInput(storages.World))
+            : base(appState, storages.World, UserInputArchetypes.PlayerInput(storages.World))
         {
             _storages = storages;
             _playerInputArchetype = UserInputArchetypes.PlayerInput(storages.World);

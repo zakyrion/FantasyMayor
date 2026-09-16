@@ -7,6 +7,7 @@ using Domains.Map.HexResources.Data;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
+using Modules.Boot.Core;
 using Presentation.Archetypes;
 using Presentation.HexIcons.Components;
 using Presentation.HexIcons.Configs;
@@ -39,8 +40,8 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
 
         public override int Priority => SystemPriorities.RuntimeTick.HexInfoPanelResources;
 
-        public HexInfoPanelResourcesSystem(EntityStorages storages)
-            : base(storages.World, EventArchetypes.Of<SelectedHexChangedEvent>(storages.World))
+        public HexInfoPanelResourcesSystem(AppState appState, EntityStorages storages)
+            : base(appState, storages.World, EventArchetypes.Of<SelectedHexChangedEvent>(storages.World))
         {
             _storages = storages;
             _viewSet = PresentationUIArchetypes.HexInfoPanel(storages.World);

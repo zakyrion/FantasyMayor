@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using Domains.Map.Archetypes;
 using Domains.Map.Hex.Utils;
 using Domains.Map.HexResources.Components;
@@ -13,7 +15,7 @@ using Presentation.HexResources.Configs;
 
 namespace Presentation.HexResources.Systems
 {
-    internal abstract class HexResourcesViewSubSystem : ISystem<GameState>
+    internal abstract class HexResourcesViewSubSystem : IPrioritizedUniTaskSystem, IDisposable
     {
         private readonly EntityStorages _storages;
         private readonly Archetype _resourceSet;
@@ -23,13 +25,16 @@ namespace Presentation.HexResources.Systems
         public abstract int Priority { get; }
         protected abstract HexResourceType TargetHexResourceType { get; }
 
+        /// <inheritdoc />
+        public Type OrchestratorType => typeof(HexResourcesViewSystem);
+
         protected HexResourcesViewSubSystem(EntityStorages storages)
         {
             _storages = storages;
             _resourceSet = MapArchetypes.HexResource(storages.World);
         }
 
-        public abstract void Update(GameState state);
+        public abstract UniTask Update(CancellationToken cancellationToken);
 
         protected bool TryGetPrefab(out GameObject prefab)
         {

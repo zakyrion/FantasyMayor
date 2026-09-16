@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EcsExtensions;
@@ -8,10 +7,10 @@ using Modules.Boot.Core;
 namespace Modules.Boot.Implementation.States
 {
     /// <summary>
-    ///     Builds a fresh world: runs the one-shot generation pipeline
-    ///     (<see cref="IPrioritizedUniTaskSystem{T}" /> for <see cref="MapGenerationStep" />) in priority order,
-    ///     then ticks its per-frame systems for a few "settle" frames (e.g. event cleanup) before transitioning
-    ///     to <see cref="AppState.Gameplay" />. View building is done synchronously inside the pipeline.
+    ///     Builds a fresh world: on entry runs the systems flagged <see cref="AppState.MapCreation" /> — the
+    ///     world-building pipeline stages, in priority order — then ticks its per-frame systems (event cleanup)
+    ///     for a few "settle" frames before requesting <see cref="AppState.Gameplay" />. View building is done
+    ///     synchronously inside the pipeline.
     /// </summary>
     public sealed class MapCreationState : IAppState
     {
@@ -20,32 +19,25 @@ namespace Modules.Boot.Implementation.States
         // extra ticks are no-ops.
         private const int SettleFrames = 3;
 
-        private readonly IReadOnlyList<IPrioritizedUniTaskSystem<MapGenerationStep>> _pipeline;
-        private readonly IReadOnlyList<IUpdatedSystem> _systems;
+        private readonly AppStateSystems _systems;
 
+        private AppState? _requestedMode;
         private int _settledFrames;
 
         public AppState Mode => AppState.MapCreation;
-        public AppState? RequestedMode { get; private set; }
+        public AppState? RequestedMode => _requestedMode;
 
-        public MapCreationState(
-            IReadOnlyList<IPrioritizedUniTaskSystem<MapGenerationStep>> pipeline,
-            params IUpdatedSystem[] systems)
+        public MapCreationState(IReadOnlyList<IAppStateSystem> allSystems)
         {
-            _pipeline = pipeline.OrderBy(stage => stage.Priority).ToArray();
-            _systems = systems.OrderBy(system => system.Priority).ToArray();
+            _systems = AppStateSystems.Filter(Mode, allSystems);
         }
 
-        public async UniTask EnterAsync(CancellationToken cancellationToken)
+        public UniTask EnterAsync(CancellationToken cancellationToken)
         {
-            RequestedMode = null;
+            _requestedMode = null;
             _settledFrames = 0;
 
-            foreach (var stage in _pipeline)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                await stage.Update(cancellationToken);
-            }
+            return _systems.RunEntryAsync(cancellationToken);
         }
 
         public void Exit()
@@ -54,16 +46,20 @@ namespace Modules.Boot.Implementation.States
 
         public void LateTick(GameState state)
         {
+            _systems.LateTick(state);
         }
 
         public void Tick(GameState state)
         {
-            foreach (var system in _systems)
-                system.Update(state);
+            _systems.Tick(state);
+            CountSettleFrame();
+        }
 
+        private void CountSettleFrame()
+        {
             _settledFrames++;
             if (_settledFrames >= SettleFrames)
-                RequestedMode = AppState.Gameplay;
+                _requestedMode = AppState.Gameplay;
         }
     }
 }

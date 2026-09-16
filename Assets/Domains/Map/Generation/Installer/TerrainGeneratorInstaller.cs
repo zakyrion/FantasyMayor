@@ -1,4 +1,4 @@
-﻿using EcsExtensions;
+using EcsExtensions;
 using Modules.Boot.Core;
 using Domains.Map.Generation.Systems;
 using VContainer;
@@ -11,21 +11,18 @@ namespace Domains.Map.Generation.Installer
     {
         public void Install(IContainerBuilder builder)
         {
-            builder.Register<ConfigLoaderSystem<TerrainGenerationConfig>>(Lifetime.Singleton)
-                .As<IUniTaskSystem>()
-                .WithParameter(AppState.ConfigLoading)
+            builder.RegisterAppStateSystem<ConfigLoaderSystem<TerrainGenerationConfig>>(Lifetime.Singleton, AppState.ConfigLoading)
                 .WithParameter("address", ConfigAddresses.TERRAIN_GENERATION_CONFIG);
-            builder.Register<GenerationSystem>(Lifetime.Singleton)
-                .As<GenerationSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
+            builder.RegisterAppStateSystem<GenerationSystem>(Lifetime.Singleton, AppState.MapCreation);
 
             builder.Register<MountainGenerationSubSystem>(Lifetime.Singleton)
-                .As<MountainGenerationSubSystem, GenerationSubSystem>();
+                .As<IPrioritizedUniTaskSystem>();
             builder.Register<RiverGenerationSubSystem>(Lifetime.Singleton)
-                .As<RiverGenerationSubSystem, GenerationSubSystem>();
+                .As<IPrioritizedUniTaskSystem>();
             builder.Register<LakeGenerationSubSystem>(Lifetime.Singleton)
-                .As<LakeGenerationSubSystem, GenerationSubSystem>();
+                .As<IPrioritizedUniTaskSystem>();
             builder.Register<SeaGenerationSubSystem>(Lifetime.Singleton)
-                .As<SeaGenerationSubSystem, GenerationSubSystem>();
+                .As<IPrioritizedUniTaskSystem>();
         }
     }
 }

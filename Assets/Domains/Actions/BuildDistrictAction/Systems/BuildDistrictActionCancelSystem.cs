@@ -20,6 +20,7 @@ using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
+using Modules.Boot.Core;
 
 namespace Domains.Actions.BuildDistrictAction.Systems
 {
@@ -57,8 +58,8 @@ namespace Domains.Actions.BuildDistrictAction.Systems
 
         public override int Priority => SystemPriorities.RuntimeTick.BuildDistrictActionCancel;
 
-        public BuildDistrictActionCancelSystem(EntityStorages storages)
-            : base(storages.World, EventArchetypes.Of<BuildDistrictCancelEvent>(storages.World))
+        public BuildDistrictActionCancelSystem(AppState appState, EntityStorages storages)
+            : base(appState, storages.World, EventArchetypes.Of<BuildDistrictCancelEvent>(storages.World))
         {
             _storages = storages;
 

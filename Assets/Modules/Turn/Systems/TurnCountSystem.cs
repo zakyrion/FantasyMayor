@@ -2,6 +2,7 @@ using System;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
+using Modules.Boot.Core;
 using Modules.Turn.Components;
 using Modules.Turn.Events;
 
@@ -20,8 +21,8 @@ namespace Modules.Turn.Systems
 
         public override int Priority => SystemPriorities.RuntimeTick.TurnCount;
 
-        public TurnCountSystem(EntityStorages storages)
-            : base(storages.World, EventArchetypes.Of<TurnCompletedEvent>(storages.World))
+        public TurnCountSystem(AppState appState, EntityStorages storages)
+            : base(appState, storages.World, EventArchetypes.Of<TurnCompletedEvent>(storages.World))
         {
             _storages = storages;
         }

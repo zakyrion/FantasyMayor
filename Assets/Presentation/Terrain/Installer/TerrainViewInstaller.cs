@@ -16,66 +16,45 @@ namespace Presentation.Terrain.Installer
     {
         public void Install(IContainerBuilder builder)
         {
-            builder.Register<ConfigLoaderSystem<InnerIsolineConfig>>(Lifetime.Singleton)
-                .As<IUniTaskSystem>()
-                .WithParameter(AppState.ConfigLoading)
+            builder.RegisterAppStateSystem<ConfigLoaderSystem<InnerIsolineConfig>>(Lifetime.Singleton, AppState.ConfigLoading)
                 .WithParameter("address", ConfigAddresses.INNER_ISOLINE_CONFIG);
 
-            builder.Register<ConfigLoaderSystem<OuterIsolineConfig>>(Lifetime.Singleton)
-                .As<IUniTaskSystem>()
-                .WithParameter(AppState.ConfigLoading)
+            builder.RegisterAppStateSystem<ConfigLoaderSystem<OuterIsolineConfig>>(Lifetime.Singleton, AppState.ConfigLoading)
                 .WithParameter("address", ConfigAddresses.OUTER_ISOLINE_CONFIG);
 
-            builder.Register<ConfigLoaderSystem<HeightSmoothingConfig>>(Lifetime.Singleton)
-                .As<IUniTaskSystem>()
-                .WithParameter(AppState.ConfigLoading)
+            builder.RegisterAppStateSystem<ConfigLoaderSystem<HeightSmoothingConfig>>(Lifetime.Singleton, AppState.ConfigLoading)
                 .WithParameter("address", ConfigAddresses.HEIGHT_SMOOTHING_CONFIG);
 
-            builder.Register<ConfigLoaderSystem<WindErosionConfig>>(Lifetime.Singleton)
-                .As<IUniTaskSystem>()
-                .WithParameter(AppState.ConfigLoading)
+            builder.RegisterAppStateSystem<ConfigLoaderSystem<WindErosionConfig>>(Lifetime.Singleton, AppState.ConfigLoading)
                 .WithParameter("address", ConfigAddresses.WIND_EROSION_CONFIG);
 
-            builder.Register<ConfigLoaderSystem<HydraulicErosionConfig>>(Lifetime.Singleton)
-                .As<IUniTaskSystem>()
-                .WithParameter(AppState.ConfigLoading)
+            builder.RegisterAppStateSystem<ConfigLoaderSystem<HydraulicErosionConfig>>(Lifetime.Singleton, AppState.ConfigLoading)
                 .WithParameter("address", ConfigAddresses.HYDRAULIC_EROSION_CONFIG);
 
-            builder.Register<ConfigLoaderSystem<TerrainViewConfig>>(Lifetime.Singleton)
-                .As<IUniTaskSystem>()
-                .WithParameter(AppState.ConfigLoading)
+            builder.RegisterAppStateSystem<ConfigLoaderSystem<TerrainViewConfig>>(Lifetime.Singleton, AppState.ConfigLoading)
                 .WithParameter("address", ConfigAddresses.TERRAIN_VIEW_CONFIG);
 
-            builder.Register<ConfigLoaderSystem<TerrainTextureConfig>>(Lifetime.Singleton)
-                .As<IUniTaskSystem>()
-                .WithParameter(AppState.ConfigLoading)
+            builder.RegisterAppStateSystem<ConfigLoaderSystem<TerrainTextureConfig>>(Lifetime.Singleton, AppState.ConfigLoading)
                 .WithParameter("address", ConfigAddresses.TERRAIN_TEXTURE_CONFIG);
 
-            builder.Register<ConfigLoaderSystem<WaterViewConfig>>(Lifetime.Singleton)
-                .As<IUniTaskSystem>()
-                .WithParameter(AppState.ConfigLoading)
+            builder.RegisterAppStateSystem<ConfigLoaderSystem<WaterViewConfig>>(Lifetime.Singleton, AppState.ConfigLoading)
                 .WithParameter("address", ConfigAddresses.WATER_VIEW_CONFIG);
 
-            builder.Register<VertexGridSpawnSystem>(Lifetime.Singleton)
-                .As<IUniTaskSystem>()
-                .WithParameter(AppState.InstanceObjects);
+            builder.RegisterAppStateSystem<VertexGridSpawnSystem>(Lifetime.Singleton, AppState.InstanceObjects);
 
-            builder.Register<TerrainViewSystem>(Lifetime.Singleton)
-                .As<TerrainViewSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
-            builder.Register<HexSelectionViewLoadingSystem>(Lifetime.Singleton)
-                .As<HexSelectionViewLoadingSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
-            // Concrete registration: Boot wires this per-frame system into game states by hand.
-            builder.Register<HexSelectionViewSystem>(Lifetime.Singleton)
-                .As<HexSelectionViewSystem>();
-            builder.Register<TerrainViewDebugSystem>(Lifetime.Singleton)
-                .As<TerrainViewDebugSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
+            builder.RegisterAppStateSystem<TerrainViewSystem>(Lifetime.Singleton, AppState.MapCreation);
+            builder.RegisterAppStateSystem<HexSelectionViewLoadingSystem>(Lifetime.Singleton, AppState.MapCreation);
+            // A first-order per-frame system: its state membership is its AppState flags, resolved through
+            // IAppStateSystem — no state names it by hand.
+            builder.RegisterAppStateSystem<HexSelectionViewSystem>(Lifetime.Singleton, AppState.Gameplay);
+            builder.RegisterAppStateSystem<TerrainViewDebugSystem>(Lifetime.Singleton, AppState.MapCreation);
 
             builder.Register<TerrainViewGenerationSubSystem>(Lifetime.Singleton)
-                .As<TerrainViewGenerationSubSystem, ViewSubSystem>();
+                .As<IPrioritizedUniTaskSystem>();
             builder.Register<TerrainViewTextureSubSystem>(Lifetime.Singleton)
-                .As<TerrainViewTextureSubSystem, ViewSubSystem>();
+                .As<IPrioritizedUniTaskSystem>();
             builder.Register<WaterViewSubSystem>(Lifetime.Singleton)
-                .As<WaterViewSubSystem, ViewSubSystem>();
+                .As<IPrioritizedUniTaskSystem>();
         }
     }
 }

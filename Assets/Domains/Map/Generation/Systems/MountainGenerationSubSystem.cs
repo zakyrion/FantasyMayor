@@ -1,4 +1,6 @@
-﻿using Domains.Map.Archetypes;
+﻿using System.Threading;
+using Cysharp.Threading.Tasks;
+using Domains.Map.Archetypes;
 using Domains.Map.Generation.Components;
 using Domains.Map.Hex.Components;
 using EcsExtensions;
@@ -45,11 +47,13 @@ namespace Domains.Map.Generation.Systems
         }
 
         /// <inheritdoc />
-        public override void Update(GameState state)
+        public override UniTask Update(CancellationToken cancellationToken)
         {
             var config = _storages.Get<TerrainGenerationConfig>();
 
             Generate(config);
+
+            return UniTask.CompletedTask;
         }
 
         /// <summary>

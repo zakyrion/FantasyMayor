@@ -11,20 +11,17 @@ namespace Domains.Map.HexResources.Installer
     {
         public void Install(IContainerBuilder builder)
         {
-            builder.Register<ConfigLoaderSystem<HexResourcesConfig>>(Lifetime.Singleton)
-                .As<IUniTaskSystem>()
-                .WithParameter(AppState.ConfigLoading)
+            builder.RegisterAppStateSystem<ConfigLoaderSystem<HexResourcesConfig>>(Lifetime.Singleton, AppState.ConfigLoading)
                 .WithParameter("address", ConfigAddresses.HEX_RESOURCES_CONFIG);
 
-            builder.Register<HexResourcesSystem>(Lifetime.Singleton)
-                .As<HexResourcesSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
+            builder.RegisterAppStateSystem<HexResourcesSystem>(Lifetime.Singleton, AppState.MapCreation);
 
             builder.Register<ForestResourceGenerationSubSystem>(Lifetime.Singleton)
-                .As<ForestResourceGenerationSubSystem, HexResourcesSubSystem>();
+                .As<IPrioritizedUniTaskSystem>();
             builder.Register<ClayResourceGenerationSubSystem>(Lifetime.Singleton)
-                .As<ClayResourceGenerationSubSystem, HexResourcesSubSystem>();
+                .As<IPrioritizedUniTaskSystem>();
             builder.Register<FishResourceGenerationSubSystem>(Lifetime.Singleton)
-                .As<FishResourceGenerationSubSystem, HexResourcesSubSystem>();
+                .As<IPrioritizedUniTaskSystem>();
         }
     }
 }

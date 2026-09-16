@@ -4,6 +4,7 @@ using Domains.Actors.Mayor.Components;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
+using Modules.Boot.Core;
 using Modules.Turn.Components;
 using Modules.Turn.Data;
 using Presentation.UI.Archetypes;
@@ -34,8 +35,8 @@ namespace Presentation.UI.MainHud.TurnPanel.Systems
 
         public override int Priority => SystemPriorities.RuntimeTick.TurnPanelView;
 
-        public TurnPanelViewSystem(EntityStorages storages)
-            : base(storages.World, PresentationUIArchetypes.TurnPanel(storages.World))
+        public TurnPanelViewSystem(AppState appState, EntityStorages storages)
+            : base(appState, storages.World, PresentationUIArchetypes.TurnPanel(storages.World))
         {
             _storages = storages;
             _mayors = ActorsArchetypes.Mayor(storages.World);

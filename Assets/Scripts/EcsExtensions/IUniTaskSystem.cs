@@ -6,21 +6,16 @@ using Modules.Boot.Core;
 namespace EcsExtensions
 {
     /// <summary>
-    ///     Exposes an asynchronous method to update a system.
+    ///     The non-generic async system contract: a first-order one-shot system, run to completion once by the
+    ///     game state it is flagged for.
     /// </summary>
-    /// <typeparam name="T">Tags which pipeline stage this system belongs to, for DI collection-grouping only.</typeparam>
-    public interface IUniTaskSystem<in T> : IDisposable
-    {
-        /// <summary>
-        ///     Updates the system once.
-        /// </summary>
-        /// <param name="cancellationToken">The token used to cancel current update.</param>
-        /// <returns>A task that represents the asynchronous update.</returns>
-        UniTask Update(CancellationToken cancellationToken);
-    }
-
     public interface IUniTaskSystem : IDisposable, IAppStateSystem
     {
+        /// <summary>
+        ///     Runs the system once.
+        /// </summary>
+        /// <param name="cancellationToken">The token used to cancel the run.</param>
+        /// <returns>A task that represents the asynchronous run.</returns>
         UniTask Execute(CancellationToken cancellationToken);
     }
 }

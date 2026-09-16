@@ -5,6 +5,7 @@ using Domains.Economy.Resource.Components;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
+using Modules.Boot.Core;
 using Presentation.UI.Archetypes;
 using Presentation.UI.MainHud.ResourceBar.Components;
 using Presentation.UI.MainHud.ResourceBar.Views;
@@ -31,8 +32,8 @@ namespace Presentation.UI.MainHud.ResourceBar.Systems
 
         public override int Priority => SystemPriorities.RuntimeTick.ResourceBar;
 
-        public ResourceBarSystem(EntityStorages storages)
-            : base(storages.World, PresentationUIArchetypes.ResourceBar(storages.World))
+        public ResourceBarSystem(AppState appState, EntityStorages storages)
+            : base(appState, storages.World, PresentationUIArchetypes.ResourceBar(storages.World))
         {
             _mayorActor = ActorsArchetypes.Mayor(storages.World);
             _cityActor = ActorsArchetypes.City(storages.World);

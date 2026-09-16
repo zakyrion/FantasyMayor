@@ -11,26 +11,19 @@ namespace Presentation.HexIcons.Installer
     {
         public void Install(IContainerBuilder builder)
         {
-            builder.Register<ConfigLoaderSystem<HexIconsConfig>>(Lifetime.Singleton)
-                .As<IUniTaskSystem>()
-                .WithParameter(AppState.ConfigLoading)
+            builder.RegisterAppStateSystem<ConfigLoaderSystem<HexIconsConfig>>(Lifetime.Singleton, AppState.ConfigLoading)
                 .WithParameter("address", ConfigAddresses.HEX_ICONS_CONFIG);
 
-            builder.Register<ConfigLoaderSystem<HexResourceIconConfig>>(Lifetime.Singleton)
-                .As<IUniTaskSystem>()
-                .WithParameter(AppState.ConfigLoading)
+            builder.RegisterAppStateSystem<ConfigLoaderSystem<HexResourceIconConfig>>(Lifetime.Singleton, AppState.ConfigLoading)
                 .WithParameter("address", ConfigAddresses.HEX_RESOURCE_ICON_CONFIG);
 
-            builder.Register<HexIconsSpawnSystem>(Lifetime.Singleton)
-                .As<HexIconsSpawnSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
+            builder.RegisterAppStateSystem<HexIconsSpawnSystem>(Lifetime.Singleton, AppState.MapCreation);
 
-            // Per-frame positioner — a concrete singleton wired into GameplayState by Boot (like ForestSpawnSystem).
-            builder.Register<HexIconsContainerPositionSystem>(Lifetime.Singleton)
-                .As<HexIconsContainerPositionSystem>();
+            // Per-frame positioner — a first-order system, its state membership is its AppState flags.
+            builder.RegisterAppStateSystem<HexIconsContainerPositionSystem>(Lifetime.Singleton, AppState.Gameplay);
 
-            // Event-driven icon renderer — a concrete singleton wired into GameplayState by Boot.
-            builder.Register<HexIconsVisibilitySystem>(Lifetime.Singleton)
-                .As<HexIconsVisibilitySystem>();
+            // Event-driven icon renderer — a first-order system, its state membership is its AppState flags.
+            builder.RegisterAppStateSystem<HexIconsVisibilitySystem>(Lifetime.Singleton, AppState.Gameplay);
         }
     }
 }
