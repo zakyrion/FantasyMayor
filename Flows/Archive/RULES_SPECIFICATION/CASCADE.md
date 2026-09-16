@@ -1,8 +1,12 @@
 ---
 category: A
-read: always
-status: partial
-tags: [architecture, rules, specification, cascade]
+read: archive
+status: implemented
+tags:
+  - architecture
+  - rules
+  - specification
+  - cascade
 related:
   - "[FLOW](FLOW.md)"
   - "[CONTEXT](CONTEXT.md)"

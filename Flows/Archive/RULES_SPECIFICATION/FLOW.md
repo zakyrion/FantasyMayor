@@ -1,11 +1,15 @@
 ---
 category: A
-read: always
-status: partial
-tags: [architecture, rules, specification, cascade]
+read: archive
+status: implemented
+tags:
+  - architecture
+  - rules
+  - specification
+  - cascade
 related:
   - "[GRAPH_STANDARD](../GRAPH_STANDARD/FLOW.md)"
-  - "[ARCHITECTURE](../../ARCHITECTURE.md)"
+  - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
 ---
 
 # Request
@@ -61,7 +65,7 @@ related:
  :tools #{fantasymayor-graph roslyn doc_lint}
  :accept [{:meter "python3 Tools/doc_lint.py --quiet" :target "0 синтаксичних помилок Clojure; привиди не зросли (3)"}
           {:meter "python3 Tools/gen_index.py" :target "LINT clean"}
-          {:meter "інвентар носіїв" :target "кожне правило кожного носія з :sources — у специфікації з ID або з рішенням «не правило коду»"}
+          {:meter "інвентар носіїв" :target "кожне правило кожного носія з :sources — у специфікації з ID або з рішенням «не правило коду»" :actual "звірка носіїв 2026-09-16 (скіл fantasymayor-rules-conformance, два проходи Opus): 244 з 244 правил несуть носії, 0 неповних, 0 непокритих, 0 розбіжних — після перегенерації ARCHITECTURE.md, оновлення CLAUDE.md, 13 рецептів і двох скілів" :status :met}
           {:meter "ID правил" :target "кожне правило має ID; дублів 0"}
           {:meter "converge" :target "contradicts 0, unrequested 0"}]
  :result "RULES_SPECIFICATION.md написана; власник бачить підсумок"}
@@ -138,8 +142,7 @@ related:
 # Progress
 
 ```clojure
-{:status :active
- :why-not-complete "усі шість стадій каскаду пройдені й поправки власника застосовані; лишився один приймальний метр — звірка носіїв (ARCHITECTURE.md, Patterns/, скіли, інструменти) проти цієї специфікації, яку робить Flows/GRAPH_STANDARD. Архівувати задачу до тієї звірки не можна: # Contra s2 (s2-c-2) робить вікно з живим каскадом обовʼязковим"
+{:status :complete
  :completed #{"постановка підтверджена 2026-09-16 — go на каскад в авто-режимі"
               "context 2026-09-16 — CONTEXT.md: інвентар 457 правил з 10 носіїв (366 правил коду, 43 визначення, 45 виключених), 20 суперечностей, 8 рішень :auto-decided, 3 питання власнику; doc_lint 0 помилок Clojure і 3 старі привиди, gen_index LINT clean"
               "s1 2026-09-16 — CASCADE.md # s1: 243 правила в 17 групах, 43 конструкції коду в :data, 48 виключених записів з причиною, усі 20 суперечностей розвʼязані (24 рішення :auto-decided з оцінками, 5 нових правил, 3 питання лишились :needs-owner); # Contra 8 записів; doc_lint 0 помилок Clojure і 3 старі привиди, gen_index LINT clean"
@@ -149,7 +152,7 @@ related:
               "converge 2026-09-16 — CASCADE.md # Converge і # Calibration: 49 записів s2 класифіковано проти документа перерахунком, не читанням його чисел — 39 :present, 8 :partial, 2 :contradicts, 0 :unrequested; обидва :contradicts — один факт (s2 недорахував запис словника :stack), усі чотири записи :from-code підтверджені, знайдено три неназвані рішення стадії коду і одну внутрішню розбіжність документа (преамбула тримає покажчик # s1, який (def entry-shape) уже зняв); калібрування прогону записане; doc_lint 0 помилок Clojure і ті самі 3 привиди, gen_index LINT clean"}
  :completed-last "поправки власника 2026-09-16 — CASCADE.md # Поправки власника після converge (5 записів): 55 → 56 у трьох місцях s2; :addressable/never розбито (дві заборони дістали власні ID, шість уже жили поіменно у сусідів) — правил 244; 17 абзаців-повторів знято, файл 836 → 777 рядків; додано (def gather-by-construct); три читання закриті словом власника — ключ :needs-owner, блок (def open-readings) і абзац преамбули знято"
  :current :none
- :remaining #{"звірка носіїв — Flows/GRAPH_STANDARD"}
+ :remaining #{}
  :stage :done
  :next-invocation :none
  :resume-context "Артефакт задачі — RULES_SPECIFICATION.md у корені (836 рядків, 30 блоків, 243 правила). Провенанс — Flows/RULES_SPECIFICATION/: CONTEXT.md (інвентар носіїв), CASCADE.md (# s1 набір і якорі, # s2 структура, # Read-back 19 знахідок, # Converge 49 класифікацій, # Calibration міри прогону). Відкритих питань чотири. Три — :needs-owner у самому документі, блок (def open-readings): :oq-stateless-vs-lifetime-flags, :oq-singleton-manifest, :oq-view-in-views-folder. Четверте — куди лягає розбіжність 55/56 у словнику конструкцій: запис :from-code у # s2 чи слово власника. Крім них власникові адресовані три знахідки read-back (:rb-3, :rb-8, :rb-6) і три неназвані рішення стадії коду з (def converge-from-code). Наступна робота — Flows/GRAPH_STANDARD: звірка ARCHITECTURE.md, Patterns/, скілів та інструментів проти цієї специфікації, поки каскад ще не архівований (s2-c-2 fix-a робить це вікно обовʼязковим)."}

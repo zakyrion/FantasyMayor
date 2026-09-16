@@ -1,11 +1,15 @@
 ---
 category: A
-read: always
-status: partial
-tags: [architecture, ecs, tools, enforcement]
+read: archive
+status: closed-by-owner
+tags:
+  - architecture
+  - ecs
+  - tools
+  - enforcement
 related:
-  - "[ARCHITECTURE](../../ARCHITECTURE.md)"
-  - "[ECS_GRAPH_PATTERN_INSTANCES](../Archive/ECS_GRAPH_PATTERN_INSTANCES/FLOW.md)"
+  - "[ARCHITECTURE](../../../ARCHITECTURE.md)"
+  - "[ECS_GRAPH_PATTERN_INSTANCES](../ECS_GRAPH_PATTERN_INSTANCES/FLOW.md)"
 ---
 
 # Request
@@ -439,20 +443,30 @@ related:
               "прохід 1 — інвентар, 11 знахідок 2026-09-15"
               "прохід 2 — 4 пошуки Sonnet, 7 знахідок; Unity additionalfile і Spec Kit analyze перевірені вручну 2026-09-15"
               "CODE_STORY_RULES_PROPOSAL.md видалено за словом власника 2026-09-16: файл (vault_delete), рядок і абзац у INDEX, пам'ять project_code_style_rules_program + рядок MEMORY.md, 3 вікілінки перенаправлені на sdd-cascade; gen_index LINT clean, doc_lint 3 старі привиди"}
- :current :conformance-findings-gate   ;; 2026-09-16: продовжується після каскаду Flows/RULES_SPECIFICATION — поправка 2026-09-16 у # Amendments: :validate-rules-chain → :enforce-rules, :doc-check-skill
+ :closed {:at "2026-09-16"
+          :raw "закривай всі flow-и. Подивлюся що там буде в реальних задачах"
+          :outcome "звірка ланцюжка і примус зроблені й закомічені (e853ef5, 512aa1f, ~/.claude acded80); решта не виконана і чекає окремих задач"
+          :left-over #{"скіл перевірки документів і видалення DOC_STANDARD.md разом зі згадками — gen_index.py, .sdd-flow/project.md # Shape, шапка ARCHITECTURE.md, INDEX, 6 файлів памʼяті"
+                       "перевірка власника в Unity — чи не зʼявилось нових помилок FM1001-FM1008"
+                       "8 живих порушень, які знайшли нові перевірки: 2 народження повз архетип (WorldInstaller.cs:61, EcsEventExtensions.cs:21), 4 збережені дескриптори сутності (SingletonComponents.cs:12, TerrainViewSystem.cs:42, WaterViewSubSystem.cs:39, HexSelectionViewLoadingSystem.cs:29), запис індексованого PK без throw (BuildDistrictActionSystem.cs:99), BuildDistrictInProgress без колонки стадії"
+                       "2 розбіжності перевірок графа, де правий інструмент, а не правило — :catalogue/row-shape і :recipe/signatures (12 ознак проти 15 рецептів)"
+                       "давній список рефакторингу коду з архівного DOC_AGENT_REVIEW"}}
+ :current :none   ;; 2026-09-16: продовжується після каскаду Flows/RULES_SPECIFICATION — поправка 2026-09-16 у # Amendments: :validate-rules-chain → :enforce-rules, :doc-check-skill
  :completed #{"скіл .claude/skills/fantasymayor-rules-conformance створено 2026-09-16 — процедура звірки носіїв проти RULES_SPECIFICATION.md, лише знахідки, без правок"
               "звірка ланцюжка 2026-09-16 — 4 паралельні проходи (ARCHITECTURE, Patterns, скіли, інструменти); знахідки в # Findings, звіти в теці сесії"
               "критерій звірки виправлено власником 2026-09-16 — носій несе правило повністю; скіл переписаний, 108 знахідок «другий дім» анульовані"
               "покриття виміряне 2026-09-16 — 220 :carried, 13 :incomplete, 11 :uncarried"
               "носії оновлені 2026-09-16 — ARCHITECTURE.md перегенерований зі специфікації (228 → 817 рядків, 214 правил, ID як ключ запису); CLAUDE.md (крок check замість tags + гілка view, скіл звірки в маршрутизації, специфікація поза :read, новий § 6 «Як змінити правило»); 10 рецептів Patterns/ (транзакція, маркери в 4 скелетах, мертві посилання, звільнення дескриптора, пріоритети, межа view); pattern-choice (маркери, обидві умови транзакції, вироджений випадок, гілка ознак за маркером); arch-check переписаний (5 коренів сканування замість 2, цитування 28 ID, білий список під :state/mutable-static, блок відомих прогалин); placement звірений — змін не потребує; привиди 3 → 0"
-              "специфікація приведена до нових перевірок 2026-09-16 — :state/escape-order і :state/mutable-static тепер :checked-by :arch-check; tally: агент 152, граф 58, arch-check 28, аналізатор 4, ніхто 2"}
+              "специфікація приведена до нових перевірок 2026-09-16 — :state/escape-order і :state/mutable-static тепер :checked-by :arch-check; tally: агент 152, граф 58, arch-check 28, аналізатор 4, ніхто 2"
+              "звірка ланцюжка закрита 2026-09-16 — переміряно після оновлення носіїв: 244/244 :carried, 0 :incomplete, 0 :uncarried; 13 битих вказівників на розділи ARCHITECTURE і 3 розбіжності рецептів виправлені; коміт e853ef5 (проєкт) і acded80 (~/.claude)"
+              "примус зроблено 2026-09-16, коміт 512aa1f — аналізатор: FM1005 відсутній маркер, FM1006 зайвий, FM1007 підписка без маркера, FM1008 успадковуваний маркер, FM1003 добудований, цитати ID у всіх діагностиках, view за папкою; граф: 14 відсутніх перевірок реалізовано, 19 із 21 розбіжності закрито, роль зважує маркер проти якоря, 34 точки цитують правило; check 8 → 32 попереджень, 8 живих порушень у коді; позначки специфікації приведені до дійсності"}
  :search-guess-outcome {:outcome :confirmed-with-deviation
                         :deviation "перша половина (інструменти читають специфікацію як дані) — підтримана OPA, але для пари Python + Roslyn прецеденту нема; друга половина (похідне перевіряють тестами) — спростована: звірка без тестів звична (generate-and-diff, мета-аналізатор, LLM-прохід, AST-відбитки, скан графа); лише .NET-бібліотеки архітектурних правил прив'язані до тестів"}
  :search-guess {:hunch "практика сходиться на «правило як код»: виконуване правило і є специфікацією (ArchUnit, OPA); специфікація-дані, яку читають кілька незалежних перевірок без генерації і без тестів, трапляється рідко; похідне зазвичай генерують з одного машиночитаного джерела, а відповідність рукописного похідного перевіряють тестами, які тут заборонені — тож найімовірніший вихід: інструменти читають специфікацію як дані напряму, документи для агента виводить агент"
                 :confidence 55
                 :grounded-in "знання агента — до пошуку"
                 :at "2026-09-15"}
- :remaining #{":validate-rules-chain — після каскаду специфікації" ":enforce-rules" ":doc-check-skill — після каскаду"}
+ :remaining #{":doc-check-skill — скіл перевірки документів і видалення DOC_STANDARD.md разом зі згадками" "шапка ARCHITECTURE.md досі посилається на DOC_STANDARD" "перевірка власника в Unity — нових помилок FM нема" "8 живих порушень, які знайшли нові перевірки — окрема задача рефакторингу коду"}
  :resume-context "Проходи 1-2 завершено (# Findings). Задача переписана поправкою 2026-09-16: спершу Flows/RULES_SPECIFICATION (каскад в авто-режимі), потім тут — скіл rules-conformance і звірка ланцюжка, примус (аналізатор + CLAUDE.md), скіл перевірки документів замість DOC_STANDARD."}
 ```
 

@@ -13,17 +13,13 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 48 docs — 5 always · 20 trigger · 0 reference · 23 archive · 3 canvas.
+Totals: 48 docs — 1 always · 20 trigger · 0 reference · 27 archive · 3 canvas.
 
 ## Read at start (always)
 
 Read these every session before doing anything else.
 
 - [CLAUDE.md](CLAUDE.md) — How to work in FantasyMayor. The lifecycle is sdd-flow's and is not restated here; this file
-- [Request](Flows/GRAPH_STANDARD/FLOW.md) — 
-- [Subject](Flows/RULES_SPECIFICATION/CASCADE.md) — Набір правил коду FantasyMayor і структура майбутньої RULES_SPECIFICATION.md — стадії s1 і s2 каскаду.
-- [Task](Flows/RULES_SPECIFICATION/CONTEXT.md) — Контекст для s1: носії правил коду, інвентар кожного правила, суперечності, рішення, межі й перевірка специфікації.
-- [Request](Flows/RULES_SPECIFICATION/FLOW.md) — 
 
 ## Read on demand (by trigger)
 
@@ -61,7 +57,7 @@ Reference docs read on demand.
 
 ## Task history (archive)
 
-23 completed FLOW document(s) are retained under `Flows/Archive/`. They preserve task history and are searched on demand; they are not startup context or current-code claims.
+27 completed FLOW document(s) are retained under `Flows/Archive/`. They preserve task history and are searched on demand; they are not startup context or current-code claims.
 
 ## Canvas map (on demand)
 
