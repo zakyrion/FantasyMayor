@@ -12,7 +12,13 @@ EVENT_FRAME = "EventFrameComponent"
 EVENT_TAG = "EventTag"
 TEMPLATE_QUEUE_LIMIT = 10000
 SYSTEM_BASES = {"UpdatedSystem", "LateUpdatedSystem"}
+STORE_TYPE = "EntityStore"
+ENTITY_TYPE = "Entity"
 KEY_ROLE_WARNING = "key-role:"
+STATE_SUFFIX = "StateComponent"      # the state (stage) column of a row
+KIND_SUFFIX = "KindComponent"        # the kind column of a row
+ARITY_CAP = 5                        # type arguments per set in an archetype declaration
+ARCHETYPE_RECEIVER = "archetype"     # what the receiver of a birth call says it is
 
 
 @dataclass
@@ -26,6 +32,19 @@ class ArchetypeDeclaration:
 
 def expand_archetypes(sources, types, draft):
     holders = sources.holders
+
+    # a member returning a live Archetype takes the store as a parameter — the holder binds to no store of its own
+    for (holder, member), declared in sorted(holders.items()):
+        if declared["singleton"]:
+            continue   # the manifest names its columns one Add<T>() at a time, not as one list of type arguments
+        if STORE_TYPE not in declared["params"]:
+            draft.warn(f"archetype member {holder}.{member} @ {declared['source_location']} takes no {STORE_TYPE} "
+                       f"parameter — the store comes as a parameter", "archetype/shape")
+        for part, written in (("columns", declared["components"]), ("tags", declared["tags"])):
+            if len(written) > ARITY_CAP:
+                draft.warn(f"archetype {holder}.{member} @ {declared['source_location']} names {len(written)} "
+                           f"{part} [{', '.join(written)}] — a set of an archetype declaration takes at most "
+                           f"{ARITY_CAP} type arguments", "archetype/arity-cap")
 
     # concrete holder members and the singleton manifest are archetypes by their declaration alone
     for (holder, member), declared in holders.items():
@@ -81,7 +100,7 @@ def register_archetype(declaration: ArchetypeDeclaration, markers: dict, draft):
     draft.add_node(declaration.id, name=declaration.id, kind="archetype",
                    components=sorted({c for c in declaration.components if c}),
                    main_tag=main_tags[0] if len(main_tags) == 1 else None, label_tags=sorted(label_tags),
-                   source_location=declaration.source_location)
+                   tag_order=tags, source_location=declaration.source_location)
     for part in [*declaration.components, *tags]:
         draft.add_edge(Edge(declaration.id, part, "has", declaration.via, declaration.source_location))
 
@@ -160,20 +179,36 @@ def reconcile_ecs_facts(sources, draft):
     attribute_disposals(sources, draft)
     attach_tables(sources, draft)
     apply_key_role_law(sources, draft)
+    audit_key_spaces(sources, draft)
     resolve_priorities(sources, draft)
     check_singleton_manifest(sources, draft)
+    audit_births(sources, draft)
+    audit_state_and_kind_columns(sources, draft)
+    audit_entity_links(sources, draft)
 
 
 def connect_component_access(sources, draft):
+    # the payload write standing in the same member as the CreateEvent that made the entity is that one raise, not a
+    # second pulse; any other AddComponent of an event type is a pulse assembled by hand
+    raised_here = {(s["owner"], s["enclosing_member"], s["type"]) for s in sources.ecs_sites
+                   if s["site"] == "create_event" and s["type"]}
     sets, late_writes, tags_add_sites, singleton_used = [], [], [], set()
     for site in sources.ecs_sites:
         owner, location = site["owner"], site["source_location"]
         if site["site"] == "access" and site["type"]:
-            written_name = draft.nodes[site["type"]]["name"]
-            if site["via"] == "AddComponent" and written_name.endswith("Event"):
-                continue   # the payload write right after CreateEvent — the emits edge anchors it
+            written = draft.nodes[site["type"]]
+            written_name = written["name"]
+            if site["via"] == "AddComponent" and written.get("kind") == "event":
+                if (owner, site["enclosing_member"], site["type"]) in raised_here:
+                    continue   # the payload write of that CreateEvent — the emits edge anchors it
+                draft.warn(f"{owner} adds event {written_name} to a live entity @ {location} — an event is raised "
+                           f"by one CreateEvent call, and a pulse assembled by hand loses its tag or its stamp",
+                           "event/raise")
             draft.add_edge(Edge(owner, site["type"], site["access"], site["via"], location,
                                 confidence=site["confidence"]))
+            if site["access"] == "removes":
+                draft.warn(f"{owner} calls {site['via']}<{written_name}> @ {location} — after birth there is no "
+                           f"removal of a component and no removal of a tag", "birth/no-late-structural")
             if site["singleton"]:
                 singleton_used.add(site["type"])
             if site["via"] == "AddComponent" and written_name.endswith("Tag"):
@@ -221,11 +256,20 @@ def attach_tables(sources, draft):
         for index_field in (f for f in declaration["fields"]
                             if f["type"].name == "ComponentIndex" and len(f["type"].args) == 2):
             key = draft.resolve(index_field["type"].args[0], namespaces, index_field["source_location"])
-            carriers = [i for i, components in archetype_components.items() if key in components]
+            carriers = sorted(i for i, components in archetype_components.items() if key in components)
+            location, role = index_field["source_location"], key_role(key or "")
             tables.append({"key": key, "value_type": index_field["type"].args[1], "owner": declaration["id"],
                            "field": index_field["name"], "via": "ComponentIndex",
-                           "source_location": index_field["source_location"], "role": key_role(key or ""),
+                           "source_location": location, "role": role,
                            "archetype": carriers[0] if len(carriers) == 1 else None})
+            if key and not carriers:
+                draft.warn(f"key {key} of {declaration['id']}.{index_field['name']} @ {location} is named by no "
+                           f"declared archetype — a table is a key component plus a discriminator, together in one "
+                           f"declared archetype", "table/is")
+            elif role == "data" and len(carriers) > 1:
+                draft.warn(f"data column {key} keys {declaration['id']}.{index_field['name']} @ {location} across "
+                           f"{len(carriers)} tables [{', '.join(carriers)}] — a data column never keys the indexes "
+                           f"of two different tables", "key/data")
         if declaration["kind"] != "struct":
             continue
         indexed = next((b for b in declaration["bases"] if b.name == "IIndexedComponent" and b.args), None)
@@ -234,6 +278,11 @@ def attach_tables(sources, draft):
         plain_fields = [f for f in declaration["fields"] if not f["is_const"]]
         if len(plain_fields) == 1:   # the PK wrapper shape — its value type even when it is never indexed itself
             component_field_types[declaration["id"]] = plain_fields[0]["type"].name
+    for table in tables:   # a key component declares the indexed-component contract and returns its value by it
+        if table["key"] and draft.nodes.get(table["key"], {}).get("declared") \
+                and table["key"] not in indexed_components:
+            draft.warn(f"key {table['key']} of {table['owner']}.{table['field']} @ {table['source_location']} "
+                       f"declares no IIndexedComponent<…> contract", "index/key-equality")
     draft.ecs_tables.update(
         tables=tables,
         index_usages=[{"owner": s["owner"], "field": s["field"], "source_location": s["source_location"]}
@@ -258,14 +307,15 @@ def apply_key_role_law(sources, draft):
         if node["role"] == "pk" and len(has_by_part[node_id]) > 1:
             draft.warn(f"{KEY_ROLE_WARNING} PK {node['name']} is carried by {len(has_by_part[node_id])} archetypes "
                        f"[{', '.join(sorted(has_by_part[node_id]))}] — foreign carriers must switch to "
-                       f"{node['name'].replace('Component', 'FKComponent')}")
+                       f"{node['name'].replace('Component', 'FKComponent')}", "key/pk-single-carrier")
         elif node["role"] == "fk":
             owner_key = node["name"].replace("FKComponent", "Component")
             if owner_key in draft.nodes:
                 draft.add_edge(Edge(node_id, owner_key, "fk_of", "key-role law (suffix)",
                                     node.get("source_location", "")))
             else:
-                draft.warn(f"{KEY_ROLE_WARNING} FK {node['name']} has no owner key {owner_key} in the graph")
+                draft.warn(f"{KEY_ROLE_WARNING} FK {node['name']} has no owner key {owner_key} in the graph",
+                           "name/suffix")
 
     # The same relation by evidence: an FK really looked up through ComponentIndex<FK, TValue> whose TValue is the
     # owner PK's own value type — a separate fk_of edge, so a divergence between the two signals stays visible.
@@ -277,6 +327,10 @@ def apply_key_role_law(sources, draft):
         owner_key = table["key"].replace("FKComponent", "Component")
         owner_value = tables["indexed_components"].get(owner_key) or tables["component_field_types"].get(owner_key)
         if owner_value is None:
+            if draft.nodes.get(owner_key, {}).get("declared"):   # no contract, no value to compare — never silent
+                draft.warn(f"{KEY_ROLE_WARNING} owner key {owner_key} declares no IIndexedComponent<…> contract and "
+                           f"no single value field, so the value of {table['key']} cannot be compared with it",
+                           "index/key-equality")
             continue
         if owner_value == table["value_type"]:
             draft.add_edge(Edge(table["key"], owner_key, "fk_of", "ComponentIndex (TValue match)",
@@ -285,7 +339,7 @@ def apply_key_role_law(sources, draft):
             draft.warn(f"{KEY_ROLE_WARNING} {table['key']} indexed as "
                        f"ComponentIndex<{table['key']},{table['value_type']}> in "
                        f"{table['owner']} @ {table['source_location']}, but {owner_key} declares "
-                       f"IIndexedComponent<{owner_value}> — value types diverge")
+                       f"IIndexedComponent<{owner_value}> — value types diverge", "key/fk-value-parity")
 
     # references: archetype -> archetype through has(A, FK) + fk_of(FK, PK) + has(B, PK), one per fk_of signal
     for edge in [e for e in draft.edges if e.rel == "fk_of"]:
@@ -296,6 +350,128 @@ def apply_key_role_law(sources, draft):
                                         confidence=edge.confidence))
 
 
+def bare_name(node_id: str, draft) -> str:
+    """The written name of a node without its nesting chain — what the suffix laws are read from."""
+    return draft.nodes.get(node_id, {}).get("name", node_id).rsplit(".", 1)[-1]
+
+
+def key_space(name: str) -> str | None:
+    """The key space a column stands in: its name without the role suffix — HexIdComponent and HexIdFKComponent
+    both stand in the Hex space."""
+    return next((name[: -len(suffix)] for suffix in ("IdFKComponent", "IdComponent", "FKComponent", "Component")
+                 if name.endswith(suffix) and len(name) > len(suffix)), None)
+
+
+def audit_key_spaces(sources, draft):
+    """Three laws over the key spaces. An entity holds one component per type, so it holds at most one foreign key
+    into a space. An enum space — a space with no primary-key table — carries a data column on the owner's side.
+    And a duplicate primary-key value returns both rows in silence, so uniqueness is checked, and thrown on, where
+    the key is allocated; the member that writes the key is where the reader can look for that throw."""
+    tables = draft.ecs_tables
+
+    for archetype_id, archetype in sorted(draft.nodes.items()):
+        if archetype.get("kind") != "archetype":
+            continue
+        spaces = defaultdict(list)
+        for column in archetype.get("components", []):
+            if key_role(bare_name(column, draft)) == "fk":
+                spaces[key_space(bare_name(column, draft))].append(column)
+        for space, keys in sorted(spaces.items()):
+            if len(keys) > 1:
+                draft.warn(f"archetype {archetype_id} carries {len(keys)} foreign keys into the {space} space "
+                           f"[{', '.join(sorted(keys))}] @ {archetype.get('source_location', '')} — one component "
+                           f"per type means at most one foreign key into a space, and a second reference is a pair "
+                           f"of types of its own", "index/one-fk-per-space")
+
+    enums = {d["name"] for d in sources.declarations if d["kind"] == "enum"}
+    indexed, carried = tables["indexed_components"], {c for n in draft.nodes.values()
+                                                      if n.get("kind") == "archetype" for c in n.get("components", [])}
+    for fk_id in sorted(i for i in draft.nodes
+                        if key_role(bare_name(i, draft)) == "fk" and indexed.get(i) in enums):
+        value = indexed[fk_id]
+        owner_columns = [c for c, v in indexed.items()
+                         if v == value and c != fk_id and c in carried and key_role(bare_name(c, draft)) == "data"]
+        if not owner_columns:
+            draft.warn(f"{bare_name(fk_id, draft)} references the {value} space and no archetype carries a data "
+                       f"column over {value} — in a space of enumeration values, with no primary-key table, the "
+                       f"owner's side is a data column and the reference side the column with the reference suffix",
+                       "key/enum-space")
+
+    throwing = {(t["owner"], t["enclosing_member"]) for t in sources.throw_sites}
+    indexed_pks = {t["key"] for t in tables["tables"] if t["role"] == "pk" and t["key"]}
+    for site in (s for s in sources.ecs_sites
+                 if s["site"] == "access" and s["access"] == "writes" and s["type"] in indexed_pks):
+        if (site["owner"], site["enclosing_member"]) not in throwing:
+            draft.warn(f"{site['owner']}.{site['enclosing_member']} writes the indexed primary key "
+                       f"{bare_name(site['type'], draft)} @ {site['source_location']} and throws nowhere in that "
+                       f"member — a duplicate key value returns both rows without an error, so uniqueness is "
+                       f"checked where the key is allocated and throws there", "index/pk-uniqueness")
+
+
+def audit_births(sources, draft):
+    """A row is born by a creation call ON ITS ARCHETYPE. A creation whose receiver names no archetype, or that
+    composes the row out of components and tags at the call site, is the bare creation on the store the law
+    forbids — the composition belongs in an archetype declaration."""
+    for site in (s for s in sources.ecs_sites if s["site"] == "create_entity"):
+        receiver, composed = site["receiver"], site["via"] == "CreateEntity" and site["argc"] > 0
+        if ARCHETYPE_RECEIVER in receiver.lower() and not composed:
+            continue
+        reason = (f"composes the row out of {site['argc']} argument(s) at the call site"
+                  if composed else f"calls {site['via']} on '{receiver}', which names no archetype")
+        draft.warn(f"{site['owner']} {reason} @ {site['source_location']} — an entity is born by a creation call on "
+                   f"its archetype, never by a bare creation on the store", "archetype/birth")
+
+
+def audit_state_and_kind_columns(sources, draft):
+    """The state of a row and the kind of a row are COLUMNS OVER AN ENUMERATION — never a tag toggled on the live
+    row (the tag law holds that half) and never a second main tag. The kind column is written once, at birth."""
+    enums = {d["name"] for d in sources.declarations if d["kind"] == "enum"}
+    for declaration in sources.declarations:
+        name = declaration["name"]
+        role = ("state" if name.endswith(STATE_SUFFIX) else "kind" if name.endswith(KIND_SUFFIX) else None)
+        if role is None or declaration["kind"] != "struct":
+            continue
+        valued = [f for f in declaration["fields"] if not f["is_const"]]
+        if not any(f["type"].name in enums for f in valued):
+            written = ", ".join(f"{f['type'].name} {f['name']}" for f in valued) or "nothing"
+            draft.warn(f"{role} column {name} @ {declaration['source_location']} carries {written} — the {role} of a "
+                       f"row is a column over an enumeration", f"tag/{role}-column")
+
+    births = {(s["owner"], s["enclosing_member"]) for s in sources.ecs_sites if s["site"] == "create_entity"}
+    for site in (s for s in sources.ecs_sites if s["site"] == "access" and s["access"] == "writes" and s["type"]):
+        if bare_name(site["type"], draft).endswith(KIND_SUFFIX) \
+                and (site["owner"], site["enclosing_member"]) not in births:
+            draft.warn(f"{site['owner']} writes the kind column {bare_name(site['type'], draft)} in "
+                       f"{site['enclosing_member']} @ {site['source_location']}, outside the member that creates the "
+                       f"row — the kind of a row is written once, at birth", "tag/kind-column")
+
+
+def audit_entity_links(sources, draft):
+    """A saved entity descriptor, read by where it is saved. In a row it is a join kept in a column: a join is a
+    lookup by key value at the point of use, never a stored reference from the row of one table into the row of
+    another. Anywhere else it is a link that outlives the call, and a link that persists is a domain key —
+    a direct descriptor belongs only to a runtime-only link, which the graph cannot tell apart."""
+    for declaration in sources.declarations:
+        kind = draft.nodes.get(declaration["id"], {}).get("kind")
+        for stored in (f for f in declaration["fields"] if not f["is_const"] and holds_entity(f["type"])):
+            if kind in ("component", "event"):   # a column of a row — an event payload is a column too
+                draft.warn(f"column {declaration['id']}.{stored['name']} stores an {ENTITY_TYPE} "
+                           f"@ {stored['source_location']} — a join is a lookup by key value at the point of use, "
+                           f"never a reference from the row of one table stored in the row of another",
+                           "table/join-at-use")
+            elif kind in ("other", "system", "view", "config", "installer"):
+                draft.warn(f"{declaration['id']}.{stored['name']} stores an {ENTITY_TYPE} descriptor "
+                           f"@ {stored['source_location']} — a persistent link is a domain key, the identity column "
+                           f"of the owner with the reference column pointing at it", "link/persistent-key")
+
+
+def holds_entity(type_use) -> bool:
+    """A written type that holds an entity descriptor: Entity itself, an array or collection of them, or a generic
+    with one among its arguments."""
+    written = [type_use.name, *type_use.args, type_use.element.name if type_use.element else ""]
+    return any(name.rsplit(".", 1)[-1] == ENTITY_TYPE for name in written if name)
+
+
 def resolve_priorities(sources, draft):
     const_table = {}
     for declaration in sources.declarations:
@@ -304,11 +480,18 @@ def resolve_priorities(sources, draft):
         expression = declaration["priority"]
         if expression.lstrip("-").isdigit():
             value = int(expression)
+            draft.warn(f"Priority of {declaration['id']} @ {declaration['source_location']} is the literal "
+                       f"{expression} — Priority returns a named const int of the project's priority holder",
+                       "system/priority-source")
         elif "." in expression:
             suffix_hits = {v for k, v in const_table.items() if k.endswith("." + expression)}
             value = const_table.get(expression, suffix_hits.pop() if len(suffix_hits) == 1 else None)
         else:
             value = const_table.get(f"{declaration['chain']}.{expression}")
+            if value is not None:
+                draft.warn(f"Priority of {declaration['id']} @ {declaration['source_location']} is '{expression}', "
+                           f"a const of the class itself — Priority returns a named const int of the project's "
+                           f"priority holder", "system/priority-source")
         if value is None:
             draft.warn(f"unresolved Priority expression on {declaration['id']}: '{expression}'")
             continue
@@ -319,18 +502,19 @@ def check_singleton_manifest(sources, draft):
     used = set(draft.ecs_tables["singleton_used"])
     manifests = [f"{h}.{m}" for (h, m), declared in sources.holders.items() if declared["singleton"]]
     if used and len(manifests) != 1:
-        draft.warn(f"singleton manifest: expected exactly one Singleton archetype, found {len(manifests)}")
+        draft.warn(f"singleton manifest: expected exactly one Singleton archetype, found {len(manifests)}",
+                   "singleton/manifest")
     elif used:
         declared_components = set(draft.nodes[manifests[0]].get("components", []))
         missing, unused = sorted(used - declared_components), sorted(declared_components - used)
         if missing:
-            draft.warn(f"singleton manifest: used but undeclared [{', '.join(missing)}]")
+            draft.warn(f"singleton manifest: used but undeclared [{', '.join(missing)}]", "singleton/manifest")
         if unused:
-            draft.warn(f"singleton manifest: declared but unused [{', '.join(unused)}]")
+            draft.warn(f"singleton manifest: declared but unused [{', '.join(unused)}]", "singleton/manifest")
 
     carried = {c for n in draft.nodes.values() if n.get("kind") == "archetype" for c in n.get("components", [])}
     for edge in draft.edges:
         written = draft.nodes.get(edge.dst, {})
         if edge.rel == "writes" and written.get("kind") == "component" and edge.dst not in carried:
-            draft.warn(f"writes {edge.dst} by {edge.src} @ {edge.source_location}: not part of any declared "
-                       f"archetype (orphaned column?)")
+            draft.warn(f"writes {edge.dst} by {edge.src} @ {edge.source_location}: no declared archetype names this "
+                       f"column", "archetype/no-orphan-column")

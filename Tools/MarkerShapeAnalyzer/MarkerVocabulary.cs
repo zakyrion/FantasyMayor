@@ -2,7 +2,7 @@ using Microsoft.CodeAnalysis;
 
 namespace FantasyMayor.Analyzers
 {
-    // The three marker types and the eight shape anchors as one compilation sees them. A type the compilation does
+    // The three marker types and the shape anchors as one compilation sees them. A type the compilation does
     // not see stays null — that shape cannot occur there.
     internal sealed class MarkerVocabulary
     {
@@ -19,6 +19,13 @@ namespace FantasyMayor.Analyzers
         public readonly INamedTypeSymbol TagInterface;
         public readonly INamedTypeSymbol MonoBehaviour;
 
+        // The one global cleanup system. The role order gives it the first branch, ahead of the branch the
+        // marker decides, so a class that is or extends it never needs a marker and never may carry one.
+        public readonly INamedTypeSymbol EventCleanupSystem;
+
+        // How the marker declarations themselves forbid inheritance.
+        public readonly INamedTypeSymbol AttributeUsage;
+
         private MarkerVocabulary(Compilation compilation)
         {
             SystemRole = compilation.GetTypeByMetadataName("EcsExtensions.SystemRoleAttribute");
@@ -33,6 +40,8 @@ namespace FantasyMayor.Analyzers
             ComponentTypes = compilation.GetTypeByMetadataName("Friflo.Engine.ECS.ComponentTypes");
             TagInterface = compilation.GetTypeByMetadataName("Friflo.Engine.ECS.ITag");
             MonoBehaviour = compilation.GetTypeByMetadataName("UnityEngine.MonoBehaviour");
+            EventCleanupSystem = compilation.GetTypeByMetadataName("EcsExtensions.EventCleanupSystem");
+            AttributeUsage = compilation.GetTypeByMetadataName("System.AttributeUsageAttribute");
         }
 
         public static MarkerVocabulary Resolve(Compilation compilation) => new(compilation);

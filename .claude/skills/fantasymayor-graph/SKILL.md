@@ -36,11 +36,11 @@ edit the JSON by hand (the graph-gate hook denies it).
 | command | answers |
 |---|---|
 | `build` | rebuild now: files, nodes, edges, warnings, seconds |
-| `check` | dangling edges, table and set owners outside the nodes, archetypes without components, recipe instances without a node, curated, INFERRED / AMBIGUOUS counts, every warning; integrity errors exit 1 |
+| `check` | dangling edges, table and set owners outside the nodes, archetypes without components, recipe instances without a node, curated, INFERRED / AMBIGUOUS counts, every warning — recipe deviations included, each with the rule it breaks; integrity errors exit 1 |
 | `stats` | nodes by kind, edges by rel, systems by role, instances per recipe, warnings, curated |
 | `pattern <RECIPE>` | the recipe's instances with `source_location` and `decided_by`, its groups and deviations; zero instances come with what the signature looked for |
 | `systems [--role R]` | every system by role and priority; roles: `reactive`, `per_frame`, `cleanup`, `pipeline_stage`, `turn_phase`, `startup_step`, `sub_system`, `undecided` |
-| `tags` | archetypes with the main tag and the label tags apart, then every tag-law deviation |
+| `tags` | archetypes with the main tag and the label tags apart, then every tag-law deviation (the label cap included) |
 | `explain <node>` | every ECS and DI facet of a node, its outgoing and incoming edges with args, the tables it keys or owns |
 | `neighbors <node> [--rel a,b]` | the edges of a node, filtered by rel |
 | `search <keyword> [--role R]` | substring over id, kind and role |
@@ -81,11 +81,37 @@ marker only where it does not.
            ViewSubscriberAttribute "[ViewSubscriber(typeof(TheView))] on the class that adds handlers to the view's C# events"
            TagLabelAttribute       "[TagLabel] or [TagLabel(TagLabelRole.Transaction)] on a tag struct — a label beside the main tag, never a filter"}
  :guard "MarkerShapeAnalyzer in the Unity compilation — a marker whose type does not have the claimed shape is error FM1001-FM1004"
- :tool  "a redundant role marker, a class that needs one, a view marker without a subscription and a view subscription without a marker are warnings"}
+ :tool  "a redundant role marker, a class that needs one, a view marker without a subscription and a view subscription without a marker are warnings"
+ :marker-value "the marker decides only when its value matches the shape: [SystemRole(Reactive)] on a TABLE-anchored class is refused — undecided plus a warning, exactly as the analyzer refuses it"}
 ```
 
 A base-anchored event is `reacts_to`; an event archetype held outside `base(...)` is `reacts_to` only under the
 reactive marker and `polls` otherwise.
+
+## The laws over rows, keys and links
+
+Beside the tag law and the role decision, the pass measures the shape of a row and of its keys. Each deviation is a
+warning citing its rule; `references/graph-facts.md` names rule by rule what is measured and what the code cannot
+show.
+
+```clojure
+(def row-laws
+  {:birth       "an entity is born by a creation call ON ITS ARCHETYPE — a receiver that names no archetype, or a row composed out of components and tags at the call site, is the bare creation on the store"
+   :arity       "an archetype declaration names at most five columns and at most five tags; beside the main tag stand 0-4 labels"
+   :tag-shape   "a tag is an empty struct; the state and the kind of a row are columns over an ENUMERATION, and the kind column is written once, at birth"
+   :component   "a column is a plain struct of runtime values: no method beyond Equals, GetHashCode and GetIndexedValue, and no logic in a Components/ folder"
+   :key-space   "one archetype holds at most one foreign key into a key space; a space of enum values carries a data column on the owner's side; a primary key that keys an index is written in a member that throws"
+   :link        "an Entity descriptor is never stored: in a column it is a join that belongs at the point of use, in a field of a class a link that belongs to a domain key"
+   :transaction "a transaction entity lives in ONE home — its verb domain owns every write into a column only it carries — and in ONE archetypal form, stage column included"})
+```
+
+## The view layer
+
+A view is EVERYTHING declared in a `Views/` folder — the folder alone decides it, for a struct and an enum as much as
+for a class (`view_layer`). MonoBehaviour ancestry is a separate fact (`scene_object`): the extra the law asks of the
+type a `[ViewSubscriber]` marker names, so view ↔ subscriber pairing runs on views that are scene objects, while the
+view boundary — no entity created, no ECS event raised, no `EntityStorages` / `EntityStore` received — is measured
+over the whole layer.
 
 ## Schema
 
@@ -95,7 +121,8 @@ reactive marker and `polls` otherwise.
 meta:       {schema, roots[], files, generated, curated}
 nodes:      {id: {name, kind, namespace, source_location, declared, abstract,
                   role, decided_by, priority, base_anchor, anchor_events[], held_events[],   # classes
-                  components[], main_tag, label_tags[],                                      # archetypes
+                  components[], main_tag, label_tags[], tag_order[],                         # archetypes
+                  view_layer, scene_object,                                                  # the view layer
                   lifetime, installer, contract, state, markers}}                            # DI facets, markers
             kind: component | tag | event | data | config | view | system | archetype | installer | interface | other
 edges:      [{src, dst, rel, via, args[]?, app_state?, collection?, source_location, confidence}]
@@ -103,7 +130,7 @@ edges:      [{src, dst, rel, via, args[]?, app_state?, collection?, source_locat
                   inherits hosts registers exposes injects runs_in subscribes
 ecs_tables: {tables[], index_usages[], sets[], dispose_sites[], late_writes[], tags_add_sites[],
              indexed_components{}, component_field_types{}, singleton_used[]}
-tag_audit:  [{kind, archetype_or_owner, tags[], source_location}]
+tag_audit:  [{kind, archetype_or_owner, tags[], source_location, rule}]
 recipes:    {RECIPE: {instances[{id, source_location, decided_by, …}], groups{}, deviations[], decided_by, empty_reason}}
 warnings:   [...]
 ```
@@ -120,6 +147,12 @@ signature mapping is `references/recipe-signatures.md`.
 - A warning is never silent: parse errors, ambiguous names, `DeleteEntity` without one candidate archetype,
   key-role conflations, undecided roles, redundant markers, subscriptions without a marker, registration forms
   and archetype member forms outside the known ones — all in `check`.
+- A warning that enforces a rule of `RULES_SPECIFICATION.md` ends with that rule's id, `[rule <prefix>/<slug>]`, and
+  the rule is found in the specification by text search, never by section. A warning with NO id enforces no rule and
+  says so by the absence: the tool is reporting on itself — a parse error, an `AMBIGUOUS` name, a `DeleteEntity` or a
+  holder call or a `Priority` expression it cannot resolve, a DI registration form it does not follow. Every recipe
+  deviation is a warning too, so `pattern` and `check` never disagree. `references/graph-facts.md` lists rule by rule
+  what the graph measures.
 - A stale graph never answers: every command rebuilds it first; a build that fails ends the command with its
   traceback and exit 1.
 - The tool reads the repository and writes only `.fantasymayor-graph/`. It never builds Unity.

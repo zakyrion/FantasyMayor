@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis;
 
 namespace FantasyMayor.Analyzers
 {
-    // The actual shape of a marked type — what the marker claims is measured against.
+    // The actual shape of a type — what a marker on it is measured against, and what decides whether it needs one.
     internal sealed class TypeShape
     {
         public readonly bool LoopContract;
@@ -12,9 +12,11 @@ namespace FantasyMayor.Analyzers
         public readonly ImmutableArray<IMethodSymbol> HeldEventArchetypes;
         public readonly ImmutableArray<IEventSymbol> SubscribedEvents;
         public readonly bool TagStruct;
+        public readonly bool Cleanup;
 
         public TypeShape(bool loopContract, bool eventAnchored, bool tableAnchored,
-            ImmutableArray<IMethodSymbol> heldEventArchetypes, ImmutableArray<IEventSymbol> subscribedEvents, bool tagStruct)
+            ImmutableArray<IMethodSymbol> heldEventArchetypes, ImmutableArray<IEventSymbol> subscribedEvents,
+            bool tagStruct, bool cleanup)
         {
             LoopContract = loopContract;
             EventAnchored = eventAnchored;
@@ -22,6 +24,7 @@ namespace FantasyMayor.Analyzers
             HeldEventArchetypes = heldEventArchetypes;
             SubscribedEvents = subscribedEvents;
             TagStruct = tagStruct;
+            Cleanup = cleanup;
         }
     }
 }

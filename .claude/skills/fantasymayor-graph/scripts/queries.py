@@ -8,8 +8,7 @@ from collections import Counter, deque
 
 from build import build_graph
 from ecs_facts import KEY_ROLE_WARNING
-
-INT_MAX = 2147483647
+from roles import INT_MAX
 
 
 def answer_build(graph, request):
@@ -100,7 +99,7 @@ def answer_tags(graph, request):
     print("== deviations from one main tag + labels ==")
     for deviation in graph.tag_audit:
         print(f"  ⚠ {deviation['kind']}: {deviation['archetype_or_owner']} [{', '.join(deviation['tags'])}] "
-              f"@ {deviation['source_location']}")
+              f"@ {deviation['source_location']} [rule {deviation['rule']}]")
     print(f"({len(graph.tag_audit)} deviation(s) from one main tag + labels)")
 
 
@@ -109,8 +108,8 @@ def answer_explain(graph, request):
     node = graph.nodes[node_id]
     print(f"== {node_id} ==")
     for facet in ("kind", "namespace", "source_location", "abstract", "declared", "role", "decided_by", "priority",
-                  "base_anchor", "anchor_events", "held_events", "components", "main_tag", "label_tags",
-                  "lifetime", "installer", "contract", "state", "markers"):
+                  "base_anchor", "anchor_events", "held_events", "components", "main_tag", "label_tags", "tag_order",
+                  "view_layer", "scene_object", "lifetime", "installer", "contract", "state", "markers"):
         if node.get(facet) not in (None, [], False):
             print(f"  {facet}: {node[facet]}")
     for title, edges, end, arrow in (("outgoing", graph.outgoing[node_id], "dst", "-{rel}->"),

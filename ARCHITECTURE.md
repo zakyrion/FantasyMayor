@@ -78,7 +78,7 @@ with. Placement of new files and the choice of a `Patterns/` recipe are decided 
 
 (def system-order  ;; SystemPriorities is the one holder of execution order
   {:system/priority-source
-   "Priority returns a named const int from SystemPriorities — never a class-local constant and never a literal"  ;; the graph accepts any resolvable const int, so it measures weaker than the rule
+   "Priority returns a named const int from SystemPriorities — never a class-local constant and never a literal"  ;; fantasymayor-graph checks it
 
    :system/priority-space
    "each nested class of SystemPriorities is its own order space: values compare only inside one space, every member of a space carries a distinct value, and subsystem priorities compare only inside their own orchestrator"
@@ -92,13 +92,13 @@ with. Placement of new files and the choice of a `Patterns/` recipe are decided 
 ```clojure
 (def markers  ;; MarkerShapeAnalyzer, category FantasyMayor.Markers, severity Error — a marker that contradicts the shape FAILS the Unity compile
   {:system/marker-required
-   "the role marker is required in exactly one shape — the one form no ordering rule decides: an Update-loop class that holds an event archetype outside base(...). It carries [SystemRole(SystemRoleKind.Reactive)] or [SystemRole(SystemRoleKind.PerFrame)]"  ;; the graph only warns today; the rule wants a compile error
+   "the role marker is required in exactly one shape — the one form no ordering rule decides: an Update-loop class that holds an event archetype outside base(...). It carries [SystemRole(SystemRoleKind.Reactive)] or [SystemRole(SystemRoleKind.PerFrame)]"  ;; MarkerShapeAnalyzer FM1005 — a missing marker fails the compile
 
    :system/marker-forbidden
-   "a role marker on a class whose own shape already decides its role is forbidden"  ;; a redundant marker is only a warning today; by the owner's decision it is an error
+   "a role marker on a class whose own shape already decides its role is forbidden"  ;; MarkerShapeAnalyzer FM1006 — a redundant marker fails the compile
 
    :system/marker-value
-   "the marker value must match the class shape: PerFrame demands the Update-loop contract with no event anchor; Reactive demands the Update-loop contract with no table anchor, plus either an event anchor or a held event archetype"  ;; the analyzer measures the value; the graph's role reader still allows any value on a table anchor
+   "the marker value must match the class shape: PerFrame demands the Update-loop contract with no event anchor; Reactive demands the Update-loop contract with no table anchor, plus either an event anchor or a held event archetype"  ;; MarkerShapeAnalyzer FM1001 and FM1002; fantasymayor-graph reads the marker against the same anchor
 
    :system/marker-not-inherited
    "no marker is inherited — every concrete class or struct carries its own"

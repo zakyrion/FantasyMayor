@@ -90,8 +90,11 @@ class GraphDraft:
         self.edge_keys.add(key)
         self.edges.append(edge)
 
-    def warn(self, message: str):
-        self.warnings.append(message)
+    def warn(self, message: str, rule: str | None = None):
+        """Every warning that enforces a rule ends with the id of that rule, `[rule <prefix>/<slug>]`, as the
+        specification's id-law fixes it. A warning that enforces no rule — a name the reader cannot resolve, a
+        registration form it does not follow — carries no id, and the missing id is the tool saying so."""
+        self.warnings.append(f"{message} [rule {rule}]" if rule else message)
 
     def to_document(self) -> dict:
         edges = []

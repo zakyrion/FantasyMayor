@@ -61,6 +61,7 @@ class FileFacts:
     ecs_sites: list = dataclass_field(default_factory=list)
     di_sites: list = dataclass_field(default_factory=list)
     subscription_sites: list = dataclass_field(default_factory=list)
+    throw_sites: list = dataclass_field(default_factory=list)
     parse_warnings: list = dataclass_field(default_factory=list)
 
 
@@ -72,6 +73,7 @@ class SourceFacts:
     ecs_sites: list = dataclass_field(default_factory=list)
     di_sites: list = dataclass_field(default_factory=list)
     subscription_sites: list = dataclass_field(default_factory=list)
+    throw_sites: list = dataclass_field(default_factory=list)   # where the code throws: owner class and member
     parse_warnings: list = dataclass_field(default_factory=list)
 
 
@@ -91,6 +93,7 @@ def read_sources(root: Path, source_files) -> SourceFacts:
         sources.ecs_sites.extend(file_facts.ecs_sites)
         sources.di_sites.extend(file_facts.di_sites)
         sources.subscription_sites.extend(file_facts.subscription_sites)
+        sources.throw_sites.extend(file_facts.throw_sites)
         sources.parse_warnings.extend(file_facts.parse_warnings)
     return sources
 
@@ -126,6 +129,9 @@ def read_file(parser, root: Path, path: Path) -> FileFacts:
             file_facts.di_sites.extend(read_state_composition(node, src, rel))
         elif node.type == "assignment_expression":
             file_facts.subscription_sites.extend(read_subscription(node, src, rel))
+        elif node.type in ("throw_statement", "throw_expression"):
+            # where the code throws — the member a key-allocation site must throw in
+            file_facts.throw_sites.append(site_of(node, src, rel))
         elif node.type == "element_access_expression":
             accessed = field(node, "expression")
             if accessed is not None and accessed.type == "identifier":
@@ -142,6 +148,7 @@ def read_type_declaration(declaration, src: bytes, rel: str) -> dict:
     chain = nesting_chain(declaration, src)
 
     fields, events, constructors, inject_methods, construct_methods = [], [], [], [], []
+    methods = []
     priority, consts = None, {}
     for member in members:
         if member.type == "field_declaration":
@@ -152,11 +159,14 @@ def read_type_declaration(declaration, src: bytes, rel: str) -> dict:
         elif member.type == "constructor_declaration":
             constructors.append(read_parameters(member, src, rel))
         elif member.type == "method_declaration":
+            methods.append(text(field(member, "name"), src))
             attributes = read_attributes(member, src)
             if any(a["name"] == "Inject" for a in attributes):
                 inject_methods.append(read_parameters(member, src, rel))
             if text(field(member, "name"), src) == "Construct":
                 construct_methods.append(read_parameters(member, src, rel))
+        elif member.type in ("operator_declaration", "conversion_operator_declaration"):
+            methods.append(f"operator {text(field(member, 'operator'), src)}".strip())
         elif member.type == "property_declaration" and text(field(member, "name"), src) == "Priority":
             arrow = first_child_of_type(member, {"arrow_expression_clause"})
             if arrow is not None:
@@ -171,6 +181,7 @@ def read_type_declaration(declaration, src: bytes, rel: str) -> dict:
         "attributes": read_attributes(declaration, src),
         "bases": [read_type_use(c, src) for c in base_list.children if c.type not in (":", ",")] if base_list else [],
         "constructors": constructors,
+        "methods": methods,
         "inject_methods": inject_methods,
         "construct_methods": construct_methods,
         "fields": fields,
@@ -290,6 +301,7 @@ def read_holder_members(declaration, src: bytes, rel: str) -> HolderMembers:
                     tags.extend(called.type_args)
             if components:
                 members.archetypes[(holder, member)] = {"components": components, "tags": tags, "type_params": [],
+                                                        "params": member_parameters(method, src),
                                                         "singleton": True, "file": rel, "source_location": location}
             continue
         if returns != "Archetype":
@@ -300,7 +312,8 @@ def read_holder_members(declaration, src: bytes, rel: str) -> HolderMembers:
         args = arg_exprs(expression) if called and called.method == "GetArchetype" else []
         if len(args) < 2:
             members.unknown_forms.append(f"archetype member form outside the known ones: {holder}.{member} @ "
-                                         f"{location} — not GetArchetype(ComponentTypes.Get<…>(), Tags.Get<…>())")
+                                         f"{location} — not GetArchetype(ComponentTypes.Get<…>(), Tags.Get<…>()) "
+                                         f"[rule archetype/shape]")
             continue
         component_call, tag_call = analyze_invocation(args[0], src), analyze_invocation(args[1], src)
         type_parameters = field(method, "type_parameters")
@@ -309,8 +322,16 @@ def read_holder_members(declaration, src: bytes, rel: str) -> HolderMembers:
             "tags": list(tag_call.type_args) if tag_call else [],
             "type_params": [text(field(p, "name"), src) for p in type_parameters.children
                             if p.type == "type_parameter"] if type_parameters else [],
+            "params": member_parameters(method, src),
             "singleton": False, "file": rel, "source_location": location}
     return members
+
+
+def member_parameters(method, src: bytes) -> list[str]:
+    """The written type of each parameter of a holder member — how the store reaches it."""
+    parameter_list = field(method, "parameters")
+    return [read_type_use(field(p, "type"), src).name
+            for p in (parameter_list.children if parameter_list else []) if p.type == "parameter"]
 
 
 def read_ecs_call(invocation, src: bytes, rel: str) -> list[dict]:
@@ -377,7 +398,8 @@ def read_ecs_call(invocation, src: bytes, rel: str) -> list[dict]:
         if target:
             ecs_sites.append({"site": "create_event", "type": target, **site})
     elif method in ("CreateEntity", "CreateEntities"):
-        ecs_sites.append({"site": "create_entity", "via": method, **site})
+        ecs_sites.append({"site": "create_entity", "via": method, "receiver": receiver,
+                          "argc": len(arg_exprs(invocation)), **site})
     elif method == "Add" and receiver.rsplit(".", 1)[-1] in ("Tags", "EcsTags", "tags"):
         ecs_sites.append({"site": "tags_add", "types": list(type_args), **site})
     elif is_direct_event_of and first_type:
@@ -521,10 +543,13 @@ def nesting_chain(declaration, src: bytes) -> str:
 
 
 def site_of(node, src: bytes, rel: str) -> dict:
-    """Where a raw fact stands: its owner class (nesting chain and namespace), its file and line."""
+    """Where a raw fact stands: its owner class (nesting chain and namespace), the member it stands in, its file and
+    line. The member is how two facts are known to stand in one block — a payload write beside its CreateEvent."""
     owner = nearest_enclosing(node, TYPE_DECLARATIONS)
+    member = nearest_enclosing(node, {"method_declaration", "local_function_statement", "constructor_declaration"})
     return {"owner": nesting_chain(owner, src) if owner is not None else "",
             "owner_namespace": namespace_of(owner, src) if owner is not None else "",
+            "enclosing_member": text(field(member, "name"), src) if member is not None else "",
             "file": rel, "source_location": f"{rel}:{line_of(node)}"}
 
 

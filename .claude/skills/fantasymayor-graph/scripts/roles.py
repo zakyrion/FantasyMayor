@@ -9,6 +9,7 @@ from graph_draft import Edge
 
 CLASS_KINDS = {"other", "installer", "config", "view"}
 UPDATE_LOOPS = {"IUpdatedSystem", "ILateUpdatedSystem"}
+INT_MAX = 2147483647
 
 
 @dataclass
@@ -16,6 +17,7 @@ class RoleEvidence:
     update_loop: bool
     sweeps_events: bool
     anchored_on_event: bool
+    table_anchored: bool
     holds_event_archetype: bool
     role_marker: str | None
     pipeline_member: bool
@@ -40,12 +42,39 @@ def decide_roles(types, draft):
             draft.add_node(class_id, kind="system", role=decision.role, decided_by=decision.decided_by)
         # a class without a role still polls the event archetypes it holds (a game state, a subsystem)
         connect_event_edges(class_id, decision, draft)
-        if decision.role == "undecided":
+        if decision.role == "undecided" and evidence.role_marker == "reactive" and evidence.table_anchored:
+            draft.warn(f"marker value against the shape: {class_id} claims SystemRole(Reactive) on a table-anchored "
+                       f"class — Reactive asks for the loop contract without a table anchor plus an event anchor or "
+                       f"a held event archetype", "system/marker-value")
+        elif decision.role == "undecided":
             draft.warn(f"marker needed: {class_id} is an Update-loop class holding an event archetype outside "
-                       f"base(...) — its base does not decide per_frame or reactive; add [SystemRole]")
+                       f"base(...) — its base does not decide per_frame or reactive; add [SystemRole]",
+                       "system/marker-required")
         elif evidence.role_marker and decision.decided_by != "marker":
             draft.warn(f"redundant marker: {class_id} claims SystemRole, but its role {decision.role} is decided "
-                       f"by {decision.decided_by}")
+                       f"by {decision.decided_by}", "system/marker-forbidden")
+    audit_cleanup(draft)
+
+
+def audit_cleanup(draft):
+    """One global cleanup system, running last in the tick, with no descendants — the whole of the cleanup law."""
+    cleanups = sorted(i for i, n in draft.nodes.items() if n.get("role") == "cleanup")
+    events_exist = any(n.get("kind") == "archetype" and n.get("main_tag") == EVENT_TAG for n in draft.nodes.values())
+    if len(cleanups) > 1:
+        draft.warn(f"cleanup: {len(cleanups)} cleanup systems [{', '.join(cleanups)}] — events are cleaned by ONE "
+                   f"global system", "event/cleanup")
+    elif not cleanups and events_exist:
+        draft.warn("cleanup: events are raised but no system sweeps the event tag and deletes — ripe events leak",
+                   "event/cleanup")
+    for cleanup in cleanups:
+        priority = draft.nodes[cleanup].get("priority")
+        if priority != INT_MAX:
+            draft.warn(f"cleanup: {cleanup} has Priority {priority} — the cleanup system runs last in the tick, at "
+                       f"the largest possible integer", "event/cleanup")
+        heirs = sorted({e.src for e in draft.edges if e.rel == "inherits" and e.dst == cleanup})
+        if heirs:
+            draft.warn(f"cleanup: {cleanup} has descendants [{', '.join(heirs)}] — the cleanup system has none, and "
+                       f"no event gets a cleanup of its own", "event/cleanup")
 
 
 def collect_role_evidence(class_id: str, types, draft) -> RoleEvidence:
@@ -59,6 +88,7 @@ def collect_role_evidence(class_id: str, types, draft) -> RoleEvidence:
         sweeps_events=any(s["owner"] == class_id and EVENT_TAG in s["tags"] for s in tables["sets"])
                       and any(d["owner"] == class_id for d in tables["dispose_sites"]),
         anchored_on_event=node.get("base_anchor") == "event",
+        table_anchored=node.get("base_anchor") == "table",
         holds_event_archetype=bool(node.get("held_events")),
         role_marker=marked.role if marked else None,
         pipeline_member=any(a.node == "IPrioritizedUniTaskSystem" and a.args == ("MapGenerationStep",)
@@ -75,6 +105,10 @@ def decide_role(evidence: RoleEvidence) -> RoleDecision:
     if evidence.anchored_on_event:
         return RoleDecision("reactive", "base")
     if evidence.update_loop and evidence.holds_event_archetype:
+        # the marker decides only when its value matches the shape of the class: Reactive asks for the loop contract
+        # WITHOUT a table anchor, and MarkerShapeAnalyzer refuses the same combination in the Unity compilation
+        if evidence.role_marker == "reactive" and evidence.table_anchored:
+            return RoleDecision("undecided", "none")
         return RoleDecision(evidence.role_marker, "marker") if evidence.role_marker else RoleDecision("undecided", "none")
     if evidence.update_loop:
         return RoleDecision("per_frame", "base")

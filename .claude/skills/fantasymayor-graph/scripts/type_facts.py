@@ -8,6 +8,13 @@ from graph_draft import Edge
 
 CONFIG_BASES = {"ScriptableObject", "SerializedScriptableObject"}
 VIEW_FOLDER = "/Views/"
+EVENTS_FOLDER = "/Events/"
+COMPONENTS_FOLDER = "/Components/"
+# the only methods a column may carry: equality, because it can be the key of a table, and the indexed-key value
+COMPONENT_METHODS = {"Equals", "GetHashCode", "GetIndexedValue"}
+SCENE_OBJECT_BASE = "MonoBehaviour"
+COMPONENT_CONTRACTS = {"IComponent", "IIndexedComponent"}
+LEGACY_EVENT_SUFFIX = "EventComponent"
 INSTALLER_BASES = {"IInstaller", "LifetimeScope"}
 TYPE_FIELDS_OF_SITES = ("type", "types", "components", "tags", "state")
 
@@ -52,11 +59,16 @@ def declare_nodes(sources, draft):
         declaration["id"] = node_id
 
         bases = {b.name for b in declaration["bases"]}
+        if COMPONENTS_FOLDER in "/" + declaration["folder"] and declaration["kind"] not in ("struct", "enum"):
+            draft.warn(f"{declaration['kind']} {declaration['name']} is declared in {declaration['folder']} "
+                       f"@ {declaration['source_location']} — the components folder holds columns and their "
+                       f"values, never logic", "component/is")
         if declaration["kind"] == "struct":
             kind = ("tag" if "ITag" in bases
                     else "event" if declaration["name"].endswith(("Event", "EventComponent"))
-                    else "component" if "IComponent" in bases or declaration["name"].endswith("Component")
+                    else "component" if bases & COMPONENT_CONTRACTS or declaration["name"].endswith("Component")
                     else "data")
+            check_struct_shape(declaration, bases, kind, draft)
         elif declaration["kind"] == "interface":
             kind = "interface"
         elif declaration["kind"] == "class" and (declaration["name"].endswith("Installer") or bases & INSTALLER_BASES):
@@ -66,6 +78,12 @@ def declare_nodes(sources, draft):
         draft.add_node(node_id, name=chain, kind=kind, namespace=namespace,
                        source_location=declaration["source_location"], declared=True,
                        abstract=declaration["abstract"] or draft.nodes.get(node_id, {}).get("abstract", False))
+
+    legacy_events = sorted(d["id"] for d in sources.declarations
+                           if d["kind"] == "struct" and d["name"].endswith(LEGACY_EVENT_SUFFIX))
+    if len(legacy_events) > 1:   # the longer legacy suffix is closed: exactly one live type carries it, and no new one
+        draft.warn(f"legacy event suffix …{LEGACY_EVENT_SUFFIX} is carried by {len(legacy_events)} types "
+                   f"[{', '.join(legacy_events)}] — the suffix is closed at one live type", "event/suffix")
 
     # Every type name in a raw fact becomes the id of its node, in place; the owner class too.
     for site in [*sources.ecs_sites, *sources.di_sites, *sources.subscription_sites]:
@@ -83,6 +101,40 @@ def declare_nodes(sources, draft):
         for type_use in [*site.get("type_args", []), *site.get("as_targets", []),
                          *site.get("construct_params", {}).values()]:
             draft.resolve_type_use(type_use, namespaces, site["source_location"])
+
+
+def check_struct_shape(declaration, bases: set, kind: str, draft):
+    """A declared struct against the laws of its shape: a component is declared with the component contract and
+    stays a plain carrier of runtime values, a tag stays empty, an event adds the event suffix and the events
+    folder of its feature, and the suffix carries the role — data a component, a field-less marker a tag, a
+    one-frame impulse an event."""
+    name, location = declaration["name"], declaration["source_location"]
+    valued = [f for f in declaration["fields"] if not f["is_const"]]
+    if kind != "tag" and name.endswith("Tag"):
+        draft.warn(f"{name} @ {location} is declared without the tag contract — a tag is an empty struct : ITag, "
+                   f"and the engine sees no other kind of marker", "tag/is")
+    if kind == "tag" and valued:
+        draft.warn(f"tag {name} @ {location} carries {len(valued)} field(s) [{', '.join(f['name'] for f in valued)}] "
+                   f"— a tag is an empty struct whose presence IS the information, and a value makes it a component",
+                   "tag/is")
+    behaviour = sorted(m for m in declaration["methods"] if m not in COMPONENT_METHODS)
+    if kind == "component" and behaviour:
+        draft.warn(f"component {name} @ {location} declares [{', '.join(behaviour)}] — a component is a plain struct "
+                   f"of runtime values, with no method beyond equality and the indexed-key value", "component/is")
+    if kind in ("component", "event") and not bases & COMPONENT_CONTRACTS:
+        draft.warn(f"{name} is declared without the component contract @ {location} — a component the engine "
+                   f"cannot see does nothing at birth",
+                   "component/declare" if kind == "component" else "event/declare")
+    if kind == "event" and EVENTS_FOLDER not in "/" + declaration["folder"]:
+        draft.warn(f"event {name} is declared in {declaration['folder']} @ {location} — an event lives in the "
+                   f"Events/ folder of its feature", "event/declare")
+    if kind == "tag" and not name.endswith("Tag"):
+        draft.warn(f"tag {name} @ {location} carries no Tag suffix — the suffix carries the role", "name/suffix")
+    if kind == "component" and not name.endswith("Component"):
+        draft.warn(f"component {name} @ {location} carries no Component suffix — the suffix carries the role",
+                   "name/suffix")
+    if kind == "component" and not valued:
+        draft.warn(f"component {name} @ {location} carries no value — a field-less marker is a tag", "name/suffix")
 
 
 def read_markers(sources, draft) -> dict:
@@ -135,12 +187,20 @@ def build_ancestry(sources, draft) -> dict:
             stack.extend(parents.get(ancestor.node, []))
         ancestry[node_id] = ancestors
 
+    # The view layer is EVERYTHING declared in a Views/ folder — the folder alone decides it, for a struct and an
+    # enum as much as for a class. MonoBehaviour ancestry is a separate fact: scene_object, the extra the partner of
+    # a view system carries. A class of the layer takes the view kind unless its base already makes it a config.
     for declaration in sources.declarations:
+        ancestor_names = {a.node for a in ancestry.get(declaration["id"], [])}
+        in_view_folder = VIEW_FOLDER in "/" + declaration["folder"]
+        if in_view_folder:
+            draft.add_node(declaration["id"], view_layer=True)
         if declaration["kind"] != "class":
             continue
-        ancestor_names = {a.node for a in ancestry.get(declaration["id"], [])}
+        if SCENE_OBJECT_BASE in ancestor_names:
+            draft.add_node(declaration["id"], scene_object=True)
         if not draft.nodes[declaration["id"]].get("abstract") and ancestor_names & CONFIG_BASES:
             draft.add_node(declaration["id"], kind="config")
-        elif VIEW_FOLDER in "/" + declaration["folder"] and "MonoBehaviour" in ancestor_names:
+        elif in_view_folder:
             draft.add_node(declaration["id"], kind="view")
     return ancestry
