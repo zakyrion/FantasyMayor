@@ -1,4 +1,3 @@
-﻿using System;
 using System.Collections.Generic;
 using Domains.Map.Archetypes;
 using Domains.Map.Hex.Components;
@@ -28,32 +27,38 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
     ///     (the resource type until a localized resource-name source exists).
     /// </summary>
     [UsedImplicitly]
-    public sealed class HexInfoPanelResourcesSystem : UpdatedSystem
+    public sealed class HexInfoPanelResourcesSystem : IUpdatedSystem
     {
         private readonly EntityStorages _storages;
         private readonly Archetype _viewSet;
         private readonly Archetype _selectedHexSet;
         private readonly Archetype _resourceSet;
+        private readonly EventReader<SelectedHexChangedEvent> _selectedHexChanges;
 
         // Managed UI payload → System.Collections.Generic. Reused buffer to avoid per-refresh allocation.
         private readonly List<HexInfoPanelView.ResourceChip> _chips = new();
 
-        public override int Priority => SystemPriorities.RuntimeTick.HexInfoPanelResources;
+        public AppState AppState { get; }
+        public int Priority => SystemPriorities.RuntimeTick.HexInfoPanelResources;
 
-        public HexInfoPanelResourcesSystem(AppState appState, EntityStorages storages)
-            : base(appState, storages.World, EventArchetypes.Of<SelectedHexChangedEvent>(storages.World))
+        public HexInfoPanelResourcesSystem(AppState appState, EntityStorages storages, EventReader<SelectedHexChangedEvent> selectedHexChanges)
         {
+            AppState = appState;
             _storages = storages;
+            _selectedHexChanges = selectedHexChanges;
             _viewSet = PresentationUIArchetypes.HexInfoPanel(storages.World);
             _selectedHexSet = PresentationArchetypes.HexSelection(storages.World);
             _resourceSet = MapArchetypes.HexResource(storages.World);
         }
 
-        protected override void Update(GameState state, in Entity entity)
+        public void Update(GameState state)
         {
-            if (!EcsEventExtensions.IsRipe(entity))
-                return;
+            while (_selectedHexChanges.TryRead(out _))
+                FillResourcesBlock();
+        }
 
+        private void FillResourcesBlock()
+        {
             if (!_viewSet.TryGetFirst(out var viewEntity))
                 return;
 

@@ -15,10 +15,12 @@ namespace EcsExtensions
         {
             World = new EntityStore();
             Singletons = new SingletonComponents(singletonArchetype);
+            Events = new EventLog();
         }
 
         public EntityStore World { get; }
         public SingletonComponents Singletons { get; }
+        public EventLog Events { get; }
 
         public void Add<T>(T config) where T : ScriptableObject
         {

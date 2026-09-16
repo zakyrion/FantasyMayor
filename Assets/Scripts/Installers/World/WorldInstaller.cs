@@ -18,6 +18,7 @@ using Modules.MainCanvas.Implementation;
 using Modules.Cameras.Components;
 using Domains.Map.Pathfinding.Installer;
 using Domains.Map.Generation.Installer;
+using Modules.Boot.Implementation.Systems;
 using Modules.Turn.Installer;
 using Modules.UserInput.Components;
 using Modules.UserInput.Systems;
@@ -52,6 +53,11 @@ namespace Installers.World
             var world = entityStorages.World;
             builder.RegisterInstance(entityStorages);
 
+            // One open registration for every event type: each injection builds a new EventReader<TEvent>
+            // with its own cursor in EntityStorages.Events. Closed types for IL2CPP live in
+            // EventReaderAotDeclarations — this registration stays the only source readers are built from.
+            builder.Register(typeof(EventReader<>), Lifetime.Transient);
+
             builder.Register<IMainCanvasProvider, MainCanvasProvider>(Lifetime.Scoped).WithParameter(_uiRoot);
 
             // CameraComponent is single-instance world state, isolated from game entities.
@@ -65,13 +71,11 @@ namespace Installers.World
             // Every first-order system is registered through RegisterAppStateSystem, which exposes it as
             // IAppStateSystem with its AppState flags; each game state finds its own kept systems by filtering
             // that flag set (AppStateSystems.Filter) — nothing here wires a system into a state by hand.
-            builder.RegisterAppStateSystem<EventCleanupSystem>(Lifetime.Singleton,
-                AppState.Initialization | AppState.ConfigLoading | AppState.InstanceObjects | AppState.MainMenu |
-                AppState.MapCreation | AppState.MapLoading | AppState.Gameplay | AppState.GameOver);
             builder.RegisterAppStateSystem<HexSelectionSystem>(Lifetime.Singleton, AppState.Gameplay);
             builder.RegisterAppStateSystem<ConfigLoaderSystem<CameraMovementConfig>>(Lifetime.Singleton, AppState.ConfigLoading)
                 .WithParameter("address", ConfigAddresses.CAMERA_MOVEMENT_CONFIG);
             builder.RegisterAppStateSystem<CameraMovementSystem>(Lifetime.Singleton, AppState.Gameplay);
+            builder.RegisterAppStateSystem<InitializationSystem>(Lifetime.Singleton, AppState.Initialization);
 
             InstallModules(builder);
 

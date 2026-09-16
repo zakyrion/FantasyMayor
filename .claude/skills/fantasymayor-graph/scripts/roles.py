@@ -1,24 +1,22 @@
-"""The role of every non-abstract class: from its base where the base decides, from its [SystemRole] marker where it
-does not — and the event edges that follow from the role: reacts_to or polls."""
+"""The role of every non-abstract class: from its base where the base decides, from its EventReader fields and
+[SystemRole] marker where it does not — and the event edges that follow from the role: reacts_to, polls or
+consumes."""
 from __future__ import annotations
 
+from collections import defaultdict
 from dataclasses import dataclass
 
-from ecs_facts import EVENT_TAG
 from graph_draft import Edge
 
 CLASS_KINDS = {"other", "installer", "config", "view"}
 UPDATE_LOOPS = {"IUpdatedSystem", "ILateUpdatedSystem"}
-INT_MAX = 2147483647
+READER_TYPE = "EventReader"
 
 
 @dataclass
 class RoleEvidence:
     update_loop: bool
-    sweeps_events: bool
-    anchored_on_event: bool
-    table_anchored: bool
-    holds_event_archetype: bool
+    event_readers: list       # event type ids this class holds through a readonly EventReader<TEvent> field
     role_marker: str | None
     pipeline_member: bool
     turn_phase_member: bool
@@ -29,67 +27,51 @@ class RoleEvidence:
 @dataclass
 class RoleDecision:
     role: str
-    decided_by: str     # base | marker | lexical | none
+    decided_by: str     # base | marker | reader | lexical | none
 
 
-def decide_roles(types, draft):
+def decide_roles(sources, types, draft):
+    event_readers_by_class = collect_event_readers(sources, draft)
     for class_id, node in list(draft.nodes.items()):
         if not node.get("declared") or node.get("abstract") or node.get("kind") not in CLASS_KINDS:
             continue
-        evidence = collect_role_evidence(class_id, types, draft)
+        evidence = collect_role_evidence(class_id, event_readers_by_class, types, draft)
         decision = decide_role(evidence)
         if decision.role != "none":
             draft.add_node(class_id, kind="system", role=decision.role, decided_by=decision.decided_by)
-        # a class without a role still polls the event archetypes it holds (a game state, a subsystem)
-        connect_event_edges(class_id, decision, draft)
-        if decision.role == "undecided" and evidence.role_marker == "reactive" and evidence.table_anchored:
-            draft.warn(f"marker value against the shape: {class_id} claims SystemRole(Reactive) on a table-anchored "
-                       f"class — Reactive asks for the loop contract without a table anchor plus an event anchor or "
-                       f"a held event archetype", "system/marker-value")
-        elif decision.role == "undecided":
-            draft.warn(f"marker needed: {class_id} is an Update-loop class holding an event archetype outside "
-                       f"base(...) — its base does not decide per_frame or reactive; add [SystemRole]",
-                       "system/marker-required")
-        elif evidence.role_marker and decision.decided_by != "marker":
-            draft.warn(f"redundant marker: {class_id} claims SystemRole, but its role {decision.role} is decided "
-                       f"by {decision.decided_by}", "system/marker-forbidden")
-    audit_cleanup(draft)
+        if evidence.event_readers:
+            draft.add_node(class_id, event_readers=evidence.event_readers)
+        connect_event_edges(class_id, decision, evidence.event_readers, draft)
+        if evidence.role_marker and not evidence.event_readers:
+            draft.warn(f"marker on {class_id} without an EventReader field @ {node.get('source_location', '')} — "
+                       f"a role marker is forbidden on a class that holds no reader", "system/marker-forbidden")
 
 
-def audit_cleanup(draft):
-    """One global cleanup system, running last in the tick, with no descendants — the whole of the cleanup law."""
-    cleanups = sorted(i for i, n in draft.nodes.items() if n.get("role") == "cleanup")
-    events_exist = any(n.get("kind") == "archetype" and n.get("main_tag") == EVENT_TAG for n in draft.nodes.values())
-    if len(cleanups) > 1:
-        draft.warn(f"cleanup: {len(cleanups)} cleanup systems [{', '.join(cleanups)}] — events are cleaned by ONE "
-                   f"global system", "event/cleanup")
-    elif not cleanups and events_exist:
-        draft.warn("cleanup: events are raised but no system sweeps the event tag and deletes — ripe events leak",
-                   "event/cleanup")
-    for cleanup in cleanups:
-        priority = draft.nodes[cleanup].get("priority")
-        if priority != INT_MAX:
-            draft.warn(f"cleanup: {cleanup} has Priority {priority} — the cleanup system runs last in the tick, at "
-                       f"the largest possible integer", "event/cleanup")
-        heirs = sorted({e.src for e in draft.edges if e.rel == "inherits" and e.dst == cleanup})
-        if heirs:
-            draft.warn(f"cleanup: {cleanup} has descendants [{', '.join(heirs)}] — the cleanup system has none, and "
-                       f"no event gets a cleanup of its own", "event/cleanup")
+def collect_event_readers(sources, draft) -> dict:
+    """Every class's own readonly EventReader<TEvent> fields, resolved to the event type they read — the sole
+    signal a reader's role is decided from (q10): fmgraph never reads RegisterAppStateSystem<T> as a registration,
+    so the reader never comes from an injects edge."""
+    readers = defaultdict(list)
+    for declaration in sources.declarations:
+        namespaces = sources.usings.get(declaration["file"], {""})
+        for declared_field in declaration["fields"]:
+            field_type = declared_field["type"]
+            if field_type.name != READER_TYPE or not field_type.args:
+                continue
+            event_id = draft.resolve(field_type.args[0], namespaces, declared_field["source_location"])
+            if event_id:
+                readers[declaration["id"]].append(event_id)
+    return {class_id: sorted(set(event_ids)) for class_id, event_ids in readers.items()}
 
 
-def collect_role_evidence(class_id: str, types, draft) -> RoleEvidence:
+def collect_role_evidence(class_id: str, event_readers_by_class: dict, types, draft) -> RoleEvidence:
     ancestors = types.ancestry.get(class_id, [])
     ancestor_names = {a.node for a in ancestors}
-    node, tables = draft.nodes[class_id], draft.ecs_tables
     hosted = {e.dst for e in draft.edges if e.rel == "hosts"}
     marked = types.markers.get(class_id)
     return RoleEvidence(
         update_loop=bool(ancestor_names & UPDATE_LOOPS),
-        sweeps_events=any(s["owner"] == class_id and EVENT_TAG in s["tags"] for s in tables["sets"])
-                      and any(d["owner"] == class_id for d in tables["dispose_sites"]),
-        anchored_on_event=node.get("base_anchor") == "event",
-        table_anchored=node.get("base_anchor") == "table",
-        holds_event_archetype=bool(node.get("held_events")),
+        event_readers=event_readers_by_class.get(class_id, []),
         role_marker=marked.role if marked else None,
         pipeline_member=any(a.node == "IPrioritizedUniTaskSystem" and a.args == ("MapGenerationStep",)
                             for a in ancestors),
@@ -99,17 +81,13 @@ def collect_role_evidence(class_id: str, types, draft) -> RoleEvidence:
 
 
 def decide_role(evidence: RoleEvidence) -> RoleDecision:
-    """The first true branch wins — the order is the role decision of the cascade, word for word."""
-    if evidence.update_loop and evidence.sweeps_events:
-        return RoleDecision("cleanup", "lexical")
-    if evidence.anchored_on_event:
-        return RoleDecision("reactive", "base")
-    if evidence.update_loop and evidence.holds_event_archetype:
-        # the marker decides only when its value matches the shape of the class: Reactive asks for the loop contract
-        # WITHOUT a table anchor, and MarkerShapeAnalyzer refuses the same combination in the Unity compilation
-        if evidence.role_marker == "reactive" and evidence.table_anchored:
-            return RoleDecision("undecided", "none")
-        return RoleDecision(evidence.role_marker, "marker") if evidence.role_marker else RoleDecision("undecided", "none")
+    """The first true branch wins — the order is the role decision of the cascade, word for word. An Update-loop
+    class holding a reader is per_frame under the [SystemRole(PerFrame)] marker, reactive otherwise — the marker
+    is never required, its absence simply means reactive (q4: SystemRoleKind carries only PerFrame now)."""
+    if evidence.update_loop and evidence.event_readers:
+        if evidence.role_marker == "per_frame":
+            return RoleDecision("per_frame", "marker")
+        return RoleDecision("reactive", "reader")
     if evidence.update_loop:
         return RoleDecision("per_frame", "base")
     if evidence.pipeline_member:
@@ -123,14 +101,18 @@ def decide_role(evidence: RoleEvidence) -> RoleDecision:
     return RoleDecision("none", "none")
 
 
-def connect_event_edges(class_id: str, decision: RoleDecision, draft):
-    """A base-anchored event is what a reactive class reacts to; a held event archetype is reacted to only under the
-    reactive marker, and polled otherwise."""
-    node = draft.nodes[class_id]
-    location = node.get("source_location", "")
-    if decision.role == "reactive" and decision.decided_by == "base":
-        for event in node.get("anchor_events", []):
-            draft.add_edge(Edge(class_id, event, "reacts_to", "base(...)", location))
-    held_rel = "reacts_to" if (decision.role, decision.decided_by) == ("reactive", "marker") else "polls"
-    for event in node.get("held_events", []):
-        draft.add_edge(Edge(class_id, event, held_rel, "held archetype", location))
+def connect_event_edges(class_id: str, decision: RoleDecision, event_readers: list, draft):
+    """reacts_to for a reactive system, polls for a per-frame system reading under the marker, consumes for a
+    reader outside any system role or on a sub_system — a reader is allowed there too (:readers-outside-systems),
+    and the edge alone marks it a consumer, without handing it a system role."""
+    if decision.role == "reactive":
+        rel = "reacts_to"
+    elif decision.role == "per_frame" and decision.decided_by == "marker":
+        rel = "polls"
+    elif decision.role in ("none", "sub_system"):
+        rel = "consumes"
+    else:
+        return
+    location = draft.nodes[class_id].get("source_location", "")
+    for event_id in event_readers:
+        draft.add_edge(Edge(class_id, event_id, rel, "EventReader field", location))

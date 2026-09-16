@@ -13,7 +13,7 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 51 docs — 1 always · 20 trigger · 0 reference · 30 archive · 3 canvas.
+Totals: 53 docs — 1 always · 19 trigger · 0 reference · 33 archive · 4 canvas.
 
 ## Read at start (always)
 
@@ -32,17 +32,16 @@ Do **not** preload. Read only when the trigger condition holds.
 | [GAME_MECHANICS](GAME_MECHANICS.md) | before any game-design work: the core loop, economy, actors, elites, population needs, land and slots, buildings, the exchange, politics, consequences | The mayor creates opportunities for autonomous elites; the city comes to depend on them and never commands them. |
 | [GLOSSARY — domain vocabulary → code anchors](GLOSSARY.md) | when a domain term (any language) needs its canonical code name before searching roslyn / fantasymayor-graph | Map from human vocabulary (game-design terms, Ukrainian/English synonyms, abbreviations) to the |
 | [IAddressable Contract](Patterns/ADDRESSABLE_PATTERNS.md) | before writing/editing/reviewing Addressables, IAddressable, Box<T> or Result<T> code | Single source of truth for addressable loading. Read this; do not grep. |
-| [Pattern — One-Frame Event Cleanup](Patterns/PATTERN_CLEANUP_SYSTEM.md) | before writing any one-frame-event cleanup (and to learn why you usually should not) | **You almost never write a cleanup system.** There is ONE global `EventCleanupSystem` (`EcsExtensions`): a |
 | [Pattern — ECS Data Component](Patterns/PATTERN_COMPONENT.md) | before creating an ECS data component (a struct holding runtime values) | A component is a plain `struct` of runtime values. No behavior, no methods (except equality when it is a |
 | [Pattern — Config (ScriptableObject)](Patterns/PATTERN_CONFIG.md) | before creating or reading a ScriptableObject config | A config is a `ScriptableObject` kept in `EntityStorages` by type and read via `storages.Get<T>()`. |
 | [Pattern — Config Loader System](Patterns/PATTERN_CONFIG_LOADER.md) | before adding a config to the game or building objects from a config at startup | One installer registration of `ConfigLoaderSystem<T>` loads a config; derived objects are `InstanceObjects` systems. |
-| [Pattern — One-Frame Event (Pulse)](Patterns/PATTERN_EVENT.md) | before creating a one-frame ECS event (pulse) | An event is a **`struct`** raised on its own entity; its fields are the values the consumer needs. |
+| [Pattern — Event (log)](Patterns/PATTERN_EVENT.md) | before creating an ECS event | An event is an entity in the `Events` store carrying exactly one component whose type implements |
 | [Pattern — Orchestrator + SubSystems](Patterns/PATTERN_ORCHESTRATOR_SUBSYSTEM.md) | before creating an orchestrator + subsystem family (DoD polymorphism / independently ordered parts) | A family of implementations behind one abstract base, DI-collected into an orchestrator that sequences them by |
 | [Pattern — Per-Frame System](Patterns/PATTERN_PERFRAME_SYSTEM.md) | before creating a per-frame system (genuinely continuous logic) | Logic that is genuinely continuous: camera movement, per-frame projection, input polling, selection watching. |
 | [Pattern — Pipeline Stage (one-shot, world-init)](Patterns/PATTERN_PIPELINE_STAGE.md) | before creating a world-init pipeline stage (build/spawn content once during map creation) | One-shot async construction during map creation: spawn entities/views, build runtime singleton components, load |
 | [Pattern — Polymorphic Config Catalogue → Entity Table](Patterns/PATTERN_POLYMORPHIC_CATALOGUE.md) | before creating a polymorphic ScriptableObject config catalogue that materializes into an entity table (many kinds keyed by a shared FK), or a per-kind polymorphic system family over such a table | A **heterogeneous** set of authored rules/effects — many *kinds*, each with its own parameters — that you (1) author as |
 | [Pattern — Reactive Orchestrator System (pulse → fan-out)](Patterns/PATTERN_REACTIVE_ORCHESTRATOR_SYSTEM.md) | before creating a reactive system whose event handling has several independently-ordered parts (fan-out) | A [reactive system](PATTERN_REACTIVE_SYSTEM.md) whose handling is **too big for one file**: on the pulse it fans |
-| [Pattern — Reactive System (event-driven)](Patterns/PATTERN_REACTIVE_SYSTEM.md) | before creating a reactive (event-driven) system | **The default for runtime logic.** Responds to a one-frame [event](PATTERN_EVENT.md) through its archetype. |
+| [Pattern — Reactive System (event-driven)](Patterns/PATTERN_REACTIVE_SYSTEM.md) | before creating a reactive (event-driven) system | **The default for runtime logic.** Responds to a [log event](PATTERN_EVENT.md) it reads through its own |
 | [Pattern — ECS Tag](Patterns/PATTERN_TAG.md) | before creating an ECS tag (field-less marker / table discriminator) | A tag is an empty struct that marks an entity. It carries no data; its presence IS the information. |
 | [Pattern — Transaction Entity (cross-domain behavior)](Patterns/PATTERN_TRANSACTION_ENTITY.md) | before building any multi-step behavior that spans more than one subdomain (a cross-domain transaction) | A multi-step behavior that spans subdomains gets exactly ONE home: a **transaction entity** in the |
 | [Pattern — View ↔ System](Patterns/PATTERN_VIEW_SYSTEM.md) | before creating a MonoBehaviour view + its driving system, or wiring how a view and its system talk | A MonoBehaviour View is dumb chrome driven by its System; they talk directly: C# event in, push-to-view out, never ECS. |
@@ -57,7 +56,7 @@ Reference docs read on demand.
 
 ## Task history (archive)
 
-30 completed FLOW document(s) are retained under `Flows/Archive/`. They preserve task history and are searched on demand; they are not startup context or current-code claims.
+33 completed FLOW document(s) are retained under `Flows/Archive/`. They preserve task history and are searched on demand; they are not startup context or current-code claims.
 
 ## Canvas map (on demand)
 
@@ -65,6 +64,7 @@ Visual maps (Obsidian Canvas). Read/edit via Obsidian MCP; not preloaded.
 
 | Canvas | What it maps |
 |---|---|
+| [BOOT_DEPENDENCIES](BOOT_DEPENDENCIES.canvas) | L4 · Підсистеми оркестраторів (IPrioritizedUniTaskSystem, відбір за OrchestratorType) · L3 · MapCreation · L3 · Confi… |
 | [DISTRICT_BUILDING_UI](DISTRICT_BUILDING_UI.canvas) | DistrictBuildUISystem |
 | [ECONOMY_ACTORS](ECONOMY_ACTORS.canvas) | Ownables — each carries one OwnerFK + a Tag · My domain view · Owners — actors with an Id used as OwnerFK · Resource… |
 | [WORK](WORK.canvas) | Configs |

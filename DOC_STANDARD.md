@@ -82,7 +82,7 @@ editor), instruction semantics (nothing evaluates).
   rule; align the value column. Keys are kebab-case concepts or constraint keys
   (`:requires :never :must-not :contains :only-when :exists-only-under :in`).
   A nested map = that entry's own fields (depth ≤ 2).
-- **values** — bare symbol / exact API name = literal anchor (`EventCleanupSystem`); `"string"` =
+- **values** — bare symbol / exact API name = literal anchor (`EventLog`); `"string"` =
   prose leaf (all fuzziness lives in quotes); `#{a b}` = equal alternatives; `:keyword` = verdict.
 - **`;; why`** — one clause per entry. A "why" needing more than a clause is a design decision →
   prose section, not a rule entry.

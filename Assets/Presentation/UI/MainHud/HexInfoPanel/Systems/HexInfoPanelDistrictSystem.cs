@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Domains.Actions.BuildDistrictAction.Components;
 using Domains.Actions.BuildDistrictAction.Events;
 using Domains.Economy.Archetypes;
@@ -24,20 +24,20 @@ using UnityEngine;
 namespace Presentation.UI.MainHud.HexInfoPanel.Systems
 {
     /// <summary>
-    ///     Drives the District block's state for the selected hex. Reactive on EITHER
+    ///     Drives the District block's state for the selected hex. Reacts to EITHER
     ///     <see cref="SelectedHexChangedEvent" /> (a new hex is selected), <see cref="TurnCompletedEvent" />
     ///     (turns-left on an in-progress build advances while the same hex stays selected), OR
     ///     <see cref="DistrictTableChangedEvent" /> (a District row entered a new stage — confirm, completion, and
-    ///     cancel all fold into this one pulse) — <c>Priority</c> is deliberately set above ALL THREE producers
-    ///     (see SystemPriorities.RuntimeTick.HexInfoPanelDistrict) so any pulse is visible the same frame it is
-    ///     raised. With no selection it hides every district block; otherwise it resolves the selected hex's
-    ///     District row (FLOW_DISTRICT_BUILD unification, 2026-07-17): no row → build-prompt block; row staged
-    ///     <c>DistrictBuildState.Planned</c> → in-progress block (type + icon + turns-left, read off the matching
-    ///     verb row via <c>DistrictIdFKComponent</c> + cancel); row staged <c>Built</c> → district-details block.
+    ///     cancel all fold into this one event) — each in its own reader, so every event of every one of the
+    ///     three types reconciles the block once. With no selection it hides every district block; otherwise it
+    ///     resolves the selected hex's District row (FLOW_DISTRICT_BUILD unification, 2026-07-17): no row →
+    ///     build-prompt block; row staged <c>DistrictBuildState.Planned</c> → in-progress block (type + icon +
+    ///     turns-left, read off the matching verb row via <c>DistrictIdFKComponent</c> + cancel); row staged
+    ///     <c>Built</c> → district-details block.
     /// </summary>
     [UsedImplicitly]
     [ViewSubscriber(typeof(HexInfoPanelView))]
-    public sealed class HexInfoPanelDistrictSystem : UpdatedSystem, IDisposable
+    public sealed class HexInfoPanelDistrictSystem : IUpdatedSystem, IDisposable
     {
         private readonly EntityStorages _storages;
         private readonly Archetype _viewSet;
@@ -50,27 +50,47 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
         // In-progress verb rows indexed by their FK into the District PK space.
         private readonly ComponentIndex<DistrictIdFKComponent, int> _inProgressByDistrictId;
 
+        private readonly EventReader<SelectedHexChangedEvent> _selectedHexChanges;
+        private readonly EventReader<TurnCompletedEvent> _turnCompletions;
+        private readonly EventReader<DistrictTableChangedEvent> _districtTableChanges;
+
         private bool _cancelHooked;
         private HexInfoPanelView _cancelHookedView;
 
-        public override int Priority => SystemPriorities.RuntimeTick.HexInfoPanelDistrict;
+        public AppState AppState { get; }
+        public int Priority => SystemPriorities.RuntimeTick.HexInfoPanelDistrict;
 
-        public HexInfoPanelDistrictSystem(AppState appState, EntityStorages storages)
-            : base(appState, storages.World.Query()
-                .AnyComponents(ComponentTypes.Get<SelectedHexChangedEvent, TurnCompletedEvent, DistrictTableChangedEvent>()))
+        public HexInfoPanelDistrictSystem(
+            AppState appState, EntityStorages storages,
+            EventReader<SelectedHexChangedEvent> selectedHexChanges,
+            EventReader<TurnCompletedEvent> turnCompletions,
+            EventReader<DistrictTableChangedEvent> districtTableChanges)
         {
+            AppState = appState;
             _storages = storages;
+            _selectedHexChanges = selectedHexChanges;
+            _turnCompletions = turnCompletions;
+            _districtTableChanges = districtTableChanges;
             _viewSet = PresentationUIArchetypes.HexInfoPanel(storages.World);
             _selectedHexSet = PresentationArchetypes.HexSelection(storages.World);
             _districts = EconomyArchetypes.District(storages.World);
             _inProgressByDistrictId = storages.World.ComponentIndex<DistrictIdFKComponent, int>();
         }
 
-        protected override void Update(GameState state, in Entity entity)
+        public void Update(GameState state)
         {
-            if (!EcsEventExtensions.IsRipe(entity))
-                return;
+            while (_selectedHexChanges.TryRead(out _))
+                ReconcileDistrictBlock();
 
+            while (_turnCompletions.TryRead(out _))
+                ReconcileDistrictBlock();
+
+            while (_districtTableChanges.TryRead(out _))
+                ReconcileDistrictBlock();
+        }
+
+        private void ReconcileDistrictBlock()
+        {
             if (!_viewSet.TryGetFirst(out var viewEntity))
                 return;
 
@@ -181,7 +201,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
             if (!TryGetDistrict(coords, out var district) || district.GetComponent<DistrictBuildStateComponent>().Value != DistrictBuildState.Planned)
                 return;
 
-            _storages.World.CreateEvent(new BuildDistrictCancelEvent { Coords = coords });
+            _storages.Events.Raise(new BuildDistrictCancelEvent { Coords = coords });
         }
 
         public void Dispose()

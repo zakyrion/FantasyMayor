@@ -8,10 +8,7 @@ from dataclasses import dataclass
 
 from graph_draft import Edge
 
-EVENT_FRAME = "EventFrameComponent"
-EVENT_TAG = "EventTag"
 TEMPLATE_QUEUE_LIMIT = 10000
-SYSTEM_BASES = {"UpdatedSystem", "LateUpdatedSystem"}
 STORE_TYPE = "EntityStore"
 ENTITY_TYPE = "Entity"
 KEY_ROLE_WARNING = "key-role:"
@@ -81,16 +78,10 @@ def expand_archetypes(sources, types, draft):
                                                     binding["source_location"]), types.markers, draft)
         bind_owner(archetype_id, binding, draft)
 
-    # AnyComponents over event types only anchors or holds those events, like EventArchetypes.Of does
+    # AnyComponents(ComponentTypes.Get<…>()) names no single archetype — the owner reads every type it filters by.
     for site in (s for s in sources.ecs_sites if s["site"] == "any_components" and s["owner"]):
-        only_events = bool(site["types"]) and all(t and draft.nodes[t].get("kind") == "event" for t in site["types"])
-        owner = draft.nodes[site["owner"]]
-        anchor = anchor_of(site, draft)
-        if anchor == "base":
-            owner["base_anchor"] = "event" if only_events or owner.get("base_anchor") == "event" else "table"
-        if only_events and anchor != "other-base":
-            facet = "anchor_events" if anchor == "base" else "held_events"
-            owner[facet] = sorted(set(owner.get(facet, [])) | set(site["types"]))
+        for component_type in (t for t in site["types"] if t):
+            draft.add_edge(Edge(site["owner"], component_type, "reads", "AnyComponents", site["source_location"]))
 
 
 def register_archetype(declaration: ArchetypeDeclaration, markers: dict, draft):
@@ -145,33 +136,10 @@ def walk_templates(sources) -> list[dict]:
 
 
 def bind_owner(archetype_id: str, binding: dict, draft):
-    """How the binding's owner class is bound to an archetype: anchored in base(...) or held in its body; an event
-    archetype names its events on the owner's facets, any other archetype is a reads edge."""
-    owner_id = binding["owner"]
-    archetype, owner = draft.nodes[archetype_id], draft.nodes[owner_id]
-    is_event = EVENT_FRAME in archetype.get("components", []) and archetype.get("main_tag") == EVENT_TAG
-    anchor = anchor_of(binding, draft)
-    if anchor == "base":
-        owner["base_anchor"] = "event" if is_event or owner.get("base_anchor") == "event" else "table"
-    if not is_event:
-        draft.add_edge(Edge(owner_id, archetype_id, "reads", f"{binding['holder']}.{binding['member']}",
-                            binding["source_location"]))
-        return
-    if anchor == "other-base":
-        return   # an event archetype handed to a base other than a system's is neither an anchor nor held
-    facet = "anchor_events" if anchor == "base" else "held_events"
-    events = [c for c in archetype["components"] if c != EVENT_FRAME]
-    owner[facet] = sorted(set(owner.get(facet, [])) | set(events))
-
-
-def anchor_of(site: dict, draft) -> str:
-    """Where a site binds its owner class: "base" — inside base(...) of a class whose direct base is UpdatedSystem or
-    LateUpdatedSystem, a system's anchor; "other-base" — inside base(...) of any other base, neither an anchor nor a
-    held archetype; "body" — anywhere else, this(...) included. MarkerShapeAnalyzer measures the same."""
-    if site["anchor"] != "base":
-        return "body"
-    on_system_base = any(e.rel == "inherits" and e.src == site["owner"] and e.dst in SYSTEM_BASES for e in draft.edges)
-    return "base" if on_system_base else "other-base"
+    """How the binding's owner class is bound to an archetype: a reads edge, whether the call sits in base(...) or
+    in the body — the event log replaced the whole anchor/held distinction EventArchetypes.Of once fed."""
+    draft.add_edge(Edge(binding["owner"], archetype_id, "reads", f"{binding['holder']}.{binding['member']}",
+                        binding["source_location"]))
 
 
 def reconcile_ecs_facts(sources, draft):
@@ -188,22 +156,16 @@ def reconcile_ecs_facts(sources, draft):
 
 
 def connect_component_access(sources, draft):
-    # the payload write standing in the same member as the CreateEvent that made the entity is that one raise, not a
-    # second pulse; any other AddComponent of an event type is a pulse assembled by hand
-    raised_here = {(s["owner"], s["enclosing_member"], s["type"]) for s in sources.ecs_sites
-                   if s["site"] == "create_event" and s["type"]}
     sets, late_writes, tags_add_sites, singleton_used = [], [], [], set()
     for site in sources.ecs_sites:
         owner, location = site["owner"], site["source_location"]
         if site["site"] == "access" and site["type"]:
             written = draft.nodes[site["type"]]
             written_name = written["name"]
-            if site["via"] == "AddComponent" and written.get("kind") == "event":
-                if (owner, site["enclosing_member"], site["type"]) in raised_here:
-                    continue   # the payload write of that CreateEvent — the emits edge anchors it
+            if site["via"] == "AddComponent" and written.get("kind") == "event" and owner != "EventLog":
                 draft.warn(f"{owner} adds event {written_name} to a live entity @ {location} — an event is raised "
-                           f"by one CreateEvent call, and a pulse assembled by hand loses its tag or its stamp",
-                           "event/raise")
+                           f"by one EntityStorages.Events.Raise call, and an AddComponent assembled by hand outside "
+                           f"EventLog loses its ring slot or its sequence stamp", "event/raise")
             draft.add_edge(Edge(owner, site["type"], site["access"], site["via"], location,
                                 confidence=site["confidence"]))
             if site["access"] == "removes":
@@ -216,9 +178,9 @@ def connect_component_access(sources, draft):
         elif site["site"] == "set" and (site["components"] or site["tags"]):
             sets.append({"owner": owner, "components": [c for c in site["components"] if c],
                          "tags": [t for t in site["tags"] if t], "via": site["via"], "source_location": location})
-        elif site["site"] == "create_event" and site["type"]:
+        elif site["site"] == "raise_event" and site["type"]:
             draft.add_node(site["type"], kind="event")
-            draft.add_edge(Edge(owner, site["type"], "emits", "CreateEvent", location))
+            draft.add_edge(Edge(owner, site["type"], "emits", "Events.Raise", location))
         elif site["site"] == "tags_add":
             tags_add_sites.append({"owner": owner, "tags": [t for t in site["types"] if t], "source_location": location})
     draft.ecs_tables.update(sets=sets, late_writes=late_writes, tags_add_sites=tags_add_sites,
@@ -226,7 +188,6 @@ def connect_component_access(sources, draft):
 
 
 def attribute_disposals(sources, draft):
-    event_sweepers = {s["owner"] for s in draft.ecs_tables["sets"] if EVENT_TAG in s["tags"]}
     owner_archetypes = defaultdict(set)
     for edge in draft.edges:
         if edge.rel == "reads" and draft.nodes.get(edge.dst, {}).get("kind") == "archetype":
@@ -236,8 +197,8 @@ def attribute_disposals(sources, draft):
     for site in (s for s in sources.ecs_sites if s["site"] == "delete_entity"):
         owner, location = site["owner"], site["source_location"]
         dispose_sites.append({"owner": owner, "source_location": location})
-        if owner in event_sweepers:
-            continue   # ripe events are deleted by the event sweeper, never a row type of its own
+        if owner == "EventLog":
+            continue   # eviction of a ring's oldest event is not the disposal of a table row
         candidates = owner_archetypes.get(owner, set())
         if len(candidates) == 1:
             draft.add_edge(Edge(owner, next(iter(candidates)), "disposes", "DeleteEntity", location,
@@ -413,6 +374,8 @@ def audit_births(sources, draft):
     composes the row out of components and tags at the call site, is the bare creation on the store the law
     forbids — the composition belongs in an archetype declaration."""
     for site in (s for s in sources.ecs_sites if s["site"] == "create_entity"):
+        if site["owner"] == "EventLog":
+            continue   # an event entity is born on its ring's own archetype, not a bare creation on the store
         receiver, composed = site["receiver"], site["via"] == "CreateEntity" and site["argc"] > 0
         if ARCHETYPE_RECEIVER in receiver.lower() and not composed:
             continue

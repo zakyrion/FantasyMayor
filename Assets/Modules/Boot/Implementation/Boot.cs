@@ -1,6 +1,6 @@
-using System;
 using EcsExtensions;
 using Modules.Boot.Core;
+using Modules.Boot.Implementation.Events;
 using UnityEngine;
 using VContainer;
 
@@ -8,47 +8,38 @@ namespace Modules.Boot.Implementation
 {
     /// <summary>
     ///     Entry point MonoBehaviour. Owns no system and drives no state itself: it only tells
-    ///     <see cref="GameModeMachine" /> when to switch and into which mode. On <see cref="Start" /> it walks
-    ///     <see cref="StartupOrder" /> one mode at a time, advancing as each one's entry completes; from
-    ///     <see cref="AppState.MainMenu" /> on, it applies whatever mode the current state requests. Every state
-    ///     and every first-order system is composed by the container from registrations — Boot names neither.
+    ///     <see cref="GameModeMachine" /> when to switch and into which mode. It starts in
+    ///     <see cref="AppState.Initialization" />; afterwards any system asks for a mode by raising
+    ///     <see cref="AppStateRequestedEvent" />. Boot reads its reader after every tick and switches only then —
+    ///     never inside the tick, where the current state is still running its systems. Every state and every
+    ///     first-order system is composed by the container from registrations — Boot names neither.
     /// </summary>
     public class Boot : MonoBehaviour
     {
-        private static readonly AppState[] StartupOrder =
-        {
-            AppState.Initialization, AppState.ConfigLoading, AppState.InstanceObjects, AppState.MainMenu
-        };
-
         private GameModeMachine _machine;
-
-        /// <summary>Receives the machine the container composed from every registered <see cref="IAppState" />.</summary>
-        [Inject]
-        public void Construct(GameModeMachine machine)
-        {
-            _machine = machine;
-        }
+        private EventReader<AppStateRequestedEvent> _appStateRequests;
 
         private void Start()
         {
             Application.targetFrameRate = 60;
-            _machine.Switch(StartupOrder[0]);
+            _machine.Switch(AppState.Initialization);
         }
 
         private void Update()
         {
-            if (!_machine.IsEntryCompleted)
+            _machine.Tick(new GameState(Time.deltaTime));
+
+            if (!TryReadLastRequestedMode(out var requestedMode))
                 return;
 
-            _machine.Tick(new GameState(Time.deltaTime));
-            AdvanceMode();
+            if (requestedMode == _machine.CurrentMode)
+                return;
+
+            _machine.Switch(requestedMode);
         }
 
         private void LateUpdate()
         {
-            if (!_machine.IsEntryCompleted)
-                return;
-
             _machine.LateTick(new GameState(Time.deltaTime));
         }
 
@@ -57,25 +48,28 @@ namespace Modules.Boot.Implementation
             _machine?.Stop();
         }
 
-        /// <summary>
-        ///     Switches into the next mode of <see cref="StartupOrder" /> while the startup walk still has one,
-        ///     otherwise into whatever mode the current state requests.
-        /// </summary>
-        private void AdvanceMode()
+        /// <summary>Receives the machine the container composed from every registered <see cref="IAppState" />.</summary>
+        [Inject]
+        public void Construct(GameModeMachine machine, EventReader<AppStateRequestedEvent> appStateRequests)
         {
-            var nextMode = NextStartupMode(_machine.CurrentMode) ?? _machine.RequestedMode;
-            if (nextMode.HasValue)
-                _machine.Switch(nextMode.Value);
+            _machine = machine;
+            _appStateRequests = appStateRequests;
         }
 
-        /// <summary>
-        ///     Names the startup mode after <paramref name="currentMode" />, or nothing once it is the last of
-        ///     <see cref="StartupOrder" /> or outside it.
-        /// </summary>
-        private static AppState? NextStartupMode(AppState currentMode)
+        // Drains every request raised this tick; the last one in the batch wins (:same-tick-delivery — a
+        // request raised before Boot's own tick priority is visible the same tick it was raised).
+        private bool TryReadLastRequestedMode(out AppState requestedMode)
         {
-            var index = Array.IndexOf(StartupOrder, currentMode);
-            return index >= 0 && index < StartupOrder.Length - 1 ? StartupOrder[index + 1] : (AppState?)null;
+            requestedMode = default;
+            var found = false;
+
+            while (_appStateRequests.TryRead(out var request))
+            {
+                requestedMode = request.Requested;
+                found = true;
+            }
+
+            return found;
         }
     }
 }

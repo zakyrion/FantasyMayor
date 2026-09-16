@@ -114,13 +114,13 @@ namespace Modules.UserInput.Systems
         }
 
         /// <summary>
-        ///     One-frame pulse so selection consumers (the hex info panel, the context tabs) reconcile against
+        ///     Log event so selection consumers (the hex info panel, the context tabs) reconcile against
         ///     the new <see cref="HexSelectedComponent" /> state without per-frame polling. Raised on every
         ///     mutation — create, deselect (dispose), and re-select to another coord.
         /// </summary>
         private void RaiseSelectionChanged()
         {
-            _storages.World.CreateEvent(new SelectedHexChangedEvent());
+            _storages.Events.Raise(new SelectedHexChangedEvent());
         }
 
         /// <summary>

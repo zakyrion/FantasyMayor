@@ -29,7 +29,7 @@ def build_graph(root: Path) -> dict:
     connect_hosts(sources, draft)
     pair_view_subscribers(sources, types, draft)
     audit_tag_law(types, draft)
-    decide_roles(types, draft)
+    decide_roles(sources, types, draft)
     find_recipe_instances(sources, types, draft)
     graph_doc = write_graph(root, source_files, draft)
     return graph_doc

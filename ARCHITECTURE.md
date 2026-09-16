@@ -21,7 +21,7 @@ with. Placement of new files and the choice of a `Patterns/` recipe are decided 
 
 - Engine: Unity · ECS: `Friflo.Engine.ECS` 3.6 (DoD style, not Unity DOTS) · DI: `VContainer` · Async: `UniTask`
 - Assets: `Addressables` · Input: `InputSystem` · Rendering: URP · UI: `UI Toolkit` (UXML/USS) + `Unity App UI` (`com.unity.dt.app-ui`)
-- Storage registry: `EntityStorages` — `World` (the game `EntityStore`), `Singletons` (single-instance components), configs by type
+- Storage registry: `EntityStorages` — `World` (the game `EntityStore`), `Singletons` (single-instance components), `Events` (`EventLog`), configs by type
 - Shared kernel of ECS types: `Assets/Scripts/EcsExtensions/` · primitives: `Assets/Scripts/Core/`
 
 ## Systems
@@ -29,13 +29,13 @@ with. Placement of new files and the choice of a `Patterns/` recipe are decided 
 ```clojure
 (def systems  ;; what the engine drives, how it is cut, what it caches
   {:system/definition
-   "a system is a non-abstract class the engine drives: directly or transitively UpdatedSystem, LateUpdatedSystem, IUpdatedSystem, ILateUpdatedSystem, IUniTaskSystem, IPrioritizedUniTaskSystem, ConfigLoaderSystem<T> or EventCleanupSystem — nothing outside that list is a system"
+   "a system is a non-abstract class the engine drives: directly or transitively UpdatedSystem, LateUpdatedSystem, IUpdatedSystem, ILateUpdatedSystem, IUniTaskSystem, IPrioritizedUniTaskSystem or ConfigLoaderSystem<T> — nothing outside that list is a system; EventCleanupSystem is removed from the list"
 
    :system/subsystem-is-not-a-system
    "a member of a DI-collected family is a plain object with IDisposable owned by a system: the state ban and the managed-collection ban do not bind it"  ;; the graph's sub_system role is family membership, not systemhood
 
    :system/cadence
-   "cadence comes from the stage the system serves, never from its interface: one-shot — a startup step, a config loader, a map-creation stage or subsystem; repeated — per-frame, reactive on every event, a turn phase on every turn"
+   "cadence comes from the stage the system serves, never from its interface: one-shot — a startup step, a config loader, a map-creation stage or subsystem; repeated — per-frame, reactive on its own reader's events, a turn phase on every turn"
 
    :system/query-caches-in-constructor
    "a system keeps its Archetype, ArchetypeQuery and ComponentIndex in readonly fields resolved once in the constructor"  ;; checked by /arch-check
@@ -44,10 +44,11 @@ with. Placement of new files and the choice of a `Patterns/` recipe are decided 
    "a per-frame system is driven either by a work table — the declared archetype it processes — or by a tick anchor, a singleton archetype whose presence switches the tick on; an ArchetypeQuery object only for a genuinely cross-archetype set"
 
    :system/base-choice
-   (cond (one-shot-startup-step? system) IUniTaskSystem
-         (ordered-pipeline? system)      "IPrioritizedUniTaskSystem<TStep> with the stage in the type argument; when the family already has an abstract base, that base"
-         (after-every-update? system)    LateUpdatedSystem
-         :else                           UpdatedSystem)
+   (cond (one-shot-startup-step? system)    IUniTaskSystem
+         (ordered-pipeline? system)         "IPrioritizedUniTaskSystem<TStep> with the stage in the type argument; when the family already has an abstract base, that base"
+         (after-every-update? system)       LateUpdatedSystem
+         (reactive-event-consumer? system)  "IUpdatedSystem directly, with a readonly EventReader<TEvent> — no base at all"
+         :else                              "UpdatedSystem, driven by a work table or a tick anchor")
 
    :system/split-when
    #{"the system creates and destroys the same kind of content"
@@ -66,15 +67,15 @@ with. Placement of new files and the choice of a `Patterns/` recipe are decided 
 
 (def system-role  ;; the first true branch wins; these are exactly the roles fmgraph.py systems --role takes
   {:system/role-order
-   (cond (sweeps-events-and-deletes? class)                           :cleanup
-         (event-anchor-in-the-base-call? class)                       :reactive
-         (and (update-loop? class) (holds-an-event-archetype? class))  "the role marker decides — see Markers"
-         (update-loop? class)                                         :per_frame
-         (map-creation-stage-in-the-type-argument? class)              :pipeline_stage
-         (derives-from-turn-phase-base? class)                         :turn_phase
-         (non-generic-unitask-contract? class)                         :startup_step
-         (abstract-ancestor-someone-collects? class)                   :sub_system
-         :else                                                         :no-role)})
+   (cond (and (update-loop? class) (holds-an-event-reader-field? class))  "the role marker decides — see Markers: PerFrame, else reactive"
+         (update-loop? class)                                            :per_frame
+         (map-creation-stage-in-the-type-argument? class)                 :pipeline_stage
+         (derives-from-turn-phase-base? class)                            :turn_phase
+         (non-generic-unitask-contract? class)                            :startup_step
+         (abstract-ancestor-someone-collects? class)                      :sub_system
+         :else                                                            :no-role)
+   ;; a non-system class holding an EventReader field is not a role — the graph gives it a consumes edge instead
+   })
 
 (def system-order  ;; SystemPriorities is the one holder of execution order
   {:system/priority-source
@@ -92,13 +93,13 @@ with. Placement of new files and the choice of a `Patterns/` recipe are decided 
 ```clojure
 (def markers  ;; MarkerShapeAnalyzer, category FantasyMayor.Markers, severity Error — a marker that contradicts the shape FAILS the Unity compile
   {:system/marker-required
-   "the role marker is required in exactly one shape — the one form no ordering rule decides: an Update-loop class that holds an event archetype outside base(...). It carries [SystemRole(SystemRoleKind.Reactive)] or [SystemRole(SystemRoleKind.PerFrame)]"  ;; MarkerShapeAnalyzer FM1005 — a missing marker fails the compile
+   "[SystemRole(SystemRoleKind.PerFrame)] is required in exactly one shape — the one form no ordering rule decides: an Update-loop class that holds a readonly EventReader<TEvent> field yet still ticks every frame instead of reacting. Without the marker such a class is reactive"  ;; MarkerShapeAnalyzer — a missing marker fails the compile
 
    :system/marker-forbidden
-   "a role marker on a class whose own shape already decides its role is forbidden"  ;; MarkerShapeAnalyzer FM1006 — a redundant marker fails the compile
+   "a role marker on a class holding no EventReader field is forbidden"  ;; MarkerShapeAnalyzer — a redundant marker fails the compile
 
    :system/marker-value
-   "the marker value must match the class shape: PerFrame demands the Update-loop contract with no event anchor; Reactive demands the Update-loop contract with no table anchor, plus either an event anchor or a held event archetype"  ;; MarkerShapeAnalyzer FM1001 and FM1002; fantasymayor-graph reads the marker against the same anchor
+   "PerFrame demands the Update-loop contract plus an EventReader field; Reactive has no legal shape any more — the value was removed from SystemRoleKind"  ;; MarkerShapeAnalyzer FM1001; fantasymayor-graph decides reactive from the EventReader field alone
 
    :system/marker-not-inherited
    "no marker is inherited — every concrete class or struct carries its own"
@@ -128,7 +129,8 @@ with. Placement of new files and the choice of a `Patterns/` recipe are decided 
    :state/is-not-state
    #{"readonly immutable dependencies and store handles"
      "query caches resolved once in the constructor — Archetype, ArchetypeQuery, ComponentIndex"
-     "const and static readonly values"}
+     "const and static readonly values"
+     "a readonly EventReader<TEvent> field — the cursor it points to lives in EventLog, not on the system"}
 
    :state/mutable-static
    "a mutable static field in a system IS state — the not-state list above is closed and holds only const and static readonly"  ;; the detector flags no static field at all: a tool gap, never a permission
@@ -226,11 +228,11 @@ with. Placement of new files and the choice of a `Patterns/` recipe are decided 
    "reactive is the default choice for runtime logic and the only reactive mechanism in the project"
 
    :reactive/shape
-   (-> (:step-1 "a sealed subclass of an Update base")
-       (:step-2 "dependencies, indexes and archetypes resolved in the constructor")
-       (:step-3 "the anchor passed to base(...) is the event archetype — EventArchetypes.Of<TEvent>(store)")
-       (:step-4 "the FIRST line of the Update body is the ripeness gate")
-       (:step-5 "then the precondition guards, which throw")
+   (-> (:step-1 "a sealed IUpdatedSystem — no base at all")
+       (:step-2 "dependencies resolved in the constructor, including a readonly EventReader<TEvent> from DI")
+       (:step-3 "Update is while (reader.TryRead(out var evt)) — react")
+       (:step-4 "a quiet exit lives inside the reaction or after the reader is drained, never before")
+       (:step-5 "precondition guards, which throw")
        (:step-6 "then action on the difference only"))})
 
 (def per-frame
@@ -266,14 +268,15 @@ with. Placement of new files and the choice of a `Patterns/` recipe are decided 
    "family routing is an attempted handling on each subsystem, first match wins, and no match throws"
 
    :orchestrator/empty-family
-   "while there are no subsystems the orchestrator stays an empty shell with its anchor and no injected list — the container throws on an empty collection, so the list and the loop appear with the first subsystem"
+   "while there are no subsystems the orchestrator stays an empty shell with its reader or its anchor and no injected list — the container throws on an empty collection, so the list and the loop appear with the first subsystem"
 
-   :orchestrator/ripe-once
-   "the orchestrator checks ripeness once before dispatching — a subsystem never checks it again"
-
-   ;; UpdatedSystem already snapshots for its subclasses — that is the whole reason
+   ;; UpdatedSystem already snapshots for its subclasses — that is the whole reason; a reactive system's reader
+   ;; does not enumerate entities either, so its reaction body is equally safe
    :structural/update-is-safe
-   "structural changes inside the Update body are safe because the base already snapshotted the anchor archetype; inside an enumeration the system or subsystem opens itself they are forbidden"})
+   "structural changes are safe inside the Update body of a base that snapshotted its anchor, and inside a reaction to an event pulled from a reader — a reader never enumerates entities; inside an enumeration the system opens itself they are forbidden"
+
+   :orchestrator/own-reader
+   "a subsystem that needs an event holds its own EventReader<TEvent> — the orchestrator never forwards it one"})
 ```
 
 ## One-shot, pipeline, turn phase
@@ -325,7 +328,7 @@ with. Placement of new files and the choice of a `Patterns/` recipe are decided 
    "a keyed join is a ComponentIndex over the key column, declared once in the constructor"
 
    :table/cross-archetype
-   "a query across several archetypes is allowed only when the filter genuinely spans several archetypes and the owner has agreed to it; sweeping every event by the shared event tag is the one deliberate exception"
+   "a query across several archetypes is allowed only when the filter genuinely spans several archetypes and the owner has agreed to it; there is no exception for events any more"
 
    :table/join-at-use
    "a join is a lookup by key value at the point of use — never a stored Entity reference from one table's row into another table's row"
@@ -341,7 +344,7 @@ with. Placement of new files and the choice of a `Patterns/` recipe are decided 
    "every archetype declaration carries exactly 1 main tag, written first in Tags.Get"  ;; the main tag is the table discriminator — the identity of the entity type; two main tags mean that row cannot exist
 
    :tag/main-tag-unique
-   "one main tag names one archetype — two archetypes sharing a main tag are forbidden, and the event tag is the only exception"
+   "one main tag names one archetype — two archetypes sharing a main tag are forbidden, with no exception"
 
    :tag/label-count
    "0-4 label tags stand beside the main tag — the main tag plus its labels must fit the type-argument cap of an archetype declaration"
@@ -350,7 +353,7 @@ with. Placement of new files and the choice of a `Patterns/` recipe are decided 
    "a label tag is never a query filter"
 
    :tag/event-tag
-   "every event carries EventTag as its main tag, and EventTag stands nowhere but an event archetype"
+   "an event carries no tag: its discriminator is the type of the single IEventTag component it holds in the Events store"
 
    :tag/added-by-archetype-only
    "a tag is added only by a table's archetype declaration — never to a live entity, because that carries the row out of its archetype"
@@ -498,31 +501,23 @@ with. Placement of new files and the choice of a `Patterns/` recipe are decided 
 ## Events
 
 ```clojure
-(def event-lifecycle  ;; EventTag + EventFrameComponent + the event component, resolved by EventArchetypes.Of<T>(store)
+(def event-lifecycle  ;; EventLog + EventReader<TEvent> — every event type is its own ring, capped, evicting oldest-first
   {:event/is
-   "an event is a one-frame struct raised on its own entity; its fields are ordinary data — the values the consumer needs"
+   "an event is an entity in the Events store carrying exactly one component whose type implements IEventTag; it lives until evicted by a newer event past its type's capacity; its fields are ordinary data"
 
    :event/declare
-   "an event is declared as a struct with IComponent, with the event suffix, in the Events/ folder of its feature"
+   "an event is declared as a struct with IEventTag, with the event suffix, in the Events/ folder of its feature"
 
    :event/suffix
    "an event type carries the event suffix; the longer legacy suffix ending in the word Component is closed — exactly one live type still carries it and no new type may"
 
    :event/raise
-   "an event is raised by one call — store.CreateEvent(new TEvent { … }) — which stamps the frame and composes the event archetype; a pulse assembled by hand loses the tag or the stamp, never ripens, and leaks"
-
-   :event/ripe
-   "a consumer acts only while the event is ripe — the 1 frame after birth; the ripeness check is the first line of the handler, otherwise the system fires twice"
-
-   :event/anchor
-   "the consumer anchors on the event's own archetype and holds it — while no event exists it costs zero; the values come from the event component on the pulse entity"
+   "an event is raised by one call — EntityStorages.Events.Raise(new TEvent { … }) — AddComponent of an event type anywhere else is a violation"
 
    :event/reaction
    #{"act directly on the event's values"
-     "reconcile: build the current set from world state, diff it, act on the difference, idempotently"}  ;; reconcile makes a second or coalesced event find nothing to do, and a missed event is repaired by the next one
-
-   :event/no-same-frame
-   "never count on a reaction in the same frame — a chain of events costs 1 frame per link, and visibility does not depend on priority"
+     "reconcile: build the current set from world state, diff it, act on the difference, idempotently"}  ;; and either on every event handed out, or once per drained batch
+   ;; :event/reaction also decides per-event vs per-batch — see :event/drain-before-exit and EventReader.DrainBatch
 
    :event/dormant-consumer
    "the emitter may land later: the consumer can be built first as a dormant scaffold"
@@ -530,20 +525,41 @@ with. Placement of new files and the choice of a `Patterns/` recipe are decided 
    :event/no-change-observers
    "never store.OnComponentAdded, store.OnComponentRemoved, store.OnTagsChanged or any other value-change observer — raise an event next to the write instead; adopting an observer is a decision for the whole project, never a local one"
 
-   :event/cleanup
-   "one global system cleans events up: EventCleanupSystem runs last in the tick at Priority int.MaxValue, deletes every ripe entity carrying EventTag, and has no subclasses — there is no per-event cleanup"
-
    :event/no-tag-on-persistent-row
-   "a persistent data entity never carries EventTag"
+   "the component of an event type — implementing IEventTag — never sits on an entity in World or Singletons"
 
    :event/one-way
-   "never a fill - command - fill loop on one-frame events: data flows one way"
-
-   :event/lossy-producer
-   "a producer that does not control the frame window — a turn phase or async work — rings by level: it re-raises the event every turn or tick while the condition holds, and the consumer reconciles against state instead of trusting one delivery"
+   "never a fill - command - fill loop on log events: a consumer never raises the type it reads in the same loop"
 
    :event/startup-bulk
-   "startup bulk work is a pipeline stage, never an event: one-frame events do not survive the async map-creation pipeline"})
+   "startup bulk work is a pipeline stage, never an event: an event carries no work order and guarantees no reader will see it before eviction"
+
+   :event/log-capacity
+   "a ring's capacity is on the event type: [EventCapacity(n)] on the struct, else 128; a new event past capacity evicts the oldest of its type; overflow never throws"
+
+   :event/sequence
+   "every event gets a global monotonic sequence number shared across all types"
+
+   :event/reader
+   "a consumer holds a readonly EventReader<TEvent>, born Transient from DI, and reads with while (reader.TryRead(out var evt)); the log owns the cursor; delivery IS the read"
+
+   :event/read-position
+   "a fresh cursor reads from the oldest present event; a cursor whose offset got evicted resumes from whatever oldest event is left"
+
+   :event/delivery
+   "a reader that ticks after its producer sees the event the same tick; a reader before it sees the event the next tick"
+
+   :event/drain-before-exit
+   "a consumer's quiet exit sits after the reader is drained, or inside the reaction to each event — never before the reader is given a chance to read"
+
+   :event/non-system-reader
+   "EventReader is allowed on a game state, a subsystem or Boot — none of these are systems; the graph gives such a holder a consumes edge, never a system role"
+
+   :event/clear-all
+   "EventLog.ClearAllEvents deletes every event of every ring; cursors are untouched and each catches up to empty on its next read; who calls it is a decision for whichever task needs it"
+
+   :event/aot-reader
+   "every event type has a closed EventReader<TEvent> declared in EventReaderAotDeclarations — otherwise an IL2CPP player never births that reader"})
 ```
 
 ## Transaction entity
@@ -741,8 +757,8 @@ with. Placement of new files and the choice of a `Patterns/` recipe are decided 
 (def naming
   {:name/suffix
    {:data      "…Component — it carries values"
-    :tag       "…Tag — a field-less marker"
-    :event     "…Event — a one-frame pulse"
+    :tag       "…Tag — a field-less marker (exception: IEventTag — an event's data contract, not a field-less tag)"
+    :event     "…Event — a log event, alive until evicted"
     :reference "the owner key's name with the reference mark before the word Component — …FKComponent"}
 
    :name/self-sufficient

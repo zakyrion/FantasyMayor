@@ -18,7 +18,8 @@
         "Turn",
         "Domains.Actors",
         "Domains.Economy",
-        "Domains.Actions"
+        "Domains.Actions",
+        "Flows.DistrictBuild"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

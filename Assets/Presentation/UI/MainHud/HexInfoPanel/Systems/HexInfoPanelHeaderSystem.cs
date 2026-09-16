@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Domains.Map.Archetypes;
 using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Data;
@@ -24,29 +24,35 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
     ///     non-grid click is a valid empty selection; HexInfoPanelSystem shows the empty panel).
     /// </summary>
     [UsedImplicitly]
-    public sealed class HexInfoPanelHeaderSystem : UpdatedSystem
+    public sealed class HexInfoPanelHeaderSystem : IUpdatedSystem
     {
         private readonly EntityStorages _storages;
         private readonly Archetype _viewSet;
         private readonly Archetype _selectedHexSet;
         private readonly Archetype _hexSet;
+        private readonly EventReader<SelectedHexChangedEvent> _selectedHexChanges;
 
-        public override int Priority => SystemPriorities.RuntimeTick.HexInfoPanelHeader;
+        public AppState AppState { get; }
+        public int Priority => SystemPriorities.RuntimeTick.HexInfoPanelHeader;
 
-        public HexInfoPanelHeaderSystem(AppState appState, EntityStorages storages)
-            : base(appState, storages.World, EventArchetypes.Of<SelectedHexChangedEvent>(storages.World))
+        public HexInfoPanelHeaderSystem(AppState appState, EntityStorages storages, EventReader<SelectedHexChangedEvent> selectedHexChanges)
         {
+            AppState = appState;
             _storages = storages;
+            _selectedHexChanges = selectedHexChanges;
             _viewSet = PresentationUIArchetypes.HexInfoPanel(storages.World);
             _selectedHexSet = PresentationArchetypes.HexSelection(storages.World);
             _hexSet = MapArchetypes.Hex(storages.World);
         }
 
-        protected override void Update(GameState state, in Entity entity)
+        public void Update(GameState state)
         {
-            if (!EcsEventExtensions.IsRipe(entity))
-                return;
+            while (_selectedHexChanges.TryRead(out _))
+                FillHexHeader();
+        }
 
+        private void FillHexHeader()
+        {
             if (!_viewSet.TryGetFirst(out var viewEntity) || !_selectedHexSet.TryGetFirst(out var selectedHexEntity))
                 return;
 

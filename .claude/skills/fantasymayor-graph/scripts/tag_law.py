@@ -1,11 +1,10 @@
-"""The tag law — one main tag per archetype, unique to it (EventTag excepted), and label tags beside it that no
-query filters by. Every deviation is named with its archetype or its place."""
+"""The tag law — one main tag per archetype, unique to it, and label tags beside it that no query filters by; an
+event's component (behind IEventTag) never stands on a declared archetype's row. Every deviation is named with
+its archetype or its place."""
 from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
-
-from ecs_facts import EVENT_FRAME, EVENT_TAG
 
 LABEL_CAP = 4   # labels beside the main tag: the declaration takes at most five tag type arguments
 
@@ -57,28 +56,22 @@ def audit_tag_law(types, draft):
             if written and written[0] != main_tags[0]:   # exactly one main tag, and it is written first
                 deviate(TagDeviation("main-tag-not-first", archetype_id, main_tags, location, "tag/one-main-tag"),
                         f"archetype {archetype_id} writes label tag {written[0]} before its main tag {main_tags[0]}")
-        if EVENT_TAG in tags_of[archetype_id] and EVENT_FRAME not in archetype.get("components", []):
-            deviate(TagDeviation("event-tag-outside-event", archetype_id, [EVENT_TAG], location,
+        event_components = sorted(c for c in archetype.get("components", [])
+                                  if draft.nodes.get(c, {}).get("kind") == "event")
+        if event_components:
+            deviate(TagDeviation("event-component-on-row", archetype_id, event_components, location,
                                  "event/no-tag-on-persistent-row"),
-                    f"archetype {archetype_id} carries EventTag without EventFrameComponent")
+                    f"archetype {archetype_id} carries event component(s) [{', '.join(event_components)}] — an "
+                    f"event's component (a type behind IEventTag) never stands on a row of World or Singletons")
 
     for tag, archetypes in sorted(archetypes_of_main.items()):
-        if tag != EVENT_TAG and len(archetypes) > 1:
+        if len(archetypes) > 1:
             deviate(TagDeviation("shared-main-tag", ", ".join(archetypes), [tag],
                                  draft.nodes[tag].get("source_location", ""), "tag/main-tag-unique"),
                     f"main tag {tag} is shared by [{', '.join(archetypes)}]")
 
-    # the other half of the event-tag law: every event carries the event tag as its main tag
-    with_event_tag = {c for n in draft.nodes.values() if n.get("kind") == "archetype" and n.get("main_tag") == EVENT_TAG
-                      for c in n.get("components", [])}
-    for event_id, event in sorted(draft.nodes.items()):
-        if event.get("kind") == "event" and event.get("declared") and event_id not in with_event_tag:
-            deviate(TagDeviation("event-without-event-tag", event_id, [EVENT_TAG],
-                                 event.get("source_location", ""), "tag/event-tag"),
-                    f"event {event_id} is carried by no archetype whose main tag is EventTag")
-
     tables = draft.ecs_tables
-    for query in (s for s in tables["sets"] if EVENT_TAG not in s["tags"]):   # an event sweep filters by EventTag
+    for query in tables["sets"]:
         labels = [t for t in query["tags"] if is_label(t)]
         if labels:
             deviate(TagDeviation("label-in-filter", query["owner"], labels, query["source_location"],

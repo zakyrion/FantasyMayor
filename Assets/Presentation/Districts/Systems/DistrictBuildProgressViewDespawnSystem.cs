@@ -1,4 +1,4 @@
-﻿using Domains.Economy.Archetypes;
+using Domains.Economy.Archetypes;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
 using Domains.Economy.District.Events;
@@ -16,16 +16,16 @@ using Object = UnityEngine.Object;
 namespace Presentation.Districts.Systems
 {
     /// <summary>
-    ///     Reactive runtime construction-progress remover. Anchored on the one-frame
-    ///     <see cref="DistrictTableChangedEvent" /> pulse (folds the former dual
-    ///     <c>DistrictBuiltEvent</c>/<c>BuildDistrictCancelEvent</c> trigger, FLOW_DISTRICT_BUILD unification,
-    ///     2026-07-17): on its presence it reconciles state — every progress-view hex that no longer has a
-    ///     District row staged <c>DistrictBuildState.Planned</c> (completion flipped it to <c>Built</c>, or
-    ///     cancel disposed it) has its view entity (and GameObject) destroyed. Works with current world state,
-    ///     not transitive deltas, so it is idempotent regardless of which stage transition fired this tick.
+    ///     Reactive runtime construction-progress remover. Reads the <see cref="DistrictTableChangedEvent" /> log
+    ///     event (folds the former dual <c>DistrictBuiltEvent</c>/<c>BuildDistrictCancelEvent</c> trigger,
+    ///     FLOW_DISTRICT_BUILD unification, 2026-07-17): on every event it reconciles state — every progress-view
+    ///     hex that no longer has a District row staged <c>DistrictBuildState.Planned</c> (completion flipped it
+    ///     to <c>Built</c>, or cancel disposed it) has its view entity (and GameObject) destroyed. Works with
+    ///     current world state, not transitive deltas, so it is idempotent regardless of which stage transition
+    ///     fired this event.
     /// </summary>
     [UsedImplicitly]
-    public sealed class DistrictBuildProgressViewDespawnSystem : UpdatedSystem
+    public sealed class DistrictBuildProgressViewDespawnSystem : IUpdatedSystem
     {
         // District rows: one per hex, carrying the hex FK and its build stage.
         private readonly Archetype _districts;
@@ -37,23 +37,29 @@ namespace Presentation.Districts.Systems
         private readonly Archetype _views;
 
         private readonly EntityStorages _storages;
+        private readonly EventReader<DistrictTableChangedEvent> _districtTableChanges;
 
-        public override int Priority => SystemPriorities.RuntimeTick.DistrictBuildProgressViewDespawn;
+        public AppState AppState { get; }
+        public int Priority => SystemPriorities.RuntimeTick.DistrictBuildProgressViewDespawn;
 
-        public DistrictBuildProgressViewDespawnSystem(AppState appState, EntityStorages storages)
-            : base(appState, storages.World, EventArchetypes.Of<DistrictTableChangedEvent>(storages.World))
+        public DistrictBuildProgressViewDespawnSystem(AppState appState, EntityStorages storages, EventReader<DistrictTableChangedEvent> districtTableChanges)
         {
+            AppState = appState;
             _storages = storages;
+            _districtTableChanges = districtTableChanges;
             _districts = EconomyArchetypes.District(storages.World);
             _views = PresentationArchetypes.DistrictBuildProgressView(storages.World);
         }
 
-        // The pulse entity itself is ignored — reconciliation is global over current state.
-        protected override void Update(GameState state, in Entity pulse)
+        public void Update(GameState state)
         {
-            if (!EcsEventExtensions.IsRipe(pulse))
-                return;
+            while (_districtTableChanges.TryRead(out _))
+                DespawnStaleProgressViews();
+        }
 
+        // Reconciliation is global over current state — the event's payload itself is ignored.
+        private void DespawnStaleProgressViews()
+        {
             var plannedHexes = new NativeHashSet<HexCoord>(64, Allocator.Temp);
             foreach (var district in _districts.Entities)
                 if (district.GetComponent<DistrictBuildStateComponent>().Value == DistrictBuildState.Planned)

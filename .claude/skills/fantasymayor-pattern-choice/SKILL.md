@@ -51,7 +51,6 @@ The recipe, the shared-kernel type and the live family behind every code part of
         (and (reacts-to-an-event?) (independently-ordered-parts?))           PATTERN_REACTIVE_ORCHESTRATOR_SYSTEM
         (reacts-to-an-event?)                                                PATTERN_REACTIVE_SYSTEM
         (continuous-every-frame?)                                            PATTERN_PERFRAME_SYSTEM
-        (cleans-up-events?)                                                  PATTERN_CLEANUP_SYSTEM
         :else                                                                :no-recipe))
 
 (def transaction-branch
@@ -91,15 +90,17 @@ The recipe, the shared-kernel type and the live family behind every code part of
                                         :use  "implement Update(token) and Priority (lower runs first); T is the stage DI collects the family by; when instances shows an abstract base of the family, derive from that base"}
         (must-run-after-every-update?) {:read LateUpdatedSystem
                                         :use  "same contract as UpdatedSystem, driven from LateUpdate"}
+        (reacts-to-an-event?)          {:read IUpdatedSystem
+                                        :use  "implement it directly — no base at all; a readonly EventReader<TEvent> from DI drives Update via while (reader.TryRead(out var evt)) (PATTERN_REACTIVE_SYSTEM)"}
         :else                          {:read UpdatedSystem
                                         :use  "pass the store and one archetype from its holder — an ArchetypeQuery only when the trigger spans several archetypes; implement Update(state, entity) and Priority; structural changes inside Update are safe, but not inside an enumeration Update opens itself (ARCHITECTURE.md → Threading, structural-change)"
                                         :then "decide the marker by role-marker before writing the class"}))
 
 (def role-marker
-  {:shape      "the anchor is measured only inside base(...) of a class whose DIRECT base is UpdatedSystem or LateUpdatedSystem: an EventArchetypes.Of argument there makes the anchor an event anchor, anything else makes it a table anchor; a call to EventArchetypes.Of anywhere else, this(...) included, is HOLDING the archetype, not anchoring on it"
-   :required   "the role marker is required in exactly one shape — the one form no ordering rule decides: an Update-loop class that HOLDS an event archetype outside base(...). It carries [SystemRole(SystemRoleKind.Reactive)] or [SystemRole(SystemRoleKind.PerFrame)]"
-   :forbidden  "a role marker on a class whose own shape already decides its role is forbidden — an event anchor in base(...) is already reactive, a table anchor is already per-frame"
-   :value      "the marker value must match the class shape: PerFrame demands the Update-loop contract with no event anchor; Reactive demands the Update-loop contract with no table anchor, plus either an event anchor or a held event archetype"
+  {:shape      "an Update-loop class holding a readonly EventReader<TEvent> field is reactive by that shape alone — no anchor is measured for it; a table anchor in base(...) of UpdatedSystem or LateUpdatedSystem still decides per_frame the same way it always did"
+   :required   "[SystemRole(SystemRoleKind.PerFrame)] is required in exactly one shape — the one form no ordering rule decides: an Update-loop class that holds an EventReader<TEvent> field yet still ticks every frame instead of reacting"
+   :forbidden  "a role marker on a class holding no EventReader field is forbidden — its role is already decided by its table anchor or the absence of one"
+   :value      "PerFrame demands the Update-loop contract plus an EventReader<TEvent> field; Reactive has no legal shape any more — the value was removed from SystemRoleKind"
    :not-inherited "no marker is inherited — every concrete class carries its own"
    :fails      "MarkerShapeAnalyzer, category FantasyMayor.Markers, severity Error — a marker that contradicts the shape fails the Unity compile"})
 
@@ -113,12 +114,10 @@ The recipe, the shared-kernel type and the live family behind every code part of
         :else                               :none))
 
 (def event-kernel
-  (cond (raising-an-event?)   {:read EcsEventExtensions
-                               :use  "store.CreateEvent(new TEvent { … }) — the row is born in its event archetype with its values; never AddComponent on a live entity"}
-        (consuming-an-event?) [{:read EventArchetypes
-                                :use  "EventArchetypes.Of<TEvent>(store) is the archetype the consuming system anchors on; the caller keeps it"}
-                               {:read EcsEventExtensions
-                                :use  "handle the event only while IsRipe(entity) is true; its values are entity.GetComponent<TEvent>()"}]
+  (cond (raising-an-event?)   {:read EventLog
+                               :use  "storages.Events.Raise(new TEvent { … }) — the event is born in its own type's ring with its values; AddComponent of an event type anywhere else is a violation"}
+        (consuming-an-event?) {:read EventReader
+                               :use  "readonly EventReader<TEvent>, injected Transient by DI; read every unread event with while (reader.TryRead(out var evt)), or drain a whole batch and react once with reader.DrainBatch()"}
         :else                 :none))
 
 (def state-kernel
@@ -133,7 +132,7 @@ The recipe, the shared-kernel type and the live family behind every code part of
 
 ```clojure
 (def instances
-  {:systems  "python3 .claude/skills/fantasymayor-graph/scripts/fmgraph.py systems --role <role> — roles: reactive, per_frame, cleanup, pipeline_stage, turn_phase, startup_step, sub_system"
+  {:systems  "python3 .claude/skills/fantasymayor-graph/scripts/fmgraph.py systems --role <role> — roles: reactive, per_frame, pipeline_stage, turn_phase, startup_step, sub_system"
    :recipe   "fmgraph.py pattern <RECIPE> — the recipe's live instances with decided_by base | marker | lexical and deviations; zero instances come with what the signature lacks"
    :families "fmgraph.py pattern PATTERN_ORCHESTRATOR_SUBSYSTEM, and mcp__roslyn__get_type_hierarchy direction Descendants on an abstract base; mcp__roslyn__find_implementations only on an interface"
    :use      #{"join an existing family" "pick a free priority" "avoid a duplicate"}
@@ -142,9 +141,8 @@ The recipe, the shared-kernel type and the live family behind every code part of
 
 (def signatures-by-marker
   {:law    "a recipe instance is recognized by its signature, and the signature IS a rule for writing the code — a class that misses it is not an instance, however the file reads"
-   :branch "decided_by marker is the branch no base decides: an Update-loop class holding an event archetype outside base(...), and a marker that names the role; decided_by base is the shape itself, decided_by lexical is a name match and never a substitute for either"
-   :marks  {PATTERN_REACTIVE_SYSTEM    "[SystemRole(SystemRoleKind.Reactive)] on that held-archetype shape"
-            PATTERN_PERFRAME_SYSTEM    "[SystemRole(SystemRoleKind.PerFrame)] on that held-archetype shape"
+   :branch "decided_by reader is PATTERN_REACTIVE_SYSTEM's own branch: an Update-loop class holding an EventReader<TEvent> field, no marker of its own; decided_by marker is the one branch no base decides — that same field on a class that still ticks every frame, carrying [SystemRole(SystemRoleKind.PerFrame)]; decided_by base is the table/tick-anchor shape, decided_by lexical is a name match and never a substitute for any of these"
+   :marks  {PATTERN_PERFRAME_SYSTEM    "[SystemRole(SystemRoleKind.PerFrame)] on a class that ALSO holds an EventReader<TEvent> field"
             PATTERN_VIEW_SYSTEM        "[ViewSubscriber(typeof(TheView))] on the subscribing class, together with the real += it names"
             PATTERN_TRANSACTION_ENTITY "[TagLabel(TagLabelRole.Transaction)] on the label tag the transaction archetype carries"}})
 ```

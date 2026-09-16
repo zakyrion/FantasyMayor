@@ -66,7 +66,7 @@ MarkerShapeAnalyzer виводяться ЗВІДСИ. Зміна правила
              "зміна інструмента перевірки ID не змінює"
              "переміщення правила в інший розділ ID не змінює"}
    :split "коли правило ділиться, ID лишається на частині, що зберігає твердження; друга частина дістає новий ID"
-   :retired-ids []
+   :retired-ids [:event/ripe :event/anchor :event/no-same-frame :event/cleanup :event/lossy-producer :orchestrator/ripe-once]
    :citation {:analyzer "діагностика MarkerShapeAnalyzer несе ID у тексті повідомлення у формі rule <prefix>/<slug>; номер діагностики лишається її тотожністю і в специфікацію не пишеться"
               :graph "попередження fantasymayor-graph закінчується позначкою [rule <prefix>/<slug>]"
               :agent "знахідка ревʼю називає ID так само"
@@ -92,7 +92,7 @@ MarkerShapeAnalyzer виводяться ЗВІДСИ. Зміна правила
    :component "форма компонента"
    :write "запис колонки"
    :link "стійке посилання між рядками"
-   :event "однокадрова подія"
+   :event "подія журналу"
    :reactive "reactive-форма"
    :perframe "покадрова форма"
    :orchestrator "оркестратор і його підсистеми"
@@ -215,8 +215,8 @@ MarkerShapeAnalyzer виводяться ЗВІДСИ. Зміна правила
 ```clojure
 (def numbers-placement
   {:law "числа закону лягають ключем :numbers на те правило, яке їх називає; окремого блоку чисел у документі нема — число має рівно один дім"
-   :numbers 10
-   :rules 9
+   :numbers 7
+   :rules 6
    :not-carried "базова лінія каскаду — кількість вузлів графа, систем, ролей, відхилень — вимір дня, а не правило; у документ не йде"})
 ```
 
@@ -232,14 +232,14 @@ MarkerShapeAnalyzer виводяться ЗВІДСИ. Зміна правила
   {:stack        {:type Friflo.Engine.ECS :holds "рушій Unity, ECS Friflo.Engine.ECS 3.6 у стилі DoD (не Unity DOTS), DI VContainer, async UniTask, Addressables, InputSystem, URP, UI Toolkit плюс Unity App UI"}
 
    :entity-store {:type EntityStore :holds "сховище сутностей Friflo — власник архетипів, індексів і всіх структурних змін"}
-   :storages     {:type EntityStorages :holds "реєстр сховищ: World (ігровий світ), Singletons (однопримірниковий стан), конфіги за типом"}
+   :storages     {:type EntityStorages :holds "реєстр сховищ: World (ігровий світ), Singletons (однопримірниковий стан), Events (EventLog), конфіги за типом"}
    :game-state   {:type GameState :holds "стан гри, у якому працює система Update-контракту"}
    :app-state    {:type AppState :holds "прапорець кроку застосунку, за яким запускаються разові системи: ConfigLoading, InstanceObjects, MainMenu"}
 
    :node-kind    {:type IComponent :holds "вид конструкції, про який говорять правила форми: компонент, тег, подія, конфіг, view, система, архетип, інсталер; як саме інструмент упізнає вид — його справа, не правило"}
    :node-identity {:type Assembly :holds "один вузол на оголошення (partial ділять його); неоголошений тип — вузол з declared false і видом за суфіксом; однойменні типи в різних просторах імен беруть ідентифікатор з простором; неоднозначне імʼя — попередження, не ребро; вузли вкладеного типу належать вкладеному типу"}
    :scan-roots   {:type Assets :holds "корені сканування коду: Assets/Domains, Assets/Presentation, Assets/Modules, Assets/Scripts, Assets/Flows"}
-   :graph-edge   {:type ComponentIndex :holds "ребра, які читач виводить із коду: writes (AddComponent, Singletons.Set), reads (GetComponent, HasComponent, Singletons.Get, привʼязка до архетипу таблиці), removes, emits (CreateEvent), reacts_to і polls за роллю, disposes, fk_of за законом суфікса і реальним пошуком в індексі, inherits, hosts, registers, exposes, injects, runs_in, subscribes"}
+   :graph-edge   {:type ComponentIndex :holds "ребра, які читач виводить із коду: writes (AddComponent, Singletons.Set), reads (GetComponent, HasComponent, Singletons.Get, привʼязка до архетипу таблиці), removes, emits (Events.Raise), reacts_to (reactive-читач), polls (per_frame-читач), consumes (не-система з читачем), disposes, fk_of за законом суфікса і реальним пошуком в індексі, inherits, hosts, registers, exposes, injects, runs_in, subscribes"}
 
    :component    {:type IComponent :holds "проста struct runtime-значень — колонка рядка таблиці"}
    :tag          {:type ITag :holds "порожня struct, чия присутність і є інформацією"}
@@ -252,28 +252,28 @@ MarkerShapeAnalyzer виводяться ЗВІДСИ. Зміна правила
    :holder       {:type Archetypes :holds "static-тримач <Assembly>Archetypes, чиї члени повертають живий Archetype"}
    :singleton-manifest {:type SingletonArchetypeDefinition :holds "оголошення архетипу Singleton — єдиний дім однопримірникових компонентів"}
 
-   :event        {:type EventTag :holds "однокадрова сутність: EventTag як головний тег плюс EventFrameComponent плюс компонент події"}
-   :event-archetype {:type EventArchetypes :holds "архетип події, розвʼязаний EventArchetypes.Of<T>(store); кожен споживач бачить подію рівно раз у кадрі після підняття, незалежно від пріоритету"}
-   :cleanup      {:type EventCleanupSystem :holds "єдина глобальна система прибирання: Priority int.MaxValue, видаляє дозрілі події в кінці того кадру"}
+   :event        {:type IEventTag :holds "сутність у Events з одним компонентом типу з IEventTag"}
+   :event-log    {:type EventLog :holds "сховище Events, кільце на тип, курсори, глобальний номер"}
+   :event-reader {:type EventReader<TEvent> :holds "хендл курсора: TryRead, DrainBatch"}
 
    :component-index {:type ComponentIndex :holds "індекс, ключований типом компонента через усі таблиці, що його несуть: роль несе тип ключа, таблицю несе тег; таблиця графа — кожне поле ComponentIndex з роллю за суфіксом ключа і єдиним архетипом, що ключ несе"}
    :indexed-key  {:type IIndexedComponent<TValue> :holds "контракт ключа індексу: GetIndexedValue() повертає значення ключа"}
 
-   :system       {:type IUpdatedSystem :holds "клас, який веде рушій: прямо чи транзитивно UpdatedSystem, LateUpdatedSystem, IUpdatedSystem, ILateUpdatedSystem, IUniTaskSystem, IPrioritizedUniTaskSystem, ConfigLoaderSystem<T> або EventCleanupSystem; роль дістають лише оголошені неабстрактні класи видів other, installer, config, view"}
-   :system-role  {:type SystemRoleKind :holds "роль системи: cleanup, reactive, per_frame, pipeline_stage, turn_phase, startup_step, sub_system; маркер знає лише PerFrame і Reactive; докази ролі — Update-цикл у спадковості, обхід EventTag із місцем DeleteEntity, аргумент стадії, предок TurnPhaseSubSystem, негенеричний IUniTaskSystem, абстрактний предок, якого хтось збирає; клас без ролі все одно polls архетипи подій, які тримає; форма per-frame = контракт циклу і не подієвий якір, форма reactive = контракт циклу, не табличний якір, і подієвий якір або утримуваний архетип події"}
+   :system       {:type IUpdatedSystem :holds "клас, який веде рушій: прямо чи транзитивно UpdatedSystem, LateUpdatedSystem, IUpdatedSystem, ILateUpdatedSystem, IUniTaskSystem, IPrioritizedUniTaskSystem або ConfigLoaderSystem<T>; EventCleanupSystem видалено з переліку; роль дістають лише оголошені неабстрактні класи видів other, installer, config, view"}
+   :system-role  {:type SystemRoleKind :holds "ролі без cleanup: reactive, per_frame, pipeline_stage, turn_phase, startup_step, sub_system; маркер знає лише PerFrame; доказ reactive — поле EventReader у класі циклу; клас без ролі все одно може нести EventReader — тоді в графі це ребро consumes без ролі системи"}
    :role-marker  {:type SystemRoleAttribute :holds "атрибут лише на класі, не множинний, не успадковується"}
-   :anchor       {:type UpdatedSystem :holds "якір міряється лише всередині base(...) класу, чия ПРЯМА база UpdatedSystem або LateUpdatedSystem; аргумент EventArchetypes.Of або AnyComponents над типами подій робить якір подієвим, інакше якір табличний; виклик EventArchetypes.Of поза base(...), включно з this(...), — утримання; подія, на яку клас якориться в base(...), дає ребро reacts_to, утримуваний архетип — reacts_to лише під reactive-маркером, інакше polls"}
-   :cadence      {:type UpdatedSystem :holds "каденція виконання: repeated — UpdatedSystem, LateUpdatedSystem, IUpdatedSystem, ILateUpdatedSystem, EventCleanupSystem або база фази ходу; one-shot — IUniTaskSystem включно з ConfigLoaderSystem<T>, стадія конвеєра створення мапи, підсистема разового оркестратора; async — робота в async UniTask"}
+   :anchor       {:type UpdatedSystem :holds "якір лише табличний у base(...) UpdatedSystem чи LateUpdatedSystem; подієвого якоря нема — подія читається полем EventReader, не аргументом base(...)"}
+   :cadence      {:type UpdatedSystem :holds "каденція виконання (EventCleanupSystem видалено): repeated — UpdatedSystem, LateUpdatedSystem, IUpdatedSystem, ILateUpdatedSystem або база фази ходу; one-shot — IUniTaskSystem включно з ConfigLoaderSystem<T>, стадія конвеєра створення мапи, підсистема разового оркестратора; async — робота в async UniTask"}
    :update-base  {:type UpdatedSystem :holds "база, що вже робить знімок якірного архетипу для своїх нащадків, тому структурні зміни в Update безпечні"}
    :one-shot-base {:type IUniTaskSystem :holds "контракт разового кроку: Execute(token) плюс AppState, на якому Boot його запускає"}
    :pipeline-base {:type IPrioritizedUniTaskSystem<MapGenerationStep> :holds "контракт упорядкованого конвеєра: Update(token) плюс Priority, менший раніше; аргумент типу називає стадію, за якою DI збирає сімейство"}
    :turn-phase-base {:type TurnPhaseSubSystem :holds "public abstract class : IPrioritizedUniTaskSystem<TurnPhaseStep> — база фази ходу, що працює кожного ходу"}
    :subsystem    {:type IDisposable :holds "член сімейства, зібраного DI: простий обʼєкт із IsEnabled, Priority і Run, яким володіє оркестратор — не система"}
-   :priority     {:type SystemPriorities :holds "вираз Priority, розвʼязаний проти кожної const int за шляхом вкладеності; вкладені класи — WorldInit, RuntimeTick та інші — простори порядку; EventCleanup дорівнює int.MaxValue"}
+   :priority     {:type SystemPriorities :holds "вираз Priority, розвʼязаний проти кожної const int за шляхом вкладеності; вкладені класи — WorldInit, RuntimeTick та інші — простори порядку; без EventCleanup"}
 
    :state-marker {:type StateAllowedAttribute :holds "атрибут на полі, конструктор приймає необовʼязкову причину"}
    :frame-box    {:type FrameBox<T> :holds "змінна struct значення на обмежену кількість кадрів: OneFrame, TwoFrames, ForFrames; Exist залежить від Time.frameCount, Value кидає на застарілому"}
-   :structural-change {:type Entity :holds "структурна зміна — AddComponent, RemoveComponent, AddTag, RemoveTag; народження архетипом нею не є; тег, доданий за життя, інструмент бачить як AddComponent типу з іменем на Tag, а AddComponent події одразу після CreateEvent записом не рахується"}
+   :structural-change {:type Entity :holds "структурна зміна — AddComponent, RemoveComponent, AddTag, RemoveTag; народження архетипом нею не є; тег, доданий за життя, інструмент бачить як AddComponent типу з іменем на Tag"}
 
    :view         {:type MonoBehaviour :holds "шар view — усе, що оголошено в папці Views/; партнер view-системи — MonoBehaviour у тій папці; рецепт PATTERN_VIEW_SYSTEM маркера ViewSubscriber не згадує"}
    :view-marker  {:type ViewSubscriberAttribute :holds "атрибут на класі, множинний, не успадковується; підпискою рахується += , ліворуч якого символ події — += над числом чи рядком підпискою не є"}
@@ -296,7 +296,7 @@ MarkerShapeAnalyzer виводяться ЗВІДСИ. Зміна правила
    :role-folder  {:type Views :holds "рольові папки: Components/, Tags/, Events/, Configs/, Data/, Systems/, Helpers/, Views/, Archetypes/, Prefabs/, Textures/"}
 
    :diagnostic   {:type MarkerShapeAnalyzer :holds "діагностики категорії FantasyMayor.Markers, severity Error, увімкнені за замовчуванням; тип без маркера перевірок не реєструє, зайвий маркер аналізатор не перевіряє"}
-   :marker-vocabulary {:type MarkerVocabulary :holds "словник аналізатора за метаданими: SystemRoleAttribute, ViewSubscriberAttribute, TagLabelAttribute, IUpdatedSystem, ILateUpdatedSystem, UpdatedSystem, LateUpdatedSystem, EventArchetypes, Friflo ComponentTypes і ITag, UnityEngine MonoBehaviour"}
+   :marker-vocabulary {:type MarkerVocabulary :holds "словник аналізатора за метаданими: SystemRoleAttribute, ViewSubscriberAttribute, TagLabelAttribute, IUpdatedSystem, ILateUpdatedSystem, EventReader`1, Friflo ITag, UnityEngine MonoBehaviour"}
    :recipe-signature {:type RECIPE_SIGNATURES :holds "ознака рецепта — джерело правди у recipes.py, читання у recipe-signatures.md; поліморфний каталог знаходиться трійкою: абстрактна SO-база з іменем на Config, неабстрактний SO-контейнер з масивом цієї бази, компонент виду, названий базою без суфікса Config, який несе архетип"}})
 ```
 
@@ -329,16 +329,16 @@ MarkerShapeAnalyzer виводяться ЗВІДСИ. Зміна правила
     {:id :table/filter :says "фільтр запиту — архетип таблиці, ніколи голий ключовий компонент: голий ключ дає обʼєднання всіх таблиць цього простору ключів, тому фільтр не-події називає рівно один тег" :governs :archetype :checked-by :graph}
     {:id :table/sweep :says "обхід таблиці — ітерація її архетипу, без обʼєкта запиту" :governs :archetype :checked-by :agent}
     {:id :table/keyed-join :says "зʼєднання за ключем — індекс над ключовою колонкою, оголошений раз у конструкторі" :governs :component-index :checked-by :agent}
-    {:id :table/cross-archetype :says "запит через кілька архетипів дозволений, лише коли фільтр справді охоплює кілька архетипів і його погоджено з власником; обхід усіх подій за спільним тегом події — єдиний свідомий виняток" :governs :archetype :checked-by :agent :kind :choice}
+    {:id :table/cross-archetype :says "запит через кілька архетипів — лише коли фільтр справді охоплює кілька архетипів і погоджено з власником; винятку для подій нема" :governs :archetype :checked-by :agent :kind :choice}
     {:id :table/join-at-use :says "зʼєднання — пошук за значенням ключа в точці використання, ніколи збережене посилання на сутність з рядка однієї таблиці в рядок іншої" :governs :component-index :checked-by :graph}
     {:id :table/index-only-hot :says "індекс заводиться лише для гарячого зʼєднання — щокадру або багато разів за хід; для пошуку з частотою кліку архетип сканується" :governs :component-index :checked-by :agent :kind :choice}
     {:id :tag/is :says "тег — порожня struct з контрактом тегу: даних не несе, його присутність і є інформацією, а щойно потрібне значення — це компонент" :governs :tag :checked-by :graph}
     {:id :tag/one-main-tag :says "кожне оголошення архетипу має рівно один головний тег, записаний першим" :governs :main-tag :checked-by :graph :numbers {:main-tags-per-archetype "рівно 1"}}
-    {:id :tag/main-tag-unique :says "один головний тег називає один архетип — спільний головний тег двох архетипів заборонений, і єдиний виняток — тег події" :governs :main-tag :checked-by :graph}
+    {:id :tag/main-tag-unique :says "один головний тег називає один архетип — спільний головний тег двох архетипів заборонений, без винятків" :governs :main-tag :checked-by :graph}
     {:id :tag/label-marker :says "label-тег — структура тегу з маркером мітки, з роллю або без; міткою може бути лише структура з контрактом тегу" :governs :label-marker :checked-by :analyzer}
     {:id :tag/label-count :says "поруч із головним тегом стоїть від нуля до чотирьох міток — оголошення архетипу бере не більше пʼяти аргументів типу" :governs :label-marker :checked-by :graph :numbers {:label-tags-per-archetype "0-4"}}
     {:id :tag/label-not-a-filter :says "label-тег ніколи не фільтр запиту" :governs :label-marker :checked-by :graph}
-    {:id :tag/event-tag :says "кожна подія несе тег події як головний тег, і тег події не стоїть ніде, крім архетипу події" :governs :event :checked-by :graph}
+    {:id :tag/event-tag :says "подія не несе тегу: її дискримінатор — тип єдиного компонента з IEventTag у сховищі Events" :governs :event :checked-by :graph}
     {:id :tag/added-by-archetype-only :says "тег додається лише оголошенням архетипу таблиці — ніколи живій сутності, бо це виносить рядок з його архетипу" :governs :structural-change :checked-by :graph}
     {:id :tag/composed-by-declaration :says "набір тегів складається лише в оголошенні архетипу — ніколи додаванням до вже складеного набору" :governs :archetype :checked-by :graph}
     {:id :tag/state-column :says "стан — колонка над перелічуванням із суфіксом стану, ніколи перемикаваний тег, і пишеться вона лише при зміні" :governs :component :checked-by :graph}
@@ -408,21 +408,25 @@ MarkerShapeAnalyzer виводяться ЗВІДСИ. Зміна правила
   {:section :events
    :does "життєвий цикл однокадрової події: підняття, дозрівання, споживання, прибирання"
    :rules
-   [{:id :event/is :says "подія — однокадрова struct, піднята на власній сутності; її поля — звичайні дані, значення, потрібні споживачу" :governs :event :checked-by :graph}
-    {:id :event/declare :says "подія оголошується структурою з контрактом компонента, з суфіксом події, у папці подій своєї фічі" :governs :event :checked-by :graph}
-    {:id :event/raise :says "подія піднімається одним викликом створення події на сховищі, який штампує кадр і складає архетип події; імпульс, зібраний руками, губить тег або штамп, ніколи не дозріває і тече" :governs :event :checked-by :graph}
-    {:id :event/ripe :says "споживач діє лише поки подія дозріла — у кадрі після народження; перевірка дозрілості стоїть першим рядком обробки, інакше система відпрацює двічі" :governs :event :checked-by :agent :numbers {:event-ripeness "1 кадр: споживач діє в кадрі після народження"}}
-    {:id :event/anchor :says "споживач якориться на архетипі самої події і тримає його — доки події нема, він коштує нуль; значення береться з компонента події на сутності імпульсу" :governs :event-archetype :checked-by :graph}
-    {:id :event/reaction :says "реакція — або діяти прямо на значеннях події, або reconcile: зібрати поточну множину зі стану світу, порівняти й діяти на різниці, ідемпотентно" :governs :event :checked-by :agent :kind :choice}
-    {:id :event/no-same-frame :says "ніколи не розраховувати на реакцію в тому ж кадрі — ланцюг подій коштує кадр на ланку, і видимість не залежить від пріоритету" :governs :event :checked-by :agent :numbers {:event-chain-cost "1 кадр на ланку"}}
+   [{:id :event/is :says "подія — сутність у сховищі Events рівно з одним компонентом, тип якого реалізує IEventTag; живе до витіснення новішою понад ліміт свого типу; її поля — звичайні дані" :governs :event :checked-by :graph}
+    {:id :event/declare :says "подія оголошується struct з IEventTag, з суфіксом події, у папці Events/ своєї фічі" :governs :event :checked-by :graph}
+    {:id :event/raise :says "подія піднімається одним викликом EntityStorages.Events.Raise(new TEvent { … }); AddComponent типу події деінде — порушення" :governs :event :checked-by :graph}
+    {:id :event/reaction :says "реакція — діяти на значеннях або reconcile; і на кожну видану подію, або раз на вичерпану пачку" :governs :event :checked-by :agent :kind :choice}
     {:id :event/dormant-consumer :says "емітер може зʼявитися пізніше: споживача можна зібрати першим як сплячий каркас" :governs :event :checked-by :agent :kind :choice}
     {:id :event/no-change-observers :says "ніколи спостерігач додавання компонента, видалення компонента, зміни тегів чи будь-який спостерігач зміни значення — натомість подія поруч із записом; прийняти спостерігача можна лише рішенням для всього проєкту" :governs :entity-store :checked-by :agent}
-    {:id :event/cleanup :says "прибирає події одна глобальна система: працює останньою в тіку, видаляє кожну дозрілу сутність із тегом події й не має нащадків — власного прибирання для окремої події не буває" :governs :cleanup :checked-by :graph :numbers {:cleanup-priority "найбільше можливе ціле"}}
-    {:id :event/no-tag-on-persistent-row :says "стійка сутність даних ніколи не несе тег події" :governs :event :checked-by :graph}
-    {:id :event/one-way :says "ніколи петля заповнення - команда - заповнення на однокадрових подіях: дані течуть в один бік" :governs :event :checked-by :agent}
-    {:id :event/lossy-producer :says "виробник, що не контролює вікно кадру — фаза ходу чи async-робота, — дзвонить за рівнем: перепіднімає подію кожен хід або тік, поки умова тримається, а споживач звіряється зі станом і не довіряє одній доставці" :governs :event :checked-by :agent}
-    {:id :event/startup-bulk :says "стартова масова робота — стадія конвеєра, ніколи подія: однокадрові події не переживають async-конвеєр створення мапи" :governs :pipeline-base :checked-by :agent :kind :choice}
-    {:id :event/suffix :says "тип події має суфікс події; довший легасі-суфікс із словом компонент закритий — його несе рівно один живий тип і жоден новий" :governs :event :checked-by :graph}]})
+    {:id :event/no-tag-on-persistent-row :says "компонент події — тип з IEventTag — ніколи не стоїть на сутності World чи Singletons" :governs :event :checked-by :graph}
+    {:id :event/one-way :says "ніколи петля заповнення - команда - заповнення на подіях журналу; споживач ніколи не піднімає тип, який сам читає в тому ж циклі" :governs :event :checked-by :agent}
+    {:id :event/startup-bulk :says "стартова масова робота — стадія конвеєра, ніколи подія: подія не несе порядку роботи й не гарантує, що її прочитають до витіснення" :governs :pipeline-base :checked-by :agent :kind :choice}
+    {:id :event/suffix :says "тип події має суфікс події; довший легасі-суфікс із словом компонент закритий — його несе рівно один живий тип і жоден новий" :governs :event :checked-by :graph}
+    {:id :event/log-capacity :says "ліміт кільця — на типі події: [EventCapacity(n)] на struct, інакше 128; нова подія понад ліміт витісняє найстарішу; переповнення не кидає" :governs :event-log :checked-by :agent}
+    {:id :event/sequence :says "кожна подія дістає глобальний монотонний номер між усіма типами" :governs :event-log :checked-by :agent}
+    {:id :event/reader :says "споживач тримає readonly EventReader<TEvent>, народжений DI як Transient, і читає while TryRead; курсор веде журнал; видача = прочитано" :governs :event-reader :checked-by :graph}
+    {:id :event/read-position :says "новий курсор читає з найстарішої присутньої події; витиснене зміщення продовжує з найстарішої, що лишилась" :governs :event-log :checked-by :agent}
+    {:id :event/delivery :says "читач після виробника бачить подію в тому ж тіку, перед ним — у наступному" :governs :event-log :checked-by :agent}
+    {:id :event/drain-before-exit :says "тихий вихід споживача стоїть після вичерпання читача або всередині реакції на подію" :governs :event-reader :checked-by :agent}
+    {:id :event/non-system-reader :says "EventReader дозволений стану, підсистемі й Boot; у графі — ребро consumes без ролі системи" :governs :event-reader :checked-by :graph}
+    {:id :event/clear-all :says "EventLog.ClearAllEvents видаляє всі події всіх кілець; курсори продовжують із порожнього журналу; хто кличе — рішення окремої задачі" :governs :event-log :checked-by :agent}
+    {:id :event/aot-reader :says "кожен тип події має закритий EventReader<TEvent> в EventReaderAotDeclarations — інакше IL2CPP-плеєр не народить читача" :governs :event-reader :checked-by :agent}]})
 ```
 
 ## Частина 2 — Системи і виконання
@@ -437,16 +441,16 @@ MarkerShapeAnalyzer виводяться ЗВІДСИ. Зміна правила
   {:section :systems-and-roles
    :does "що таке система, як вирішується її роль, коли потрібен маркер, звідки береться порядок виконання і коли система ділиться"
    :rules
-   [{:id :system/definition :says "система — неабстрактний клас, який веде рушій: прямо чи транзитивно UpdatedSystem, LateUpdatedSystem, IUpdatedSystem, ILateUpdatedSystem, IUniTaskSystem, IPrioritizedUniTaskSystem, ConfigLoaderSystem<T> або EventCleanupSystem" :governs :system :checked-by :arch-check}
+   [{:id :system/definition :says "система — неабстрактний клас, який веде рушій: прямо чи транзитивно UpdatedSystem, LateUpdatedSystem, IUpdatedSystem, ILateUpdatedSystem, IUniTaskSystem, IPrioritizedUniTaskSystem або ConfigLoaderSystem<T>; EventCleanupSystem видалено з переліку" :governs :system :checked-by :arch-check}
     {:id :system/subsystem-is-not-a-system :says "член сімейства, зібраного DI, — простий обʼєкт із IDisposable, яким володіє система: заборона стану й заборона керованих колекцій його не вʼяжуть" :governs :subsystem :checked-by :arch-check :note "роль sub_system у графі — ярлик членства в сімействі, не системність"}
-    {:id :system/cadence :says "каденція читається зі стадії, яку система обслуговує, а не з інтерфейсу: разова — крок старту, loader конфіга, стадія чи підсистема створення мапи; повторна — per-frame, reactive на кожну подію, фаза ходу на кожен хід" :governs :cadence :checked-by :arch-check}
-    {:id :system/role-order :says "роль неабстрактного класу бере першу істинну гілку: обхід подій з видаленням → cleanup; подієвий якір у base(...) → reactive; Update-цикл і утримуваний архетип події → маркер; Update-цикл → per_frame; аргумент стадії створення мапи → pipeline_stage; предок TurnPhaseSubSystem → turn_phase; негенеричний IUniTaskSystem → startup_step; абстрактний предок, якого хтось збирає → sub_system; інакше ролі нема" :governs :system-role :checked-by :graph}
-    {:id :system/marker-required :says "маркер ролі обовʼязковий рівно в одній формі, якої порядок не вирішує: Update-клас тримає архетип події поза base(...)" :governs :role-marker :checked-by :analyzer :note "граф сьогодні лише попереджає; правило вимагає помилки компіляції"}
-    {:id :system/marker-forbidden :says "маркер ролі на класі, чию роль вирішує форма, заборонений" :governs :role-marker :checked-by :analyzer :note "зайвий маркер сьогодні лише попередження; за рішенням власника це помилка"}
-    {:id :system/marker-value :says "значення маркера мусить збігатися з формою класу: PerFrame вимагає контракту циклу без подієвого якоря, Reactive вимагає контракту циклу без табличного якоря плюс подієвий якір або утримуваний архетип події" :governs :role-marker :checked-by :analyzer :note "аналізатор міряє значення маркера; читач ролей у графі дозволяє на табличному якорі будь-яке значення"}
+    {:id :system/cadence :says "каденція читається зі стадії, яку система обслуговує, а не з інтерфейсу: разова — крок старту, loader конфіга, стадія чи підсистема створення мапи; повторна — per-frame, reactive на події свого читача, фаза ходу на кожен хід" :governs :cadence :checked-by :arch-check}
+    {:id :system/role-order :says "роль неабстрактного класу: Update-цикл і поле EventReader → reactive, або per_frame під маркером PerFrame; Update-цикл → per_frame; аргумент стадії створення мапи → pipeline_stage; предок TurnPhaseSubSystem → turn_phase; негенеричний IUniTaskSystem → startup_step; абстрактний предок, якого збирають → sub_system; інакше ролі нема; не-система з полем EventReader — «споживач події» без ролі" :governs :system-role :checked-by :graph}
+    {:id :system/marker-required :says "маркер PerFrame обовʼязковий на класі циклу, що тримає EventReader, але тікає per-frame; без маркера такий клас reactive" :governs :role-marker :checked-by :analyzer :note "граф сьогодні лише попереджає; правило вимагає помилки компіляції"}
+    {:id :system/marker-forbidden :says "маркер ролі на класі без поля EventReader заборонений" :governs :role-marker :checked-by :analyzer :note "зайвий маркер сьогодні лише попередження; за рішенням власника це помилка"}
+    {:id :system/marker-value :says "значення маркера мусить збігатися з формою класу: PerFrame вимагає контракту циклу плюс поле EventReader; Reactive законної форми не має — значення прибрано з перелічення SystemRoleKind" :governs :role-marker :checked-by :analyzer :note "аналізатор міряє значення маркера; читач ролей у графі дозволяє на табличному якорі будь-яке значення"}
     {:id :system/marker-not-inherited :says "жоден маркер не успадковується — кожен конкретний клас чи структура несе свій" :governs :role-marker :checked-by :analyzer}
     {:id :system/marker-vocabulary-parity :says "копія перелічення ролей в аналізаторі мусить збігатися з перелічуванням у EcsExtensions — аргумент атрибута приходить як базовий int" :governs :marker-vocabulary :checked-by :none :enforcement :none-today}
-    {:id :system/base-choice :says "базу обирає спосіб запуску: разовий крок старту — IUniTaskSystem; упорядкований конвеєр — IPrioritizedUniTaskSystem<T> зі стадією в аргументі, а коли сімейство має абстрактну базу — її; робота після кожного Update — LateUpdatedSystem; інакше UpdatedSystem" :governs :system :checked-by :agent :kind :choice}
+    {:id :system/base-choice :says "базу обирає спосіб запуску: разовий крок старту — IUniTaskSystem; упорядкований конвеєр — IPrioritizedUniTaskSystem<T> зі стадією в аргументі, а коли сімейство має абстрактну базу — її; робота після кожного Update — LateUpdatedSystem; reactive-споживач події — IUpdatedSystem напряму з readonly EventReader<TEvent>, без бази; інакше UpdatedSystem, коли систему веде робоча таблиця чи якір тіку" :governs :system :checked-by :agent :kind :choice}
     {:id :system/priority-source :says "Priority повертає іменовану const int із тримача пріоритетів проєкту — ніколи локальну константу класу й ніколи літерал" :governs :priority :checked-by :graph :note "інструмент приймає будь-яку розвʼязну const int, отже перевіряє слабше за правило"}
     {:id :system/priority-space :says "вкладений клас тримача пріоритетів — окремий простір порядку: значення порівнюються лише всередині простору, кожен член простору має власне значення, а пріоритети підсистем порівнюються лише всередині свого оркестратора" :governs :priority :checked-by :agent}
     {:id :system/priority-is-order-only :says "пріоритет задає лише порядок виконання — ніколи правило, що споживач стоїть вище чи нижче виробника" :governs :priority :checked-by :agent}
@@ -510,7 +514,7 @@ MarkerShapeAnalyzer виводяться ЗВІДСИ. Зміна правила
    :does "три форми runtime-логіки і сімейство підсистем, зібране DI"
    :rules
    [{:id :reactive/default :says "reactive — типовий вибір для runtime-логіки і єдиний реактивний механізм проєкту" :governs :system :checked-by :agent :kind :choice}
-    {:id :reactive/shape :says "reactive-система — запечатаний нащадок Update-бази, чиї залежності, індекси й архетипи розвʼязані в конструкторі, чий якір у базовому виклику — архетип події, а тіло Update починається з перевірки дозрілості, далі йдуть сторожі передумов, що кидають, і дія лише на різниці" :governs :system :checked-by :agent}
+    {:id :reactive/shape :says "sealed IUpdatedSystem: залежності в конструкторі, readonly EventReader<TEvent> з DI, Update — while (reader.TryRead(out var evt)) реакція; тихий вихід — усередині реакції або після вичерпання; сторожі, що кидають; дія на різниці" :governs :system :checked-by :agent}
     {:id :perframe/only-when :says "per-frame береться лише коли логіка справді неперервна і не може бути реактивною — рух камери, проєкція щокадру, опитування вводу, стеження за виділенням; треба вміти сказати, чому імпульс не замінить тік" :governs :system :checked-by :agent :kind :choice}
     {:id :perframe/shape :says "per-frame система — запечатаний нащадок Update-бази, чий базовий виклик бере світ і робочу таблицю з тримача, а тіло Update не лишає полів між кадрами" :governs :system :checked-by :agent}
     {:id :perframe/late-update :says "пізня Update-база береться, коли треба бачити остаточний стан кадру — після камери й ігрових записів" :governs :system :checked-by :agent :kind :choice}
@@ -521,9 +525,9 @@ MarkerShapeAnalyzer виводяться ЗВІДСИ. Зміна правила
     {:id :orchestrator/no-domain-logic :says "оркестратор не містить доменної логіки — сортує, пропускає вимкнені, запускає; уся робота живе в підсистемах" :governs :subsystem :checked-by :agent}
     {:id :orchestrator/query-caches :says "спільні запити й Try-helper живуть у базі сімейства, власні — у кожній підсистемі; кеші запитів належать сховищу, тому звільняти в підсистемі нема чого, а її звільнення прибирає лише те, що вона сама виділила" :governs :subsystem :checked-by :agent}
     {:id :orchestrator/routing :says "маршрутизація сімейства — спроба обробки на кожній підсистемі, перший збіг виграє, жодного збігу — кинути" :governs :subsystem :checked-by :agent}
-    {:id :orchestrator/empty-family :says "поки підсистем нема, оркестратор лишається порожньою оболонкою з якорем і без інжекції списку: контейнер кидає на порожню колекцію, тому список і цикл зʼявляються з першою підсистемою" :governs :subsystem :checked-by :agent}
-    {:id :orchestrator/ripe-once :says "дозрілість перевіряє оркестратор один раз перед розсиланням — підсистема не перевіряє її повторно" :governs :subsystem :checked-by :agent}
-    {:id :structural/update-is-safe :says "структурні зміни в тілі Update безпечні, бо база вже зняла знімок якірного архетипу; у переліченні, яке система чи підсистема відкриває сама, вони заборонені" :governs :update-base :checked-by :agent}]})
+    {:id :orchestrator/empty-family :says "поки підсистем нема, оркестратор лишається порожньою оболонкою з читачем або якорем, без інжекції списку: контейнер кидає на порожню колекцію, тому список і цикл зʼявляються з першою підсистемою" :governs :subsystem :checked-by :agent}
+    {:id :structural/update-is-safe :says "структурні зміни безпечні в тілі Update бази, що зняла знімок якоря, і в реакції на подію з читача — читач не перелічує сутностей; у переліченні, яке система відкриває сама, заборонені" :governs :update-base :checked-by :agent}
+    {:id :orchestrator/own-reader :says "підсистема, якій потрібна подія, тримає власний читач; оркестратор нічого їй не пересилає" :governs :subsystem :checked-by :agent}]})
 ```
 
 ## Разові системи, конвеєр, фаза ходу
@@ -684,7 +688,7 @@ MarkerShapeAnalyzer виводяться ЗВІДСИ. Зміна правила
   {:section :naming
    :does "суфікс ролі, самодостатність імені типу і межа доменного префікса"
    :rules
-   [{:id :name/suffix :says "суфікс несе роль: дані — компонент, безполевий маркер — тег, однокадровий імпульс — подія, посилання між таблицями — імʼя ключа власника з позначкою посилання перед словом компонент" :governs :component :checked-by :graph}
+   [{:id :name/suffix :says "суфікс несе роль: дані — компонент, безполевий маркер — тег, подія журналу — подія, посилання між таблицями — імʼя ключа власника з позначкою посилання перед словом компонент; виняток: IEventTag називається тегом, але є контрактом типу події з даними, не безполевим маркером" :governs :component :checked-by :graph}
     {:id :name/self-sufficient :says "імʼя типу зрозуміле без простору імен, імʼя фічі повторюється завжди і ніколи не лишається голої ролі, а розрізнення через псевдонім чи кваліфікатор простору імен не буває" :governs :assembly :checked-by :agent}
     {:id :name/prefix-exception :says "доменний префікс прибирається, і єдиний виняток — компонент ідентичності або дискримінатор таблиці, на які посилаються З ІНШИХ доменів" :governs :component :checked-by :agent :note "інсталер домену зберігає префікс, але його форма — предмет блоку DI і в набір не входить"}
     {:id :name/static :says "static-клас — лише для stateless-утиліти без полів" :governs :assembly :checked-by :agent}]})
@@ -725,7 +729,7 @@ MarkerShapeAnalyzer виводяться ЗВІДСИ. Зміна правила
    [{:id :choose/recipe-tree :says "форма береться за предметом частини: ECS-дані йдуть у рецепти даних, конфіг — у рецепти конфігів, поведінка — у рецепти поведінки, view — у рецепт пари view і системи, робота з ассетами — у рецепт addressables; коли жодна гілка не тримає, рецепта нема" :governs :system :checked-by :agent :kind :choice}
     {:id :choose/data-recipe :says "серед даних: несе значення — компонент, позначає ідентичність рядка — тег, сигналізує зміну — подія" :governs :component :checked-by :agent :kind :choice}
     {:id :choose/config-recipe :says "серед конфігів: багато видів різної форми зі спільним ключем у таблицю сутностей — поліморфний каталог, завантажується чи будується на старті — конфіг плюс loader, інакше просто конфіг" :governs :config :checked-by :agent :kind :choice}
-    {:id :choose/behavior-recipe :says "серед поведінки: охоплює кілька піддоменів — transaction-сутність; будує світ при створенні мапи з незалежно впорядкованими частинами — оркестратор із підсистемами, просто будує світ — стадія конвеєра; фаза ходу — оркестратор із підсистемами; реагує на подію з незалежними частинами — reactive-оркестратор, просто реагує — reactive; неперервно щокадру — per-frame; прибирає події — cleanup" :governs :system :checked-by :agent :kind :choice}
+    {:id :choose/behavior-recipe :says "серед поведінки: охоплює кілька піддоменів — transaction-сутність; будує світ при створенні мапи з незалежно впорядкованими частинами — оркестратор із підсистемами, просто будує світ — стадія конвеєра; фаза ходу — оркестратор із підсистемами; реагує на подію з незалежними частинами — reactive-оркестратор, просто реагує — reactive; неперервно щокадру — per-frame" :governs :system :checked-by :agent :kind :choice}
     {:id :catalogue/when :says "поліморфний каталог береться, коли разом: кілька авторських видів різної форми зі спільним ключем, runtime запитує чи зʼєднує записи за ключем, а новий вид додається без правки оркестратора; один конфіг однієї форми і однорідний список на одне читання каталогом не є, і поведінки на конфігу не буває" :governs :config :checked-by :agent :kind :choice}
     {:id :catalogue/config-shape :says "абстрактний базовий конфіг тримає лише спільний ключ, конкретні види додають свої параметри або нічого, а контейнер тримає масив базових конфігів" :governs :config :checked-by :graph}
     {:id :catalogue/container :says "контейнер вантажиться одним loader-ом на кроці завантаження конфігів, реалізує валідацію і перевіряє, що записи не порожні — порожній каталог зупиняє гру на старті" :governs :config-loader :checked-by :agent}
@@ -740,12 +744,11 @@ MarkerShapeAnalyzer виводяться ЗВІДСИ. Зміна правила
                   :tag "оголошена struct з контрактом тегу, поділена на головні й мітки"
                   :event "оголошена struct з суфіксом події"
                   :transaction-entity "архетип несе мітку ролі transaction"
-                  :reactive "клас із роллю reactive — подієвий якір у базовому виклику або reactive-маркер"
+                  :reactive "клас із роллю reactive — поле EventReader<TEvent> у класі циклу без маркера PerFrame"
                   :per-frame "клас із роллю per_frame"
                   :view-system "ребро підписки від класу з маркером підписника view"
                   :pipeline-stage "клас реалізує впорядкований async-контракт зі стадією створення мапи"
                   :polymorphic-catalogue "абстрактна база ассета з суфіксом конфіга плюс неабстрактний контейнер із масивом цієї бази плюс колонка виду, названа за базою і несена архетипом"
-                  :cleanup "Update-клас обходить тег події і видаляє"
                   :turn-phase "нащадок бази фаз ходу"
                   :startup-step "негенеричний async-контракт"}}]})
 ```
@@ -771,8 +774,8 @@ MarkerShapeAnalyzer виводяться ЗВІДСИ. Зміна правила
 
 ```clojure
 (def tally
-  {:rules 244 :sections 17 :parts 4 :constructs 56 :prefixes 38
+  {:rules 248 :sections 17 :parts 4 :constructs 56 :prefixes 38
    :choice-rules 25 :enforcement-marks 7
-   :checked-by {:agent 152 :graph 56 :arch-check 28 :analyzer 6 :none 2}
+   :checked-by {:agent 156 :graph 56 :arch-check 28 :analyzer 6 :none 2}
    :law "розбіжність між цим блоком і перерахунком — помилка файлу, не розбіжність тексту"})
 ```

@@ -36,12 +36,12 @@ namespace Modules.Boot.Implementation.States
 
         private void SeedStartOfPlay()
         {
-            // Producer (variant B): write the initial visibility state, then raise a one-frame event so the
+            // Producer (variant B): write the initial visibility state, then raise a log event so the
             // consumer renders icons on the first Gameplay tick. The player toggles this later via UI by
             // writing HexIconsVisibilityComponent and raising the same event.
             _storages.Singletons.Set(new HexIconsVisibilityComponent(true));
 
-            _storages.World.CreateEvent(new HexIconsVisibilityChangedEvent());
+            _storages.Events.Raise(new HexIconsVisibilityChangedEvent());
 
             // The game opens on the first Mayor Phase = turn 1; TurnCountSystem increments it on each
             // turn boundary. Seeded here so the turn cluster can show "Хід N" from the first frame.

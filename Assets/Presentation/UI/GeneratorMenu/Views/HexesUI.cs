@@ -36,7 +36,7 @@ namespace Presentation.UI.GeneratorMenu.Views
 
         private void GenerateHexes()
         {
-            _storages.World.CreateEvent(new TerrainGenerationGenerateEventComponent());
+            _storages.Events.Raise(new TerrainGenerationGenerateEventComponent());
         }
     }
 }

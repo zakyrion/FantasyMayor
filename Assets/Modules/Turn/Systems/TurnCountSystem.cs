@@ -1,6 +1,5 @@
 using System;
 using EcsExtensions;
-using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Boot.Core;
 using Modules.Turn.Components;
@@ -9,29 +8,34 @@ using Modules.Turn.Events;
 namespace Modules.Turn.Systems
 {
     /// <summary>
-    ///     Advances the turn counter. Reactive on the one-frame <see cref="TurnCompletedEvent" /> pulse raised by
+    ///     Advances the turn counter. Reactive on the <see cref="TurnCompletedEvent" /> log event raised by
     ///     <see cref="TurnProcessorSystem" /> when a turn resolves — it does NOT poll the processor, so the
-    ///     completion-detection logic lives in one place. Priority is above the processor (1000) so the pulse is
-    ///     read the same frame it is emitted, before <c>EventCleanupSystem</c> (int.MaxValue) clears it.
+    ///     completion-detection logic lives in one place.
     /// </summary>
     [UsedImplicitly]
-    public sealed class TurnCountSystem : UpdatedSystem
+    public sealed class TurnCountSystem : IUpdatedSystem
     {
         private readonly EntityStorages _storages;
+        private readonly EventReader<TurnCompletedEvent> _turnCompletions;
 
-        public override int Priority => SystemPriorities.RuntimeTick.TurnCount;
+        public AppState AppState { get; }
+        public int Priority => SystemPriorities.RuntimeTick.TurnCount;
 
-        public TurnCountSystem(AppState appState, EntityStorages storages)
-            : base(appState, storages.World, EventArchetypes.Of<TurnCompletedEvent>(storages.World))
+        public TurnCountSystem(AppState appState, EntityStorages storages, EventReader<TurnCompletedEvent> turnCompletions)
         {
+            AppState = appState;
             _storages = storages;
+            _turnCompletions = turnCompletions;
         }
 
-        protected override void Update(GameState state, in Entity entity)
+        public void Update(GameState state)
         {
-            if (!EcsEventExtensions.IsRipe(entity))
-                return;
+            while (_turnCompletions.TryRead(out _))
+                AdvanceTurnCount();
+        }
 
+        private void AdvanceTurnCount()
+        {
             if (!_storages.Singletons.Has<TurnCountComponent>())
                 throw new InvalidOperationException(
                     "TurnCountSystem: TurnCountComponent is missing — it must be seeded on Gameplay enter.");

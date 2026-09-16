@@ -6,8 +6,8 @@ description: Build and query ONE deterministic graph of FantasyMayor's code that
 # fantasymayor-graph — one graph, one CLI, no LLM
 
 roslyn-mcp sees definitions and references; it is blind to what lives in generic arguments and data: archetypes
-declared in `<Domain>Archetypes` holders, `EventArchetypes.Of<T>` anchors, `AddComponent<T>` writes,
-`ComponentIndex<TComponent,TValue>` tables, `Register<Impl>().As<Contract>()`, `IReadOnlyList<T>` collection
+declared in `<Domain>Archetypes` holders, `EventReader<TEvent>` fields and `Events.Raise` sites, `AddComponent<T>`
+writes, `ComponentIndex<TComponent,TValue>` tables, `Register<Impl>().As<Contract>()`, `IReadOnlyList<T>` collection
 injection, Boot's hand-wiring of systems into game states. This skill extracts all of it with tree-sitter in ONE
 deterministic pass (well under a second) into `<project>/.fantasymayor-graph/graph.json` and answers from it.
 
@@ -39,7 +39,7 @@ edit the JSON by hand (the graph-gate hook denies it).
 | `check` | dangling edges, table and set owners outside the nodes, archetypes without components, recipe instances without a node, curated, INFERRED / AMBIGUOUS counts, every warning — recipe deviations included, each with the rule it breaks; integrity errors exit 1 |
 | `stats` | nodes by kind, edges by rel, systems by role, instances per recipe, warnings, curated |
 | `pattern <RECIPE>` | the recipe's instances with `source_location` and `decided_by`, its groups and deviations; zero instances come with what the signature looked for |
-| `systems [--role R]` | every system by role and priority; roles: `reactive`, `per_frame`, `cleanup`, `pipeline_stage`, `turn_phase`, `startup_step`, `sub_system`, `undecided` |
+| `systems [--role R]` | every system by role and priority; roles: `reactive`, `per_frame`, `pipeline_stage`, `turn_phase`, `startup_step`, `sub_system` |
 | `tags` | archetypes with the main tag and the label tags apart, then every tag-law deviation (the label cap included) |
 | `explain <node>` | every ECS and DI facet of a node, its outgoing and incoming edges with args, the tables it keys or owns |
 | `neighbors <node> [--rel a,b]` | the edges of a node, filtered by rel |
@@ -55,7 +55,7 @@ edit the JSON by hand (the graph-gate hook denies it).
 
 `<node>` is an id, an exact name (any case), or a substring matching exactly one name; no match or several matches
 end with the candidates on stderr and exit 1. A type's id is its name with the names of the types it is nested in;
-an archetype's id is `Holder.Member`, a closed generic holder adds its arguments: `EventArchetypes.Of<NextTurnEvent>`.
+an archetype's id is `Holder.Member`, a closed generic type adds its arguments: `EventReader<NextTurnEvent>`.
 
 ## Roles and markers
 
@@ -65,28 +65,28 @@ marker only where it does not.
 ```clojure
 (def role-decision
   (cond
-    (and (update-loop?) (sweeps-events?))         :cleanup          ;; lexical — an EventTag query and DeleteEntity in one class
-    (anchored-on-event?)                          :reactive         ;; base — EventArchetypes.Of or an events-only AnyComponents in base(...)
-    (and (update-loop?) (holds-event-archetype?)) "the SystemRole marker, or :undecided with a warning"
-    (update-loop?)                                :per_frame        ;; base
-    (pipeline-member?)                            :pipeline_stage   ;; base — IPrioritizedUniTaskSystem with MapGenerationStep
-    (turn-phase-member?)                          :turn_phase       ;; base — TurnPhaseSubSystem
-    (startup-step?)                               :startup_step     ;; base — the non-generic IUniTaskSystem
-    (family-member?)                              :sub_system       ;; lexical — an abstract ancestor some constructor collects
-    :else                                         :none))
+    (and (update-loop?) (holds-event-reader-field?)) "the SystemRole marker decides: PerFrame, else reactive"
+    (update-loop?)                                   :per_frame        ;; base
+    (pipeline-member?)                               :pipeline_stage   ;; base — IPrioritizedUniTaskSystem with MapGenerationStep
+    (turn-phase-member?)                             :turn_phase       ;; base — TurnPhaseSubSystem
+    (startup-step?)                                  :startup_step     ;; base — the non-generic IUniTaskSystem
+    (family-member?)                                 :sub_system       ;; lexical — an abstract ancestor some constructor collects
+    :else                                            :none))
+;; a class with no role that still holds an EventReader<TEvent> field gets a `consumes` edge, not a role
 ```
 
 ```clojure
-{:markers {SystemRoleAttribute     "[SystemRole(SystemRoleKind.PerFrame | Reactive)] — only where the base does not decide"
+{:markers {SystemRoleAttribute     "[SystemRole(SystemRoleKind.PerFrame)] — only on an Update-loop class that ALSO holds an EventReader<TEvent> field yet still ticks every frame; Reactive is no longer a legal value"
            ViewSubscriberAttribute "[ViewSubscriber(typeof(TheView))] on the class that adds handlers to the view's C# events"
            TagLabelAttribute       "[TagLabel] or [TagLabel(TagLabelRole.Transaction)] on a tag struct — a label beside the main tag, never a filter"}
- :guard "MarkerShapeAnalyzer in the Unity compilation — a marker whose type does not have the claimed shape is error FM1001-FM1004"
+ :guard "MarkerShapeAnalyzer in the Unity compilation — a marker whose type does not have the claimed shape is error FM1001, FM1006"
  :tool  "a redundant role marker, a class that needs one, a view marker without a subscription and a view subscription without a marker are warnings"
- :marker-value "the marker decides only when its value matches the shape: [SystemRole(Reactive)] on a TABLE-anchored class is refused — undecided plus a warning, exactly as the analyzer refuses it"}
+ :marker-value "the marker decides only when its value matches the shape: [SystemRole(PerFrame)] on a class holding no EventReader<TEvent> field is refused — a warning, exactly as the analyzer refuses it"}
 ```
 
-A base-anchored event is `reacts_to`; an event archetype held outside `base(...)` is `reacts_to` only under the
-reactive marker and `polls` otherwise.
+A class holding an `EventReader<TEvent>` is `reacts_to` when it carries no `PerFrame` marker, and `polls` when it
+does; a non-system holder of an `EventReader<TEvent>` — a game state, a subsystem, Boot — gets a `consumes` edge
+instead, with no role at all.
 
 ## The laws over rows, keys and links
 
@@ -120,13 +120,13 @@ over the whole layer.
 ```text
 meta:       {schema, roots[], files, generated, curated}
 nodes:      {id: {name, kind, namespace, source_location, declared, abstract,
-                  role, decided_by, priority, base_anchor, anchor_events[], held_events[],   # classes
+                  role, decided_by, priority, event_readers[],                               # classes
                   components[], main_tag, label_tags[], tag_order[],                         # archetypes
                   view_layer, scene_object,                                                  # the view layer
                   lifetime, installer, contract, state, markers}}                            # DI facets, markers
             kind: component | tag | event | data | config | view | system | archetype | installer | interface | other
 edges:      [{src, dst, rel, via, args[]?, app_state?, collection?, source_location, confidence}]
-            rel:  has writes reads removes emits reacts_to polls disposes fk_of references
+            rel:  has writes reads removes emits reacts_to polls consumes disposes fk_of references
                   inherits hosts registers exposes injects runs_in subscribes
 ecs_tables: {tables[], index_usages[], sets[], dispose_sites[], late_writes[], tags_add_sites[],
              indexed_components{}, component_field_types{}, singleton_used[]}

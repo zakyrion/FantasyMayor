@@ -1,7 +1,7 @@
-using Friflo.Engine.ECS;
+using EcsExtensions;
 namespace Domains.Map.Generation.Components
 {
-    public struct TerrainGenerationGenerateEventComponent : IComponent
+    public struct TerrainGenerationGenerateEventComponent : IEventTag
     {
     }
 }

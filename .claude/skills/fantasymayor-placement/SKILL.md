@@ -100,7 +100,7 @@ Where each new file of a FantasyMayor task lives, which assemblies it may refere
   {:where        "inside a feature, an area or a module assembly; directly under a domain or presentation assembly root only as a shared role"
    "Components/" {:contains "pure data structs"           :never "logic, side effects"}
    "Tags/"       {:contains "tag components"}
-   "Events/"     {:contains "one-frame event components"}
+   "Events/"     {:contains "event types — structs implementing IEventTag"}
    "Configs/"    {:contains "ScriptableObject class defs"  :never "runtime logic, config assets"}
    "Data/"       {:contains "collections, records, enums"  :never "ECS systems, MonoBehaviours"}
    "Systems/"    {:contains "ECS systems + orchestration"  :never "view logic, config definitions"}
@@ -115,7 +115,7 @@ Where each new file of a FantasyMayor task lives, which assemblies it may refere
 ```clojure
 (def di-composition
   {:root              {:is WorldInstaller :only "the one LifetimeScope — the whole application is composed in its Configure()"}
-   :root-first        "the root itself registers the engine-level core — camera, input, UI root, event cleanup — before any installer"
+   :root-first        "the root itself registers the engine-level core — camera, input, UI root, the one open EventReader<> registration — before any installer; EventReaderAotDeclarations (the closed-type AOT list, rule event/aot-reader) lives beside the root too"
    :installer         {:is "a plain class : VContainer.IInstaller" :mono-only-when "it owns [SerializeField] data"}
    :install-order     {:where "InstallModules, called from the root's Configure()" :rule "dependencies before dependents — startup systems run in registration order"}
    :new-installer     "one new <Name>Installer().Install(builder) line in InstallModules, after the installers it depends on; every other registration stays in its layer's installer"

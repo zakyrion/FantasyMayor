@@ -62,14 +62,11 @@ session.AddComponent(new MyActionStateComponent { Value = MyActionState.Draft })
 
 // 2. Mutate — every change arrives as a COMMAND event carrying the command's values (PATTERN_EVENT)
 //    consumed by a small reactive system in the verb domain; the UI never writes the entity.
-protected override void Update(GameState state, in Entity pulse)
+public void Update(GameState state)
 {
-    if (!EcsEventExtensions.IsRipe(pulse))
-        return;
-
-    var picked = pulse.GetComponent<MyChoicePickedEvent>().Value;
-    if (_sessions.TryGetFirst(out var session))
-        session.AddComponent(new MyChoiceComponent { Value = picked });
+    while (_choicePicks.TryRead(out var picked))
+        if (_sessions.TryGetFirst(out var session))
+            session.AddComponent(new MyChoiceComponent { Value = picked.Value });
 }
 
 // 3. Commit — advance the stage column; the row already carries the full, live transaction state.
@@ -80,7 +77,7 @@ var fact = EconomyArchetypes.MyFact(_world).CreateEntity();       // the substra
 fact.AddComponent(new HexIdFKComponent { Coords = hex.Coords });
 fact.AddComponent(new MyResultComponent { Value = result });
 
-_world.CreateEvent(new MyFactCreatedEvent());                     // consumers reconcile from the fact table
+_storages.Events.Raise(new MyFactCreatedEvent());                 // consumers reconcile from the fact table
 ```
 
 The UI side is a projection: its subsystems read the transaction entity directly
@@ -95,7 +92,7 @@ becomes command pulses, never writes.
    :state         "ALL transaction state on the ONE entity"   ;; no singleton-component copies, no second home; state you can't place = a design question, not a new component
    :reachability  {:never "place state in a substrate domain so another layer can read it"}  ;; the entity IS the reachable home; pure UI selection state stays in Presentation
    :ui            :projection                                 ;; the UI SYSTEM reads the entity and raises the command pulses across the boundary; the view feeds it via a local C# event and never raises the pulse itself (PATTERN_VIEW_SYSTEM); owns zero transaction state (pure render state stays in the view)
-   :command       "one-frame event carrying the command's values" ;; consumed ONLY by a verb-domain reactive system that writes the entity
+   :command       "log event carrying the command's values"       ;; consumed ONLY by a verb-domain reactive system that writes the entity
    :lifecycle     "stage = a …StateComponent COLUMN"          ;; one archetype for the whole session (Birth Completeness); the main tag never changes, and the archetype declaration carries TransactionTag — the label of role transaction — beside it. A stage that genuinely needs a DIFFERENT composition = delete the row + create a new one in its archetype, PK/FK carried over — never an optional column. Draft stage OPTIONAL (see Degenerate case)
    :completion    "FACT entity in the substrate domain + an event"  ;; the transaction produces a noun; consumers read the fact table
    :views         "render facts (or the live entity) — never a snapshot copy"})

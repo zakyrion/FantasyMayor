@@ -22,22 +22,22 @@ using Object = UnityEngine.Object;
 namespace Presentation.Districts.Systems
 {
     /// <summary>
-    ///     Reactive runtime construction-progress spawner. Anchored on the one-frame
-    ///     <see cref="DistrictTableChangedEvent" /> pulse (FLOW_DISTRICT_BUILD unification, 2026-07-17 — was
-    ///     <c>DistrictBuildConfirmedEvent</c>, a COMMAND, which coupled this system to
-    ///     <c>BuildDistrictActionSystem</c>'s tick order): on its presence it reconciles state — every District
-    ///     row staged <c>DistrictBuildState.Planned</c> whose hex has no progress view yet gets its prefab
-    ///     instantiated on the hex centre. Works with current world state, not the pulse payload, so it is
-    ///     idempotent regardless of which stage transition raised the pulse. Torn down by
-    ///     <see cref="DistrictBuildProgressViewDespawnSystem" /> at build completion (R1) or cancel (R5).
+    ///     Reactive runtime construction-progress spawner. Reads the <see cref="DistrictTableChangedEvent" /> log
+    ///     event (FLOW_DISTRICT_BUILD unification, 2026-07-17 — was <c>DistrictBuildConfirmedEvent</c>, a COMMAND,
+    ///     which coupled this system to <c>BuildDistrictActionSystem</c>'s tick order): on every event it
+    ///     reconciles state — every District row staged <c>DistrictBuildState.Planned</c> whose hex has no
+    ///     progress view yet gets its prefab instantiated on the hex centre. Works with current world state, not
+    ///     the event payload, so it is idempotent regardless of which stage transition raised the event. Torn
+    ///     down by <see cref="DistrictBuildProgressViewDespawnSystem" /> at build completion (R1) or cancel (R5).
     /// </summary>
     [UsedImplicitly]
-    public sealed class DistrictBuildProgressViewSpawnSystem : UpdatedSystem
+    public sealed class DistrictBuildProgressViewSpawnSystem : IUpdatedSystem
     {
         // District rows: one per hex, carrying the hex FK, its type, and its build stage.
         private readonly Archetype _districts;
 
         private readonly EntityStorages _storages;
+        private readonly EventReader<DistrictTableChangedEvent> _districtTableChanges;
 
         // Progress-view entities -> lets the reconcile skip hexes already viewed; also the birth archetype for
         // new views. HexIdFKComponent is shared by every hex-anchored entity kind (the District row itself
@@ -46,23 +46,28 @@ namespace Presentation.Districts.Systems
 
         private UnityEngine.Transform _root;
 
-        public override int Priority => SystemPriorities.RuntimeTick.DistrictBuildProgressViewSpawn;
+        public AppState AppState { get; }
+        public int Priority => SystemPriorities.RuntimeTick.DistrictBuildProgressViewSpawn;
 
-        public DistrictBuildProgressViewSpawnSystem(AppState appState, EntityStorages storages)
-            : base(appState, storages.World, EventArchetypes.Of<DistrictTableChangedEvent>(storages.World))
+        public DistrictBuildProgressViewSpawnSystem(AppState appState, EntityStorages storages, EventReader<DistrictTableChangedEvent> districtTableChanges)
         {
+            AppState = appState;
             _storages = storages;
+            _districtTableChanges = districtTableChanges;
 
             _districts = EconomyArchetypes.District(storages.World);
             _viewArchetype = PresentationArchetypes.DistrictBuildProgressView(storages.World);
         }
 
-        // The pulse entity itself is ignored — reconciliation is global over current state.
-        protected override void Update(GameState state, in Entity pulse)
+        public void Update(GameState state)
         {
-            if (!EcsEventExtensions.IsRipe(pulse))
-                return;
+            while (_districtTableChanges.TryRead(out _))
+                SpawnMissingProgressViews();
+        }
 
+        // Reconciliation is global over current state — the event's payload itself is ignored.
+        private void SpawnMissingProgressViews()
+        {
             if (!_storages.Singletons.Has<VertexGridComponent>())
                 throw new InvalidOperationException(
                     "DistrictBuildProgressViewSpawnSystem: VertexGridComponent singleton component is missing.");

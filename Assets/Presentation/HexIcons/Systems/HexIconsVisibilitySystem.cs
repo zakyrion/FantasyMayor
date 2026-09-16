@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Domains.Map.Archetypes;
 using Domains.Map.Hex.Components;
@@ -20,25 +20,26 @@ namespace Presentation.HexIcons.Systems
 {
     /// <summary>
     ///     Renders per-hex resource icons in response to a <see cref="HexIconsVisibilityChangedEvent" />.
-    ///     The system's base set IS the event set, so it only runs on the frame an event exists (one-frame
-    ///     events are disposed each tick by <c>EventCleanupSystem</c>) — zero idle cost. On an event it reads
-    ///     the current <see cref="HexIconsVisibilityComponent" /> and either clears every container or rebuilds
-    ///     each one from that hex's actual resources, looking the sprite up in <see cref="HexResourceIconConfig" />.
-    ///     No render state is cached: every event is a full clear-and-rebuild.
+    ///     On each event it reads the current <see cref="HexIconsVisibilityComponent" /> and either clears every
+    ///     container or rebuilds each one from that hex's actual resources, looking the sprite up in
+    ///     <see cref="HexResourceIconConfig" />. No render state is cached: every event is a full clear-and-rebuild.
     /// </summary>
     [UsedImplicitly]
-    public sealed class HexIconsVisibilitySystem : UpdatedSystem
+    public sealed class HexIconsVisibilitySystem : IUpdatedSystem
     {
         private readonly EntityStorages _storages;
         private readonly Archetype _containerSet;
         private readonly Archetype _resourceSet;
+        private readonly EventReader<HexIconsVisibilityChangedEvent> _hexIconsVisibilityChanges;
 
-        public override int Priority => SystemPriorities.RuntimeTick.HexIconsVisibility;
+        public AppState AppState { get; }
+        public int Priority => SystemPriorities.RuntimeTick.HexIconsVisibility;
 
-        public HexIconsVisibilitySystem(AppState appState, EntityStorages storages)
-            : base(appState, storages.World, EventArchetypes.Of<HexIconsVisibilityChangedEvent>(storages.World))
+        public HexIconsVisibilitySystem(AppState appState, EntityStorages storages, EventReader<HexIconsVisibilityChangedEvent> hexIconsVisibilityChanges)
         {
+            AppState = appState;
             _storages = storages;
+            _hexIconsVisibilityChanges = hexIconsVisibilityChanges;
             _containerSet = PresentationArchetypes.HexIconContainer(storages.World);
             _resourceSet = MapArchetypes.HexResource(storages.World);
         }
@@ -46,11 +47,14 @@ namespace Presentation.HexIcons.Systems
         // Fires once per event (normally one per frame). Resolves prerequisites fail-loud, then clears and —
         // when visible — rebuilds every container from its hex's resources. The container×resource scan is
         // O(containers × resources) but runs only on event frames, so no per-hex lookup index is cached.
-        protected override void Update(GameState state, in Entity entity)
+        public void Update(GameState state)
         {
-            if (!EcsEventExtensions.IsRipe(entity))
-                return;
+            while (_hexIconsVisibilityChanges.TryRead(out _))
+                RebuildHexIcons();
+        }
 
+        private void RebuildHexIcons()
+        {
             if (!_storages.Singletons.Has<HexIconsVisibilityComponent>())
                 throw new InvalidOperationException(
                     "HexIconsVisibilitySystem: HexIconsVisibilityComponent is missing.");

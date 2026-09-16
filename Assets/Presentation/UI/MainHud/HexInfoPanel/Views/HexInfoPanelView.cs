@@ -248,11 +248,12 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Views
             }
         }
 
-        // The build slot raises a payload-less one-frame request; the future build window reads the current
-        // HexSelectedComponent for the target hex. No consumer yet (dormant emitter).
+        // The build slot raises a payload-less log event; DistrictBuildUISystem and DistrictBuildListUISubSystem
+        // read it to open the build window and default-select the first buildable district for the target hex
+        // (the current HexSelectedComponent).
         private void OnBuildClicked(ClickEvent evt)
         {
-            _storages.World.CreateEvent(new DistrictBuildUIRequestedEvent());
+            _storages.Events.Raise(new DistrictBuildUIRequestedEvent());
         }
 
         private void UnhookBuildButton()

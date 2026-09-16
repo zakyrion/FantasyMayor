@@ -18,9 +18,6 @@ namespace Modules.Boot.Implementation
         /// <summary>The mode this state represents.</summary>
         AppState Mode { get; }
 
-        /// <summary>Non-null when the state wants the machine to switch to another mode.</summary>
-        AppState? RequestedMode { get; }
-
         /// <summary>Runs the (possibly async) entry sequence; ticking is suspended until this completes.</summary>
         UniTask EnterAsync(CancellationToken cancellationToken);
 

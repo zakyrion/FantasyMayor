@@ -31,16 +31,17 @@ namespace EcsExtensions
 
         /// <summary>
         ///     Gameplay per-frame + reactive tick order. Numeric values are a deterministic execution order only —
-        ///     event visibility no longer depends on them: every one-frame event is guaranteed a full frame before
-        ///     <see cref="EventCleanup" /> disposes it, regardless of relative priority to its producer (see the
-        ///     Event Lifecycle law, ECS_CONVENTIONS.md). Every system still gets a distinct value — even two
-        ///     systems with no known dependency today — so a same-tick write/read dependency between them (e.g. one
-        ///     system reading a singleton component another wrote this frame) is never silently order-agnostic.
+        ///     a reader after its producer's priority sees an event in the same tick it was raised; a reader
+        ///     before it sees the event on the next tick. Delivery follows the tick, never a frame-window rule.
+        ///     Every system still gets a distinct value — even two systems with no known dependency today —
+        ///     so a same-tick write/read dependency between them (e.g. one system reading a singleton component
+        ///     another wrote this frame) is never silently order-agnostic.
         /// </summary>
         public static class RuntimeTick
         {
             public const int Camera = 0;
             public const int HexSelection = 1;
+            public const int Initialization = 2;
             public const int HexSelectionView = 501; // historically HexSelectionViewLoading + 1
             public const int HexInfoPanel = 550;
             public const int HexInfoPanelHeader = 560;
@@ -64,7 +65,6 @@ namespace EcsExtensions
             public const int TurnCount = 1010;
             public const int TurnPanelView = 1020; // > TurnCount (1010): reads TurnProcessorComponent/TurnCountComponent every frame — must run after both write
             public const int HexInfoPanelDistrict = 1030; // reacts to SelectedHexChangedEvent, TurnCompletedEvent, or DistrictTableChangedEvent
-            public const int EventCleanup = int.MaxValue; // always last: disposes ripe event entities
         }
 
         /// <summary>

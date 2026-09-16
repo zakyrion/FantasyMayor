@@ -1,4 +1,4 @@
-﻿using Domains.Map.Archetypes;
+using Domains.Map.Archetypes;
 using Domains.Map.Hex.Components;
 using EcsExtensions;
 using Friflo.Engine.ECS;
@@ -22,27 +22,33 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
     ///     HexInfoPanelSpawnSubSystem. Does NOT show/hide the bottom-panel shell (TurnPanelViewSystem owns that).
     /// </summary>
     [UsedImplicitly]
-    public sealed class HexInfoPanelSystem : UpdatedSystem
+    public sealed class HexInfoPanelSystem : IUpdatedSystem
     {
         private readonly Archetype _viewSet;
         private readonly Archetype _selectedHexSet;
         private readonly Archetype _hexSet;
+        private readonly EventReader<SelectedHexChangedEvent> _selectedHexChanges;
 
-        public override int Priority => SystemPriorities.RuntimeTick.HexInfoPanel;
+        public AppState AppState { get; }
+        public int Priority => SystemPriorities.RuntimeTick.HexInfoPanel;
 
-        public HexInfoPanelSystem(AppState appState, EntityStorages storages)
-            : base(appState, storages.World, EventArchetypes.Of<SelectedHexChangedEvent>(storages.World))
+        public HexInfoPanelSystem(AppState appState, EntityStorages storages, EventReader<SelectedHexChangedEvent> selectedHexChanges)
         {
+            AppState = appState;
+            _selectedHexChanges = selectedHexChanges;
             _viewSet = PresentationUIArchetypes.HexInfoPanel(storages.World);
             _selectedHexSet = PresentationArchetypes.HexSelection(storages.World);
             _hexSet = MapArchetypes.Hex(storages.World);
         }
 
-        protected override void Update(GameState state, in Entity entity)
+        public void Update(GameState state)
         {
-            if (!EcsEventExtensions.IsRipe(entity))
-                return;
+            while (_selectedHexChanges.TryRead(out _))
+                SwapContextPanel();
+        }
 
+        private void SwapContextPanel()
+        {
             if (!_viewSet.TryGetFirst(out var viewEntity))
                 return;
 

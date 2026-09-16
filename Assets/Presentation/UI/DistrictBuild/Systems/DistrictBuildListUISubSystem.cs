@@ -19,26 +19,27 @@ namespace Presentation.UI.DistrictBuild.Systems
     // Projects the open-condition table into the build list: every entity whose DistrictOpenStateComponent
     // reads Buildable is a district the player may build. Read-only on the table — the evaluator subsystem
     // owns the state. Sole owner of DistrictBuildSelectionComponent: default-selects the first buildable
-    // district on the window-open pulse, writes the selection directly on row-click, and marks the current
-    // selection as active. On the view's row-click (local C# event) it writes the selection, then calls the
-    // orchestrator-provided Repopulate to re-run the other section subsystems (the view stays World-free).
+    // district on a non-empty batch of the overlay-open event, writes the selection directly on row-click, and
+    // marks the current selection as active. On the view's row-click (local C# event) it writes the selection,
+    // then calls the orchestrator-provided Repopulate to re-run the other section subsystems (the view stays
+    // World-free). Holds its own reader (:orchestrator/own-reader) — the orchestrator forwards nothing to it.
     [UsedImplicitly]
     [ViewSubscriber(typeof(DistrictBuildListUIView))]
     public sealed class DistrictBuildListUISubSystem : DistrictBuildUISubSystem
     {
         private readonly EntityStorages _storages;
+        private readonly EventReader<DistrictBuildUIRequestedEvent> _overlayRequests;
         private readonly ComponentIndex<DistrictOpenStateComponent, DistrictOpenState> _buildable;
-        private readonly Archetype _requestedSet;
         private readonly Archetype _selectionSet;
         private bool _hooked;
 
         public override int Priority => SystemPriorities.SubSystems.DistrictBuildUi.List;
 
-        public DistrictBuildListUISubSystem(EntityStorages storages) : base(storages.World)
+        public DistrictBuildListUISubSystem(EntityStorages storages, EventReader<DistrictBuildUIRequestedEvent> overlayRequests) : base(storages.World)
         {
             _storages = storages;
+            _overlayRequests = overlayRequests;
             _buildable = storages.World.ComponentIndex<DistrictOpenStateComponent, DistrictOpenState>();
-            _requestedSet = EventArchetypes.Of<DistrictBuildUIRequestedEvent>(storages.World);
             _selectionSet = PresentationUIArchetypes.DistrictBuildSelection(storages.World);
         }
 
@@ -60,11 +61,11 @@ namespace Presentation.UI.DistrictBuild.Systems
                     "DistrictBuildListUISubSystem: Populate called with no active " +
                     $"{nameof(DistrictBuildSelectionTag)} entity.");
 
-            // The window just opened this tick: default-select the first buildable district (None if the list
-            // is empty), before this Populate call (and the other sections') reads it. Ripeness, not mere
-            // presence: the pulse entity lives two frames (birth + ripe), so a Count check would re-apply the
-            // default on the frame after the open and discard a pick made in between (Event Lifecycle).
-            if (HasRipeRequest())
+            // The window just opened this pass: default-select the first buildable district (None if the list
+            // is empty), before this Populate call (and the other sections') reads it. A non-empty batch means
+            // the overlay opened since the reader last drained — a Repopulate call from a row click finds the
+            // reader already drained here, so the pick it just wrote is not reset (H4).
+            if (_overlayRequests.DrainBatch())
             {
                 var defaultSelection = buildable.Count > 0
                     ? buildable[0].GetComponent<DistrictTypeFKComponent>().Value
@@ -85,15 +86,6 @@ namespace Presentation.UI.DistrictBuild.Systems
             }
 
             return UniTask.CompletedTask;
-        }
-
-        private bool HasRipeRequest()
-        {
-            foreach (var pulse in _requestedSet.Entities)
-                if (EcsEventExtensions.IsRipe(pulse))
-                    return true;
-
-            return false;
         }
 
         private void OnSelected(DistrictType district)

@@ -19,13 +19,7 @@ namespace FantasyMayor.Analyzers
         internal static readonly DiagnosticDescriptor PerFrameRoleMismatch = new(
             "FM1001",
             "SystemRole(PerFrame) contradicts the class shape",
-            "{0} claims SystemRole(PerFrame), but a per-frame system is a non-abstract IUpdatedSystem or ILateUpdatedSystem whose base(...) is not anchored on an event archetype — rule system/marker-value",
-            Category, DiagnosticSeverity.Error, isEnabledByDefault: true);
-
-        internal static readonly DiagnosticDescriptor ReactiveRoleMismatch = new(
-            "FM1002",
-            "SystemRole(Reactive) contradicts the class shape",
-            "{0} claims SystemRole(Reactive), but a reactive system is a non-abstract IUpdatedSystem or ILateUpdatedSystem, not anchored on a table in base(...), that anchors on or holds an event archetype — rule system/marker-value",
+            "{0} claims SystemRole(PerFrame), but PerFrame demands the Update-loop contract plus an EventReader field — rule system/marker-value",
             Category, DiagnosticSeverity.Error, isEnabledByDefault: true);
 
         internal static readonly DiagnosticDescriptor ViewSubscriberMismatch = new(
@@ -40,16 +34,10 @@ namespace FantasyMayor.Analyzers
             "{0} claims TagLabel, but only a struct implementing ITag can be a label tag — rule tag/label-marker",
             Category, DiagnosticSeverity.Error, isEnabledByDefault: true);
 
-        internal static readonly DiagnosticDescriptor RoleMarkerMissing = new(
-            "FM1005",
-            "The role marker is missing on the shape no ordering rule decides",
-            "{0} is an Update-loop class that holds an event archetype outside base(...) — the one shape the role order leaves open — so it carries [SystemRole(SystemRoleKind.Reactive)] or [SystemRole(SystemRoleKind.PerFrame)] — rule system/marker-required",
-            Category, DiagnosticSeverity.Error, isEnabledByDefault: true);
-
-        internal static readonly DiagnosticDescriptor RoleMarkerRedundant = new(
+        internal static readonly DiagnosticDescriptor RoleMarkerForbidden = new(
             "FM1006",
-            "The role marker is redundant — the class shape already decides its role",
-            "{0} carries a SystemRole marker, but its own shape already decides its role ({1}); the marker belongs only on an Update-loop class that holds an event archetype outside base(...) — rule system/marker-forbidden",
+            "The role marker is forbidden on a class holding no EventReader",
+            "{0} carries a SystemRole marker, but the marker belongs only on a class holding an EventReader field; absent that field, the role order leaves this class no role to decide — rule system/marker-forbidden",
             Category, DiagnosticSeverity.Error, isEnabledByDefault: true);
 
         internal static readonly DiagnosticDescriptor ViewSubscriptionUnmarked = new(
@@ -65,8 +53,8 @@ namespace FantasyMayor.Analyzers
             Category, DiagnosticSeverity.Error, isEnabledByDefault: true);
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-            ImmutableArray.Create(PerFrameRoleMismatch, ReactiveRoleMismatch, ViewSubscriberMismatch, TagLabelMismatch,
-                RoleMarkerMissing, RoleMarkerRedundant, ViewSubscriptionUnmarked, MarkerDeclaredInheritable);
+            ImmutableArray.Create(PerFrameRoleMismatch, ViewSubscriberMismatch, TagLabelMismatch,
+                RoleMarkerForbidden, ViewSubscriptionUnmarked, MarkerDeclaredInheritable);
 
         public override void Initialize(AnalysisContext context)
         {
@@ -100,22 +88,14 @@ namespace FantasyMayor.Analyzers
 
             var claims = MarkerShapeFacts.CollectClaims(type, vocabulary);
             var loopContract = HasLoopContract(type, vocabulary);
+            var holdsEventReader = HoldsEventReader(type, vocabulary);
 
             // A type that carries no marker and cannot be the shape that demands one — nearly every type —
             // registers nothing.
             if (claims.IsEmpty && !loopContract)
                 return;
 
-            var check = new MarkedTypeCheck(type, claims, vocabulary, loopContract);
-
-            // base(...) is an anchor only under the two system bases; nothing else can produce one.
-            if (SymbolEqualityComparer.Default.Equals(type.BaseType?.OriginalDefinition, vocabulary.UpdatedSystemBase)
-                || SymbolEqualityComparer.Default.Equals(type.BaseType?.OriginalDefinition, vocabulary.LateUpdatedSystemBase))
-                context.RegisterSyntaxNodeAction(check.SightBaseAnchor, SyntaxKind.BaseConstructorInitializer);
-
-            // A held event archetype only ever decides the role of a class that runs in the Update loop.
-            if (loopContract)
-                context.RegisterSyntaxNodeAction(check.SightHeldEventArchetype, SyntaxKind.InvocationExpression);
+            var check = new MarkedTypeCheck(type, claims, vocabulary, loopContract, holdsEventReader);
 
             // Subscriptions are read only to answer a ViewSubscriber marker the type already carries.
             if (claims.Any(claim => SymbolEqualityComparer.Default.Equals(claim.AttributeClass, vocabulary.ViewSubscriber)))
@@ -128,6 +108,14 @@ namespace FantasyMayor.Analyzers
             !type.IsAbstract
             && (type.AllInterfaces.Contains(vocabulary.UpdatedSystemInterface, SymbolEqualityComparer.Default)
                 || type.AllInterfaces.Contains(vocabulary.LateUpdatedSystemInterface, SymbolEqualityComparer.Default));
+
+        // A field of the type — any partial declaration — whose declared type closes EcsExtensions.EventReader<>.
+        // Read straight off the symbol at SymbolStart: a field's declared type never changes once the symbol is
+        // known, so this needs no sighting action over syntax the way the old base(...) anchor did.
+        private static bool HoldsEventReader(INamedTypeSymbol type, MarkerVocabulary vocabulary) =>
+            vocabulary.EventReader != null
+            && type.GetMembers().OfType<IFieldSymbol>()
+                .Any(field => SymbolEqualityComparer.Default.Equals(field.Type.OriginalDefinition, vocabulary.EventReader));
 
         private static bool IsMarkerDeclaration(INamedTypeSymbol type, MarkerVocabulary vocabulary) =>
             SymbolEqualityComparer.Default.Equals(type, vocabulary.SystemRole)

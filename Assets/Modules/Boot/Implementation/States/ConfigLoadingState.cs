@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using EcsExtensions;
+using JetBrains.Annotations;
 using Modules.Boot.Core;
 
 namespace Modules.Boot.Implementation.States
@@ -10,12 +11,13 @@ namespace Modules.Boot.Implementation.States
     ///     Runs the systems flagged <see cref="AppState.ConfigLoading" /> — every config loader, then cleanup —
     ///     then hands off; Boot advances past this mode by entry completion, never by anything this state requests.
     /// </summary>
+    [UsedImplicitly]
     public sealed class ConfigLoadingState : IAppState
     {
         private readonly AppStateSystems _systems;
+        public AppState? RequestedMode => null;
 
         public AppState Mode => AppState.ConfigLoading;
-        public AppState? RequestedMode => null;
 
         public ConfigLoadingState(IReadOnlyList<IAppStateSystem> allSystems)
         {
@@ -27,9 +29,8 @@ namespace Modules.Boot.Implementation.States
             return _systems.RunEntryAsync(cancellationToken);
         }
 
-        public void Tick(GameState state)
+        public void Exit()
         {
-            _systems.Tick(state);
         }
 
         public void LateTick(GameState state)
@@ -37,8 +38,9 @@ namespace Modules.Boot.Implementation.States
             _systems.LateTick(state);
         }
 
-        public void Exit()
+        public void Tick(GameState state)
         {
+            _systems.Tick(state);
         }
     }
 }

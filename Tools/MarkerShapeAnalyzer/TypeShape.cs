@@ -7,24 +7,17 @@ namespace FantasyMayor.Analyzers
     internal sealed class TypeShape
     {
         public readonly bool LoopContract;
-        public readonly bool EventAnchored;
-        public readonly bool TableAnchored;
-        public readonly ImmutableArray<IMethodSymbol> HeldEventArchetypes;
+        public readonly bool HoldsEventReader;
         public readonly ImmutableArray<IEventSymbol> SubscribedEvents;
         public readonly bool TagStruct;
-        public readonly bool Cleanup;
 
-        public TypeShape(bool loopContract, bool eventAnchored, bool tableAnchored,
-            ImmutableArray<IMethodSymbol> heldEventArchetypes, ImmutableArray<IEventSymbol> subscribedEvents,
-            bool tagStruct, bool cleanup)
+        public TypeShape(bool loopContract, bool holdsEventReader, ImmutableArray<IEventSymbol> subscribedEvents,
+            bool tagStruct)
         {
             LoopContract = loopContract;
-            EventAnchored = eventAnchored;
-            TableAnchored = tableAnchored;
-            HeldEventArchetypes = heldEventArchetypes;
+            HoldsEventReader = holdsEventReader;
             SubscribedEvents = subscribedEvents;
             TagStruct = tagStruct;
-            Cleanup = cleanup;
         }
     }
 }

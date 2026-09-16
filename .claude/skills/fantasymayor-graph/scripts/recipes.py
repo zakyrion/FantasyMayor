@@ -46,14 +46,12 @@ RECIPE_SIGNATURES = {
                                         "class with role pipeline_stage (IPrioritizedUniTaskSystem<MapGenerationStep>)"),
     "PATTERN_ORCHESTRATOR_SUBSYSTEM": Signature(lambda s, t, d: find_orchestrator_families(t, d), "lexical",
                                                 "abstract class collected by a constructor collection (hosts edge)"),
-    "PATTERN_REACTIVE_SYSTEM": Signature(lambda s, t, d: instances_with_role(d, "reactive"), "base | marker",
+    "PATTERN_REACTIVE_SYSTEM": Signature(lambda s, t, d: instances_with_role(d, "reactive"), "reader",
                                          "class with role reactive"),
     "PATTERN_REACTIVE_ORCHESTRATOR_SYSTEM": Signature(lambda s, t, d: find_reactive_orchestrators(d), "lexical",
                                                      "class with role reactive and an outgoing hosts edge"),
     "PATTERN_PERFRAME_SYSTEM": Signature(lambda s, t, d: instances_with_role(d, "per_frame"), "base | marker",
                                          "class with role per_frame"),
-    "PATTERN_CLEANUP_SYSTEM": Signature(lambda s, t, d: instances_with_role(d, "cleanup"), "lexical",
-                                        "class with role cleanup (EventTag sweep + DeleteEntity)"),
     "PATTERN_VIEW_SYSTEM": Signature(lambda s, t, d: find_view_subscribers(s, d), "marker",
                                      "subscribes edge from a [ViewSubscriber] class to its view"),
     "PATTERN_TRANSACTION_ENTITY": Signature(lambda s, t, d: find_transaction_entities(t, d), "label-tag",
@@ -82,13 +80,8 @@ def instances_of_kind(draft, kind: str) -> RecipeResult:
 
 
 def instances_with_role(draft, role: str) -> RecipeResult:
-    result = RecipeResult([instance(i, n, n.get("decided_by")) for i, n in sorted(draft.nodes.items())
-                           if n.get("role") == role and n.get("kind") == "system"])
-    if role == "per_frame":
-        result.deviations = [f"marker needed: {i} — role undecided @ {n.get('source_location')} "
-                             f"[rule system/marker-required]"
-                             for i, n in sorted(draft.nodes.items()) if n.get("role") == "undecided"]
-    return result
+    return RecipeResult([instance(i, n, n.get("decided_by")) for i, n in sorted(draft.nodes.items())
+                         if n.get("role") == role and n.get("kind") == "system"])
 
 
 def instance(node_id: str, node: dict, decided_by, **facets) -> dict:
@@ -186,7 +179,7 @@ def find_view_subscribers(sources, draft) -> RecipeResult:
     # never receives the store. The population is the view LAYER: everything declared in a Views/ folder.
     views = {i for i, n in draft.nodes.items() if n.get("view_layer")}
     for site in (s for s in sources.ecs_sites if s["owner"] in views):
-        if site["site"] == "create_event":
+        if site["site"] == "raise_event":
             deviate(result, draft, f"view-boundary: {site['owner']} raises {site['type']} "
                                    f"@ {site['source_location']}", "view/boundary")
         elif site["site"] == "create_entity":

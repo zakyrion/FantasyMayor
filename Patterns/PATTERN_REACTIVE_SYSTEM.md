@@ -10,82 +10,83 @@ related:
 
 # Pattern — Reactive System (event-driven)
 
-**The default for runtime logic.** Responds to a one-frame [event](PATTERN_EVENT.md) through its archetype.
-On the event it acts on the event's values directly or reconciles against current store data. Subclass
-`UpdatedSystem`. One approach.
+**The default for runtime logic.** Responds to a [log event](PATTERN_EVENT.md) it reads through its own
+`EventReader<TEvent>`. On each event it acts on the event's values directly or reconciles against current
+store data. Sealed `IUpdatedSystem` directly — no base at all. One approach.
 
 ## Skeleton
 
 ```csharp
 [UsedImplicitly]
-public sealed class [Name]System : UpdatedSystem
+public sealed class [Name]System : IUpdatedSystem
 {
     private readonly EntityStorages _storages;
+    private readonly EventReader<[Name]Event> _<reader>;
     private readonly ComponentIndex<[Key]Component, [KeyValue]> _rowsByKey;  // declarative cache (Table Rule)
     private readonly Archetype _rows;                                        // the table this system reconciles
 
-    public override int Priority => SystemPriorities.RuntimeTick.[Name];
+    public int Priority => SystemPriorities.RuntimeTick.[Name];
 
-    // DI injects EntityStorages — never a bare EntityStore.
-    public [Name]System(EntityStorages storages)
-        : base(storages.World, EventArchetypes.Of<[Name]Event>(storages.World))   // the pulse's archetype drives the system
+    // DI injects EntityStorages and builds a fresh EventReader<TEvent> — never a bare EntityStore.
+    public [Name]System(EntityStorages storages, EventReader<[Name]Event> <reader>)
     {
         _storages = storages;
+        _<reader> = <reader>;
         _rowsByKey = storages.World.ComponentIndex<[Key]Component, [KeyValue]>();
         _rows = [Domain]Archetypes.[Table](storages.World);
     }
 
-    // Act on the event's values directly, or reconcile against current store state.
-    protected override void Update(GameState state, in Entity pulse)
+    // One reaction per event — the reader is drained to the end every tick.
+    public void Update(GameState state)
     {
-        if (!EcsEventExtensions.IsRipe(pulse))   // deliver exactly once, the frame after the pulse was raised
-            return;
+        while (_<reader>.TryRead(out var evt))
+            React(evt);
+    }
 
+    private void React(in [Name]Event evt)
+    {
         // 1. Guard prerequisites (fail loud on the critical ones).
-        // 2. Read the event's values — pulse.GetComponent<[Name]Event>() — or build the CURRENT desired state from store data.
+        // 2. Read the event's values from evt, or build the CURRENT desired state from store data.
         // 3. Act — when reconciling, only on the difference against what exists (idempotent).
     }
 }
 ```
 
-No role marker on the shape above: the event archetype sits in the `base(...)` call, so the shape itself
-decides the role and a marker there is forbidden. The marker is required in exactly ONE shape — an
-Update-loop class that HOLDS the event archetype outside `base(...)`, e.g. one batching a whole ripe set:
+A reaction that instead fires ONCE per tick, on a whole drained batch rather than per event (e.g. a
+turn-boundary reconcile), reads:
 
 ```csharp
-[UsedImplicitly]
-[SystemRole(SystemRoleKind.Reactive)]        // no ordering rule decides this shape, so the marker does
-public sealed class [Name]System : IUpdatedSystem
+public void Update(GameState state)
 {
-    private readonly Archetype _pulses;      // the event archetype is HELD, not passed to a base call
+    if (!_<reader>.DrainBatch())   // false — nothing arrived this tick
+        return;
 
-    public [Name]System(EntityStorages storages)
-    {
-        _pulses = EventArchetypes.Of<[Name]Event>(storages.World);
-    }
+    // reconcile once against current store state
 }
 ```
 
-`Reactive` demands the Update-loop contract with no table anchor plus an event anchor or a held event
-archetype — a marker that contradicts the class shape FAILS the Unity compile (MarkerShapeAnalyzer,
-category `FantasyMayor.Markers`, severity Error). No marker is inherited: every concrete class carries
-its own. Live instance: `BuildDistrictCompletionSystem`.
+No role marker on either shape above: holding an `EventReader<TEvent>` in a class whose only base is the
+Update-loop contract already decides `reactive`. The marker `PerFrame` is required in exactly ONE shape —
+an Update-loop class that ALSO holds an `EventReader<TEvent>` yet still ticks every frame rather than
+reacting (PATTERN_PERFRAME_SYSTEM); `Reactive` has no legal marker value any more.
+
+No marker is inherited: every concrete class carries its own. Live instance: `TurnCountSystem`.
 
 ## Rules
 
 ```clojure
 (def reactive-rules
   {:on-pulse #{"act on the event's values directly"
-               "reconcile: rebuild desired state from CURRENT store data and diff"}  ;; reconcile is idempotent: a 2nd pulse finds nothing to do; a missed pulse is repaired by the next
-   :driven-by "EventArchetypes.Of<TheEvent>" ;; zero cost while no pulse exists
-   :role-marker {:required  "[SystemRole(SystemRoleKind.Reactive)] on an Update-loop class that HOLDS the event archetype outside base(...)"
-                 :forbidden "on a class whose own shape already decides the role — the anchor in base(...) above"
+               "reconcile: rebuild desired state from CURRENT store data and diff"}  ;; reconcile is idempotent: a 2nd event finds nothing to do; a missed event is repaired by the next
+   :driven-by "readonly EventReader<TEvent>, born Transient from DI" ;; the cursor lives in EventLog, not on the system (event/reader)
+   :role-marker {:required  "[SystemRole(SystemRoleKind.PerFrame)] on an Update-loop class that holds an EventReader<TEvent> yet ticks every frame"
+                 :forbidden "on a class holding no EventReader field — reactive has no marker of its own"
                  :inherited :never}          ;; a marker contradicting the shape is a compile ERROR (MarkerShapeAnalyzer); a redundant one is a graph warning today
-   :ripe-gate "IsRipe(pulse) or return"      ;; MANDATORY first line: without it the system reacts on the birth frame too, i.e. twice (ARCHITECTURE → Events)
-   :priority  "deterministic order only"     ;; delivery no longer depends on it — never encode "must sit above/below the producer"
-   :structural-in-update :safe               ;; UpdatedSystem snapshots the driving archetype's ids and calls Update(state, entity) outside its enumeration
+   :quiet-exit "inside the reaction, or after the reader is drained — never before" ;; the reader must be given the chance to read first (event/drain-before-exit)
+   :priority  "deterministic order only"     ;; a reader after its producer's priority sees the event the same tick, before it the next tick — never encode "must sit above/below the producer" (event/delivery)
+   :structural-in-update :safe               ;; a reader never enumerates entities, so structural changes inside the reaction are safe the same way they are inside an anchored Update body
    :structural-in-own-enumeration :forbidden ;; an enumeration the system opens inside Update: snapshot entity.Id into NativeList<int>, re-fetch via TryGetEntityById, then delete/modify (ARCHITECTURE → Threading and structural change)
    :smell    {:create+destroy-same-content "two reactive systems, one event each"
-              :per-frame-just-to-check     "it IS reactive"}  ;; emit the pulse at the change source
+              :per-frame-just-to-check     "it IS reactive"}  ;; emit the event at the change source
    :wiring   "concrete in installer + wired in Boot.Construct"})
 ```

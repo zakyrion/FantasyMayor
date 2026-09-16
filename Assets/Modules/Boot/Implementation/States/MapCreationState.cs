@@ -8,15 +8,15 @@ namespace Modules.Boot.Implementation.States
 {
     /// <summary>
     ///     Builds a fresh world: on entry runs the systems flagged <see cref="AppState.MapCreation" /> — the
-    ///     world-building pipeline stages, in priority order — then ticks its per-frame systems (event cleanup)
-    ///     for a few "settle" frames before requesting <see cref="AppState.Gameplay" />. View building is done
+    ///     world-building pipeline stages, in priority order — then ticks its per-frame systems for a few
+    ///     "settle" frames before requesting <see cref="AppState.Gameplay" />. View building is done
     ///     synchronously inside the pipeline.
     /// </summary>
     public sealed class MapCreationState : IAppState
     {
-        // A few frames let the per-frame settle systems (e.g. event cleanup) drain anything the pipeline
-        // raised before handing off to Gameplay; 3 is a safe margin. The systems here are idempotent, so
-        // extra ticks are no-ops.
+        // A few frames let the per-frame settle systems finish reacting to anything the pipeline raised
+        // before handing off to Gameplay; 3 is a safe margin. The systems here are idempotent, so extra
+        // ticks are no-ops.
         private const int SettleFrames = 3;
 
         private readonly AppStateSystems _systems;

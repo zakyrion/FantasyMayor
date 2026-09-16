@@ -26,6 +26,17 @@ def connect_registrations(sources, draft):
 
         if site["site"] == "unknown_registration":
             draft.warn(f"registration form outside the known ones: {site['form']} in {installer} @ {location}")
+        elif site["site"] == "register_open_generic":
+            # Register(typeof(EventReader<>), Lifetime.Transient) — one open registration serving every closed
+            # EventReader<TEvent> DI ever builds. RegisterAppStateSystem<T> (a project extension method) is not
+            # read as a registration at all today, so a reader's role never comes from an injects edge — it
+            # comes from the EventReader field itself (roles.py).
+            if not site["generic"]:
+                continue
+            via = f"Register({site['lifetime']})" if site["lifetime"] else "Register"
+            draft.add_edge(Edge(installer, site["generic"], "registers", via, location, args=("<>",)))
+            lifetimes[site["generic"]].add(site["lifetime"] or "")
+            installers[site["generic"]].add(installer)
         elif site["site"] == "register_instance":
             if site["identifier"] is None:
                 draft.warn(f"RegisterInstance at {location} ({installer}) — instance type is not a plain identifier, "

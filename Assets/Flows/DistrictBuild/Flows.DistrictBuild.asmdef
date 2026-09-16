@@ -1,7 +1,9 @@
 {
     "name": "Flows.DistrictBuild",
     "rootNamespace": "Flows.DistrictBuild",
-    "references": [],
+    "references": [
+        "Ecs.Extensions"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

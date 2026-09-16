@@ -32,7 +32,7 @@ namespace Domains.[Domain].[Feature].Tags
 ```clojure
 (def tag-rules
   {:add             "named in the table's archetype — Tags.Get<[Name]Tag>() inside its holder method"  ;; the row is BORN with it (ARCHITECTURE → Entities, :archetype/holder); tagging a live entity does not happen anywhere in this codebase — it would migrate the row out of its archetype
-   :per-entity      {:main 1 :labels "0-4"}                 ;; Tag Law; EventTag is the main tag of every event; UITag and DistrictOpenConditionTag are labels
+   :per-entity      {:main 1 :labels "0-4"}                 ;; Tag Law; an event carries no tag at all — its discriminator is its IEventTag component type; UITag and DistrictOpenConditionTag are labels
    :label           "[TagLabel] or [TagLabel(TagLabelRole.X)] on the struct; named in Tags.Get after the main tag; never a query filter"
    :query-table     "[Domain]Archetypes.[Table](store)"     ;; key + discriminator declared ONCE and reused for birth and filter, NEVER a bare key (Table Rule)
    :never-state     "a marker toggled at runtime is a …StateComponent (enum) — see Tag Law"  ;; a tag cannot be toggled: composition is fixed at birth, so a swap means delete + recreate

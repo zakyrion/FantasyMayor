@@ -12,7 +12,8 @@
         "Presentation",
         "Turn",
         "Domains.Actions",
-        "Domains.Economy"
+        "Domains.Economy",
+        "Core"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Domains.Actions.Archetypes;
 using Domains.Actions.BuildDistrictAction.Components;
 using Domains.Actions.BuildDistrictAction.Events;
@@ -14,27 +14,26 @@ using Unity.Collections;
 namespace Domains.Actions.BuildDistrictAction.Systems
 {
     /// <summary>
-    ///     Event-gated reconcile: on the <c>BuildDistrictCompleteEvent</c> pulse (raised on the main thread by
-    ///     <c>BuildDistrictTurnTickSystem</c>) flips finished builds' District row to Built — every in-progress
-    ///     verb row (<see cref="BuildDistrictInProgressTag" />) whose countdown reached zero resolves its
+    ///     Event-gated reconcile: on <c>BuildDistrictCompleteEvent</c> (raised on the main thread by
+    ///     <c>BuildDistrictTurnTickSystem</c>, once per turn, the first time any countdown reaches zero — see
+    ///     :lossy-producer) flips finished builds' District row to Built — every in-progress verb row
+    ///     (<see cref="BuildDistrictInProgressTag" />) whose countdown reached zero resolves its
     ///     <c>DistrictIdFKComponent</c> to the District row (allocated at CONFIRM by
     ///     <c>BuildDistrictActionSystem</c> — the fact already exists, this system does NOT create it), Sets it
     ///     <c>DistrictBuildState.Built</c>, then disposes the verb row; one <c>DistrictTableChangedEvent</c>
-    ///     {Built} covers the pass for the world-view spawner. The pulse is a DOORBELL, not a payload: this system reconciles the whole
-    ///     in-progress set off state, and the producer re-raises the pulse EVERY turn while any countdown sits at
-    ///     zero (level-triggered) — a pulse lost to the EventCleanup frame window costs one turn of latency, never
-    ///     correctness. Both halves of that discipline are the contract; weakening either breaks the mechanic
-    ///     silently. See <c>Flows/FLOW_DISTRICT_BUILD.md</c>.
-    ///     Batch dispatch (whole in-progress set reconciled once per ripe pulse, not per-entity), so this
+    ///     {Built} covers the pass for the world-view spawner. This system reconciles the whole in-progress set
+    ///     off state rather than trusting a one-to-one delivery — an event evicted before this system reads it
+    ///     (the queue only holds so many) leaves the affected build stuck at zero turns left, an accepted risk
+    ///     (CASCADE.md contra c-2, decision :completion-eviction-risk). See <c>Flows/FLOW_DISTRICT_BUILD.md</c>.
+    ///     Batch dispatch (whole in-progress set reconciled once per non-empty batch, not per-event), so this
     ///     implements <see cref="IUpdatedSystem" /> directly instead of extending <c>UpdatedSystem</c> — same
     ///     precedent as <c>TurnProcessorSystem</c>.
     /// </summary>
     [UsedImplicitly]
-    [SystemRole(SystemRoleKind.Reactive)]
     public sealed class BuildDistrictCompletionSystem : IUpdatedSystem
     {
         private readonly EntityStorages _storages;
-        private readonly Archetype _completePulses;
+        private readonly EventReader<BuildDistrictCompleteEvent> _buildCompletions;
         private readonly Archetype _buildDistrictsInProgress;
         private readonly ComponentIndex<DistrictIdComponent, int> _districtsById;
 
@@ -42,30 +41,22 @@ namespace Domains.Actions.BuildDistrictAction.Systems
 
         public int Priority => SystemPriorities.RuntimeTick.BuildDistrictCompletion;
 
-        public BuildDistrictCompletionSystem(AppState appState, EntityStorages storages)
+        public BuildDistrictCompletionSystem(AppState appState, EntityStorages storages, EventReader<BuildDistrictCompleteEvent> buildCompletions)
         {
             AppState = appState;
             _storages = storages;
-            _completePulses = EventArchetypes.Of<BuildDistrictCompleteEvent>(storages.World);
+            _buildCompletions = buildCompletions;
             _buildDistrictsInProgress = ActionsArchetypes.BuildDistrictInProgress(storages.World);
             _districtsById = storages.World.ComponentIndex<DistrictIdComponent, int>();
         }
 
-        // The pulse batch is only the trigger — the work runs over the in-progress set, so however many ripe
-        // pulses fired this frame, the set is reconciled once. Snapshot ids first: deleting an entity while
-        // enumerating the query that selects it throws StructuralChangeException. Temp allocation happens only
-        // on frames where at least one build actually finished; idle pulses return at the zero count.
+        // The batch is only the trigger — the work runs over the in-progress set, so however many events fired
+        // this frame, the set is reconciled once. Snapshot ids first: deleting an entity while enumerating the
+        // query that selects it throws StructuralChangeException. Temp allocation happens only on frames where
+        // at least one build actually finished; an empty batch returns before it.
         public void Update(GameState state)
         {
-            var hasRipePulse = false;
-            foreach (var pulse in _completePulses.Entities)
-                if (EcsEventExtensions.IsRipe(pulse))
-                {
-                    hasRipePulse = true;
-                    break;
-                }
-
-            if (!hasRipePulse)
+            if (!_buildCompletions.DrainBatch())
                 return;
 
             var ready = new NativeList<int>(8, Allocator.Temp);
@@ -97,12 +88,12 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             RaiseTableChanged();
         }
 
-        // One pulse per pass (not per row — the multimap filter lets consumers reconcile the whole Built slice):
+        // One event per pass (not per row — the multimap filter lets consumers reconcile the whole Built slice):
         // DistrictViewSpawnSystem reconciles the newly-Built District rows against the views it has already
         // spawned.
         private void RaiseTableChanged()
         {
-            _storages.World.CreateEvent(new DistrictTableChangedEvent { Change = DistrictTableChange.Built });
+            _storages.Events.Raise(new DistrictTableChangedEvent { Change = DistrictTableChange.Built });
         }
     }
 }

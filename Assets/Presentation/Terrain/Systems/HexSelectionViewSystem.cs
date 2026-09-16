@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Domains.Map.Hex.Utils;
 using EcsExtensions;
 using Friflo.Engine.ECS;
@@ -19,7 +19,7 @@ namespace Presentation.Terrain.Systems
     ///     Hides the border when selection disappears and regenerates it when selection changes.
     /// </summary>
     [UsedImplicitly]
-    public sealed class HexSelectionViewSystem : UpdatedSystem
+    public sealed class HexSelectionViewSystem : IUpdatedSystem
     {
         private const int BorderBfsDepth = 3;
         private const float BorderLift = 0.08f;
@@ -27,28 +27,35 @@ namespace Presentation.Terrain.Systems
         private readonly Archetype _selectedHexSet;
         private readonly Archetype _viewSet;
         private readonly EntityStorages _storages;
+        private readonly EventReader<SelectedHexChangedEvent> _selectedHexChanges;
 
         private bool _hadSelection;
         private HexSelectedComponent _lastSelection;
         private HexSelectionView _lastView;
 
-        /// <inheritdoc />
-        public override int Priority => SystemPriorities.RuntimeTick.HexSelectionView;
+        public AppState AppState { get; }
 
-        public HexSelectionViewSystem(AppState appState, EntityStorages storages)
-            : base(appState, storages.World, EventArchetypes.Of<SelectedHexChangedEvent>(storages.World))
+        /// <inheritdoc />
+        public int Priority => SystemPriorities.RuntimeTick.HexSelectionView;
+
+        public HexSelectionViewSystem(AppState appState, EntityStorages storages, EventReader<SelectedHexChangedEvent> selectedHexChanges)
         {
+            AppState = appState;
             _storages = storages;
+            _selectedHexChanges = selectedHexChanges;
             _viewSet = PresentationArchetypes.HexSelectionView(storages.World);
             _selectedHexSet = PresentationArchetypes.HexSelection(storages.World);
         }
 
         /// <inheritdoc />
-        protected override void Update(GameState state, in Entity entity)
+        public void Update(GameState state)
         {
-            if (!EcsEventExtensions.IsRipe(entity))
-                return;
+            while (_selectedHexChanges.TryRead(out _))
+                SyncSelectionBorder();
+        }
 
+        private void SyncSelectionBorder()
+        {
             if (!_viewSet.TryGetFirst(out var viewEntity))
                 throw new InvalidOperationException(
                     "HexSelectionViewSystem: no HexSelectionView entity — HexSelectionViewLoadingSystem must run first.");

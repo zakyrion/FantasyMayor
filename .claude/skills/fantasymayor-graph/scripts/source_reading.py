@@ -354,9 +354,8 @@ def read_ecs_call(invocation, src: bytes, rel: str) -> list[dict]:
             and method in ("Add", "AddComponent", "GetComponent", "Has"):
         return []   # wrapper plumbing; its public call sites carry the facts
 
-    is_direct_event_of = method == "Of" and receiver_root == "EventArchetypes" and not template.is_template_use
     ecs_sites = []
-    if type_args and method not in ("Get", "Has") and not is_direct_event_of:
+    if type_args and method not in ("Get", "Has"):
         ecs_sites.append({"site": "typed_call", "target_class": receiver_root or site["owner"].rsplit(".", 1)[-1],
                           "method": method, "targs": list(type_args), "anchor": anchor,
                           "enc_method": template.enclosing_method, "enc_tps": template.enclosing_params, **site})
@@ -393,18 +392,15 @@ def read_ecs_call(invocation, src: bytes, rel: str) -> list[dict]:
         types_call = analyze_invocation(args[0], src) if args else None
         if types_call and types_call.method == "Get":
             ecs_sites.append({"site": "any_components", "types": list(types_call.type_args), "anchor": anchor, **site})
-    elif method == "CreateEvent":
+    elif method == "Raise" and receiver.endswith("Events"):
         target = first_type or (new_types_in_args(invocation, src)[:1] or [""])[0]
         if target:
-            ecs_sites.append({"site": "create_event", "type": target, **site})
+            ecs_sites.append({"site": "raise_event", "type": target, **site})
     elif method in ("CreateEntity", "CreateEntities"):
         ecs_sites.append({"site": "create_entity", "via": method, "receiver": receiver,
                           "argc": len(arg_exprs(invocation)), **site})
     elif method == "Add" and receiver.rsplit(".", 1)[-1] in ("Tags", "EcsTags", "tags"):
         ecs_sites.append({"site": "tags_add", "types": list(type_args), **site})
-    elif is_direct_event_of and first_type:
-        ecs_sites.append({"site": "holder_call", "holder": "EventArchetypes", "member": "Of", "targs": [first_type],
-                          "anchor": anchor, **site})
     elif receiver_root.endswith("Archetypes") and not template.is_template_use:
         ecs_sites.append({"site": "holder_call", "holder": receiver_root, "member": method,
                           "targs": list(type_args), "anchor": anchor, **site})
@@ -443,6 +439,13 @@ def read_registration(invocation, src: bytes, rel: str) -> list[dict]:
     name_node = field(field(invocation, "function"), "name") or field(invocation, "function")
     type_args = [read_type_use(c, src) for c in type_argument_nodes(name_node)]
     if not type_args:
+        # Register(typeof(EventReader<>), Lifetime.Transient) — one open registration for every closed
+        # EventReader<TEvent> DI ever builds; not a Register<T>() call, so it carries no type argument.
+        open_generic = open_generic_typeof((arg_exprs(invocation) or [None])[0], src)
+        if open_generic:
+            lifetime = next((text(a, src).split("Lifetime.")[-1].strip().rstrip(")")
+                             for a in arg_exprs(invocation) if "Lifetime." in text(a, src)), None)
+            return [{"site": "register_open_generic", "generic": open_generic, "lifetime": lifetime, **site}]
         return [{"site": "unknown_registration", "form": "Register without type arguments", **site}]
 
     statement = nearest_enclosing(invocation, {"expression_statement", "local_declaration_statement"}) or invocation
@@ -461,6 +464,19 @@ def read_registration(invocation, src: bytes, rel: str) -> list[dict]:
                      for a in arg_exprs(invocation) if "Lifetime." in text(a, src)), None)
     return [{"site": "register", "type_args": type_args, "as_targets": as_targets, "lifetime": lifetime,
              "app_state": app_state, **site}]
+
+
+def open_generic_typeof(node, src: bytes) -> str | None:
+    """typeof(X<>) — an open generic marker: a generic_name whose <> carries no type argument at all, unlike a
+    closed typeof(Foo<Bar>) or a plain typeof(Foo)."""
+    if node is None or node.type != "typeof_expression":
+        return None
+    type_node = field(node, "type")
+    if type_node is None or type_node.type != "generic_name":
+        return None
+    if type_argument_nodes(type_node):
+        return None
+    return text(first_child_of_type(type_node, {"identifier"}), src)
 
 
 def read_state_composition(creation, src: bytes, rel: str) -> list[dict]:

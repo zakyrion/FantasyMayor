@@ -13,26 +13,32 @@ namespace Presentation.UI.MainHud.ContextTabs.Systems
     ///     Reactive on the payload-less ContextTabChangedEvent pulse: reconciles the view against the current
     ///     ActiveContextTabComponent (both the view and the active tab are singleton components the view wrote on
     ///     click). Keeping the restyle in a system (not the MonoBehaviour) mirrors the TurnPanelView/TurnPanelViewSystem
-    ///     split. Idempotent. Anchored on the event set, mirroring the HexInfoPanel block systems.
+    ///     split. Idempotent.
     /// </summary>
     [UsedImplicitly]
-    public sealed class ContextTabSelectionSystem : UpdatedSystem
+    public sealed class ContextTabSelectionSystem : IUpdatedSystem
     {
         private readonly EntityStorages _storages;
+        private readonly EventReader<ContextTabChangedEvent> _contextTabChanges;
 
-        public override int Priority => SystemPriorities.RuntimeTick.ContextTabSelection;
+        public AppState AppState { get; }
+        public int Priority => SystemPriorities.RuntimeTick.ContextTabSelection;
 
-        public ContextTabSelectionSystem(AppState appState, EntityStorages storages)
-            : base(appState, storages.World, EventArchetypes.Of<ContextTabChangedEvent>(storages.World))
+        public ContextTabSelectionSystem(AppState appState, EntityStorages storages, EventReader<ContextTabChangedEvent> contextTabChanges)
         {
+            AppState = appState;
             _storages = storages;
+            _contextTabChanges = contextTabChanges;
         }
 
-        protected override void Update(GameState state, in Entity entity)
+        public void Update(GameState state)
         {
-            if (!EcsEventExtensions.IsRipe(entity))
-                return;
+            while (_contextTabChanges.TryRead(out _))
+                ReconcileActiveTab();
+        }
 
+        private void ReconcileActiveTab()
+        {
             if (!_storages.Singletons.Has<ContextTabsViewComponent>())
                 return;
 

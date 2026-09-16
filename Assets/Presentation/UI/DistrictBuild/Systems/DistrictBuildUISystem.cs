@@ -21,8 +21,8 @@ namespace Presentation.UI.DistrictBuild.Systems
 {
     /// <summary>
     ///     Drives the district-build overlay: visibility + section dispatch. Anchored on the
-    ///     DistrictBuildUIViewComponent singleton (ticks once per frame). Opens on the external
-    ///     <see cref="DistrictBuildUIRequestedEvent" /> pulse (raised by HexInfoPanel). Chrome is C#-event driven: it
+    ///     DistrictBuildUIViewComponent singleton (ticks once per frame). Opens on a non-empty batch of
+    ///     <see cref="DistrictBuildUIRequestedEvent" /> (raised by HexInfoPanel). Chrome is C#-event driven: it
     ///     subscribes to the view's Confirmed (read the ECS selection → raise the cross-domain
     ///     <see cref="DistrictBuildConfirmedEvent" /> → hide) and Closed (hide) events. Re-populate on a section
     ///     selection change is a direct call from the section subsystem via the Repopulate callback this system hands
@@ -42,7 +42,7 @@ namespace Presentation.UI.DistrictBuild.Systems
         [StateAllowed]
         private readonly IReadOnlyList<IPrioritizedUniTaskSystem> _subSystems;
 
-        private readonly Archetype _requestedSet;
+        private readonly EventReader<DistrictBuildUIRequestedEvent> _overlayRequests;
         private readonly Archetype _selectedHexSet;
         private readonly Archetype _selectionArchetype;
 
@@ -51,17 +51,19 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public override int Priority => SystemPriorities.RuntimeTick.DistrictBuildUi;
 
-        public DistrictBuildUISystem(AppState appState, EntityStorages storages, IReadOnlyList<IPrioritizedUniTaskSystem> allSubSystems)
+        public DistrictBuildUISystem(
+            AppState appState, EntityStorages storages, EventReader<DistrictBuildUIRequestedEvent> overlayRequests,
+            IReadOnlyList<IPrioritizedUniTaskSystem> allSubSystems)
             : base(appState, storages.World, PresentationUIArchetypes.DistrictBuildUI(storages.World))
         {
             _storages = storages;
+            _overlayRequests = overlayRequests;
             _subSystems = OrchestratorSubSystems.SelectForOrchestrator(typeof(DistrictBuildUISystem), allSubSystems);
 
             // Hand each populator the re-populate callback: a section that changes the shared selection (List) calls
             // it to re-run every section against the new state — the direct C# replacement for the re-populate pulse.
             HandRepopulateToSections();
 
-            _requestedSet = EventArchetypes.Of<DistrictBuildUIRequestedEvent>(storages.World);
             _selectedHexSet = PresentationArchetypes.HexSelection(storages.World);
             _selectionArchetype = PresentationUIArchetypes.DistrictBuildSelection(storages.World);
         }
@@ -83,26 +85,17 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         protected override void Update(GameState state, in Entity entity)
         {
+            // Drained before the view guard so a request never lingers unread while the view is briefly missing.
+            var overlayRequested = _overlayRequests.DrainBatch();
+
             var view = entity.GetComponent<DistrictBuildUIViewComponent>().View;
             if (view == null)
                 return;
 
             HookChrome(view);
 
-            if (HasRipeRequest())
+            if (overlayRequested)
                 Open(view);
-        }
-
-        // Ripeness, not mere presence: the pulse entity lives two frames (the frame it is raised and the ripe
-        // frame EventCleanupSystem deletes it on), so a Count check would open and repopulate the overlay on
-        // both (Event Lifecycle: a consumer acts only while IsRipe).
-        private bool HasRipeRequest()
-        {
-            foreach (var pulse in _requestedSet.Entities)
-                if (EcsEventExtensions.IsRipe(pulse))
-                    return true;
-
-            return false;
         }
 
         // The view outlives this system; subscribe once to its chrome C# events. Handled synchronously in the click
@@ -118,14 +111,14 @@ namespace Presentation.UI.DistrictBuild.Systems
             _chromeHooked = true;
         }
 
-        // Confirm: read the selected hex + district from ECS, raise the cross-domain build pulse the Actions assembly
+        // Confirm: read the selected hex + district from ECS, raise the cross-domain build event the Actions assembly
         // consumes (it can't read the Presentation selection), then hide. Confirm builds AND closes.
         private void OnConfirmed()
         {
             var (coords, type) = ReadSelection();
             var payer = ReadPayer();
 
-            _storages.World.CreateEvent(new DistrictBuildConfirmedEvent { Coords = coords, Type = type, Payer = payer });
+            _storages.Events.Raise(new DistrictBuildConfirmedEvent { Coords = coords, Type = type, Payer = payer });
 
             _view.Hide();
             DestroySelection();
@@ -155,7 +148,7 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         // The chosen payer lives view-local in the price section (its owner, per DistrictBuildPriceUIView). That
         // section always resolves a valid default on populate, so Unknown here means it never populated — a broken
-        // invariant, fail loud (mirrors ReadSelection). Captured into the confirmed pulse; BuildDistrictActionSystem
+        // invariant, fail loud (mirrors ReadSelection). Captured into the confirmed event; BuildDistrictActionSystem
         // spends the payer's stockpile from it (R2).
         private ActorType ReadPayer()
         {

@@ -13,10 +13,10 @@ COMPONENTS_FOLDER = "/Components/"
 # the only methods a column may carry: equality, because it can be the key of a table, and the indexed-key value
 COMPONENT_METHODS = {"Equals", "GetHashCode", "GetIndexedValue"}
 SCENE_OBJECT_BASE = "MonoBehaviour"
-COMPONENT_CONTRACTS = {"IComponent", "IIndexedComponent"}
+COMPONENT_CONTRACTS = {"IComponent", "IIndexedComponent", "IEventTag"}
 LEGACY_EVENT_SUFFIX = "EventComponent"
 INSTALLER_BASES = {"IInstaller", "LifetimeScope"}
-TYPE_FIELDS_OF_SITES = ("type", "types", "components", "tags", "state")
+TYPE_FIELDS_OF_SITES = ("type", "types", "components", "tags", "state", "generic")
 
 
 @dataclass
@@ -65,7 +65,7 @@ def declare_nodes(sources, draft):
                        f"values, never logic", "component/is")
         if declaration["kind"] == "struct":
             kind = ("tag" if "ITag" in bases
-                    else "event" if declaration["name"].endswith(("Event", "EventComponent"))
+                    else "event" if "IEventTag" in bases or declaration["name"].endswith(("Event", "EventComponent"))
                     else "component" if bases & COMPONENT_CONTRACTS or declaration["name"].endswith("Component")
                     else "data")
             check_struct_shape(declaration, bases, kind, draft)

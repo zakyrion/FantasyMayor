@@ -8,7 +8,8 @@ from collections import Counter, deque
 
 from build import build_graph
 from ecs_facts import KEY_ROLE_WARNING
-from roles import INT_MAX
+
+INT_MAX = 2147483647   # the priority a system runs last in the tick under — no longer roles.py's, cleanup retired
 
 
 def answer_build(graph, request):
@@ -108,7 +109,7 @@ def answer_explain(graph, request):
     node = graph.nodes[node_id]
     print(f"== {node_id} ==")
     for facet in ("kind", "namespace", "source_location", "abstract", "declared", "role", "decided_by", "priority",
-                  "base_anchor", "anchor_events", "held_events", "components", "main_tag", "label_tags", "tag_order",
+                  "event_readers", "components", "main_tag", "label_tags", "tag_order",
                   "view_layer", "scene_object", "lifetime", "installer", "contract", "state", "markers"):
         if node.get(facet) not in (None, [], False):
             print(f"  {facet}: {node[facet]}")

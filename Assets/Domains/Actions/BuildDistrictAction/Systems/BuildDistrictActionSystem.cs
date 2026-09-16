@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Domains.Actions.Archetypes;
 using Domains.Actions.BuildDistrictAction.Components;
 using Domains.Actions.BuildDistrictAction.Events;
@@ -44,9 +44,10 @@ namespace Domains.Actions.BuildDistrictAction.Systems
     ///     <c>Patterns/PATTERN_REACTIVE_SYSTEM.md</c> and <c>Flows/FLOW_DISTRICT_BUILD.md</c>.
     /// </summary>
     [UsedImplicitly]
-    public sealed class BuildDistrictActionSystem : UpdatedSystem
+    public sealed class BuildDistrictActionSystem : IUpdatedSystem
     {
         private readonly EntityStorages _storages;
+        private readonly EventReader<DistrictBuildConfirmedEvent> _buildConfirmations;
 
         // Actor rows (Table Rule): id PK + tag + ActorTypeComponent discriminator; the Mayor also carries the AP pool.
         private readonly Archetype _mayorActor;
@@ -59,12 +60,14 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         private readonly Archetype _districtArchetype;
         private readonly Archetype _buildInProgressArchetype;
 
-        public override int Priority => SystemPriorities.RuntimeTick.BuildDistrictAction;
+        public AppState AppState { get; }
+        public int Priority => SystemPriorities.RuntimeTick.BuildDistrictAction;
 
-        public BuildDistrictActionSystem(AppState appState, EntityStorages storages)
-            : base(appState, storages.World, EventArchetypes.Of<DistrictBuildConfirmedEvent>(storages.World))
+        public BuildDistrictActionSystem(AppState appState, EntityStorages storages, EventReader<DistrictBuildConfirmedEvent> buildConfirmations)
         {
+            AppState = appState;
             _storages = storages;
+            _buildConfirmations = buildConfirmations;
 
             _mayorActor = ActorsArchetypes.Mayor(storages.World);
             _cityActor = ActorsArchetypes.City(storages.World);
@@ -83,12 +86,14 @@ namespace Domains.Actions.BuildDistrictAction.Systems
                 storages.Singletons.Set(new DistrictIdAllocatorComponent { Next = 1 });
         }
 
-        protected override void Update(GameState state, in Entity pulse)
+        public void Update(GameState state)
         {
-            if (!EcsEventExtensions.IsRipe(pulse))
-                return;
+            while (_buildConfirmations.TryRead(out var evt))
+                BuildConfirmedDistrict(evt);
+        }
 
-            var confirmed = pulse.GetComponent<DistrictBuildConfirmedEvent>();
+        private void BuildConfirmedDistrict(in DistrictBuildConfirmedEvent confirmed)
+        {
             var cost = ResolveCost(confirmed.Type);
 
             // Charge the price BEFORE committing any row: a shortfall throws, so a half-built state can never exist.
@@ -108,10 +113,10 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             entity.AddComponent(new BuildDistrictTurnsComponent { TurnsLeft = cost.TurnsToBuild, TurnsToBuild = cost.TurnsToBuild });
             entity.AddComponent(new ActorTypeComponent { Type = confirmed.Payer });
 
-            _storages.World.CreateEvent(new DistrictTableChangedEvent { Change = DistrictTableChange.Planned });
+            _storages.Events.Raise(new DistrictTableChangedEvent { Change = DistrictTableChange.Planned });
 
             if (cost.TurnsToBuild == 0)
-                _storages.World.CreateEvent(new BuildDistrictCompleteEvent());
+                _storages.Events.Raise(new BuildDistrictCompleteEvent());
         }
 
         // All-or-nothing spend: resources from the payer's stockpile + AP from the Mayor's pool. Affordability is
