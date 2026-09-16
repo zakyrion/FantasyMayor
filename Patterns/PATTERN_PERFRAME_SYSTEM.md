@@ -20,10 +20,10 @@ pulse cannot replace the tick. Subclass `UpdatedSystem` (or `LateUpdatedSystem`)
 [UsedImplicitly]
 public sealed class [Name]System : UpdatedSystem   // or LateUpdatedSystem
 {
-    private const int ExecutionPriority = [N];
     private readonly EntityStorages _storages;
 
-    public override int Priority => ExecutionPriority;
+    // SystemPriorities is the one holder of execution order — never a class-local const, never a literal.
+    public override int Priority => SystemPriorities.RuntimeTick.[Name];
 
     // DI injects EntityStorages — never a bare EntityStore.
     public [Name]System(EntityStorages storages)
@@ -39,15 +39,40 @@ public sealed class [Name]System : UpdatedSystem   // or LateUpdatedSystem
 }
 ```
 
+No role marker on the shape above: an Update-loop class with a table anchor in `base(...)` already decides
+its own role, and a marker there is forbidden. The marker is required in exactly ONE shape — an Update-loop
+class that HOLDS an event archetype outside `base(...)`, where nothing else can tell per-frame from reactive:
+
+```csharp
+[UsedImplicitly]
+[SystemRole(SystemRoleKind.PerFrame)]        // ticks every frame; the held pulse archetype is only an input
+public sealed class [Name]System : IUpdatedSystem
+{
+    private readonly Archetype _pulses;      // held, never passed to a base call — that would make it reactive
+
+    public [Name]System(EntityStorages storages)
+    {
+        _pulses = EventArchetypes.Of<[Name]Event>(storages.World);
+    }
+}
+```
+
+`PerFrame` demands the Update-loop contract with NO event anchor in `base(...)` — a marker that contradicts
+the class shape FAILS the Unity compile (MarkerShapeAnalyzer, category `FantasyMayor.Markers`, severity
+Error). No marker is inherited: every concrete class carries its own. Live instance: `TurnProcessorSystem`.
+
 ## Rules
 
 ```clojure
 (def per-frame-rules
   {:driven-by           #{work-table tick-anchor}             ;; the declared archetype it processes (Table Rule) OR a singleton archetype whose presence gates the tick; an ArchetypeQuery only for a genuinely cross-archetype set
    LateUpdatedSystem    {:when "observe final frame state"}   ;; after camera / gameplay writes
+   :role-marker         {:required  "[SystemRole(SystemRoleKind.PerFrame)] on an Update-loop class that HOLDS an event archetype outside base(...)"
+                         :forbidden "on a class whose own shape already decides the role — the table anchor in base(...) above"
+                         :inherited :never}                   ;; a marker contradicting the shape is a compile ERROR (MarkerShapeAnalyzer); a redundant one is a graph warning today
    :state               "none across frames"                  ;; persistent → component / singleton component; this-frame-only → PreUpdate + FrameBox<T>; genuinely unavoidable → [StateAllowed("reason")], a reviewed exception
    :shared-inputs       "PreUpdate(GameState) resolve + fail-loud, carry in FrameBox<T>" ;; frame-stamped: stale reads throw, Dispose drops refs; field carries [StateAllowed]; FORBIDDEN in UniTask systems — await spans frames, the box goes stale
-   :scan-diff-each-tick "god-system smell — make it reactive" ;; emit a pulse where the change happens (ARCHITECTURE → Systems, decomposition)
+   :scan-diff-each-tick "god-system smell — make it reactive" ;; emit a pulse where the change happens (ARCHITECTURE → Systems, :system/split-when)
    :view-output         "push ONE value at a time"            ;; ResourceBar pattern — never build a managed snapshot inside a system
    :wiring              "concrete in installer + hand-wired in Boot.Construct"})  ;; almost always Gameplay; a system not wired into a state never runs
 ```

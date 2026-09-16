@@ -39,7 +39,7 @@ public struct [Name]Component : IIndexedComponent<[KeyType]>
 
 `[KeyType]` must be equatable: an enum works as-is; a struct key implements `IEquatable<T>` +
 `GetHashCode` itself (`HexCoord`). A PK that is only ever compared — never indexed — stays a plain
-`IComponent` with `IEquatable` (worked example: `HexIdComponent`).
+`IComponent` with `IEquatable` (worked examples: `CityIdComponent`, `ActionIdComponent`).
 
 ## FK component (key-role law — ARCHITECTURE → Entities)
 
@@ -65,15 +65,15 @@ The FK component lives in the OWNER's feature folder, next to its PK — one spa
 
 ```clojure
 (def component-rules
-  {:write           #{"entity.AddComponent(v)" "storages.Singletons.Set(v)"}  ;; upsert; NEVER mutate through a ref — the write CALL is what re-files the index (ARCHITECTURE → Entities, component-writes)
+  {:write           #{"entity.AddComponent(v)" "storages.Singletons.Set(v)"}  ;; upsert; NEVER mutate through a ref — the write CALL is what re-files the index (ARCHITECTURE → Components, writes, links)
    :declare         "struct : IComponent"                      ;; a component the engine cannot see is a silent no-op at birth
    :naming-data     "…Component"                               ;; field-less marker → "…Tag" (PATTERN_TAG); one-frame pulse → "…Event" (PATTERN_EVENT)
    :naming-fk       "…FKComponent"                             ;; wraps another key space's value — the ONLY legal cross-table reference type (key-role law)
-   :naming-prefix   :none                                      ;; the namespace carries the domain; FK/PK identity components are the exception (ARCHITECTURE → Code shape, naming)
+   :naming-prefix   :none                                      ;; the namespace carries the domain; FK/PK identity components are the exception (ARCHITECTURE → Naming)
    :singleton-component :not-query-matchable                   ;; the hidden row has a declared archetype, but consumers can only read storages.Singletons.Get<T>()
-   :index-key       {:requires "IIndexedComponent<TValue>, TValue equatable"}  ;; define the PK/FK pair ONCE in the owner's folder (ARCHITECTURE → Entities, key-role-law)
+   :index-key       {:requires "IIndexedComponent<TValue>, TValue equatable"}  ;; define the PK/FK pair ONCE in the owner's folder (ARCHITECTURE → Keys and indexes)
    :index-bucket    {:max 100}                                 ;; entities per identical key value — insert/remove is O(N) over duplicates
    :fk-per-space    {:max 1}                                   ;; one component instance per type per entity — a 2-refs relationship gets its own FK type pair
-   :birth-column    "every column is named by the archetype"   ;; adding a component to a live entity migrates it out of its archetype (ARCHITECTURE → Entities, birth-completeness)
+   :birth-column    "every column is named by the archetype"   ;; adding a component to a live entity migrates it out of its archetype (ARCHITECTURE → Entities, :birth/completeness)
    :component-shape #{roslyn fantasymayor-graph}})                      ;; fields/types are tool-derivable — never restate them in module docs
 ```

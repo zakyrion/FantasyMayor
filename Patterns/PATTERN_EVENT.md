@@ -50,11 +50,11 @@ frame or an asmdef boundary the C# call can't reach, and then a SYSTEM raises it
    :view-source        {:never "a view raising a pulse to its OWN system"       ;; use a local C# event → the system subscribes (PATTERN_VIEW_SYSTEM); an ECS pulse is only for crossing a frame/asmdef boundary, raised by a SYSTEM
                         :only  "cross a frame/asmdef boundary the C# call can't reach"}
    :startup-bulk-work  pipeline-stage                                 ;; never an event — one-frame events do NOT survive the async map-creation pipeline (PATTERN_PIPELINE_STAGE)
-   :naming             {:suffix "…Event" :in "Events/"}               ;; no domain prefix — namespace carries it (ARCHITECTURE → Code shape, naming)
+   :naming             {:suffix "…Event" :in "Events/"}               ;; no domain prefix — namespace carries it (ARCHITECTURE → Naming)
    :visibility         "priority-independent"                         ;; EVERY consumer sees EVERY pulse exactly once, the frame after it is raised — a "consumer must sit below the producer" rule cannot exist (ARCHITECTURE → Events)
    :latency            "1 frame per link"                             ;; a pulse chain costs a frame per hop; a consumer must never assume a same-frame reaction
    :feedback-loop      {:never "populate→command→populate on one-frame events"}  ;; each lap now costs a frame instead of deadlocking — still wrong: restructure so data flows one way (proven 2026-07-08 on the district-build draft attempt)
-   :raise-thread       "main thread ONLY"                             ;; every store call is main-thread (ARCHITECTURE → Threading); off-thread compute hops back before raising
-   :lossy-producer     "level-triggered doorbell"                     ;; producer that can't control its frame window (turn phase, async): RE-RAISE every turn/tick while the condition holds + consumer reconciles state, never trusts one delivery — a lost pulse costs latency, never correctness (decreed: FLOW_DISTRICT_BUILD → ordering-invariants :completion-pulse)
+   :raise-thread       "main thread ONLY"                             ;; every store call is main-thread (ARCHITECTURE → Threading and structural change); off-thread compute hops back before raising
+   :lossy-producer     "level-triggered doorbell"                     ;; producer that can't control its frame window (turn phase, async): RE-RAISE every turn/tick while the condition holds + consumer reconciles state, never trusts one delivery — a lost pulse costs latency, never correctness
    :producer->consumer fantasymayor-graph})
 ```

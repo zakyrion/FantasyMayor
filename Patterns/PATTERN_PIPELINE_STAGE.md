@@ -20,13 +20,13 @@ prefabs. Runs once, ordered against other stages by Priority. Implement
 [UsedImplicitly]
 internal sealed class [Name]System : IPrioritizedUniTaskSystem<MapGenerationStep>
 {
-    private const int ExecutionPriority = [N];   // current stages: ~100..900, spaced by ~100
-
     private readonly EntityStorages _storages;
     private readonly EntityStore _world;
     private readonly Archetype _rows;   // the table this stage populates
 
-    public int Priority => ExecutionPriority;
+    // SystemPriorities is the one holder of execution order — never a class-local const, never a literal.
+    // Stages live in the WorldInit space: currently ~100..900, spaced by ~100.
+    public int Priority => SystemPriorities.WorldInit.[Name];
 
     public [Name]System(EntityStorages storages)
     {
@@ -57,15 +57,15 @@ internal sealed class [Name]System : IPrioritizedUniTaskSystem<MapGenerationStep
 ```clojure
 (def pipeline-stage-rules
   {:execution           "sequential, ascending Priority, awaited"       ;; a stage may rely on everything lower-priority stages produced — fail loud on a missing prerequisite
-   :re-entry            #{"_isLoaded guard" "destroy-and-recreate"}     ;; only if regeneration can re-enter the stage
+   :re-entry            #{"_isLoaded guard — the field is state and carries [StateAllowed(«reason»)]" "destroy-and-recreate"}  ;; only if regeneration can re-enter the stage (ARCHITECTURE → System state, :state/lifetime-flags)
    :addressable-handle  "keep owned, release in Dispose"                ;; ADDRESSABLE_PATTERNS.md
    :cancellation        "cancellationToken.ThrowIfCancellationRequested()" ;; after every await; own line, never combined with a validity check; never a quiet return
    :singleton-view      "publish a …ViewComponent for consumers"
    :singleton-non-queried :singleton-component
    :wiring              ".As<IPrioritizedUniTaskSystem<MapGenerationStep>>" ;; pipeline auto-collects — no Boot.Construct edit
    :native-scratch      {:allocator "by lifetime: Allocator.TempJob within 4 frames, else Allocator.Persistent + one owner's Dispose"
-                         :never "Allocator.Temp — a stage is an async system"}  ;; ARCHITECTURE → Systems, native-allocator
+                         :never "Allocator.Temp — a stage is an async system"}  ;; ARCHITECTURE → Collections and memory
    :thread-hops         {:off-thread "computation over plain data ONLY"       ;; code on RunOnThreadPool touches NO store call at all — not even a read — and NO Allocator.Temp
-                         :store-access "only behind await UniTask.SwitchToMainThread()"}  ;; store-thread law (ARCHITECTURE → Threading)
+                         :store-access "only behind await UniTask.SwitchToMainThread()"}  ;; store-thread law (ARCHITECTURE → Threading and structural change)
    :family-of-parts     PATTERN_ORCHESTRATOR_SUBSYSTEM})                ;; several independently ordered parts / one-base-many-impls
 ```

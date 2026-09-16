@@ -31,7 +31,7 @@ explore it via fantasymayor-graph pattern PATTERN_POLYMORPHIC_CATALOGUE / code h
 ```clojure
 ;; ── USE when ALL hold ───────────────────────────────────────────────────────
 (def use-when
-  {:authored-kinds "several, differing in shape"                  ;; different parameters, or some parameter-less — all sharing one KEY (a FK such as DistrictTypeComponent)
+  {:authored-kinds "several, differing in shape"                  ;; different parameters, or some parameter-less — all sharing one KEY (an FK such as DistrictTypeFKComponent — the reference side of an enum key space carries the FK suffix, never the owner's own column)
    :runtime        "queries/joins entries BY KEY"                 ;; reacts, looks up per turn, combines with another table — not a read-once blob
    :new-kind       "plugs in WITHOUT editing the orchestrator"})  ;; Open-Closed
 
@@ -100,17 +100,17 @@ entry or a config type no subsystem matches (a new kind without its subsystem mu
 internal abstract class FooSpawnSubSystem : IDisposable
 {
     protected readonly EntityStore World;
-    public bool IsEnabled { get; } = true;
-    public int  Priority  { get; }
+    public bool IsEnabled { get; set; } = true;        // the family's switch
+    public abstract int Priority { get; }              // each concrete names its own SystemPriorities member
     protected FooSpawnSubSystem(EntityStore world) => World = world;
     public abstract bool TrySpawn(FooConfig config);   // true = "I handled it"
-    public void Dispose() { }
+    public virtual void Dispose() { }
 }
 
 internal sealed class FooSpawnSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
 {
-    public int Priority => 920;                        // domain-spawn cluster
-    [StateAllowed] private readonly IReadOnlyList<FooSpawnSubSystem> _subSystems;
+    public int Priority => SystemPriorities.WorldInit.FooSpawn;   // the one holder of order — never a literal
+    [StateAllowed("DI-collected composition, fixed at construction")] private readonly IReadOnlyList<FooSpawnSubSystem> _subSystems;
     private readonly EntityStorages _storages;
     // ctor: (EntityStorages storages, IReadOnlyList<FooSpawnSubSystem> subSystems)
 
@@ -140,7 +140,7 @@ internal sealed class BarFooSpawnSubSystem : FooSpawnSubSystem
         if (config is not BarFooConfig bar) return false;   // not my kind → let the next try
         // The archetype carries EVERY column of this kind — the row is born complete (Birth Completeness).
         var row = EconomyArchetypes.BarFoo(World).CreateEntity();
-        row.AddComponent(new FooKeyComponent(bar.Key));                       // FK into the subject's key space
+        row.AddComponent(new FooSubjectFKComponent(bar.Key));                 // FK into the subject's key space
         row.AddComponent(new FooKindComponent { Value = FooKind.Bar });       // kind column — the selector
         row.AddComponent(new BarFooComponent(bar.RequiredThing));             // per-kind payload (parameters only)
         row.AddComponent(new FooStateComponent { Value = FooState.Closed });  // initial state, if the family evaluates
@@ -180,14 +180,14 @@ state component with **change-only writes**. Omit this whole part if the table i
 internal sealed class BarFooEvaluatorSubSystem : FooEvaluatorSubSystem
 {
     private readonly ComponentIndex<FooKindComponent, FooKind> _rowsByKind;   // kind slice (self-index)
-    private readonly ComponentIndex<FooKeyComponent, FooKeyValue> _targetsByKey;
+    private readonly ComponentIndex<FooSubjectFKComponent, FooSubjectKey> _targetsByKey;
 
     public override void Evaluate()
     {
         // An empty bucket is a valid catalogue state, not an error — the loop simply does nothing.
         foreach (var row in _rowsByKind[FooKind.Bar])
         {
-            var key = row.GetComponent<FooKeyComponent>().Value;
+            var key = row.GetComponent<FooSubjectFKComponent>().Value;
             var satisfied = /* join: */ HasTarget(key);
             var next = satisfied ? FooState.Open : FooState.Closed;
             if (row.GetComponent<FooStateComponent>().Value != next)   // change-only write: no churn, no re-index
@@ -251,7 +251,7 @@ builder.Register<BazFooSpawnSubSystem>(Lifetime.Singleton).As<FooSpawnSubSystem>
 // evaluator family (if any): both hosts + each concrete .As<FooEvaluatorSubSystem>()
 ```
 
-The collected list field carries `[StateAllowed]` (a DI-owned collection is the deliberate-state exception, not a
+The collected list field carries `[StateAllowed("reason")]` (a DI-owned collection is the deliberate-state exception, not a
 zero-alloc violation).
 
 ## Adding a new kind (the payoff)
@@ -266,11 +266,11 @@ Three pieces, orchestrator untouched:
 ```clojure
 (def checklist
   {:container-SO       "FooConfig[] items; base carries ONLY the shared key; concretes pure data"
-   :loader             "wraps live SO ref, RETAINS the Box, fails loud on null/empty, releases on dispose"
+   :loader             "ConfigLoaderSystem<FoosConfig>: keeps only Box.Value, fails loud on null/empty, NEVER disposes the Box"  ;; a config loads once at ConfigLoading and lives the whole session
    :spawn-orchestrator "fail loud on null entry / unhandled type; subsystems bool TrySpawn — Try-pattern"
    :row                "key(FK) + ONE main tag (+ the family label tag) + kind component (+ payload, + state); consumers query the TABLE, never the bare key"
    :kind               "enum FooKindComponent on every row — selection via the kind self-index, never a second main tag"
    :evaluator          {:if-present "non-routing, reads its kind-slice, joins by key through a ComponentIndex, reconciles the state component change-only"}
    :dual-host          {:only-when "two lifecycles needed"}  ;; both reuse ONE subsystem list
-   :di                 "all Singleton; subsystems .As<AbstractBase>(); collected field [StateAllowed]"})
+   :di                 "all Singleton; subsystems .As<AbstractBase>(); collected field [StateAllowed("reason")]"})
 ```

@@ -199,7 +199,7 @@ def lint(docs):
                        (normalized.endswith("/FLOW.md") or os.path.basename(normalized).startswith("FLOW_")))
             if not m["status"]:
                 issues.append(f"{p}: Category A doc missing status")
-            elif m["status"] not in ("partial", "implemented"):
+            elif m["status"] not in ("partial", "implemented", "closed-by-owner"):
                 issues.append(f"{p}: bad Category A status {m['status']!r}")
             if is_flow:
                 if m["status"] == "partial" and m["read"] != "always":
@@ -210,8 +210,8 @@ def lint(docs):
                 # archived task history — a whole task folder or a legacy flat FLOW_*/RESEARCH_* file
                 if not normalized.startswith("Flows/Archive/"):
                     issues.append(f"{p}: read: archive requires a path under Flows/Archive/")
-                if m["status"] != "implemented":
-                    issues.append(f"{p}: archived FLOW must be implemented")
+                if m["status"] not in ("implemented", "closed-by-owner"):
+                    issues.append(f"{p}: archived FLOW must be implemented or closed-by-owner")
                 if re.search(r"^code_refs:", m["_block"], re.M):
                     issues.append(f"{p}: archived FLOW must not carry current-code code_refs")
             elif normalized.startswith("Flows/Archive/"):

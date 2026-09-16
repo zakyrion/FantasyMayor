@@ -35,7 +35,9 @@ section subsystems subscribe directly.
 
 ## Skeleton
 
-The view never injects the `EntityStore` and never creates entities — it only raises intent and binds values.
+The view never creates an entity, never raises an ECS pulse, and never receives `EntityStorages` or an
+`EntityStore` — not as a field, not as a constructor parameter, not as an inject/construct method
+parameter. It only raises intent and binds values.
 
 ```csharp
 public sealed class [Feature]View : MonoBehaviour
@@ -50,21 +52,35 @@ public sealed class [Feature]View : MonoBehaviour
 }
 ```
 
-The system hooks the view ONCE (the view outlives it) and unhooks on dispose:
+The system hooks the view ONCE (the view outlives it) and unhooks on dispose. Every class that adds a
+handler with `+=` to a view's C# event carries `[ViewSubscriber(typeof(TheView))]` naming that view — a
+marker without a real subscription, and a subscription without a marker, both FAIL the Unity compile
+(MarkerShapeAnalyzer, category `FantasyMayor.Markers`, severity Error). The named type must derive from
+`MonoBehaviour`, the attribute repeats once per view a class subscribes to, and no marker is inherited:
 
 ```csharp
-// In the driving system/subsystem — subscribe once, guard re-entry, unhook in Dispose.
-if (!_hooked) { view.Picked += OnPicked; _hooked = true; }
-
-private void OnPicked([Payload] value)
+[UsedImplicitly]
+[ViewSubscriber(typeof([Feature]View))]   // one per view this class hooks; names the view, not the event
+public sealed class [Feature]System : UpdatedSystem
 {
-    // React synchronously (main thread, inside the UI callback): write ECS via AddComponent(), push to the view.
-}
+    private [Feature]View _view;   // the view outlives the system
+    private bool _hooked;
 
-public override void Dispose()
-{
-    if (_hooked && view != null) view.Picked -= OnPicked;
-    base.Dispose();
+    private void Hook()
+    {
+        if (!_hooked) { _view.Picked += OnPicked; _hooked = true; }   // the += the marker declares
+    }
+
+    private void OnPicked([Payload] value)
+    {
+        // React synchronously (main thread, inside the UI callback): write ECS via AddComponent(), push to the view.
+    }
+
+    public override void Dispose()
+    {
+        if (_hooked && _view != null) _view.Picked -= OnPicked;
+        base.Dispose();
+    }
 }
 ```
 
@@ -72,10 +88,11 @@ public override void Dispose()
 
 ```clojure
 (def view-system-rules
-  {:view       {:is "MonoBehaviour, dumb" :never #{"inject the EntityStore" "create entities" "raise an ECS pulse to its own system"}}  ;; ARCHITECTURE → Entities, view-boundary
+  {:view       {:is "MonoBehaviour, dumb" :never #{"receive EntityStorages or an EntityStore — field, ctor param or inject/construct param" "create entities" "raise an ECS pulse"}}  ;; ARCHITECTURE → View boundary
    :in         "local C# event (`event Action<T>`); the driving system/subsystem subscribes directly"
    :out        "push-to-view, one value at a time — never a managed snapshot built in the system (PATTERN_PERFRAME_SYSTEM)"
    :subscribe  {:once "guard with a bool — the view outlives the system" :unhook "in Dispose"}
+   :marker     "[ViewSubscriber(typeof(TheView))] on EVERY class whose own += hooks that view's C# event"  ;; marker without a subscription and subscription without a marker are both compile ERRORS (MarkerShapeAnalyzer); the named type derives from MonoBehaviour, one attribute per view, never inherited
    :handler    "runs synchronously in the UI callback (main thread): ECS writes via AddComponent(), then push to the view"
    :ecs-pulse  {:only-when "the signal crosses a frame or an asmdef boundary the C# call can't reach"}  ;; then a SYSTEM raises the pulse (PATTERN_EVENT), never the view — e.g. a UI command into another domain
    :traceability "subscription lives at the subscriber; grep the C# event → every listener"})

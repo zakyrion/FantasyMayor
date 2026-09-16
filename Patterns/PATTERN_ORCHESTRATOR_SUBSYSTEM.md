@@ -36,8 +36,9 @@ public abstract class [Name]SubSystem : IDisposable
 [UsedImplicitly]
 public sealed class [Feature]SubSystem : [Name]SubSystem
 {
-    private const int ExecutionPriority = [N];
-    public override int Priority => ExecutionPriority;
+    // SystemPriorities is the one holder of execution order — never a class-local const, never a literal.
+    // Subsystem values live in their own family space and compare only inside their own orchestrator.
+    public override int Priority => SystemPriorities.SubSystems.[Name].[Feature];
 
     // DI injects EntityStorages — never a bare EntityStore.
     public [Feature]SubSystem(EntityStorages storages) : base(storages.World) { }
@@ -52,7 +53,7 @@ public sealed class [Feature]SubSystem : [Name]SubSystem
 ## Orchestrator (a pipeline stage OR a per-frame system)
 
 ```csharp
-[StateAllowed]   // the host IS a system; the list is fixed composition, not per-frame state
+[StateAllowed("DI-collected composition, fixed at construction")]   // the host IS a system; the marker always carries its reason
 private readonly IReadOnlyList<[Name]SubSystem> _subSystems;
 
 public [Name]System(IReadOnlyList<[Name]SubSystem> subSystems /*, EntityStorages storages ... */)
@@ -75,5 +76,5 @@ public [Name]System(IReadOnlyList<[Name]SubSystem> subSystems /*, EntityStorages
                      :own    "each subsystem resolves its own archetypes / indices in its ctor"}  ;; store-owned, nothing to dispose
    :priority-scope  "children WITHIN the orchestrator only"      ;; unrelated to pipeline-stage priorities
    :routing-variant "bool TrySpawn(config), first match wins, fail loud on none"  ;; DoD polymorphism
-   :naming          "no domain prefix on [Name]/[Feature]"})     ;; namespace carries it; [Domain]Installer keeps its prefix (the documented exception; ARCHITECTURE → Code shape, naming)
+   :naming          "no domain prefix on [Name]/[Feature]"})     ;; namespace carries it; [Domain]Installer keeps its prefix (the documented exception; ARCHITECTURE → Naming)
 ```

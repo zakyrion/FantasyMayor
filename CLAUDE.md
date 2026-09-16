@@ -11,7 +11,7 @@ related:
 
 How to work in FantasyMayor. The lifecycle is sdd-flow's and is not restated here; this file
 routes a request into it and holds what is FantasyMayor's own: how a task statement is filled,
-the bans, the commit rule, the project-scoped notation.
+how a rule changes, the bans, the commit rule, the project-scoped notation.
 
 <!-- BEGIN SDD-FLOW: pointer -->
 The sdd-flow canon is installed at `.sdd-flow/` (`FLOW_CONTRACT.md` + `references/`), this project's declarations at `.sdd-flow/project.md`; invoke it via `/sdd-flow:start | resume | close`, `/sdd-research`, `/sdd-project-init`.
@@ -36,11 +36,13 @@ The sdd-flow canon is installed at `.sdd-flow/` (`FLOW_CONTRACT.md` + `reference
             sdd-deep-research           "a question with no fast right answer — only on the owner's word"
             sdd-cascade                 "a confirmed map carries :path :cascade"
             fantasymayor-pattern-choice "a statement for work that creates or changes code — run before the statement is shown"
-            fantasymayor-placement      "an implementation map that names new files, types, asmdef references or installers — run before the map is shown"}
+            fantasymayor-placement      "an implementation map that names new files, types, asmdef references or installers — run before the map is shown"
+            fantasymayor-rules-conformance "a rule changed in RULES_SPECIFICATION.md, or a carrier of rules was edited — run it over what changed"}
    :statement (-> (:read   (-> "read INDEX.md"
                                "match the task statement against each doc's trigger; every doc whose trigger holds goes into :read"
                                (cond (engineering-task?) "add ARCHITECTURE.md, whatever the triggers say" ;; canon definition, .sdd-flow/FLOW_CONTRACT.md
-                                     :else               "only the trigger matches — :read may be empty")))
+                                     :else               "only the trigger matches — :read may be empty")
+                               "RULES_SPECIFICATION.md never enters :read — it is the maintenance source, not a carrier (§ 6)"))
                   (:skills "the result of every fantasymayor-* skill whose :skills entry holds for this statement; the recipes fantasymayor-pattern-choice returns go into :read as well")
                   (:tools  "entries of .sdd-flow/project.md # Tools whose :prefer-when holds for this task")
                   (:accept (cond (changes-code? task) "code-verification + entries of .sdd-flow/project.md # Meters whose :when holds"
@@ -52,7 +54,9 @@ The sdd-flow canon is installed at `.sdd-flow/` (`FLOW_CONTRACT.md` + `reference
   (-> (:step-1 "mcp__roslyn__get_diagnostics — solutionPath FantasyMayor.sln, scoped to the changed files; target: clean")
       (:step-2 "/arch-check on the changed scope; target: no violation the change introduced")
       (:step-3 (when (ecs-changed?)
-                 (:then "python3 .claude/skills/fantasymayor-graph/scripts/fmgraph.py tags; target: exactly one main tag per archetype, label tags shown apart, 0 deviations, no runtime tag writes")))
+                 (:then "python3 .claude/skills/fantasymayor-graph/scripts/fmgraph.py check; target: no warning standing on a file this change touched — tag law, a role that needs a marker, a subscription without one"
+                        (when (views-changed?)
+                          (:then "python3 .claude/skills/fantasymayor-graph/scripts/fmgraph.py pattern PATTERN_VIEW_SYSTEM; target: no new deviation — a view never raises an event, creates an entity or receives the store")))))
       (:step-4 "the owner's Unity check; target: compiles and behaves — the final authority")))
 ```
 
@@ -93,4 +97,23 @@ The sdd-flow canon is installed at `.sdd-flow/` (`FLOW_CONTRACT.md` + `reference
   {:entity-shape "(def <Archetype> {:archetype … :tag … :labels … :pk … :fk … :kind … :state … :data …}) — one map = one entity; :tag is the main tag, :labels the label tags; keys anchor to tag-law / key-role-law (ARCHITECTURE.md)"
    :set-cardinality "the FIELD decides the #{} reading: singular-valued key (:home, :tag) → global 'one of'; collection-valued key (:data, :fk, :labels) → ALL members, unordered, no duplicates (= ECS composition)"
    :tag-never-set "a #{} under :tag is not alternative syntax — it DISPLAYS a Tag Law violation (2 main tags) — label tags go under :labels"})
+```
+
+## 6. Changing a rule
+
+```clojure
+(def rule-change
+  {:source "RULES_SPECIFICATION.md — the maintenance source of every code rule; it is never read while writing code and never enters :read"
+   :carriers {ARCHITECTURE.md "every code law, stated in full"
+              CLAUDE.md       "how work runs here: routing, this procedure, the bans, the commit rule"
+              "the project skills" "the rules their decision tree applies"
+              "Patterns/ recipes"  "the rules their block encodes"}
+   :law "a carrier states the rule IN FULL — repeating the specification is what a carrier is for; a carrier that only points at the specification teaches the agent nothing"
+   :procedure (-> (:step-1 "change the rule in RULES_SPECIFICATION.md first; its id never changes, a new rule takes a new id, a retired rule leaves its id behind forever")
+                  (:step-2 "carry the change into every carrier whose subject the rule is")
+                  (:step-3 (when (rule-names-a-check? rule)
+                             (:then "update that check — fantasymayor-graph, Tools/MarkerShapeAnalyzer or /arch-check — and make its message cite the rule id")))
+                  (:step-4 "run fantasymayor-rules-conformance over what changed; target: no :diverges, no :incomplete, no :uncarried"))
+   :never #{"changing a rule in a carrier alone"
+            "editing the specification to match what a carrier or a tool already does — that is a proposal for the owner, not a fix"}})
 ```

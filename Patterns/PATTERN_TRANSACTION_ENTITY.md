@@ -16,7 +16,7 @@ related:
 A multi-step behavior that spans subdomains gets exactly ONE home: a **transaction entity** in the
 verb domain. All session state rides on that entity; the UI projects it and raises commands;
 completion writes a domain FACT. This is the DDD saga expressed as a DoD row — no coordinator
-class, an entity with a tag lifecycle. One approach.
+class, ONE archetype whose main tag never changes and whose stage is a state COLUMN. One approach.
 
 ## When
 
@@ -41,16 +41,24 @@ lifecycle was removed, `BuildDistrictActionSystem` creates the committed entity 
 
 The verb domain owns the entity and EVERY write to it. The transaction is ONE archetype carrying every
 column it will ever need — including its stage column — so no stage change ever migrates the row
-(ARCHITECTURE → Entities, birth-completeness).
+(ARCHITECTURE → Entities, :birth/completeness).
 
 Placeholder names (`MyAction*`) — substitute your verb's:
 
 ```csharp
+// 0. Declare — in the VERB domain's archetype holder. ONE main tag, and beside it TransactionTag, the
+//    label of role transaction: that label is the one sign fantasymayor-graph reads to call this row a
+//    transaction. Every column the session will ever need is named here, the stage column included.
+public static Archetype MyAction(EntityStore store) =>
+    store.GetArchetype(
+        ComponentTypes.Get<HexIdFKComponent, MyChoiceComponent, MyActionStateComponent>(),
+        Tags.Get<MyActionTag, TransactionTag>());   // main tag first, then the label of role transaction
+
 // 1. Open — a reactive system in the VERB domain creates the row BY its archetype.
 var session = ActionsArchetypes.MyAction(_world).CreateEntity();   // every column present at default
-session.AddComponent(new HexIdComponent { Coords = opened.Coords });          // identifying state
+session.AddComponent(new HexIdFKComponent { Coords = opened.Coords });        // identifying state
 session.AddComponent(new MyChoiceComponent { Value = default });              // session state, owned HERE
-session.AddComponent(new MyStageComponent { Value = MyStage.Draft });         // stage = a COLUMN
+session.AddComponent(new MyActionStateComponent { Value = MyActionState.Draft });   // stage = a COLUMN
 
 // 2. Mutate — every change arrives as a COMMAND event carrying the command's values (PATTERN_EVENT)
 //    consumed by a small reactive system in the verb domain; the UI never writes the entity.
@@ -65,11 +73,11 @@ protected override void Update(GameState state, in Entity pulse)
 }
 
 // 3. Commit — advance the stage column; the row already carries the full, live transaction state.
-session.AddComponent(new MyStageComponent { Value = MyStage.Committed });
+session.AddComponent(new MyActionStateComponent { Value = MyActionState.Committed });
 
 // 4. Complete — write the FACT into the substrate domain, then an event.
 var fact = EconomyArchetypes.MyFact(_world).CreateEntity();       // the substrate's own table
-fact.AddComponent(new HexIdComponent { Coords = hex.Coords });
+fact.AddComponent(new HexIdFKComponent { Coords = hex.Coords });
 fact.AddComponent(new MyResultComponent { Value = result });
 
 _world.CreateEvent(new MyFactCreatedEvent());                     // consumers reconcile from the fact table
@@ -88,10 +96,9 @@ becomes command pulses, never writes.
    :reachability  {:never "place state in a substrate domain so another layer can read it"}  ;; the entity IS the reachable home; pure UI selection state stays in Presentation
    :ui            :projection                                 ;; the UI SYSTEM reads the entity and raises the command pulses across the boundary; the view feeds it via a local C# event and never raises the pulse itself (PATTERN_VIEW_SYSTEM); owns zero transaction state (pure render state stays in the view)
    :command       "one-frame event carrying the command's values" ;; consumed ONLY by a verb-domain reactive system that writes the entity
-   :lifecycle     "stage = a …StateComponent COLUMN"          ;; one archetype for the whole session (Birth Completeness); the main tag never changes, and the archetype carries TransactionTag — the label of role transaction — beside it. A stage that genuinely needs a DIFFERENT composition = delete the row + create a new one in its archetype, PK/FK carried over — never an optional column. Draft stage OPTIONAL (see Degenerate case)
+   :lifecycle     "stage = a …StateComponent COLUMN"          ;; one archetype for the whole session (Birth Completeness); the main tag never changes, and the archetype declaration carries TransactionTag — the label of role transaction — beside it. A stage that genuinely needs a DIFFERENT composition = delete the row + create a new one in its archetype, PK/FK carried over — never an optional column. Draft stage OPTIONAL (see Degenerate case)
    :completion    "FACT entity in the substrate domain + an event"  ;; the transaction produces a noun; consumers read the fact table
-   :views         "render facts (or the live entity) — never a snapshot copy"
-   :flow-contract "Flows/FLOW_<NAME>.md"})                    ;; REQUIRED per flow — events, ownership, ordering invariants, gap list; code comments link, never retell
+   :views         "render facts (or the live entity) — never a snapshot copy"})
 ```
 
 ## Anti-patterns

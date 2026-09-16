@@ -28,7 +28,7 @@ The recipe, the shared-kernel type and the live family behind every code part of
     (ecs-data? part)     data-recipes
     (config? part)       config-recipes
     (behavior? part)     behavior-recipes
-    (view? part)         PATTERN_VIEW_SYSTEM
+    (view? part)         view-recipe
     (addressables? part) ADDRESSABLE_PATTERNS
     :else                :no-recipe))
 
@@ -44,7 +44,7 @@ The recipe, the shared-kernel type and the live family behind every code part of
         :else                              PATTERN_CONFIG))
 
 (def behavior-recipes
-  (cond (spans-several-subdomains?)                                          PATTERN_TRANSACTION_ENTITY
+  (cond (and (spans-several-subdomains?) (multi-step-session-state?))        transaction-branch
         (and (builds-world-at-map-creation?) (independently-ordered-parts?)) PATTERN_ORCHESTRATOR_SUBSYSTEM
         (builds-world-at-map-creation?)                                      PATTERN_PIPELINE_STAGE
         (runs-as-a-turn-phase?)                                              PATTERN_ORCHESTRATOR_SUBSYSTEM
@@ -53,6 +53,18 @@ The recipe, the shared-kernel type and the live family behind every code part of
         (continuous-every-frame?)                                            PATTERN_PERFRAME_SYSTEM
         (cleans-up-events?)                                                  PATTERN_CLEANUP_SYSTEM
         :else                                                                :no-recipe))
+
+(def transaction-branch
+  {:recipe PATTERN_TRANSACTION_ENTITY
+   :when   "a transaction entity is taken when there are two or more subdomains AND the behaviour is multi-step — between the opening and the committing pulse the result can still change, so there is session state somebody must own; two subdomains and one pulse is a reactive system"
+   :degenerate "when there is nothing to own between opening and commit — no resource spent, no preview on the map, the choice is pure interface state — the commit happens straight on the confirming pulse, with no draft stages; the branch falls through to PATTERN_REACTIVE_SYSTEM and the selection stays in presentation"
+   :ask    "name what is owned between the opening and the committing pulse; when nothing is, the draft stage is dead weight"})
+
+(def view-recipe
+  {:recipe PATTERN_VIEW_SYSTEM
+   :marker "a class that subscribes to a view's C# event with its own += carries [ViewSubscriber(typeof(TheView))] naming that view; a marker without a real subscription and a subscription without a marker are both violations, and the named type must derive from MonoBehaviour"
+   :why    "PATTERN_VIEW_SYSTEM never mentions the marker, so this branch is the only place it is decided"
+   :fails  "MarkerShapeAnalyzer, category FantasyMayor.Markers, severity Error — a marker that contradicts the shape fails the Unity compile"})
 ```
 
 ## Shared kernel
@@ -80,7 +92,16 @@ The recipe, the shared-kernel type and the live family behind every code part of
         (must-run-after-every-update?) {:read LateUpdatedSystem
                                         :use  "same contract as UpdatedSystem, driven from LateUpdate"}
         :else                          {:read UpdatedSystem
-                                        :use  "pass the store and one archetype from its holder — an ArchetypeQuery only when the trigger spans several archetypes; implement Update(state, entity) and Priority; structural changes inside Update are safe, but not inside an enumeration Update opens itself (ARCHITECTURE.md → Threading, structural-change)"}))
+                                        :use  "pass the store and one archetype from its holder — an ArchetypeQuery only when the trigger spans several archetypes; implement Update(state, entity) and Priority; structural changes inside Update are safe, but not inside an enumeration Update opens itself (ARCHITECTURE.md → Threading, structural-change)"
+                                        :then "decide the marker by role-marker before writing the class"}))
+
+(def role-marker
+  {:shape      "the anchor is measured only inside base(...) of a class whose DIRECT base is UpdatedSystem or LateUpdatedSystem: an EventArchetypes.Of argument there makes the anchor an event anchor, anything else makes it a table anchor; a call to EventArchetypes.Of anywhere else, this(...) included, is HOLDING the archetype, not anchoring on it"
+   :required   "the role marker is required in exactly one shape — the one form no ordering rule decides: an Update-loop class that HOLDS an event archetype outside base(...). It carries [SystemRole(SystemRoleKind.Reactive)] or [SystemRole(SystemRoleKind.PerFrame)]"
+   :forbidden  "a role marker on a class whose own shape already decides its role is forbidden — an event anchor in base(...) is already reactive, a table anchor is already per-frame"
+   :value      "the marker value must match the class shape: PerFrame demands the Update-loop contract with no event anchor; Reactive demands the Update-loop contract with no table anchor, plus either an event anchor or a held event archetype"
+   :not-inherited "no marker is inherited — every concrete class carries its own"
+   :fails      "MarkerShapeAnalyzer, category FantasyMayor.Markers, severity Error — a marker that contradicts the shape fails the Unity compile"})
 
 (def config-kernel
   (cond (registering-a-config-for-loading?) [{:read ConfigLoaderSystem
@@ -118,6 +139,14 @@ The recipe, the shared-kernel type and the live family behind every code part of
    :use      #{"join an existing family" "pick a free priority" "avoid a duplicate"}
    :template "the recipe, never a live implementation"
    :never    "a list of implementations written into a document"})
+
+(def signatures-by-marker
+  {:law    "a recipe instance is recognized by its signature, and the signature IS a rule for writing the code — a class that misses it is not an instance, however the file reads"
+   :branch "decided_by marker is the branch no base decides: an Update-loop class holding an event archetype outside base(...), and a marker that names the role; decided_by base is the shape itself, decided_by lexical is a name match and never a substitute for either"
+   :marks  {PATTERN_REACTIVE_SYSTEM    "[SystemRole(SystemRoleKind.Reactive)] on that held-archetype shape"
+            PATTERN_PERFRAME_SYSTEM    "[SystemRole(SystemRoleKind.PerFrame)] on that held-archetype shape"
+            PATTERN_VIEW_SYSTEM        "[ViewSubscriber(typeof(TheView))] on the subscribing class, together with the real += it names"
+            PATTERN_TRANSACTION_ENTITY "[TagLabel(TagLabelRole.Transaction)] on the label tag the transaction archetype carries"}})
 ```
 
 ## Tag Law before a new tag

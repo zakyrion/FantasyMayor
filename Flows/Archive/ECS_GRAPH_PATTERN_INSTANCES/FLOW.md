@@ -1,8 +1,11 @@
 ---
 category: A
-read: always
-status: partial
-tags: [tools, ecs-graph, patterns]
+read: archive
+status: implemented
+tags:
+  - tools
+  - ecs-graph
+  - patterns
 related:
   - "[DOC_AGENT_REVIEW](../DOC_AGENT_REVIEW/FLOW.md)"
 ---
@@ -402,12 +405,15 @@ related:
 # Progress
 
 ```clojure
-{:status :active
+{:status :complete
  :completed #{"постановка підтверджена 2026-09-15; база ecs-graph закомічена af626ef"
-              "CONTEXT.md, CASCADE.md # s1, # s2 — субагенти 2026-09-15; s2 прийнято власником"}
- :current "знахідки read-back застосовано, converge і calibration записано; чекає коміту і /sdd-flow:close"
- :stage :ready-to-close
- :next-invocation "після фіксів і метрів: коміти в репо ([FM-14]) і в ~/.claude на слово власника «потім все комітимо»; закриття — /sdd-flow:close на слово власника"
+              "CONTEXT.md, CASCADE.md # s1, # s2 — субагенти 2026-09-15; s2 прийнято власником"
+              "код, read-back, converge, calibration — 2026-09-15; знахідки rb-13 … rb-24 застосовано"
+              "коміти 2026-09-15: репо ea72bcd [FM-14] fantasymayor-graph, ~/.claude 4edbb63"
+              "закрито 2026-09-15 за /sdd-flow:close: усі 9 метрів :met; маркер CameraMovementSystem прибрано, Unity-перевірка після rb-20 — власник"}
+ :current :none
+ :stage :closed
+ :next-invocation :none
  :refactoring-later #{"4 view порушують view-boundary: HexesUI, HexInfoPanelView, TurnPanelView, ContextTabsView — EntityStorages + CreateEvent у view"}
  :prior-art-guess-outcome {:outcome :confirmed-with-deviation
                            :deviation "маркер не обов'язково атрибут — jMolecules дає правило за базою (:markers-without-annotation); маркери читає tree-sitter без Roslyn (:tree-sitter-reads-attributes)"}
@@ -415,8 +421,8 @@ related:
                    :confidence 55
                    :grounded-in "знання агента — до пошуку"
                    :at "2026-09-15"}
- :remaining #{"ворота знахідок проходу 2" "план і мапа реалізації → go"}
- :resume-context "Дослідження проходу 1: для кожного з 15 рецептів — ознака реалізації в коді, чи бачить її build_graph.py зараз, звірка з roslyn/grep. Код ecs-graph: ~/.claude/skills/ecs-graph/scripts (git ~/.claude)."}
+ :remaining #{}                          ;; 2026-09-15: «ворота знахідок проходу 2» і «план → go» застаріли — пройдені рішеннями :path-cascade-auto і :s2-accepted
+ :resume-context "Закрито. Інструмент — .claude/skills/fantasymayor-graph (fmgraph.py); аналізатор — Tools/MarkerShapeAnalyzer; наступна робота з :refactoring-later — окремою задачею."}
 ```
 
 # Acceptance
@@ -425,8 +431,8 @@ related:
 [{:meter "build_graph.py --check" :target "нових попереджень нема"
   :actual "2026-09-15, замінник fmgraph.py check: curated true, integrity clean, попереджень 8 — 7 DeleteEntity «attribute by hand» + 1 key-role HexIdFKComponent, ті самі, що в базі; нових 0"
   :actual-after-read-back-fixes "2026-09-15, після rb-13 … rb-24: curated true, integrity clean, попереджень 9 до і після проходу — ті самі 8 + «redundant marker: CameraMovementSystem claims SystemRole, but its role per_frame is decided by base» від ручного маркера власника на CameraMovementSystem.cs:23 (після read-back); правки задачі нових попереджень не дали"
-  :status :blocked-by-owner
-  :blocker "дев'яте попередження — ручна правка власника: прибрати маркер (роль вирішує база LateUpdatedSystem) або прийняти його"}
+  :actual-at-close "2026-09-15, власник на /sdd-flow:close: «1 - remove» — маркер прибрано з CameraMovementSystem.cs, файл збігається з HEAD; fmgraph.py build + check: curated true, integrity clean, попереджень 8 — ті самі, що в базі; CameraMovementSystem лишається per_frame (base)"
+  :status :met}
  {:meter "ecsg.py stats" :target "curated: true, привидів нема"
   :actual "2026-09-15, fmgraph.py stats: 371 файл, вузлів 479, ребер 1255; reacts_to 20, polls 4, registers 101, exposes 73, injects 129 (126 + 3 параметри ConfigLoaderSystem), runs_in 29, hosts 12, subscribes 5; ролі reactive 18, per_frame 7, cleanup 1, pipeline_stage 14, turn_phase 3, startup_step 2, sub_system 26; check — висячих ребер 0"
   :actual-after-read-back-fixes "2026-09-15: ті самі вузли 479, ребра 1255 і лічильники rel, ролей і рецептів; попереджень 9 (див. check); curated true; doc_lint — 3 привиди, не цієї задачі"
@@ -447,8 +453,8 @@ related:
   :status :met}
  {:meter "перевірка власника в Unity (# Plan :accept)" :target "компілюється; маркер, що не збігається з формою, дає помилку компіляції"
   :actual "2026-09-15, власник: DLL імпортовано (Editor знято, мітка RoslynAnalyzer), проєкт компілюється, сторож працює — «шикарно, все працює». Після rb-20 DLL перезібрано і замінено лише бінарник (.meta не чіпано); димовий прогін поза Unity — ті самі FM1001-FM1004, змінився тільки this(...)-випадок"
-  :status :recheck-by-owner
-  :blocker "Unity ще не компілював DLL після rb-20 — погляд на консоль після реімпорту"}
+  :actual-at-close "2026-09-15, власник на /sdd-flow:close: «2 - все працює» — Unity скомпілював перезібрану DLL після rb-20"
+  :status :met}
  {:meter "grep ecs-graph / di-graph / ecsg.py / dig.py поза Flows/Archive і цим FLOW (# Plan :accept)" :target "0"
   :actual "2026-09-15: 0 поза Flows/ і .sdd-flow/references (там приклад канону PROJECT_ADAPTER.md:52 — :od-grep-scope); .sdd-flow/project.md 0; ~/.claude/skills/ecs-graph і di-graph відсутні"
   :status :met}

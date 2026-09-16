@@ -33,7 +33,7 @@ public sealed class [Name]System : UpdatedSystem
     private readonly EntityStorages _storages;
 
     // DI-collected subsystems. Ordered once; fixed composition, not per-frame state — hence [StateAllowed].
-    [StateAllowed]
+    [StateAllowed("DI-collected composition, fixed at construction")]
     private readonly IReadOnlyList<[Name]SubSystem> _subSystems;
 
     public override int Priority => SystemPriorities.RuntimeTick.[Name];
@@ -59,8 +59,24 @@ public sealed class [Name]System : UpdatedSystem
 }
 ```
 
+No role marker here: the event archetype sits in the `base(...)` call, so the shape decides the role and a
+marker is forbidden. An orchestrator that instead implements `IUpdatedSystem` directly and HOLDS the event
+archetype in a field is the one shape no ordering rule decides, so it carries the marker:
+
+```csharp
+[UsedImplicitly]
+[SystemRole(SystemRoleKind.Reactive)]   // Update-loop class holding an event archetype outside base(...)
+public sealed class [Name]System : IUpdatedSystem
+```
+
+`Reactive` demands the Update-loop contract with no table anchor plus an event anchor or a held event
+archetype — a marker that contradicts the class shape FAILS the Unity compile (MarkerShapeAnalyzer,
+category `FantasyMayor.Markers`, severity Error). No marker is inherited: every concrete class carries
+its own, and the subsystems — plain objects, not systems — carry none.
+
 The subsystem base + concretes are exactly [PATTERN_ORCHESTRATOR_SUBSYSTEM](PATTERN_ORCHESTRATOR_SUBSYSTEM.md) —
-a plain `IDisposable` object (NOT a system), each owning and disposing its own query caches.
+a plain `IDisposable` object (NOT a system). Query caches belong to the store, so a subsystem has nothing to
+release there: its `Dispose` clears only what it allocated itself (ARCHITECTURE → Runtime forms, :orchestrator/query-caches).
 
 ## Incremental start — the reactive shell
 
@@ -76,14 +92,17 @@ yet.
 ```clojure
 (def reactive-orchestrator-rules
   {:driven-by       "EventArchetypes.Of<TheEvent>"                ;; zero cost while no pulse exists
+   :role-marker     {:required  "[SystemRole(SystemRoleKind.Reactive)] when the orchestrator HOLDS the event archetype outside base(...)"
+                     :forbidden "on the base-anchored shape above, and on every subsystem — a subsystem is not a system"
+                     :inherited :never}                           ;; a marker contradicting the shape is a compile ERROR (MarkerShapeAnalyzer); a redundant one is a graph warning today
    :on-pulse        #{"subsystems act on the event's values"
                       "subsystems reconcile against CURRENT state"} ;; a reconciling Run() rebuilds and diffs — idempotent
    :ripe-gate       "IsRipe(pulse) or return"                     ;; the orchestrator gates ONCE, before the fan-out — a subsystem never re-checks (ARCHITECTURE → Events)
    :orchestrator    {:contains :no-domain-logic}                  ;; sort by Priority, skip IsEnabled==false, Run — ALL real work is in the subsystems
-   :subsystem       "plain IDisposable, NOT a system"             ;; [StateAllowed] on the orchestrator's list; query caches live in each subsystem
+   :subsystem       "plain IDisposable, NOT a system"             ;; [StateAllowed("reason")] on the orchestrator's list; query caches live in each subsystem
    :di-subsystem    ".As<[Feature]SubSystem, [Name]SubSystem>()"  ;; register AS the base so VContainer fills the list
    :di-orchestrator "concrete + wired in Boot.Construct"          ;; per-frame/reactive systems are grouped into a GameMode by hand
    :empty-collection :forbidden                                   ;; no subsystems yet → reactive shell (no list injection) until the first one lands
    :structural-in-update :safe                                    ;; UpdatedSystem snapshots the driving archetype's ids and calls Update(state, entity) outside its enumeration
-   :structural-in-own-enumeration :forbidden})                    ;; an enumeration a subsystem opens itself: snapshot entity.Id into NativeList<int>, re-fetch via TryGetEntityById, then delete/modify (ARCHITECTURE → Threading, structural-change)
+   :structural-in-own-enumeration :forbidden})                    ;; an enumeration a subsystem opens itself: snapshot entity.Id into NativeList<int>, re-fetch via TryGetEntityById, then delete/modify (ARCHITECTURE → Threading and structural change)
 ```

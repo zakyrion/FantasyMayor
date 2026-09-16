@@ -13,15 +13,17 @@ related:
 
 <!-- BEGIN GENERATED — Tools/gen_index.py rebuilds everything between these markers; edits here are overwritten -->
 
-Totals: 44 docs — 3 always · 20 trigger · 2 reference · 19 archive · 3 canvas.
+Totals: 48 docs — 5 always · 20 trigger · 0 reference · 23 archive · 3 canvas.
 
 ## Read at start (always)
 
 Read these every session before doing anything else.
 
 - [CLAUDE.md](CLAUDE.md) — How to work in FantasyMayor. The lifecycle is sdd-flow's and is not restated here; this file
-- [Request](Flows/DOC_AGENT_REVIEW/FLOW.md) — 
-- [Request](Flows/ECS_GRAPH_PATTERN_INSTANCES/FLOW.md) — 
+- [Request](Flows/GRAPH_STANDARD/FLOW.md) — 
+- [Subject](Flows/RULES_SPECIFICATION/CASCADE.md) — Набір правил коду FantasyMayor і структура майбутньої RULES_SPECIFICATION.md — стадії s1 і s2 каскаду.
+- [Task](Flows/RULES_SPECIFICATION/CONTEXT.md) — Контекст для s1: носії правил коду, інвентар кожного правила, суперечності, рішення, межі й перевірка специфікації.
+- [Request](Flows/RULES_SPECIFICATION/FLOW.md) — 
 
 ## Read on demand (by trigger)
 
@@ -29,8 +31,7 @@ Do **not** preload. Read only when the trigger condition holds.
 
 | Doc | Read it… | What it is |
 |---|---|---|
-| [FantasyMayor — Architecture Reference](ARCHITECTURE.md) | before any engineering task — request routing puts it into :read | Runtime laws of FantasyMayor code: systems, entities, events, threading, code shape. |
-| [CODE_STORY_RULES](CODE_STORY_RULES_PROPOSAL.md) | before writing or reviewing a system whose body is an algorithm, and when running the cascade on a class | Код читається як розповідь: послідовність, сюжет, сенс у кожній змінній і в кожному імені. |
+| [FantasyMayor — Architecture Reference](ARCHITECTURE.md) | before any engineering task — request routing puts it into :read | Every code law of FantasyMayor in full: systems, state, memory, entities, events, views, configs, threads, naming. |
 | [DOC_STANDARD.md](DOC_STANDARD.md) | before authoring or reviewing any .md (Flows / Patterns / policy) for standard compliance | Single source of truth for how to write Markdown docs in this project. |
 | [GAME_MECHANICS](GAME_MECHANICS.md) | before any game-design work: the core loop, economy, actors, elites, population needs, land and slots, buildings, the exchange, politics, consequences | The mayor creates opportunities for autonomous elites; the city comes to depend on them and never commands them. |
 | [GLOSSARY — domain vocabulary → code anchors](GLOSSARY.md) | when a domain term (any language) needs its canonical code name before searching roslyn / fantasymayor-graph | Map from human vocabulary (game-design terms, Ukrainian/English synonyms, abbreviations) to the |
@@ -49,6 +50,7 @@ Do **not** preload. Read only when the trigger condition holds.
 | [Pattern — ECS Tag](Patterns/PATTERN_TAG.md) | before creating an ECS tag (field-less marker / table discriminator) | A tag is an empty struct that marks an entity. It carries no data; its presence IS the information. |
 | [Pattern — Transaction Entity (cross-domain behavior)](Patterns/PATTERN_TRANSACTION_ENTITY.md) | before building any multi-step behavior that spans more than one subdomain (a cross-domain transaction) | A multi-step behavior that spans subdomains gets exactly ONE home: a **transaction entity** in the |
 | [Pattern — View ↔ System](Patterns/PATTERN_VIEW_SYSTEM.md) | before creating a MonoBehaviour view + its driving system, or wiring how a view and its system talk | A MonoBehaviour View is dumb chrome driven by its System; they talk directly: C# event in, push-to-view out, never ECS. |
+| [FantasyMayor — Специфікація правил коду](RULES_SPECIFICATION.md) | перед будь-якою роботою, що створює або змінює код у Assets/, і перед зміною правила в ARCHITECTURE.md, рецепті Patterns/, скілі чи інструменті | Єдине джерело правил коду FantasyMayor: кожне правило зі стабільним ID і тим, хто його перевіряє. |
 
 ## Reference map (on demand)
 
@@ -56,12 +58,10 @@ Reference docs read on demand.
 
 | Doc | Cat | Status | What it is |
 |---|---|---|---|
-| [Subject](Flows/ECS_GRAPH_PATTERN_INSTANCES/CASCADE.md) | A | partial | Каскад: s1 і s2 — закон тегів «головний + label», маркери, сторож Roslyn, злитий граф з pattern <RECIPE>, споживачі. |
-| [Task](Flows/ECS_GRAPH_PATTERN_INSTANCES/CONTEXT.md) | A | partial | Контекст для s1: два інструменти графа, ознаки 15 рецептів, закон тегів, маркери, сторож, споживачі, перевірка. |
 
 ## Task history (archive)
 
-19 completed FLOW document(s) are retained under `Flows/Archive/`. They preserve task history and are searched on demand; they are not startup context or current-code claims.
+23 completed FLOW document(s) are retained under `Flows/Archive/`. They preserve task history and are searched on demand; they are not startup context or current-code claims.
 
 ## Canvas map (on demand)
 
@@ -96,12 +96,6 @@ Curate what the script can't derive: current focus, stale docs, cross-doc orient
   Unity. The three vision FLOWs (BUILD_UX_DECONGESTION, BASIC_CITY_UI, VISION_UNIFICATION), their three
   RESEARCH satellites, and the synthesis FLOW that wrote this document (FLOW_ECONOMY_POC) are all closed and
   archived; the owner's verbatim words live there.
-- **`CODE_STORY_RULES_PROPOSAL.md` is the STANDING algorithm/readability doc (2026-09-09)** — despite the
-  `_PROPOSAL` filename, which the owner kept on purpose. It replaced `CODE_STYLE_RULES_WIP.md` and
-  `CODE_CASCADE_PROPOSAL.md`, both deleted that day together with the four archived cascade/lake FLOWs; never
-  reconstruct any of them from git. The cascade is now two artifacts with two owner gates: **s1** = task
-  statement + algorithm + real data types + what each step mutates; **s2** = compressed pseudocode of the future
-  class (decomposition is born there, never in s1). The last cascade run is archived: `Flows/Archive/FLOW_CASCADE_S2_LAKE.md`.
 - **No UI document exists (2026-09-05).** The owner deleted the main-screen spec (`UISpecs/`), every mockup
   (`design-mockups/`) and `UI_LANGUAGE.md` as not matching the vision; `GENERAL_UI_STYLE.md` died earlier. UI is
   derived anew from `GAME_MECHANICS.md` (§12 holds the model-side facts) as a separate task when the owner opens

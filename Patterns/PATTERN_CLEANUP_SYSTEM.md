@@ -32,5 +32,5 @@ That is the entire contract. See [PATTERN_EVENT](PATTERN_EVENT.md).
    EventCleanupSystem      "runs last, int.MaxValue"   ;; it deletes only RIPE events, so consumer priority no longer matters (ARCHITECTURE → Events)
    :hand-rolled-pulse      "the entity LEAKS"          ;; assembling a pulse without CreateEvent misses EventTag and/or the frame stamp: no stamp = never ripe = never cleaned; always raise via the helper
    :persistent-data-entity {:never-carries EventTag}   ;; cleanup would destroy it — only the throwaway pulse entity carries the tag
-   :sweep-is-cross-archetype "EventTag, by design"})   ;; the one filter that deliberately spans archetypes — every event type at once (ARCHITECTURE → Entities, table-rule :cross-archetype-query)
+   :sweep-is-cross-archetype "EventTag, by design"})   ;; the one filter that deliberately spans archetypes — every event type at once (ARCHITECTURE → Entities, :table/cross-archetype)
 ```

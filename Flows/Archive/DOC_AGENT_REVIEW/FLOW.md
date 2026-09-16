@@ -1,10 +1,14 @@
 ---
 category: A
-read: always
-status: partial
-tags: [docs, process, sdd-flow, review]
+read: archive
+status: closed-by-owner
+tags:
+  - docs
+  - process
+  - sdd-flow
+  - review
 related:
-  - "[CLAUDE](../../CLAUDE.md)"
+  - "[CLAUDE](../../../CLAUDE.md)"
 ---
 
 # Request
@@ -536,10 +540,14 @@ related:
 # Progress
 
 ```clojure
-{:status :active
+{:status :closed-by-owner
+ :closed {:at "2026-09-15"
+          :raw "Давай закриємо цей flow бо він вже настільки застарів що неможливо зрозуміти що треба робити."
+          :outcome "кроки 1-3 прийняті й закомічені; :remaining, поправка про коментарі і відкриті рішення :comment-granularity / :evaluator-command-buffer не виконані й не переносяться — закрито словом власника, не за приймальними метрами"
+          :carried "оновлення PATTERN_TRANSACTION_ENTITY.md до сучасного стандарту — окремою задачею"}
  :completed #{"step-1 CLAUDE.md — застосовано, прийнято власником («приймаю, комітимо») і закомічено 2026-09-14"
               "step-3 ARCHITECTURE.md — злиття з ECS_CONVENTIONS, валідація, розбиття на скіли fantasymayor-placement і fantasymayor-pattern-choice; прийнято власником («приймаю, комітимо») і закомічено 2026-09-15"}
- :current :next-step-by-owner
+ :current :none
  :step-3-merge "2026-09-14: застосовано за :merge-go, не закомічено — ECS_CONVENTIONS.md злитий в ARCHITECTURE.md (392 рядки: + Systems, Entities, Events, Threading, naming / output-methods / fail-loud у Code shape) і видалений через vault_delete; State Storage, живі переліки, приклади, історія, Open Directions не перенесені; посилання перенаправлені: 12 Patterns, CLAUDE.md, project.md, DOC_STANDARD, GAME_MECHANICS, CODE_STORY_RULES, скіл arch-check (+ класифікація cadence, Allocator.Temp в async), ~/.claude/CLAUDE.md, 12 файлів пам'яті; поза архівом і цим FLOW згадок 0"
  :step-3 "застосовано 2026-09-14 за :architecture-apply-set, не закомічено: ARCHITECTURE.md 225 → 212 рядків; System Taxonomy не чіпали (п. 9); додано перший рядок-опис для INDEX; власник перечитає і повернеться"
  :step-2 "прийнято («добре») і закомічено 2026-09-14 разом з видаленням CLOJURE_GUIDE.md: FLOW_TEMPLATE.md і RESEARCH_TEMPLATE.md видалені; DOC_STANDARD Rule 2 (2a-2e) → один блок-вказівник на канон, Category A рядок і чекліст скорочені; gen_index.py — перевірка заголовків трьох стадій видалена назавжди, FLOW-папка визнається, архів не перевіряється на форму й биті посилання; project.md # Shape → канон; CLOJURE_GUIDE.md:535 → канонічний шаблон; відновлення FLOW після інциденту теж чекає коміту"
@@ -562,12 +570,12 @@ related:
 ```clojure
 [{:meter "python3 Tools/gen_index.py"
   :target "LINT: clean"
-  :actual "LINT: clean (41 docs, 2 always) — після розбиття на скіли 2026-09-15"
-  :status :pending}
+  :actual "LINT: clean (44 docs, 2 always) — при закритті 2026-09-15"
+  :status :met}
  {:meter "python3 Tools/doc_lint.py --quiet"
   :target "0 Clojure syntax errors; ghosts не зросли"
-  :actual "3 ghosts, 0 syntax errors, 38 md — після розбиття на скіли 2026-09-15 (привиди старі, HexIdComponent)"
-  :status :pending}
+  :actual "3 ghosts, 0 syntax errors, 41 md — при закритті 2026-09-15 (привиди старі, HexIdComponent)"
+  :status :met}
  {:meter "grep «(def <name>» по ARCHITECTURE.md і двох SKILL.md"
   :target "кожне визначення рівно один раз"
   :actual "40 визначень, дублів 0 — 2026-09-15"
@@ -578,8 +586,8 @@ related:
   :status :met}
  {:meter "власник"
   :target "кожен крок прийнятий словом"
-  :actual "крок 1 прийнято 2026-09-14; крок 3 прийнято 2026-09-15"
-  :status :pending}]
+  :actual "кроки 1-2 прийнято 2026-09-14, крок 3 — 2026-09-15; далі FLOW закрито власником як застарілий"
+  :status :not-met}]
 ```
 
 # Amendments
@@ -611,7 +619,7 @@ related:
                :decided #{":code-comments-delete"}
                :open #{":comment-granularity" ":evaluator-command-buffer"}
                :result "grep ECS_CONVENTIONS і payload-less по Assets/*.cs = 0"}
-  :confirmed false}
+  :confirmed false}                     ;; 2026-09-15: не підтверджена й не виконана — FLOW закрито власником
  ;; 2026-09-15: відповіді 4, 6, 7, 8 належать задачі ecs-graph — у її FLOW після підтвердження постановки; 8 виконано: база ecs-graph закомічена в ~/.claude af626ef (main)
  ]
 ```

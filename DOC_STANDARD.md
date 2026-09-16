@@ -121,7 +121,7 @@ Navigation only — doc-meta and doc↔doc relations, never code structure.
 | `read` | all files | `always` (session-start set; Category A means active work) · `trigger` (+ one imperative `trigger:` line) · `reference` · `archive` (completed historical FLOW only; counted but not listed in INDEX) |
 | `tags` | encouraged | lowercase domain labels, never type/assembly names |
 | `related` | omit if none | doc↔doc **relative markdown links** only |
-| `status` | Category A only | `partial` while active · `implemented` after every acceptance meter passes |
+| `status` | Category A only | `partial` while active · `implemented` after every acceptance meter passes · `closed-by-owner` when the owner closes it before acceptance |
 | `code_refs` | Category A only | bare symbol names the contract reasons about, nested by kind — doc-lint drift anchors |
 
 After adding/removing/renaming a doc or changing `read`/`trigger`/`status`: re-run
@@ -156,7 +156,7 @@ After adding/removing/renaming a doc or changing `read`/`trigger`/`status`: re-r
 - [ ] The content fits a non-rotting genre (task doc / recipe / policy) — no present-tense
       mirror of code state, no rosters, no wiring, no priorities, no signatures.
 - [ ] Category A only: active FLOW = `read: always` + `status: partial`; archived FLOW = `read: archive`
-      + `status: implemented`, no `code_refs`.
+      + `status: implemented` or `closed-by-owner`, no `code_refs`.
 - [ ] Frontmatter per the table; `python3 Tools/gen_index.py` re-run if doc-meta changed.
 - [ ] `python3 Tools/doc_lint.py` reports no new ghosts for this doc.
 - [ ] Mechanizable rules are Clojure rule blocks (Rule Style), not prose bullets.

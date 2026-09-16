@@ -1,8 +1,11 @@
 ---
 category: A
-read: reference
-status: partial
-tags: [tools, patterns, cascade]
+read: archive
+status: implemented
+tags:
+  - tools
+  - patterns
+  - cascade
 related:
   - "[FLOW](FLOW.md)"
 ---
