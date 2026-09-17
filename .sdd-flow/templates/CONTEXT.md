@@ -3,10 +3,22 @@
 ```clojure
 {:task :task-id
  :flow "Flows/<TASK>/FLOW.md"
+ :artifact-kind :class
+ :living-s2 "Flows/Specs/<Subject>.md, or :none"
  :goal "the confirmed goal, restated so that s1 needs nothing else"
  :result "the observable outcome the code must produce"
  :decided "every confirmed decision the next stage must honor, restated here"
  :out-of-scope #{"what the next stage must not touch or design"}}
+```
+
+# Build
+
+```clojure
+{:language "the language and its version"
+ :runtime "what runs the code"
+ :modules "how files import each other — the module system"
+ :tests {:runner "what runs them" :command "the exact command" :style "where tests live and how a fixture is built"}
+ :conventions "where the project states its code conventions, or :none"}
 ```
 
 # Reads
@@ -42,6 +54,15 @@
   :occasion "the fact above that proves the condition can occur"}]
 ```
 
+# Gotchas
+
+```clojure
+[{:trap "what misbehaves"
+  :where "file, symbol or library"
+  :avoid "what to do instead"
+  :verified-by "how this was established"}]
+```
+
 # Verification
 
 ```clojure
@@ -53,6 +74,8 @@
 
 ```clojure
 {:names-every-file-the-next-stage-may-read true
+ :names-artifact-kind true
+ :names-build-facts true
  :states-out-of-scope true
  :ends-with-verification true
  :links-to-follow-on-own-initiative 0}
