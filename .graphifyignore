@@ -32,7 +32,7 @@ skills/
 # --- Unity Package Manager (immutable third-party) ---
 Packages/
 
-# --- Third-party assets (immutable per CLAUDE.md) ---
+# --- Third-party assets (immutable per AGENTS.md) ---
 Assets/Plugins/
 Assets/ThirdParty/
 Assets/Packages/

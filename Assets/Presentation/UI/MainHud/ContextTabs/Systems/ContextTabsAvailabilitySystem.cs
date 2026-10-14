@@ -1,6 +1,7 @@
-﻿using EcsExtensions;
+using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
+using Core;
 using Presentation.Archetypes;
 using Presentation.Terrain.Events;
 using Presentation.UI.MainHud.ContextTabs.Components;
@@ -18,25 +19,31 @@ namespace Presentation.UI.MainHud.ContextTabs.Systems
     ///     (now keyed to selection); replace it with real rules (action points, ownership, turn phase) later.
     /// </summary>
     [UsedImplicitly]
-    public sealed class ContextTabsAvailabilitySystem : UpdatedSystem
+    public sealed class ContextTabsAvailabilitySystem : IUpdatedSystem
     {
         private readonly EntityStorages _storages;
         private readonly Archetype _selectedHexSet;
+        private readonly EventReader<SelectedHexChangedEvent> _selectedHexChanges;
 
-        public override int Priority => SystemPriorities.RuntimeTick.ContextTabsAvailability;
+        public AppState AppState { get; }
+        public int Priority => SystemPriorities.RuntimeTick.ContextTabsAvailability;
 
-        public ContextTabsAvailabilitySystem(EntityStorages storages)
-            : base(storages.World, EventArchetypes.Of<SelectedHexChangedEvent>(storages.World))
+        public ContextTabsAvailabilitySystem(AppState appState, EntityStorages storages, EventReader<SelectedHexChangedEvent> selectedHexChanges)
         {
+            AppState = appState;
             _storages = storages;
+            _selectedHexChanges = selectedHexChanges;
             _selectedHexSet = PresentationArchetypes.HexSelection(storages.World);
         }
 
-        protected override void Update(GameState state, in Entity entity)
+        public void Update(GameState state)
         {
-            if (!EcsEventExtensions.IsRipe(entity))
-                return;
+            while (_selectedHexChanges.TryRead(out _))
+                ReconcileTabAvailability();
+        }
 
+        private void ReconcileTabAvailability()
+        {
             if (!_storages.Singletons.Has<ContextTabsViewComponent>())
                 return;
 

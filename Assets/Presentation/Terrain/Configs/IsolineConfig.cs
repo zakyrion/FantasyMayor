@@ -1,14 +1,14 @@
+using Presentation.Terrain.Data;
 using UnityEngine;
 
-namespace Presentation.Terrain.Data
+namespace Presentation.Terrain.Configs
 {
     /// <summary>
-    ///     ScriptableObject asset that configures a single field-based isoline:
-    ///     traversal side, depth band parameters, and natural-curve shape settings.
-    ///     Create two instances — one for the inner line, one for the outer line.
+    ///     Settings of a single field-based isoline: traversal side, depth band parameters, and natural-curve
+    ///     shape settings. Abstract because configs are stored by type — the inner and outer lines are
+    ///     <see cref="OuterIsolineConfig" /> and <see cref="InnerIsolineConfig" />.
     /// </summary>
-    [CreateAssetMenu(fileName = "IsolineConfig", menuName = "FantasyMayor/Terrain/Isoline Config")]
-    public class IsolineConfig : ScriptableObject
+    public abstract class IsolineConfig : ScriptableObject
     {
         [Header("Traversal")]
         public TraversalSideData side;

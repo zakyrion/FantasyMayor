@@ -1,9 +1,11 @@
 using UnityEngine;
+using System;
+using EcsExtensions;
 
 namespace Presentation.HexIcons.Configs
 {
     [CreateAssetMenu(fileName = "HexIconsConfig", menuName = "FantasyMayor/HexIcons/HexIconsConfig")]
-    internal sealed class HexIconsConfig : ScriptableObject
+    internal sealed class HexIconsConfig : ScriptableObject, IValidatableConfig
     {
         [SerializeField] private GameObject _prefab;
         public GameObject Prefab => _prefab;
@@ -23,5 +25,11 @@ namespace Presentation.HexIcons.Configs
         // above the hex instead of sitting on it. Lifted in world space → foreshortens with perspective.
         [SerializeField] private float _worldYOffset = 1.5f;
         public float WorldYOffset => _worldYOffset;
+
+        public void Validate()
+        {
+            if (Prefab == null)
+                throw new InvalidOperationException("HexIconsConfig: Prefab is null.");
+        }
     }
 }

@@ -1,12 +1,13 @@
 using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Presentation.UI.Archetypes;
 using Presentation.UI.MainHud.HexInfoPanel.Components;
 using Presentation.UI.MainHud.HexInfoPanel.Views;
 using Presentation.UI.MainHud.Systems;
-using UnityEngine;
-using EcsExtensions;
 
 namespace Presentation.UI.MainHud.HexInfoPanel.Systems
 {
@@ -23,13 +24,15 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
 
         public override int Priority => SystemPriorities.SubSystems.MainHudSpawn.HexInfoPanel;
 
-        public HexInfoPanelSpawnSubSystem(EntityStorages storages)
+        public HexInfoPanelSpawnSubSystem(EntityStorages storages) : base(storages)
         {
             _archetype = PresentationUIArchetypes.HexInfoPanel(storages.World);
         }
 
-        public override void Prepare(GameObject mainUi)
+        public override UniTask Update(CancellationToken cancellationToken)
         {
+            var mainUi = ReadMainHudRoot();
+
             // GetComponentInChildren (not GetComponent): the view carries its own UIDocument, so it lives on a
             // child GameObject of the Main UI root, not the root itself.
             var view = mainUi.GetComponentInChildren<HexInfoPanelView>(true);
@@ -42,6 +45,8 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
 
             // Empty context until a hex is selected; HexInfoPanelSystem swaps in the filled blocks.
             view.ShowEmpty();
+
+            return UniTask.CompletedTask;
         }
     }
 }

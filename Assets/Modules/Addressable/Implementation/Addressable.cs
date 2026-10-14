@@ -13,6 +13,8 @@ using Object = UnityEngine.Object;
 
 namespace Modules.Addressable.Implementation
 {
+    // Each load keeps what it loaded in a local Box until it is handed to the caller (the local becomes Empty);
+    // the finally disposes that local, so cancel, failure and exception all release what was not handed over.
     [UsedImplicitly]
     public class Addressable : IAddressable
     {
@@ -29,66 +31,57 @@ namespace Modules.Addressable.Implementation
             if (string.IsNullOrEmpty(asset))
                 return Result<GameObject>.Fail();
 
-            var result = await LoadAsync(asset);
-
-            if (token.IsCancellationRequested)
+            var prefab = (await LoadAsync(asset)).Box;
+            try
             {
-                if (result.Status == Status.Success)
-                    result.Box.Dispose();
+                token.ThrowIfCancellationRequested();
 
-                return Result<GameObject>.Cancelled();
+                if (!prefab.Exist)
+                    return Result<GameObject>.Fail();
+
+                var instance = _container.Instantiate(prefab.Value, root);
+                if (!instance)
+                    return Result<GameObject>.Fail();
+
+                var ownedPrefab = prefab;
+                prefab = Box<GameObject>.Empty();
+
+                return Result<GameObject>.Success(instance, go =>
+                {
+                    if (go != null)
+                        Object.Destroy(go);
+                    ownedPrefab.Dispose();
+                });
             }
-
-            if (result.Status == Status.Failed)
-                return Result<GameObject>.Fail();
-
-            var instance = _container.Instantiate(result.Box.Value, root);
-
-            if (!instance)
+            finally
             {
-                result.Box.Dispose();
-                return Result<GameObject>.Fail();
+                prefab.Dispose();
             }
-
-            var releaseAction = new Action<GameObject>(go =>
-            {
-                if (go != null)
-                    Object.Destroy(go);
-                result.Box.Dispose();
-            });
-
-            return Result<GameObject>.Success(instance, releaseAction);
         }
 
         public async UniTask<Result<T>> LoadAndInstanceAsync<T>(string asset, CancellationToken token, Transform root = null) where T : Component
         {
-            var resultGO = await LoadAndInstanceAsync(asset, token, root);
-
-            if (resultGO.Status != Status.Success)
+            var instance = (await LoadAndInstanceAsync(asset, token, root)).Box;
+            try
             {
-                return Result<T>.Fail();
+                token.ThrowIfCancellationRequested();
+
+                if (!instance.Exist)
+                    return Result<T>.Fail();
+
+                var component = instance.Value.GetComponent<T>();
+                if (component == null)
+                    return Result<T>.Fail();
+
+                var ownedInstance = instance;
+                instance = Box<GameObject>.Empty();
+
+                return Result<T>.Success(component, _ => ownedInstance.Dispose());
             }
-
-            if (token.IsCancellationRequested)
+            finally
             {
-                resultGO.Box.Dispose();
-                return Result<T>.Cancelled();
+                instance.Dispose();
             }
-
-            var component = resultGO.Box.Value.GetComponent<T>();
-            if (component == null)
-            {
-                resultGO.Box.Dispose();
-                return Result<T>.Fail();
-            }
-
-            return Result<T>.Success(component, _ =>
-            {
-                if (resultGO.Box.Exist)
-                {
-                    resultGO.Box.Dispose();
-                }
-            });
         }
 
         public async UniTask<Result<T>> LoadAsync<T>(string asset, CancellationToken token) where T : class
@@ -97,18 +90,21 @@ namespace Modules.Addressable.Implementation
                 return Result<T>.Fail();
 
             var result = await LoadAsync<T>(asset);
-
-            if (token.IsCancellationRequested)
+            var loaded = result.Box;
+            try
             {
-                if (result.Status == Status.Success)
-                    Release(result.Box.Value);
-                return Result<T>.Cancelled();
-            }
+                token.ThrowIfCancellationRequested();
 
-            return result.Status == Status.Failed ? Result<T>.Fail() : Result<T>.Success(result.Box.Value, Release);
+                loaded = Box<T>.Empty();
+                return result;
+            }
+            finally
+            {
+                loaded.Dispose();
+            }
         }
 
-        private async UniTask<Result<T>> LoadAsync<T>(string path)
+        private async UniTask<Result<T>> LoadAsync<T>(string path) where T : class
         {
             var operationHandle = Addressables.LoadAssetAsync<T>(path);
             try
@@ -116,7 +112,7 @@ namespace Modules.Addressable.Implementation
                 await operationHandle.Task;
 
                 if (operationHandle.Status == AsyncOperationStatus.Succeeded)
-                    return Result<T>.Success(operationHandle.Result);
+                    return Result<T>.Success(operationHandle.Result, Release);
 
                 Addressables.Release(operationHandle);
                 return Result<T>.Fail();

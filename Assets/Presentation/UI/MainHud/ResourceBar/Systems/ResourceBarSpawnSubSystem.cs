@@ -1,12 +1,14 @@
 using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Presentation.UI.Archetypes;
 using Presentation.UI.MainHud.ResourceBar.Components;
+using Presentation.UI.MainHud.ResourceBar.Configs;
 using Presentation.UI.MainHud.ResourceBar.Views;
 using Presentation.UI.MainHud.Systems;
-using UnityEngine;
-using EcsExtensions;
 
 namespace Presentation.UI.MainHud.ResourceBar.Systems
 {
@@ -23,29 +25,28 @@ namespace Presentation.UI.MainHud.ResourceBar.Systems
 
         public override int Priority => SystemPriorities.SubSystems.MainHudSpawn.ResourceBar;
 
-        public ResourceBarSpawnSubSystem(EntityStorages storages)
+        public ResourceBarSpawnSubSystem(EntityStorages storages) : base(storages)
         {
             _storages = storages;
             _archetype = PresentationUIArchetypes.ResourceBar(storages.World);
         }
 
-        public override void Prepare(GameObject mainUi)
+        public override UniTask Update(CancellationToken cancellationToken)
         {
+            var mainUi = ReadMainHudRoot();
+
             var view = mainUi.GetComponentInChildren<ResourceBarView>(true);
             if (view == null)
                 throw new InvalidOperationException(
                     "ResourceBarSpawnSubSystem: ResourceBarView is missing from the Main UI prefab.");
 
-            if (!_storages.Singletons.Has<InventoryResourceIconConfigComponent>())
-                throw new InvalidOperationException(
-                    "ResourceBarSpawnSubSystem: InventoryResourceIconConfigComponent missing — " +
-                    "InventoryResourceIconConfigLoaderSystem must run at ConfigLoadStep first.");
-
-            view.Build(_storages.Singletons.Get<InventoryResourceIconConfigComponent>().Value.Entries);
+            view.Build(_storages.Get<InventoryResourceIconConfig>().Entries);
             view.Hide();
 
             var entity = _archetype.CreateEntity();
             entity.AddComponent(new ResourceBarViewComponent(view));
+
+            return UniTask.CompletedTask;
         }
     }
 }

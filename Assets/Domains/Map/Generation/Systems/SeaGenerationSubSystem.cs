@@ -1,5 +1,6 @@
-﻿using Domains.Map.Archetypes;
-using Domains.Map.Generation.Components;
+﻿using System.Threading;
+using Cysharp.Threading.Tasks;
+using Domains.Map.Archetypes;
 using Domains.Map.Generation.Data;
 using Domains.Map.Hex.Components;
 using EcsExtensions;
@@ -9,13 +10,14 @@ using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 using Random = UnityEngine.Random;
+using Domains.Map.Generation.Configs;
 
 namespace Domains.Map.Generation.Systems
 {
     /// <summary>
     ///     Runs sea generation when invoked by <see cref="GenerationSystem" />.
     ///     Generates a single connected sea body seeded from the map edge and biased to
-    ///     remain near that edge, with area derived from <see cref="SeaConfigComponent.SizeFraction" />.
+    ///     remain near that edge, with area derived from <see cref="SeaConfig.SizeFraction" />.
     /// </summary>
     [UsedImplicitly]
     internal sealed class SeaGenerationSubSystem : GenerationSubSystem
@@ -44,20 +46,17 @@ namespace Domains.Map.Generation.Systems
         /// <summary>
         ///     Runs sea generation when the active terrain config requests <see cref="WaterType.Sea" />.
         /// </summary>
-        /// <param name="state">Current game state.</param>
-        public override void Update(GameState state)
+        /// <param name="cancellationToken">Token used to cancel the run.</param>
+        public override UniTask Update(CancellationToken cancellationToken)
         {
-            if (!_storages.Singletons.Has<TerrainGenerationConfigComponent>() || !_storages.Singletons.Has<SeaConfigComponent>())
-                return;
-
-            var terrainConfig = _storages.Singletons.Get<TerrainGenerationConfigComponent>();
+            var terrainConfig = _storages.Get<TerrainGenerationConfig>();
 
             if (terrainConfig.WaterType != WaterType.Sea)
-                return;
+                return UniTask.CompletedTask;
 
-            var config = _storages.Singletons.Get<SeaConfigComponent>();
+            Generate(terrainConfig, terrainConfig.SeaConfig);
 
-            Generate(in terrainConfig, in config);
+            return UniTask.CompletedTask;
         }
 
         /// <summary>
@@ -75,7 +74,7 @@ namespace Domains.Map.Generation.Systems
             {
                 foreach (var entity in entities)
                 {
-                    var coord = entity.GetComponent<HexIdComponent>().Coords.Value;
+                    var coord = entity.GetComponent<HexIdPKComponent>().Coords.Value;
                     var level = seaCoords.Contains(coord) ? SeaLevel : 0;
                     levelById.Add(new int2(entity.Id, level));
                 }
@@ -131,7 +130,7 @@ namespace Domains.Map.Generation.Systems
 
             foreach (var entity in entities)
             {
-                var coord = entity.GetComponent<HexIdComponent>().Coords.Value;
+                var coord = entity.GetComponent<HexIdPKComponent>().Coords.Value;
                 mapDomain.Add(coord);
                 mapCoords.Add(coord);
             }
@@ -185,7 +184,7 @@ namespace Domains.Map.Generation.Systems
         /// </summary>
         /// <param name="terrainConfig">Global terrain generation config.</param>
         /// <param name="config">Sea-specific config.</param>
-        private void Generate(in TerrainGenerationConfigComponent terrainConfig, in SeaConfigComponent config)
+        private void Generate(TerrainGenerationConfig terrainConfig, SeaConfig config)
         {
             var entities = _hexSet.Entities;
             var mapCapacity = math.max(1, entities.Count);

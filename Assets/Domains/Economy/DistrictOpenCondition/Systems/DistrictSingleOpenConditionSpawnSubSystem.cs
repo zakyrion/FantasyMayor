@@ -1,3 +1,5 @@
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using Friflo.Engine.ECS;
 using Domains.Economy.Archetypes;
 using Domains.Economy.District.Components;
@@ -9,9 +11,9 @@ using JetBrains.Annotations;
 
 namespace Domains.Economy.DistrictOpenCondition.Systems
 {
-    // Handles SingleDistrictOpenConditionConfig: creates one entity carrying the gated district type (FK), the
-    // shared condition discriminator, and its kind + state columns (SingleOpen / Closed). No payload — the rule
-    // has no params.
+    // Handles SingleDistrictOpenConditionConfig: creates one entity carrying the gated district type (FK), its
+    // archetype's main tag beside the family label, and its kind + state columns (SingleOpen / Closed). No payload —
+    // the rule has no params.
     [UsedImplicitly]
     internal sealed class DistrictSingleOpenConditionSpawnSubSystem : DistrictOpenConditionSpawnSubSystem
     {
@@ -19,22 +21,28 @@ namespace Domains.Economy.DistrictOpenCondition.Systems
 
         private readonly Archetype _archetype;
 
-        public DistrictSingleOpenConditionSpawnSubSystem(EntityStorages storages) : base(storages.World)
+        public DistrictSingleOpenConditionSpawnSubSystem(EntityStorages storages) : base(storages)
         {
             _archetype = EconomyArchetypes.OpenConditionSingle(storages.World);
         }
 
-        public override bool TrySpawn(DistrictOpenConditionConfig config)
+        // Walks the whole catalogue and spawns only its own kind — another entry is another part's to handle.
+        public override UniTask Update(CancellationToken cancellationToken)
         {
-            if (config is not DistrictSingleOpenConditionConfig singleConfig)
-                return false;
+            var conditions = Storages.Get<DistrictOpenConditionsConfig>().Conditions;
 
-            var entity = _archetype.CreateEntity();
-            entity.AddComponent(new DistrictTypeFKComponent { Value = singleConfig.DistrictType });
-            entity.AddComponent(new DistrictOpenConditionKindComponent { Value = DistrictOpenConditionKind.SingleOpen });
-            entity.AddComponent(new DistrictOpenStateComponent { Value = DistrictOpenState.Closed });
+            for (var index = 0; index < conditions.Length; index++)
+            {
+                if (conditions[index] is not DistrictSingleOpenConditionConfig singleConfig)
+                    continue;
 
-            return true;
+                var entity = _archetype.CreateEntity();
+                entity.AddComponent(new DistrictTypeFKComponent { Value = singleConfig.DistrictType });
+                entity.AddComponent(new DistrictOpenConditionKindComponent { Value = DistrictOpenConditionKind.SingleOpen });
+                entity.AddComponent(new DistrictOpenStateComponent { Value = DistrictOpenState.Closed });
+            }
+
+            return UniTask.CompletedTask;
         }
     }
 }

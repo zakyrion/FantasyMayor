@@ -2,8 +2,6 @@
 category: A
 read: archive
 tags: [flow, process, clojure, notation, normalization]
-related:
-  - "[Installable Engineering Flow](../FLOW_DESIGN_INSTALLABLE_ENGINEERING_FLOW.md)"
 status: implemented
 ---
 

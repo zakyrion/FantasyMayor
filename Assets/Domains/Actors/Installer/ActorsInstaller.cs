@@ -1,9 +1,11 @@
 using EcsExtensions;
 using Domains.Actors.City.Systems;
 using Domains.Actors.Mayor.Systems;
-using Modules.Boot.Core;
+using Core;
 using VContainer;
 using VContainer.Unity;
+using Domains.Actors.City.Configs;
+using Domains.Actors.Mayor.Configs;
 
 namespace Domains.Actors.Installer
 {
@@ -11,17 +13,15 @@ namespace Domains.Actors.Installer
     {
         public void Install(IContainerBuilder builder)
         {
-            builder.Register<CityConfigLoaderSystem>(Lifetime.Singleton)
-                .As<CityConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
+            builder.RegisterAppStateSystem<ConfigLoaderSystem<CityConfig>>(Lifetime.Singleton, AppState.ConfigLoading)
+                .WithParameter("address", ConfigAddresses.CITY_CONFIG);
 
-            builder.Register<MayorConfigLoaderSystem>(Lifetime.Singleton)
-                .As<MayorConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
+            builder.RegisterAppStateSystem<ConfigLoaderSystem<MayorConfig>>(Lifetime.Singleton, AppState.ConfigLoading)
+                .WithParameter("address", ConfigAddresses.MAYOR_CONFIG);
 
-            builder.Register<CitySpawnSystem>(Lifetime.Singleton)
-                .As<CitySpawnSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
+            builder.RegisterAppStateSystem<CitySpawnSystem>(Lifetime.Singleton, AppState.MapCreation);
 
-            builder.Register<MayorSpawnSystem>(Lifetime.Singleton)
-                .As<MayorSpawnSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
+            builder.RegisterAppStateSystem<MayorSpawnSystem>(Lifetime.Singleton, AppState.MapCreation);
         }
     }
 }

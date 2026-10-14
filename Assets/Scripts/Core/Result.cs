@@ -25,11 +25,6 @@ namespace Core
             };
         }
 
-        public static Result<T> Cancelled()
-        {
-            return Failure(Status.Cancelled);
-        }
-
         public static Result<T> Fail()
         {
             return Failure(Status.Failed);

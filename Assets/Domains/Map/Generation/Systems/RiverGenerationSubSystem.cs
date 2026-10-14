@@ -1,6 +1,7 @@
 ﻿using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using Domains.Map.Archetypes;
-using Domains.Map.Generation.Components;
 using Domains.Map.Generation.Data;
 using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Utils;
@@ -12,6 +13,7 @@ using Modules.AxialSystem;
 using Unity.Collections;
 using UnityEngine;
 using Random = UnityEngine.Random;
+using Domains.Map.Generation.Configs;
 
 namespace Domains.Map.Generation.Systems
 {
@@ -50,22 +52,16 @@ namespace Domains.Map.Generation.Systems
             _hexSet = MapArchetypes.Hex(storages.World);
         }
 
-        public override void Update(EcsExtensions.GameState state)
+        public override UniTask Update(CancellationToken cancellationToken)
         {
-            if (!_storages.Singletons.Has<TerrainGenerationConfigComponent>())
-                return;
-
-            var config = _storages.Singletons.Get<TerrainGenerationConfigComponent>();
+            var config = _storages.Get<TerrainGenerationConfig>();
 
             if (config.WaterType != WaterType.River)
-                return;
+                return UniTask.CompletedTask;
 
-            if (!_storages.Singletons.Has<RiverConfigComponent>())
-                return;
+            Generate(config.WaveCount, config.RiverConfig.CornerOffsetTiles);
 
-            var riverConfig = _storages.Singletons.Get<RiverConfigComponent>();
-
-            Generate(config.WaveCount, riverConfig.CornerOffsetTiles);
+            return UniTask.CompletedTask;
         }
 
         private void Generate(int waveCount, int cornerOffsetTiles)
@@ -200,7 +196,7 @@ namespace Domains.Map.Generation.Systems
             try
             {
                 foreach (var entity in entities)
-                    idByCoord[entity.GetComponent<HexIdComponent>().Coords] = entity.Id;
+                    idByCoord[entity.GetComponent<HexIdPKComponent>().Coords] = entity.Id;
 
                 for (var index = 0; index < path.Length; index++)
                 {

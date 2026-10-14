@@ -1,12 +1,13 @@
 using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Presentation.UI.Archetypes;
+using Presentation.UI.MainHud.Systems;
 using Presentation.UI.MainHud.TurnPanel.Components;
 using Presentation.UI.MainHud.TurnPanel.Views;
-using Presentation.UI.MainHud.Systems;
-using UnityEngine;
-using EcsExtensions;
 
 namespace Presentation.UI.MainHud.TurnPanel.Systems
 {
@@ -22,13 +23,15 @@ namespace Presentation.UI.MainHud.TurnPanel.Systems
 
         public override int Priority => SystemPriorities.SubSystems.MainHudSpawn.TurnPanel;
 
-        public TurnPanelSpawnSubSystem(EntityStorages storages)
+        public TurnPanelSpawnSubSystem(EntityStorages storages) : base(storages)
         {
             _archetype = PresentationUIArchetypes.TurnPanel(storages.World);
         }
 
-        public override void Prepare(GameObject mainUi)
+        public override UniTask Update(CancellationToken cancellationToken)
         {
+            var mainUi = ReadMainHudRoot();
+
             // GetComponentInChildren (not GetComponent): the view carries its own UIDocument, so it lives on a
             // child GameObject of the Main UI root, not the root itself.
             var view = mainUi.GetComponentInChildren<TurnPanelView>(true);
@@ -41,6 +44,8 @@ namespace Presentation.UI.MainHud.TurnPanel.Systems
 
             // Whole bottom panel hidden until Gameplay; TurnPanelViewSystem reveals it.
             view.Hide();
+
+            return UniTask.CompletedTask;
         }
     }
 }

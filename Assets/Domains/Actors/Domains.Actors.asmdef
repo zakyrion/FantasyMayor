@@ -5,7 +5,6 @@
         "Domains.Kernel",
         "Domains.Economy",
         "Ecs.Extensions",
-        "Boot.Core",
         "Core",
         "Addressables.Core",
         "Unity.Collections",

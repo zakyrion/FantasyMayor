@@ -1,93 +1,75 @@
 using System;
 using System.Threading;
 using Core;
+using Core.Events;
 using Cysharp.Threading.Tasks;
 using EcsExtensions;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
-using Modules.Boot.Core;
 using Modules.MainCanvas.Core;
 using Presentation.UI.GeneratorMenu.Views;
 
 namespace Presentation.UI.GeneratorMenu.Systems
 {
     /// <summary>
-    ///     Loads and instantiates the hex generator UI during the <see cref="FirstUIStep" /> boot phase.
-    ///     Runs once; subsequent calls to <see cref="Update" /> are no-ops.
+    ///     Shows the map generator menu on every <see cref="Core.AppState.MainMenu" /> entry. When the player
+    ///     presses Generate it asks for <see cref="Core.AppState.MapCreation" /> and releases the menu.
     /// </summary>
     [UsedImplicitly]
-    public class ShowHexesUISystem : IUniTaskSystem<FirstUIStep>
+    [ViewSubscriber(typeof(HexesUI))]
+    public class ShowHexesUISystem : IUniTaskSystem
     {
         private const string HexGeneratorUIPath = "UI/HexGeneratorUI";
 
         private readonly IAddressable _addressable;
         private readonly IMainCanvasProvider _canvasProvider;
-        private Box<HexesUI> _uiBox;
-        private bool _isDisposed;
-        private bool _isLoaded;
+        private readonly EntityStorages _storages;
 
-        public ShowHexesUISystem(IMainCanvasProvider canvasProvider, IAddressable addressable)
+        [StateAllowed("the generator menu this system owns from its load until Generate or Dispose")]
+        private Box<HexesUI> _uiBox;
+
+        [StateAllowed("the container disposed this system; a later Execute is a lifecycle error")]
+        private bool _isDisposed;
+
+        public AppState AppState { get; }
+
+        public ShowHexesUISystem(AppState appState, IMainCanvasProvider canvasProvider, IAddressable addressable, EntityStorages storages)
         {
+            AppState = appState;
             _canvasProvider = canvasProvider;
             _addressable = addressable;
+            _storages = storages;
             _uiBox = Box<HexesUI>.Empty();
         }
 
-        /// <summary>
-        ///     Loads and instantiates the hex UI prefab under the main canvas. Idempotent after first successful load.
-        /// </summary>
-        /// <param name="state">Unused boot phase marker.</param>
-        /// <param name="cancellationToken">Token to abort the async load.</param>
-        public async UniTask Update(FirstUIStep state, CancellationToken cancellationToken)
+        /// <summary>Loads the generator menu under the main canvas and hooks its Generate button.</summary>
+        /// <exception cref="ObjectDisposedException">The system was already disposed.</exception>
+        /// <exception cref="InvalidOperationException">The menu is still shown, or its prefab failed to load or has no <see cref="HexesUI" />.</exception>
+        /// <exception cref="OperationCanceledException">The entry was cancelled.</exception>
+        public async UniTask Execute(CancellationToken cancellationToken)
         {
             if (_isDisposed)
                 throw new ObjectDisposedException(GetType().Name);
 
-            if (_isLoaded)
-                return;
+            if (_uiBox.Exist)
+                throw new InvalidOperationException("The generator menu is still shown — MainMenu was entered again without Generate.");
 
-            var canvas = _canvasProvider.RootGO;
+            var loaded = await _addressable.LoadAndInstanceAsync(HexGeneratorUIPath, cancellationToken, _canvasProvider.RootGO.transform);
+            if (loaded.Status != Status.Success)
+                throw new InvalidOperationException($"Prefab '{HexGeneratorUIPath}' failed to load.");
 
-            if (cancellationToken.IsCancellationRequested)
-                return;
-
-            var hexesUIPrefab = await _addressable.LoadAndInstanceAsync(HexGeneratorUIPath, cancellationToken, canvas.transform);
-
-            if (cancellationToken.IsCancellationRequested || hexesUIPrefab.Status == Status.Failed)
+            var hexesUI = loaded.Box.Value.GetComponent<HexesUI>();
+            if (hexesUI == null)
             {
-                if (hexesUIPrefab.Status == Status.Success)
-                    hexesUIPrefab.Box.Dispose();
-
-                return;
+                loaded.Box.Dispose();
+                throw new InvalidOperationException($"Prefab '{HexGeneratorUIPath}' has no HexesUI component.");
             }
 
-            var hexesUIInstance = hexesUIPrefab.Box.Value.GetComponent<HexesUI>();
-
-            if (hexesUIInstance == null)
-            {
-                hexesUIPrefab.Box.Dispose();
-                return;
-            }
-
-            _uiBox = Box<HexesUI>.Wrap(hexesUIInstance, _ => hexesUIPrefab.Box.Dispose());
-            _isLoaded = true;
+            _uiBox = Box<HexesUI>.Wrap(hexesUI, _ => loaded.Box.Dispose());
+            hexesUI.GenerateClicked += OnGenerateClicked;
         }
 
-        /// <summary>Makes the instantiated UI visible. No-op until the UI is loaded.</summary>
-        public void Show()
-        {
-            if (_uiBox.Exist)
-                _uiBox.Value.gameObject.SetActive(true);
-        }
-
-        /// <summary>Hides the instantiated UI. No-op until the UI is loaded.</summary>
-        public void Hide()
-        {
-            if (_uiBox.Exist)
-                _uiBox.Value.gameObject.SetActive(false);
-        }
-
-        /// <summary>Releases the instantiated UI and its underlying addressable handle.</summary>
+        /// <summary>Releases the menu, if it is still shown.</summary>
         public void Dispose()
         {
             if (_isDisposed)
@@ -96,7 +78,21 @@ namespace Presentation.UI.GeneratorMenu.Systems
             _isDisposed = true;
 
             if (_uiBox.Exist)
-                _uiBox.Dispose();
+                ReleaseMenu();
+        }
+
+        // Runs inside the button's click callback; the release destroys the menu at the end of the frame.
+        private void OnGenerateClicked()
+        {
+            _storages.Events.Raise(new AppStateRequestedEvent { Requested = AppState.MapCreation });
+            ReleaseMenu();
+        }
+
+        private void ReleaseMenu()
+        {
+            _uiBox.Value.GenerateClicked -= OnGenerateClicked;
+            _uiBox.Dispose();
+            _uiBox = Box<HexesUI>.Empty();
         }
     }
 }

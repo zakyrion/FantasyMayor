@@ -1,12 +1,14 @@
-using EcsExtensions;
-using Domains.Map.Generation.Components;
+using System;
 using UnityEngine;
 using UnityEngine.UIElements;
-using VContainer;
 using static Unity.AppUI.UI.VisualElementExtensions;
 
 namespace Presentation.UI.GeneratorMenu.Views
 {
+    /// <summary>
+    ///     The map generator menu. Raises <see cref="GenerateClicked" /> when the player presses Generate; the
+    ///     system that shows it subscribes. The other two buttons are not wired yet.
+    /// </summary>
     public class HexesUI : MonoBehaviour
     {
         private const string GENERATE_BUTTON_ID = "GenerateButton";
@@ -14,11 +16,11 @@ namespace Presentation.UI.GeneratorMenu.Views
         [SerializeField]
         private UIDocument _document;
 
-        private EntityStorages _storages;
+        public event Action GenerateClicked;
 
         private void Start()
         {
-            _document.rootVisualElement.Q<Button>(GENERATE_BUTTON_ID).clicked += GenerateHexes;
+            _document.rootVisualElement.Q<Button>(GENERATE_BUTTON_ID).clicked += OnGenerateClicked;
             ApplyRaycastTransparent();
         }
 
@@ -28,15 +30,9 @@ namespace Presentation.UI.GeneratorMenu.Views
                 element.EnablePicking(false);
         }
 
-        [Inject]
-        public void Construct(EntityStorages storages)
+        private void OnGenerateClicked()
         {
-            _storages = storages;
-        }
-
-        private void GenerateHexes()
-        {
-            _storages.World.CreateEvent(new TerrainGenerationGenerateEventComponent());
+            GenerateClicked?.Invoke();
         }
     }
 }

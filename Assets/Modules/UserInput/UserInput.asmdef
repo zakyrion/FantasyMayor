@@ -9,7 +9,6 @@
         "Unity.InputSystem",
         "Addressables.Core",
         "UniTask",
-        "Boot.Core",
         "Domains.Map",
         "Presentation",
         "AxialSystem",

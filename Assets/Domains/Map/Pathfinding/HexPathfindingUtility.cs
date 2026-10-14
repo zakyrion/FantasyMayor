@@ -74,7 +74,7 @@ namespace Domains.Map.Pathfinding
         private void BuildDomain(Archetype hexArchetype, ref NativeParallelHashSet<int2> domain)
         {
             foreach (var entity in hexArchetype.Entities)
-                domain.Add(entity.GetComponent<HexIdComponent>().Coords.Value);
+                domain.Add(entity.GetComponent<HexIdPKComponent>().Coords.Value);
         }
 
         /// <summary>

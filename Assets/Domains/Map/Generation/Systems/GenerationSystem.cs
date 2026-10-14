@@ -1,100 +1,65 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Domains.Map.Archetypes;
-using Domains.Map.Generation.Components;
+using Domains.Map.Generation.Utils;
 using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Data;
 using Domains.Map.Hex.Utils;
+using Core;
 using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
-using Modules.Boot.Core;
 using Unity.Collections;
+using Domains.Map.Generation.Configs;
 
 namespace Domains.Map.Generation.Systems
 {
     /// <summary>
     ///     World-init pipeline step (priority 100). Creates the hex grid, runs generation subsystems
     ///     by priority, and synchronizes terrain tags with the final level of each hex.
-    ///     Driven by the Boot world-init orchestrator, not by an event subscription.
+    ///     Run by MapCreation's entry pipeline in Priority order, not by an event subscription.
     /// </summary>
     [UsedImplicitly]
-    internal sealed class GenerationSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
+    internal sealed class GenerationSystem : IPipelineStageSystem
     {
-        private const int FoothillLevel = 1;
-        private const int MountainLevel = 2;
-        private const int PlainLevel = 0;
-        private const int WaterLevel = -1;
-
-        private readonly IReadOnlyList<GenerationSubSystem> _generationSubSystems;
         private readonly Archetype _hexArchetype;
         private readonly EntityStorages _storages;
+
+        [StateAllowed]
+        private readonly IReadOnlyList<IPrioritizedUniTaskSystem> _subSystems;
+
+        /// <inheritdoc />
+        public AppState AppState { get; }
 
         /// <inheritdoc />
         public int Priority => SystemPriorities.WorldInit.Generation;
 
+        /// <param name="appState">The game state this pipeline stage belongs to.</param>
         /// <param name="storages">Named ECS storages used to query and populate the game world.</param>
-        /// <param name="generationSubSystems">Generation subsystems executed in priority order.</param>
-        public GenerationSystem(EntityStorages storages, IReadOnlyList<GenerationSubSystem> generationSubSystems)
+        /// <param name="allSubSystems">Every sub-system on the contract; this host keeps the ones naming it.</param>
+        public GenerationSystem(AppState appState, EntityStorages storages, IReadOnlyList<IPrioritizedUniTaskSystem> allSubSystems)
         {
+            AppState = appState;
             _storages = storages;
             _hexArchetype = MapArchetypes.Hex(storages.World);
 
-            _generationSubSystems = generationSubSystems
-                .OrderBy(system => system.Priority)
-                .ToArray();
+            _subSystems = OrchestratorSubSystems.SelectForOrchestrator(typeof(GenerationSystem), allSubSystems);
         }
 
         /// <inheritdoc />
-        public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
+        public async UniTask Execute(CancellationToken cancellationToken)
         {
-            if (!_storages.Singletons.Has<TerrainGenerationConfigComponent>())
-                return UniTask.CompletedTask;
+            var config = _storages.Get<TerrainGenerationConfig>();
 
-            var config = _storages.Singletons.Get<TerrainGenerationConfigComponent>();
-
-            Generate(in config);
-            RunGenerationSubSystems();
+            Generate(config);
+            await OrchestratorSubSystems.RunAsync(_subSystems, cancellationToken);
             AssignHexTypes();
-
-            return UniTask.CompletedTask;
         }
 
         /// <inheritdoc />
         public void Dispose()
         {
-        }
-
-        /// <summary>Creates the flat hex grid for the configured number of waves.</summary>
-        /// <param name="config">Terrain generation parameters.</param>
-        private void Generate(in TerrainGenerationConfigComponent config)
-        {
-            var hexCount = HexesUtil.GetTotalHexCountForWaves(config.WaveCount);
-
-            for (var index = 0; index < hexCount; index++)
-            {
-                var hexCoords = HexesUtil.IndexToAxialCoords(index);
-
-                var entity = _hexArchetype.CreateEntity();
-                entity.AddComponent(new HexIdComponent { Coords = hexCoords });
-                entity.AddComponent(new HexLevelComponent { Level = 0 });
-            }
-        }
-
-        private void RunGenerationSubSystems()
-        {
-            // Generation is one-shot; deltaTime is irrelevant, so a default GameState is passed through.
-            var state = default(GameState);
-
-            foreach (var generationSubSystem in _generationSubSystems)
-            {
-                if (!generationSubSystem.IsEnabled)
-                    continue;
-
-                generationSubSystem.Update(state);
-            }
         }
 
         /// <summary>
@@ -111,22 +76,30 @@ namespace Domains.Map.Generation.Systems
                 hexIds.Add(entity.Id);
 
             for (var i = 0; i < hexIds.Length; i++)
+            {
                 if (_storages.World.TryGetEntityById(hexIds[i], out var entity))
                 {
-                    var level = entity.GetComponent<HexLevelComponent>().Level;
-                    entity.AddComponent(new HexTypeComponent { Type = LevelToType(level) });
+                    entity.AddComponent(entity.GetComponent<HexLevelComponent>().ToHexType());
                 }
+            }
 
             hexIds.Dispose();
         }
 
-        // Unmapped/unexpected levels fall back to Plain (matches the old "no terrain tag → Plain" default).
-        private static HexType LevelToType(int level) => level switch
+        /// <summary>Creates the flat hex grid for the configured number of waves.</summary>
+        /// <param name="config">Terrain generation parameters.</param>
+        private void Generate(TerrainGenerationConfig config)
         {
-            MountainLevel => HexType.Mount,
-            FoothillLevel => HexType.Bedhill,
-            WaterLevel => HexType.Water,
-            _ => HexType.Plain
-        };
+            var hexCount = HexesUtil.GetTotalHexCountForWaves(config.WaveCount);
+
+            for (var index = 0; index < hexCount; index++)
+            {
+                var hexCoords = HexesUtil.IndexToAxialCoords(index);
+
+                var entity = _hexArchetype.CreateEntity();
+                entity.AddComponent(new HexIdPKComponent { Coords = hexCoords });
+                entity.AddComponent(new HexLevelComponent { Level = 0 });
+            }
+        }
     }
 }

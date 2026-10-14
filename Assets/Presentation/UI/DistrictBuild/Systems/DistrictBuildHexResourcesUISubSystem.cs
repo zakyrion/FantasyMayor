@@ -1,7 +1,8 @@
-﻿using System;
+using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using Domains.Economy.District.Data;
 using Domains.Economy.District.Helpers;
-using Domains.Economy.DistrictBuild.Components;
 using Domains.Economy.DistrictBuild.Configs;
 using Domains.Map.Archetypes;
 using Domains.Map.Hex.Components;
@@ -18,7 +19,6 @@ using Presentation.UI.Archetypes;
 using Presentation.UI.DistrictBuild.Components;
 using Presentation.UI.DistrictBuild.Tags;
 using Presentation.UI.DistrictBuild.Views;
-using UnityEngine;
 
 namespace Presentation.UI.DistrictBuild.Systems
 {
@@ -48,7 +48,7 @@ namespace Presentation.UI.DistrictBuild.Systems
             _hexResources = MapArchetypes.HexResource(storages.World);
         }
 
-        public override void Populate(GameObject root)
+        public override UniTask Update(CancellationToken cancellationToken)
         {
             var view = _storages.Singletons.Get<DistrictBuildHexResourcesUIViewComponent>().View;
 
@@ -61,18 +61,18 @@ namespace Presentation.UI.DistrictBuild.Systems
             {
                 view.SetDistrictName(string.Empty);
                 view.ClearRequirements();
-                return;
+                return UniTask.CompletedTask;
             }
 
             view.SetDistrictName(DistrictBuildLabels.DistrictName(district.DistrictType));
             view.ClearRequirements();
 
             if (!_selectedHexSet.TryGetFirst(out var selectedHexEntity))
-                return;
+                return UniTask.CompletedTask;
 
             var coords = selectedHexEntity.GetComponent<HexSelectedComponent>().Coords;
             if (!TryGetHexType(coords, out var hexType))
-                return;
+                return UniTask.CompletedTask;
 
             if (district.ImpossibleToBuildTypes.Count > 0)
                 view.AddRequirement(
@@ -85,6 +85,8 @@ namespace Presentation.UI.DistrictBuild.Systems
                 view.AddRequirement(
                     $"Потрібен ресурс: {DistrictBuildLabels.HexResourceLabel(district.RequiredHexResourceType)}",
                     HexHasResource(coords, district.RequiredHexResourceType));
+
+            return UniTask.CompletedTask;
         }
 
         private bool TryGetDistrict(DistrictType type, out DistrictBuildConfig district)
@@ -96,11 +98,11 @@ namespace Presentation.UI.DistrictBuild.Systems
                     $"is {DistrictType.Unknown} — the selection must be a real district or {nameof(DistrictType.None)}, " +
                     "never the error marker.");
 
-            if (type == DistrictType.None || !_storages.Singletons.Has<DistrictBuildsConfigComponent>())
+            if (type == DistrictType.None)
                 return false;
 
             return DistrictConfigLookup.TryFind(
-                _storages.Singletons.Get<DistrictBuildsConfigComponent>().Value?.Districts, type, d => d.DistrictType, out district);
+                _storages.Get<DistrictBuildsConfig>().Districts, type, d => d.DistrictType, out district);
         }
 
         private bool TryGetHexType(HexCoord coords, out HexType type)
@@ -108,7 +110,7 @@ namespace Presentation.UI.DistrictBuild.Systems
             type = default;
             foreach (var hexEntity in _hexSet.Entities)
             {
-                if (hexEntity.GetComponent<HexIdComponent>().Coords != coords)
+                if (hexEntity.GetComponent<HexIdPKComponent>().Coords != coords)
                     continue;
 
                 type = hexEntity.GetComponent<HexTypeComponent>().Type;

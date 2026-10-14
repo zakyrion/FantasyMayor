@@ -1,22 +1,21 @@
 using System;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using Core;
 
 namespace EcsExtensions
 {
     /// <summary>
-    ///     Exposes an asynchronous method to update a system.
+    ///     The non-generic async system contract: a first-order one-shot system, run to completion once by the
+    ///     game state it is flagged for.
     /// </summary>
-    /// <typeparam name="T">The type of the object used as state to update the system.</typeparam>
-    public interface IUniTaskSystem<in T> : IDisposable
+    public interface IUniTaskSystem : IDisposable, IAppStateSystem
     {
         /// <summary>
-        ///     Updates the system once.
-        ///     Does nothing if <see cref="IsEnabled" /> is false.
+        ///     Runs the system once.
         /// </summary>
-        /// <param name="state">The state to use.</param>
-        /// <param name="cancellationToken">The token used to cancel current update.</param>
-        /// <returns>A task that represents the asynchronous update.</returns>
-        UniTask Update(T state, CancellationToken cancellationToken);
+        /// <param name="cancellationToken">The token used to cancel the run.</param>
+        /// <returns>A task that represents the asynchronous run.</returns>
+        UniTask Execute(CancellationToken cancellationToken);
     }
 }

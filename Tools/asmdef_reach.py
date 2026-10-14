@@ -3,7 +3,7 @@
 
 Parses every *.asmdef under Assets/ into an assembly reference graph (name + GUID refs resolved),
 and maps each type to its owning assembly (nearest ancestor .asmdef), to answer the layering
-questions roslyn / ecs-graph / di-graph do NOT:
+questions roslyn / fantasymayor-graph do NOT:
 
     python3 Tools/asmdef_reach.py can <Assembly> <Type>        # will <Assembly> COMPILE against <Type>?
     python3 Tools/asmdef_reach.py path <AsmA> <AsmB>           # shortest reference path AsmA -> AsmB

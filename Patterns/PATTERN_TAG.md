@@ -10,9 +10,10 @@ related:
 
 # Pattern — ECS Tag
 
-A tag is an **empty `struct`** that marks an entity. It carries no data; its presence IS the information.
-ONE use: the table **discriminator** — the entity's identity ("this row is an X"). Every entity carries
-EXACTLY one (Tag Law, ECS_CONVENTIONS → Table Rule). One approach.
+A tag is an empty struct that marks an entity. It carries no data; its presence IS the information.
+TWO uses: the main tag — the table discriminator, the entity's identity ("this row is an X"), exactly one
+per archetype and unique to it; a label tag — a role or membership marker beside it, marked [TagLabel]
+(ARCHITECTURE → Entities, :tag/one-main-tag).
 
 ## Skeleton
 
@@ -30,12 +31,13 @@ namespace Domains.[Domain].[Feature].Tags
 
 ```clojure
 (def tag-rules
-  {:add             "named in the table's archetype — Tags.Get<[Name]Tag>() inside its holder method"  ;; the row is BORN with it (ECS_CONVENTIONS → Declared Archetypes); tagging a live entity does not happen anywhere in this codebase — it would migrate the row out of its archetype
-   :per-entity      {:exactly 1}                            ;; Tag Law; the only extras: structural EventTag on pulses, category UITag
+  {:add             "named in the table's archetype — Tags.Get<[Name]Tag>() inside its holder method"  ;; the row is BORN with it (ARCHITECTURE → Entities, :archetype/holder); tagging a live entity does not happen anywhere in this codebase — it would migrate the row out of its archetype
+   :per-entity      {:main 1 :labels "0-4"}                 ;; Tag Law; an event carries no tag at all — its discriminator is its IEventTag component type; UITag and DistrictOpenConditionTag are labels
+   :label           "[TagLabel] or [TagLabel(TagLabelRole.X)] on the struct; named in Tags.Get after the main tag; never a query filter"
    :query-table     "[Domain]Archetypes.[Table](store)"     ;; key + discriminator declared ONCE and reused for birth and filter, NEVER a bare key (Table Rule)
    :never-state     "a marker toggled at runtime is a …StateComponent (enum) — see Tag Law"  ;; a tag cannot be toggled: composition is fixed at birth, so a swap means delete + recreate
-   :never-kind      "a subtype marker inside a table family is a …KindComponent (enum)"      ;; a second tag breaks 1-entity-1-tag
+   :never-kind      "a subtype marker inside a table family is a …KindComponent (enum)"      ;; a second main tag breaks the tag law; a label never stands for a kind
    :naming          {:suffix "…Tag" :requires :field-less}  ;; the moment it needs a value it is a component (PATTERN_COMPONENT), not a tag
-   :naming-prefix   :none                                   ;; namespace carries the domain; Table-Rule discriminators are the exception (ECS_CONVENTIONS → Naming & Construction)
-   :producers+consumers ecs-graph})                         ;; do not enumerate tags in module docs
+   :naming-prefix   :none                                   ;; namespace carries the domain; Table-Rule discriminators are the exception (ARCHITECTURE → Naming)
+   :producers+consumers fantasymayor-graph})                         ;; do not enumerate tags in module docs
 ```

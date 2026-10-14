@@ -24,50 +24,71 @@ independent mechanics (e.g. confirm-build → spawn entity, spend resources, set
   :else                            reactive-orchestrator)  ;; complex / several independent parts / unsure it belongs in one file
 ```
 
-## Orchestrator (reactive: the event's archetype drives it)
+## Orchestrator (reactive: its own reader drives it)
 
 ```csharp
 [UsedImplicitly]
-public sealed class [Name]System : UpdatedSystem
+public sealed class [Name]System : IUpdatedSystem
 {
     private readonly EntityStorages _storages;
+    private readonly EventReader<[Name]Event> _<reader>;
 
-    // DI-collected subsystems. Ordered once; fixed composition, not per-frame state — hence [StateAllowed].
-    [StateAllowed]
-    private readonly IReadOnlyList<[Name]SubSystem> _subSystems;
+    // DI-collected subsystems, selected and ordered once; fixed composition, not per-frame state — hence [StateAllowed].
+    [StateAllowed("DI-collected composition, fixed at construction")]
+    private readonly IReadOnlyList<IPrioritizedUniTaskSystem> _subSystems;
 
-    public override int Priority => SystemPriorities.RuntimeTick.[Name];
+    public AppState AppState { get; }
+    public int Priority => SystemPriorities.RuntimeTick.[Name];
 
-    // DI injects EntityStorages — never a bare EntityStore (ECS_CONVENTIONS → State Storage Taxonomy).
-    public [Name]System(EntityStorages storages, IReadOnlyList<[Name]SubSystem> subSystems)
-        : base(storages.World, EventArchetypes.Of<[Name]Event>(storages.World))   // the pulse's archetype drives the system
+    // DI injects EntityStorages and builds a fresh EventReader<TEvent> — never a bare EntityStore.
+    public [Name]System(AppState appState, EntityStorages storages, EventReader<[Name]Event> <reader>,
+        IReadOnlyList<IPrioritizedUniTaskSystem> allSubSystems)
     {
+        AppState = appState;
         _storages = storages;
-        _subSystems = subSystems.OrderBy(s => s.Priority).ToArray();
+        _<reader> = <reader>;
+        _subSystems = OrchestratorSubSystems.SelectForOrchestrator(typeof([Name]System), allSubSystems);
     }
 
-    // The pulse carries no payload — each subsystem reconciles against CURRENT store state (idempotent).
-    protected override void Update(GameState state, in Entity pulse)
+    // One fan-out per event — subsystems act on its values or reconcile against CURRENT store state.
+    public void Update(GameState state)
     {
-        if (!EcsEventExtensions.IsRipe(pulse))
-            return;
+        while (_<reader>.TryRead(out var evt))
+            RunSubSystems();
+    }
 
-        for (var i = 0; i < _subSystems.Count; i++)
-            if (_subSystems[i].IsEnabled)
-                _subSystems[i].Run(/* shared args */);
+    // The family is UniTask-based; a main-thread run completes synchronously while no part awaits. A pending run
+    // means a part started waiting — this host then starts the run and checks its status on each Update instead.
+    private void RunSubSystems()
+    {
+        var run = OrchestratorSubSystems.RunAsync(_subSystems, StatusMonitor.Token);
+        if (run.Status == UniTaskStatus.Pending)
+            throw new InvalidOperationException("[Name]System: a subsystem awaited — every part must complete synchronously.");
+        run.GetAwaiter().GetResult();
     }
 }
 ```
 
+No role marker here: holding an `EventReader<TEvent>` in a class whose only base is the Update-loop
+contract already decides `reactive`. `Reactive` has no legal marker value any more — the marker knows only
+`PerFrame`, for the one shape where a class holds an `EventReader<TEvent>` yet still ticks every frame
+instead of reacting. No marker is inherited: every concrete class carries its own, and the subsystems —
+plain objects, not systems — carry none.
+
+A subsystem that needs its own event holds its own `EventReader<TEvent>` — the orchestrator never
+forwards one from its own reader (`orchestrator/own-reader`).
+
 The subsystem base + concretes are exactly [PATTERN_ORCHESTRATOR_SUBSYSTEM](PATTERN_ORCHESTRATOR_SUBSYSTEM.md) —
-a plain `IDisposable` object (NOT a system), each owning and disposing its own query caches.
+an `IPrioritizedUniTaskSystem` naming this orchestrator in `OrchestratorType`, a plain object (NOT a system).
+A subsystem's event values reach it through its own reader, never as an argument. Query caches belong to the store, so a subsystem has nothing to
+release there: its `Dispose` clears only what it allocated itself (ARCHITECTURE → Runtime forms, :orchestrator/query-caches).
 
 ## Incremental start — the reactive shell
 
-VContainer throws on an **empty** `IReadOnlyList<T>` collection injection. So when you stand the orchestrator up
-before its first subsystem exists, ship it as a **reactive shell**: driven by the event's archetype, empty `Update`, and
-do **not** inject the subsystem list yet. Add the `IReadOnlyList<[Name]SubSystem>` field + the fan-out loop with
-the first concrete subsystem. Live shell instance: `BuildDistrictActionSystem`
+`OrchestratorSubSystems.SelectForOrchestrator` throws when no subsystem names the orchestrator. So when you stand the
+orchestrator up before its first subsystem exists, ship it as a **reactive shell**: driven by its own
+`EventReader<TEvent>`, empty `Update`, and do **not** take the subsystem list yet. Add the
+`IReadOnlyList<IPrioritizedUniTaskSystem>` parameter, the selection and the fan-out with the first concrete subsystem. Live shell instance: `BuildDistrictActionSystem`
 (`Assets/Domains/Actions/BuildDistrictAction/Systems/`) — reacts to `DistrictBuildConfirmedEvent`, no subsystems
 yet.
 
@@ -75,13 +96,18 @@ yet.
 
 ```clojure
 (def reactive-orchestrator-rules
-  {:driven-by       "EventArchetypes.Of<TheEvent>"                ;; zero cost while no pulse exists; the event is payload-less (PATTERN_EVENT) — persistent truth lives in singleton components / on entities
-   :on-pulse        "subsystems reconcile, never delta"           ;; each Run() rebuilds from CURRENT state and diffs — idempotent
-   :ripe-gate       "IsRipe(pulse) or return"                     ;; the orchestrator gates ONCE, before the fan-out — a subsystem never re-checks (ECS_CONVENTIONS → Event Lifecycle)
-   :orchestrator    {:contains :no-domain-logic}                  ;; sort by Priority, skip IsEnabled==false, Run — ALL real work is in the subsystems
-   :subsystem       "plain IDisposable, NOT a system"             ;; [StateAllowed] on the orchestrator's list; query caches live in each subsystem
-   :di-subsystem    ".As<[Feature]SubSystem, [Name]SubSystem>()"  ;; register AS the base so VContainer fills the list
-   :di-orchestrator "concrete + wired in Boot.Construct"          ;; per-frame/reactive systems are grouped into a GameMode by hand
-   :empty-collection :forbidden                                   ;; no subsystems yet → reactive shell (no list injection) until the first one lands
-   :structural-while-iterating :forbidden})                       ;; snapshot entity.Id into NativeList<int>, re-fetch via TryGetEntityById, then delete/modify
+  {:driven-by       "readonly EventReader<TEvent>, born Transient from DI"  ;; the cursor lives in EventLog, not on the orchestrator (event/reader)
+   :role-marker     {:required  "[SystemRole(SystemRoleKind.PerFrame)] on an Update-loop class that holds an EventReader<TEvent> yet ticks every frame"
+                     :forbidden "on a class holding no EventReader field, and on every subsystem — a subsystem is not a system"
+                     :inherited :never}                           ;; a marker contradicting the shape is a compile ERROR (MarkerShapeAnalyzer); a redundant one is a graph warning today
+   :on-pulse        #{"subsystems act on the event's values"
+                      "subsystems reconcile against CURRENT state"} ;; a reconciling Run() rebuilds and diffs — idempotent
+   :quiet-exit      "inside the fan-out, or after the reader is drained — never before"  ;; the reader must be given the chance to read first (event/drain-before-exit)
+   :orchestrator    {:contains :no-domain-logic}                  ;; select by OrchestratorType, sort by Priority, skip IsEnabled==false, run — ALL real work is in the subsystems
+   :subsystem       "IPrioritizedUniTaskSystem naming this orchestrator — a plain object, NOT a system"  ;; [StateAllowed("reason")] on the orchestrator's list; query caches live in each subsystem; a subsystem needing its own event holds its own EventReader<TEvent> (orchestrator/own-reader)
+   :di-subsystem    "builder.Register<[Feature]SubSystem>(Lifetime.X).As<IPrioritizedUniTaskSystem>()"  ;; OrchestratorType routes it to this orchestrator
+   :di-orchestrator "builder.RegisterAppStateSystem<[Name]System>(Lifetime.X, AppState.Gameplay)"  ;; the Gameplay state collects it; Boot names no system (ARCHITECTURE → :wiring/app-state-registration)
+   :empty-family    :forbidden                                    ;; the selection throws on an empty family → reactive shell (no list) until the first subsystem lands
+   :structural-in-update :safe                                    ;; a reader never enumerates entities, so structural changes inside the fan-out are safe
+   :structural-in-own-enumeration :forbidden})                    ;; an enumeration a subsystem opens itself: snapshot entity.Id into NativeList<int>, re-fetch via TryGetEntityById, then delete/modify (ARCHITECTURE → Threading and structural change)
 ```

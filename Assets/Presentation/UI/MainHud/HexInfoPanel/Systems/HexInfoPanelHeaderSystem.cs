@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Domains.Map.Archetypes;
 using Domains.Map.Hex.Components;
 using Domains.Map.Hex.Data;
@@ -6,6 +6,7 @@ using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
+using Core;
 using Presentation.Archetypes;
 using Presentation.Terrain.Components;
 using Presentation.Terrain.Events;
@@ -23,35 +24,37 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
     ///     non-grid click is a valid empty selection; HexInfoPanelSystem shows the empty panel).
     /// </summary>
     [UsedImplicitly]
-    public sealed class HexInfoPanelHeaderSystem : UpdatedSystem
+    public sealed class HexInfoPanelHeaderSystem : IUpdatedSystem
     {
         private readonly EntityStorages _storages;
         private readonly Archetype _viewSet;
         private readonly Archetype _selectedHexSet;
         private readonly Archetype _hexSet;
+        private readonly EventReader<SelectedHexChangedEvent> _selectedHexChanges;
 
-        public override int Priority => SystemPriorities.RuntimeTick.HexInfoPanelHeader;
+        public AppState AppState { get; }
+        public int Priority => SystemPriorities.RuntimeTick.HexInfoPanelHeader;
 
-        public HexInfoPanelHeaderSystem(EntityStorages storages)
-            : base(storages.World, EventArchetypes.Of<SelectedHexChangedEvent>(storages.World))
+        public HexInfoPanelHeaderSystem(AppState appState, EntityStorages storages, EventReader<SelectedHexChangedEvent> selectedHexChanges)
         {
+            AppState = appState;
             _storages = storages;
+            _selectedHexChanges = selectedHexChanges;
             _viewSet = PresentationUIArchetypes.HexInfoPanel(storages.World);
             _selectedHexSet = PresentationArchetypes.HexSelection(storages.World);
             _hexSet = MapArchetypes.Hex(storages.World);
         }
 
-        protected override void Update(GameState state, in Entity entity)
+        public void Update(GameState state)
         {
-            if (!EcsEventExtensions.IsRipe(entity))
-                return;
+            while (_selectedHexChanges.TryRead(out _))
+                FillHexHeader();
+        }
 
+        private void FillHexHeader()
+        {
             if (!_viewSet.TryGetFirst(out var viewEntity) || !_selectedHexSet.TryGetFirst(out var selectedHexEntity))
                 return;
-
-            if (!_storages.Singletons.Has<HexTerrainIconConfigComponent>())
-                throw new InvalidOperationException(
-                    "HexInfoPanelHeaderSystem: HexTerrainIconConfigComponent is missing.");
 
             var coords = selectedHexEntity.GetComponent<HexSelectedComponent>().Coords;
             var view = viewEntity.GetComponent<HexInfoPanelViewComponent>().View;
@@ -63,7 +66,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
             if (!TryGetHexTerrainType(coords, out var terrainType))
                 return;
 
-            var config = _storages.Singletons.Get<HexTerrainIconConfigComponent>().Value;
+            var config = _storages.Get<HexTerrainIconConfig>();
             if (!TryGetTerrainEntry(config, terrainType, out var sprite, out var displayName))
             {
                 // No authored entry yet — the out values already carry the fallback (enum name + null icon,
@@ -79,7 +82,7 @@ namespace Presentation.UI.MainHud.HexInfoPanel.Systems
 
             foreach (var hexEntity in _hexSet.Entities)
             {
-                if (hexEntity.GetComponent<HexIdComponent>().Coords != coords)
+                if (hexEntity.GetComponent<HexIdPKComponent>().Coords != coords)
                     continue;
 
                 type = hexEntity.GetComponent<HexTypeComponent>().Type;

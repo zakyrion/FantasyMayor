@@ -9,9 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 74fdbad4d6ca04a11ac553dd474b0611, type: 3}
+  m_Script: {fileID: 11500000, guid: 29dea6002aa41435fb6ff49d856db050, type: 3}
   m_Name: InnerIsolineConfig
-  m_EditorClassIdentifier: Terrain.View::Modules.TerrainView.Data.IsolineConfig
+  m_EditorClassIdentifier: Presentation::Presentation.Terrain.Data.InnerIsolineConfig
   side: 0
   depthCenter: 6
   depthDeviation: 6

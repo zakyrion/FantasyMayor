@@ -1,63 +1,62 @@
 using EcsExtensions;
-using Domains.Economy.DistrictBuild.Systems;
-using Domains.Economy.DistrictBuildCost.Systems;
 using Domains.Economy.DistrictBuildOutcome.Systems;
 using Domains.Economy.DistrictOpenCondition.Systems;
-using Modules.Boot.Core;
-using Modules.Turn.Systems;
+using Core;
 using VContainer;
 using VContainer.Unity;
+using Domains.Economy.DistrictBuild.Configs;
+using Domains.Economy.DistrictBuildCost.Configs;
+using Domains.Economy.DistrictBuildOutcome.Configs;
+using Domains.Economy.DistrictOpenCondition.Configs;
 
 namespace Domains.Economy.Installer
 {
-    // Economy ships the District config loader (catalogue of buildable districts) and the district-open-condition
-    // config loader + spawn pipeline. Resource is data types + the generic ResourceLoadoutSpawner mechanism.
+    // Economy ships the district catalogue configs (builds, costs, outcomes, open conditions) and the
+    // district-open-condition spawn pipeline. Resource is data types + the generic ResourceLoadoutSpawner mechanism.
     // District build/operate systems will register here later.
     public sealed class EconomyInstaller : IInstaller
     {
         public void Install(IContainerBuilder builder)
         {
-            builder.Register<DistrictsBuildConfigLoaderSystem>(Lifetime.Singleton)
-                .As<DistrictsBuildConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
+            builder.RegisterAppStateSystem<ConfigLoaderSystem<DistrictBuildsConfig>>(Lifetime.Singleton, AppState.ConfigLoading)
+                .WithParameter("address", ConfigAddresses.DISTRICT_BUILDS_CONFIG);
 
-            builder.Register<DistrictBuildCostsConfigLoaderSystem>(Lifetime.Singleton)
-                .As<DistrictBuildCostsConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
+            builder.RegisterAppStateSystem<ConfigLoaderSystem<DistrictBuildCostsConfig>>(Lifetime.Singleton, AppState.ConfigLoading)
+                .WithParameter("address", ConfigAddresses.DISTRICT_BUILD_COSTS_CONFIG);
 
-            builder.Register<DistrictBuildOutcomesConfigLoaderSystem>(Lifetime.Singleton)
-                .As<DistrictBuildOutcomesConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
+            builder.RegisterAppStateSystem<ConfigLoaderSystem<DistrictBuildOutcomesConfig>>(Lifetime.Singleton, AppState.ConfigLoading)
+                .WithParameter("address", ConfigAddresses.DISTRICT_BUILD_OUTCOMES_CONFIG);
 
-            builder.Register<DistrictBuildOutcomeSpawnSystem>(Lifetime.Singleton)
-                .As<DistrictBuildOutcomeSpawnSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
+            builder.RegisterAppStateSystem<DistrictBuildOutcomeSpawnSystem>(Lifetime.Scoped, AppState.MapCreation);
 
-            builder.Register<SpawnCityCenterOutcomeSubSystem>(Lifetime.Singleton)
-                .As<SpawnCityCenterOutcomeSubSystem, DistrictBuildOutcomeSpawnSubSystem>();
+            builder.Register<SpawnCityCenterOutcomeSubSystem>(Lifetime.Scoped)
+                .As<IPrioritizedUniTaskSystem>();
 
-            builder.Register<DistrictOpenConditionsConfigLoaderSystem>(Lifetime.Singleton)
-                .As<DistrictOpenConditionsConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
+            builder.RegisterAppStateSystem<ConfigLoaderSystem<DistrictOpenConditionsConfig>>(Lifetime.Singleton, AppState.ConfigLoading)
+                .WithParameter("address", ConfigAddresses.DISTRICT_OPEN_CONDITIONS_CONFIG);
 
-            builder.Register<DistrictOpenConditionSpawnSystem>(Lifetime.Singleton)
-                .As<DistrictOpenConditionSpawnSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
+            builder.RegisterAppStateSystem<DistrictOpenConditionSpawnSystem>(Lifetime.Scoped, AppState.MapCreation);
 
-            builder.Register<DistrictExistConditionSpawnSubSystem>(Lifetime.Singleton)
-                .As<DistrictExistConditionSpawnSubSystem, DistrictOpenConditionSpawnSubSystem>();
+            builder.Register<DistrictExistConditionSpawnSubSystem>(Lifetime.Scoped)
+                .As<IPrioritizedUniTaskSystem>();
 
-            builder.Register<DistrictSingleOpenConditionSpawnSubSystem>(Lifetime.Singleton)
-                .As<DistrictSingleOpenConditionSpawnSubSystem, DistrictOpenConditionSpawnSubSystem>();
+            builder.Register<DistrictSingleOpenConditionSpawnSubSystem>(Lifetime.Scoped)
+                .As<IPrioritizedUniTaskSystem>();
 
-            builder.Register<DistrictOpenConditionEvaluatorBootstrapSystem>(Lifetime.Singleton)
-                .As<DistrictOpenConditionEvaluatorBootstrapSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
+            builder.RegisterAppStateSystem<DistrictOpenConditionEvaluatorBootstrapSystem>(Lifetime.Scoped, AppState.MapCreation);
 
-            builder.Register<DistrictOpenConditionEvaluatorSystem>(Lifetime.Singleton)
-                .As<DistrictOpenConditionEvaluatorSystem, TurnPhaseSubSystem>();
+            builder.Register<DistrictOpenConditionEvaluatorSystem>(Lifetime.Scoped)
+                .As<IPrioritizedUniTaskSystem>();
 
-            builder.Register<DistrictSingleOpenConditionEvaluatorSubSystem>(Lifetime.Singleton)
+            // The evaluator family stays exactly as today — untouched by the sub-system contract (owner rewrites
+            // it himself later): collected by its abstract base, not by OrchestratorType.
+            builder.Register<DistrictSingleOpenConditionEvaluatorSubSystem>(Lifetime.Scoped)
                 .As<DistrictSingleOpenConditionEvaluatorSubSystem, DistrictOpenConditionEvaluatorSubSystem>();
 
-            builder.Register<DistrictExistConditionEvaluatorSubSystem>(Lifetime.Singleton)
+            builder.Register<DistrictExistConditionEvaluatorSubSystem>(Lifetime.Scoped)
                 .As<DistrictExistConditionEvaluatorSubSystem, DistrictOpenConditionEvaluatorSubSystem>();
 
-            builder.Register<DistrictOpenConditionEvaluatorTableChangedSystem>(Lifetime.Singleton)
-                .As<DistrictOpenConditionEvaluatorTableChangedSystem>();
+            builder.RegisterAppStateSystem<DistrictOpenConditionEvaluatorTableChangedSystem>(Lifetime.Scoped, AppState.Gameplay);
         }
     }
 }

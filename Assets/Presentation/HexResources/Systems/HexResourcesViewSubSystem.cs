@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using Domains.Map.Archetypes;
 using Domains.Map.Hex.Utils;
 using Domains.Map.HexResources.Components;
@@ -9,10 +11,11 @@ using Friflo.Engine.ECS;
 using Presentation.HexResources.Components;
 using Presentation.Terrain.Components;
 using UnityEngine;
+using Presentation.HexResources.Configs;
 
 namespace Presentation.HexResources.Systems
 {
-    internal abstract class HexResourcesViewSubSystem : ISystem<GameState>
+    internal abstract class HexResourcesViewSubSystem : IPrioritizedUniTaskSystem, IDisposable
     {
         private readonly EntityStorages _storages;
         private readonly Archetype _resourceSet;
@@ -22,22 +25,22 @@ namespace Presentation.HexResources.Systems
         public abstract int Priority { get; }
         protected abstract HexResourceType TargetHexResourceType { get; }
 
+        /// <inheritdoc />
+        public Type OrchestratorType => typeof(HexResourcesViewSystem);
+
         protected HexResourcesViewSubSystem(EntityStorages storages)
         {
             _storages = storages;
             _resourceSet = MapArchetypes.HexResource(storages.World);
         }
 
-        public abstract void Update(GameState state);
+        public abstract UniTask Update(CancellationToken cancellationToken);
 
         protected bool TryGetPrefab(out GameObject prefab)
         {
             prefab = null;
 
-            if (!_storages.Singletons.Has<HexResourcesViewConfigComponent>())
-                return false;
-
-            var viewConfig = _storages.Singletons.Get<HexResourcesViewConfigComponent>().Value;
+            var viewConfig = _storages.Get<HexResourcesViewConfig>();
             foreach (var resource in viewConfig.Resources)
             {
                 if (resource.Type != TargetHexResourceType)
@@ -54,10 +57,7 @@ namespace Presentation.HexResources.Systems
         {
             prefabs = Array.Empty<GameObject>();
 
-            if (!_storages.Singletons.Has<HexResourcesViewConfigComponent>())
-                return false;
-
-            var viewConfig = _storages.Singletons.Get<HexResourcesViewConfigComponent>().Value;
+            var viewConfig = _storages.Get<HexResourcesViewConfig>();
 
             // Managed exception to the "Unity.Collections in ECS systems" rule: the elements are GameObject
             // (managed), which a NativeContainer cannot hold. See ECS_CONVENTIONS.md → Statelessness And

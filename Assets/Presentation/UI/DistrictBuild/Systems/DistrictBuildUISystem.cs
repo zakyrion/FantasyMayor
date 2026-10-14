@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using Core;
+using Cysharp.Threading.Tasks;
 using Domains.Actions.BuildDistrictAction.Events;
 using Domains.Economy.District.Data;
 using Domains.Kernel.Data;
@@ -20,25 +20,28 @@ namespace Presentation.UI.DistrictBuild.Systems
 {
     /// <summary>
     ///     Drives the district-build overlay: visibility + section dispatch. Anchored on the
-    ///     DistrictBuildUIViewComponent singleton (ticks once per frame). Opens on the external
-    ///     <see cref="DistrictBuildUIRequestedEvent" /> pulse (raised by HexInfoPanel). Chrome is C#-event driven: it
+    ///     DistrictBuildUIViewComponent singleton (ticks once per frame). Opens on a non-empty batch of
+    ///     <see cref="DistrictBuildUIRequestedEvent" /> (raised by HexInfoPanel). Chrome is C#-event driven: it
     ///     subscribes to the view's Confirmed (read the ECS selection → raise the cross-domain
     ///     <see cref="DistrictBuildConfirmedEvent" /> → hide) and Closed (hide) events. Re-populate on a section
     ///     selection change is a direct call from the section subsystem via the Repopulate callback this system hands
-    ///     each of them. It owns NO domain logic — it only sequences into the section populators, each of which
-    ///     reconciles its own view from ECS (orchestrator + subsystem family, like DistrictOpenConditionSpawnSystem).
+    ///     each of them. It owns NO domain logic — it only keeps its sections through the sub-system contract
+    ///     (<see cref="OrchestratorSubSystems" />) and runs them; each section reconciles its own view from ECS
+    ///     (orchestrator + subsystem family, like DistrictOpenConditionSpawnSystem).
     /// </summary>
     [UsedImplicitly]
+    [SystemRole(SystemRoleKind.PerFrame)]
+    [ViewSubscriber(typeof(DistrictBuildUIView))]
     public sealed class DistrictBuildUISystem : UpdatedSystem, IDisposable
     {
         private readonly EntityStorages _storages;
 
-        // DI-collected section populators. Ordered once; fixed composition, not per-frame state — hence
-        // [StateAllowed] (mirrors DistrictOpenConditionSpawnSystem).
+        // Kept sub-systems of this orchestrator, in ascending Priority — fixed composition, not per-frame state,
+        // hence [StateAllowed] (mirrors DistrictOpenConditionSpawnSystem).
         [StateAllowed]
-        private readonly IReadOnlyList<DistrictBuildUISubSystem> _subSystems;
+        private readonly IReadOnlyList<IPrioritizedUniTaskSystem> _subSystems;
 
-        private readonly Archetype _requestedSet;
+        private readonly EventReader<DistrictBuildUIRequestedEvent> _overlayRequests;
         private readonly Archetype _selectedHexSet;
         private readonly Archetype _selectionArchetype;
 
@@ -47,46 +50,51 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         public override int Priority => SystemPriorities.RuntimeTick.DistrictBuildUi;
 
-        public DistrictBuildUISystem(EntityStorages storages, IReadOnlyList<DistrictBuildUISubSystem> subSystems)
-            : base(storages.World, PresentationUIArchetypes.DistrictBuildUI(storages.World))
+        public DistrictBuildUISystem(
+            AppState appState, EntityStorages storages, EventReader<DistrictBuildUIRequestedEvent> overlayRequests,
+            IReadOnlyList<IPrioritizedUniTaskSystem> allSubSystems)
+            : base(appState, storages.World, PresentationUIArchetypes.DistrictBuildUI(storages.World))
         {
             _storages = storages;
-            _subSystems = subSystems
-                .OrderBy(system => system.Priority)
-                .ToArray();
+            _overlayRequests = overlayRequests;
+            _subSystems = OrchestratorSubSystems.SelectForOrchestrator(typeof(DistrictBuildUISystem), allSubSystems);
 
             // Hand each populator the re-populate callback: a section that changes the shared selection (List) calls
             // it to re-run every section against the new state — the direct C# replacement for the re-populate pulse.
-            for (var i = 0; i < _subSystems.Count; i++)
-                _subSystems[i].Repopulate = PopulateSections;
+            HandRepopulateToSections();
 
-            _requestedSet = EventArchetypes.Of<DistrictBuildUIRequestedEvent>(storages.World);
             _selectedHexSet = PresentationArchetypes.HexSelection(storages.World);
             _selectionArchetype = PresentationUIArchetypes.DistrictBuildSelection(storages.World);
         }
 
+        // Every kept part must be a district-build section — only that family names this host as its
+        // OrchestratorType, so anything else here is a mistyped OrchestratorType elsewhere.
+        private void HandRepopulateToSections()
+        {
+            foreach (var part in _subSystems)
+            {
+                var section = part as DistrictBuildUISubSystem;
+                if (section == null)
+                    throw new InvalidOperationException(
+                        $"DistrictBuildUISystem: kept a sub-system of type {part.GetType().Name} that is not a {nameof(DistrictBuildUISubSystem)}.");
+
+                section.Repopulate = PopulateSections;
+            }
+        }
+
         protected override void Update(GameState state, in Entity entity)
         {
+            // Drained before the view guard so a request never lingers unread while the view is briefly missing.
+            var overlayRequested = _overlayRequests.DrainBatch();
+
             var view = entity.GetComponent<DistrictBuildUIViewComponent>().View;
             if (view == null)
                 return;
 
             HookChrome(view);
 
-            if (HasRipeRequest())
+            if (overlayRequested)
                 Open(view);
-        }
-
-        // Ripeness, not mere presence: the pulse entity lives two frames (the frame it is raised and the ripe
-        // frame EventCleanupSystem deletes it on), so a Count check would open and repopulate the overlay on
-        // both (Event Lifecycle: a consumer acts only while IsRipe).
-        private bool HasRipeRequest()
-        {
-            foreach (var pulse in _requestedSet.Entities)
-                if (EcsEventExtensions.IsRipe(pulse))
-                    return true;
-
-            return false;
         }
 
         // The view outlives this system; subscribe once to its chrome C# events. Handled synchronously in the click
@@ -102,14 +110,14 @@ namespace Presentation.UI.DistrictBuild.Systems
             _chromeHooked = true;
         }
 
-        // Confirm: read the selected hex + district from ECS, raise the cross-domain build pulse the Actions assembly
+        // Confirm: read the selected hex + district from ECS, raise the cross-domain build event the Actions assembly
         // consumes (it can't read the Presentation selection), then hide. Confirm builds AND closes.
         private void OnConfirmed()
         {
             var (coords, type) = ReadSelection();
             var payer = ReadPayer();
 
-            _storages.World.CreateEvent(new DistrictBuildConfirmedEvent { Coords = coords, Type = type, Payer = payer });
+            _storages.Events.Raise(new DistrictBuildConfirmedEvent { Coords = coords, Type = type, Payer = payer });
 
             _view.Hide();
             DestroySelection();
@@ -139,7 +147,7 @@ namespace Presentation.UI.DistrictBuild.Systems
 
         // The chosen payer lives view-local in the price section (its owner, per DistrictBuildPriceUIView). That
         // section always resolves a valid default on populate, so Unknown here means it never populated — a broken
-        // invariant, fail loud (mirrors ReadSelection). Captured into the confirmed pulse; BuildDistrictActionSystem
+        // invariant, fail loud (mirrors ReadSelection). Captured into the confirmed event; BuildDistrictActionSystem
         // spends the payer's stockpile from it (R2).
         private ActorType ReadPayer()
         {
@@ -182,15 +190,20 @@ namespace Presentation.UI.DistrictBuild.Systems
                 entity.DeleteEntity();
         }
 
-        // Each section subsystem reconciles its own view from the current ECS selection; the orchestrator only
-        // sequences them by Priority and hands over the overlay root.
+        // Runs every enabled section in Priority order through the sub-system contract, and requires the run to
+        // finish inside this call: no section awaits today, so a main-thread run completes synchronously — a
+        // pending run means a section started waiting, which this host cannot yet keep and poll on its own tick
+        // (decision :c13-async-parts-in-update-host). The Status check comes first because GetResult on a pending
+        // UniTask throws and returns its source to the pool.
         private void PopulateSections()
         {
-            var root = _storages.Singletons.Get<DistrictBuildUIRootComponent>().RootBox.Value;
+            var run = OrchestratorSubSystems.RunAsync(_subSystems, StatusMonitor.Token);
 
-            for (var i = 0; i < _subSystems.Count; i++)
-                if (_subSystems[i].IsEnabled)
-                    _subSystems[i].Populate(root);
+            if (run.Status == UniTaskStatus.Pending)
+                throw new InvalidOperationException(
+                    "DistrictBuildUISystem: a section awaited past PopulateSections — every section must complete synchronously.");
+
+            run.GetAwaiter().GetResult();
         }
 
         public void Dispose()

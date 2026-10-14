@@ -165,7 +165,7 @@ namespace Presentation.UI.MainHud.TurnPanel.Views
             if (_processing)
                 return;
 
-            _storages.World.CreateEvent(new NextTurnEvent());
+            _storages.Events.Raise(new NextTurnEvent());
         }
 
         private void ApplyState()

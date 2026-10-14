@@ -1,20 +1,19 @@
 ---
 category: B
 read: trigger
-trigger: "before creating a one-frame ECS event (pulse)"
+trigger: "before creating an ECS event"
 tags: [pattern, ecs, events]
 related:
   - "[ARCHITECTURE](../ARCHITECTURE.md)"
   - "[PATTERN_REACTIVE_SYSTEM](PATTERN_REACTIVE_SYSTEM.md)"
-  - "[PATTERN_CLEANUP_SYSTEM](PATTERN_CLEANUP_SYSTEM.md)"
   - "[PATTERN_VIEW_SYSTEM](PATTERN_VIEW_SYSTEM.md)"
 ---
 
-# Pattern — One-Frame Event (Pulse)
+# Pattern — Event (log)
 
-An event is a **payload-less `struct`** raised on its own entity. It says "something changed — re-read the
-world", nothing more. EVERY reactive consumer sees it exactly once, the frame AFTER it is raised, whatever
-the priorities; the cleanup pass deletes it at the end of that frame (ECS_CONVENTIONS → Event Lifecycle).
+An event is an entity in the `Events` store carrying exactly one component whose type implements
+`IEventTag`; it lives in its type's ring until a newer event past capacity evicts it. EVERY reader sees
+it exactly once, in the tick it is raised or the next one, depending on tick order (ARCHITECTURE → Events).
 One approach.
 
 ## Skeleton
@@ -22,39 +21,46 @@ One approach.
 ```csharp
 namespace Domains.[Domain].[Feature].Events
 {
-    // Payload-less pulse: the consumer reconciles from current store state, not from data on the event.
-    public struct [Name]Event : IComponent
+    // The event's fields are ordinary data: the consumer acts on them or reconciles against store state.
+    // [EventCapacity(n)] is optional — a type without it gets EventCapacityAttribute.DefaultCapacity (128).
+    public struct [Name]Event : IEventTag
     {
+        public [ValueType] [Value];
     }
 }
 ```
 
-## Raising it (from a system or a game state)
+Add one line for the new type to `EventReaderAotDeclarations.DeclareClosedReaders` (rule `event/aot-reader`)
+so IL2CPP generates the closed `EventReader<[Name]Event>` it needs.
+
+## Raising it (from a system, a game state, or a view crossing a boundary)
 
 ```csharp
-// One creating call: frame stamp + payload + EventTag, straight into the event's archetype.
-_store.CreateEvent(new [Name]Event());
+// One call: the log rings the event under its own type, counts the raise for that type, evicts the oldest
+// of that type if the ring is already at capacity.
+_storages.Events.Raise(new [Name]Event { [Value] = value });
 ```
 
-A MonoBehaviour view does NOT raise a pulse to its own driving system — it raises a local C# event the
-system subscribes to (PATTERN_VIEW_SYSTEM). A view/UI-system may raise an ECS pulse ONLY to cross a
+A MonoBehaviour view does NOT raise an event to its own driving system — it raises a local C# event the
+system subscribes to (PATTERN_VIEW_SYSTEM). A view/UI-system may raise a log event ONLY to cross a
 frame or an asmdef boundary the C# call can't reach, and then a SYSTEM raises it, not the view.
 
 ## Rules
 
 ```clojure
 (def event-rules
-  {:payload            :none                                          ;; no coords/lists/ids — the consumer reconciles from store state (PATTERN_REACTIVE_SYSTEM); persistent truth lives in a singleton component / on an entity, the event only says "re-read it"
-   :payload-tolerated  "tiny IDENTIFYING value"                       ;; only when the target cannot be derived from state; prefer target→singleton-component + payload-less pulse; NEVER bulk or derived data
-   :raise              "store.CreateEvent(new [Name]Event())"        ;; the helper stamps the frame and lands the row in its archetype — never assemble a pulse by hand (EcsEventExtensions)
-   :view-source        {:never "a view raising a pulse to its OWN system"       ;; use a local C# event → the system subscribes (PATTERN_VIEW_SYSTEM); an ECS pulse is only for crossing a frame/asmdef boundary, raised by a SYSTEM
+  {:values             "ordinary data the consumer needs"             ;; the consumer acts on them directly or reconciles against store state (PATTERN_REACTIVE_SYSTEM)
+   :raise              "_storages.Events.Raise(new [Name]Event { … })"  ;; the log rings the entity under its type — never AddComponent a TEvent anywhere else (event/raise)
+   :view-source        {:never "a view raising an event to its OWN system"     ;; use a local C# event → the system subscribes (PATTERN_VIEW_SYSTEM); a log event is only for crossing a frame/asmdef boundary, raised by a SYSTEM
                         :only  "cross a frame/asmdef boundary the C# call can't reach"}
-   :startup-bulk-work  pipeline-stage                                 ;; never an event — one-frame events do NOT survive the async map-creation pipeline (PATTERN_PIPELINE_STAGE)
-   :naming             {:suffix "…Event" :in "Events/"}               ;; no domain prefix — namespace carries it (ECS_CONVENTIONS → Naming & Construction)
-   :visibility         "priority-independent"                         ;; EVERY consumer sees EVERY pulse exactly once, the frame after it is raised — a "consumer must sit below the producer" rule cannot exist (ECS_CONVENTIONS → Event Lifecycle)
-   :latency            "1 frame per link"                             ;; a pulse chain costs a frame per hop; a consumer must never assume a same-frame reaction
-   :feedback-loop      {:never "populate→command→populate on one-frame events"}  ;; each lap now costs a frame instead of deadlocking — still wrong: restructure so data flows one way (proven 2026-07-08 on the district-build draft attempt)
-   :raise-thread       "main thread ONLY"                             ;; every store call is main-thread (ECS_CONVENTIONS → Law 1); off-thread compute hops back before raising
-   :lossy-producer     "level-triggered doorbell"                     ;; producer that can't control its frame window (turn phase, async): RE-RAISE every turn/tick while the condition holds + consumer reconciles state, never trusts one delivery — a lost pulse costs latency, never correctness (decreed: FLOW_DISTRICT_BUILD → ordering-invariants :completion-pulse)
-   :producer->consumer ecs-graph})
+   :startup-bulk-work  pipeline-stage                                 ;; never an event — an event carries no work order and is not guaranteed to be read before eviction (PATTERN_PIPELINE_STAGE)
+   :naming             {:suffix "…Event" :in "Events/"}               ;; no domain prefix — namespace carries it (ARCHITECTURE → Naming)
+   :capacity           "[EventCapacity(n)] on the struct, else 128"    ;; a new event past capacity evicts the oldest of its type — overflow never throws (event/log-capacity)
+   :visibility         "delivery follows the tick"                    ;; a reader after its producer's priority sees the event the same tick; a reader before it sees it the next tick — never "must sit above/below the producer" (event/delivery)
+   :feedback-loop      {:never "populate→command→populate on log events"}  ;; a consumer never raises the type it reads in the same loop (event/one-way)
+   :raise-thread       "main thread ONLY"                             ;; every store call is main-thread (ARCHITECTURE → Threading and structural change); off-thread compute hops back before raising
+   :aot-reader         "closed EventReader<TEvent> declared in EventReaderAotDeclarations"  ;; otherwise an IL2CPP player never births that reader (event/aot-reader)
+   :reader-release     "the owner disposes its EventReader in its own Dispose — the cursor goes back to the log"  ;; VContainer never disposes a Transient; disposing twice or reading after Dispose throws (event/reader-release)
+   :clear-all          "EventLog.ClearAllEvents wipes every ring"      ;; cursors catch up to empty on their next read; who calls it is a decision for whichever task needs it (event/clear-all)
+   :producer->consumer fantasymayor-graph})
 ```

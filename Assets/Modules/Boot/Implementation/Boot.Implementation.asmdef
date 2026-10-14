@@ -3,16 +3,9 @@
     "rootNamespace": "",
     "references": [
         "VContainer",
-        "Boot.Core",
         "Ecs.Extensions",
         "UniTask",
-        "Domains.Map",
-        "Presentation.UI",
-        "UserInput",
-        "Presentation",
-        "Turn",
-        "Domains.Actions",
-        "Domains.Economy"
+        "Core"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

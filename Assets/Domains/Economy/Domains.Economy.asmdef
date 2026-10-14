@@ -6,7 +6,6 @@
         "Domains.Map",
         "VContainer",
         "Ecs.Extensions",
-        "Boot.Core",
         "Core",
         "Addressables.Core",
         "UniTask",

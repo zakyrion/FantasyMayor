@@ -5,7 +5,6 @@ using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.Addressable.Core;
-using Modules.Boot.Core;
 using Presentation.Archetypes;
 using Presentation.Terrain.Components;
 using Presentation.Terrain.Views;
@@ -13,12 +12,12 @@ using Presentation.Terrain.Views;
 namespace Presentation.Terrain.Systems
 {
     /// <summary>
-    ///     World-init pipeline step (priority 500). Loads the addressable <see cref="HexSelectionView" /> prefab
+    ///     Map-creation pipeline stage (priority 500). Loads the addressable <see cref="HexSelectionView" /> prefab
     ///     and publishes the runtime singleton view entity. Runs after the terrain view exists.
     ///     Owns the <c>Box&lt;HexSelectionView&gt;</c>; disposal destroys the instantiated carrier object.
     /// </summary>
     [UsedImplicitly]
-    internal sealed class HexSelectionViewLoadingSystem : IPrioritizedUniTaskSystem<MapGenerationStep>
+    internal sealed class HexSelectionViewLoadingSystem : IPipelineStageSystem
     {
         private const string HEX_SELECTION_VIEW_ADDRESS = "HexSelectionView";
 
@@ -29,17 +28,21 @@ namespace Presentation.Terrain.Systems
         private Entity? _hexSelectionViewEntity;
 
         /// <inheritdoc />
+        public AppState AppState { get; }
+
+        /// <inheritdoc />
         public int Priority => SystemPriorities.WorldInit.HexSelectionViewLoading;
 
-        public HexSelectionViewLoadingSystem(EntityStorages storages, IAddressable addressable)
+        public HexSelectionViewLoadingSystem(AppState appState, EntityStorages storages, IAddressable addressable)
         {
+            AppState = appState;
             _addressable = addressable;
             _hexSelectionViewBox = Box<HexSelectionView>.Empty();
             _archetype = PresentationArchetypes.HexSelectionView(storages.World);
         }
 
         /// <inheritdoc />
-        public UniTask Update(MapGenerationStep state, CancellationToken cancellationToken)
+        public UniTask Execute(CancellationToken cancellationToken)
         {
             return LoadViewAsync(cancellationToken);
         }

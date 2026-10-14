@@ -4,8 +4,7 @@ read: archive
 tags: [flow, process, task-lifecycle, sdd]
 related:
   - "[DOC_STANDARD](../../DOC_STANDARD.md)"
-  - "[CLAUDE](../../CLAUDE.md)"
-  - "[AGENTS](../../AGENTS.md)"
+  - "[CLAUDE](../../AGENTS.md)"
 status: implemented
 ---
 
@@ -122,12 +121,12 @@ the resulting standing rules.
   {:state :harvested-and-dropped
    :on "2026-08-06"
    :accept {:dogfood "active FLOW appeared in INDEX's read-at-start set"
-            :policy "CLAUDE.md and AGENTS.md carry the same lifecycle and gate semantics"
+            :policy "AGENTS.md and AGENTS.md carry the same lifecycle and gate semantics"
             :standard "DOC_STANDARD.md defines one retained FLOW per engineering task"
             :tooling "py_compile clean; INDEX lint clean; doc-lint 0 ghosts across 33 current docs; git diff --check clean"
             :resume "session-start handles one active FLOW and surfaces several as a conflict"
             :fate "INDEX has 26 docs: 2 always, 21 trigger, 2 reference, 1 archive; this FLOW is absent from startup context"}
-   :harvest {:policy #{CLAUDE.md AGENTS.md DOC_STANDARD.md}
+   :harvest {:policy #{AGENTS.md AGENTS.md DOC_STANDARD.md}
              :tooling #{Tools/gen_index.py Tools/doc_lint.py}
              :session-start "/Users/serhiikharsun/.codex/skills/fantasymayor-session-start/SKILL.md"}
    :dropped "the executed implementation sequence"

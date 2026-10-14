@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using Domains.Map.Archetypes;
 using Domains.Map.Hex.Components;
 using Domains.Map.HexResources.Data;
@@ -10,6 +12,8 @@ using Presentation.HexResources.Helpers;
 using Presentation.Terrain.Components;
 using Unity.Collections;
 using UnityEngine;
+using Presentation.HexResources.Configs;
+using Presentation.Terrain.Configs;
 
 namespace Presentation.HexResources.Systems
 {
@@ -39,25 +43,25 @@ namespace Presentation.HexResources.Systems
             _hexSet = MapArchetypes.Hex(storages.World);
         }
 
-        public override void Update(GameState state)
+        public override UniTask Update(CancellationToken cancellationToken)
         {
             var forestEntities = GetTargetResourceEntities();
             if (forestEntities.Length == 0)
-                return;
+                return UniTask.CompletedTask;
 
             if (!TryGetVertexGrid(out var vertexGrid))
                 throw new InvalidOperationException(
                     "ForestHexResourceViewSubSystem: VertexGridComponent singleton component is missing.");
 
-            if (!_storages.Singletons.Has<TerrainViewConfigComponent>() || !_storages.Singletons.Has<HexResourcesViewConfigComponent>() || !_storages.Singletons.Has<TerrainTextureComponent>())
-                return;
+            if (!_storages.Singletons.Has<TerrainTextureComponent>())
+                return UniTask.CompletedTask;
 
             var texture = _storages.Singletons.Get<TerrainTextureComponent>().Texture;
             if (texture == null)
-                return;
+                return UniTask.CompletedTask;
 
-            var viewConfig = _storages.Singletons.Get<HexResourcesViewConfigComponent>().Value;
-            var cellSize = _storages.Singletons.Get<TerrainViewConfigComponent>().CellSize;
+            var viewConfig = _storages.Get<HexResourcesViewConfig>();
+            var cellSize = _storages.Get<TerrainViewConfig>().CellSize;
 
             if (_root == null)
                 _root = new GameObject("ForestViewRoot").transform;
@@ -74,6 +78,8 @@ namespace Presentation.HexResources.Systems
             // Append-only: paint the new patches over the current pixels, once.
             planter.Paint(_hexSet, cellSize, splats, texture);
             splats.Dispose();
+
+            return UniTask.CompletedTask;
         }
 
         public override void Dispose()

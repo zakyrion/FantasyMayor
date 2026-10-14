@@ -1,5 +1,6 @@
-﻿using Domains.Map.Archetypes;
-using Domains.Map.Generation.Components;
+﻿using System.Threading;
+using Cysharp.Threading.Tasks;
+using Domains.Map.Archetypes;
 using Domains.Map.Hex.Components;
 using EcsExtensions;
 using Friflo.Engine.ECS;
@@ -8,6 +9,7 @@ using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 using Random = UnityEngine.Random;
+using Domains.Map.Generation.Configs;
 
 namespace Domains.Map.Generation.Systems
 {
@@ -44,14 +46,13 @@ namespace Domains.Map.Generation.Systems
         }
 
         /// <inheritdoc />
-        public override void Update(GameState state)
+        public override UniTask Update(CancellationToken cancellationToken)
         {
-            if (!_storages.Singletons.Has<MountainConfigComponent>())
-                return;
+            var config = _storages.Get<TerrainGenerationConfig>();
 
-            var config = _storages.Singletons.Get<MountainConfigComponent>();
+            Generate(config);
 
-            Generate(in config);
+            return UniTask.CompletedTask;
         }
 
         /// <summary>
@@ -65,7 +66,7 @@ namespace Domains.Map.Generation.Systems
         {
             foreach (var entity in _hexSet.Entities)
             {
-                var coord = entity.GetComponent<HexIdComponent>().Coords.Value;
+                var coord = entity.GetComponent<HexIdPKComponent>().Coords.Value;
                 mapCoords.Add(coord);
                 levelMap.TryAdd(coord, entity.GetComponent<HexLevelComponent>().Level);
             }
@@ -415,7 +416,7 @@ namespace Domains.Map.Generation.Systems
             try
             {
                 foreach (var entity in entities)
-                    idByCoord.TryAdd(entity.GetComponent<HexIdComponent>().Coords.Value, entity.Id);
+                    idByCoord.TryAdd(entity.GetComponent<HexIdPKComponent>().Coords.Value, entity.Id);
 
                 // Pass 1: mountain body
                 foreach (var coord in mapCoords)
@@ -727,8 +728,8 @@ namespace Domains.Map.Generation.Systems
         /// <summary>
         ///     Runs the full mountain generation pipeline.
         /// </summary>
-        /// <param name="config">Mountain-specific config.</param>
-        private void Generate(in MountainConfigComponent config)
+        /// <param name="config">Terrain generation config holding the mountain settings.</param>
+        private void Generate(TerrainGenerationConfig config)
         {
             var entities = _hexSet.Entities;
             var mapCapacity = math.max(1, entities.Count);
@@ -759,7 +760,7 @@ namespace Domains.Map.Generation.Systems
                             return;
 
                         var targetHexCount = Mathf.Min(
-                            Mathf.RoundToInt(config.SizeFraction * mapCoords.Length),
+                            Mathf.RoundToInt(config.HillSizeFraction * mapCoords.Length),
                             safeList.Length);
 
                         if (targetHexCount <= 0)

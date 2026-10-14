@@ -1,5 +1,6 @@
-﻿using Domains.Map.Archetypes;
-using Domains.Map.Generation.Components;
+﻿using System.Threading;
+using Cysharp.Threading.Tasks;
+using Domains.Map.Archetypes;
 using Domains.Map.Generation.Data;
 using Domains.Map.Hex.Components;
 using EcsExtensions;
@@ -9,13 +10,14 @@ using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 using Random = UnityEngine.Random;
+using Domains.Map.Generation.Configs;
 
 namespace Domains.Map.Generation.Systems
 {
     /// <summary>
     ///     Runs lake generation when invoked by <see cref="GenerationSystem" />.
     ///     Generates a single connected lake near the map centre with area derived from
-    ///     <see cref="LakeConfigComponent.SizeFraction" />.
+    ///     <see cref="LakeConfig.SizeFraction" />.
     /// </summary>
     [UsedImplicitly]
     internal sealed class LakeGenerationSubSystem : GenerationSubSystem
@@ -44,20 +46,17 @@ namespace Domains.Map.Generation.Systems
         /// <summary>
         ///     Runs lake generation when the active terrain config requests <see cref="WaterType.Lake" />.
         /// </summary>
-        /// <param name="state">Current game state.</param>
-        public override void Update(GameState state)
+        /// <param name="cancellationToken">Token used to cancel the run.</param>
+        public override UniTask Update(CancellationToken cancellationToken)
         {
-            if (!_storages.Singletons.Has<TerrainGenerationConfigComponent>() || !_storages.Singletons.Has<LakeConfigComponent>())
-                return;
-
-            var terrainConfig = _storages.Singletons.Get<TerrainGenerationConfigComponent>();
+            var terrainConfig = _storages.Get<TerrainGenerationConfig>();
 
             if (terrainConfig.WaterType != WaterType.Lake)
-                return;
+                return UniTask.CompletedTask;
 
-            var config = _storages.Singletons.Get<LakeConfigComponent>();
+            Generate(terrainConfig, terrainConfig.LakeConfig);
 
-            Generate(in terrainConfig, in config);
+            return UniTask.CompletedTask;
         }
 
         /// <summary>
@@ -75,7 +74,7 @@ namespace Domains.Map.Generation.Systems
             {
                 foreach (var entity in entities)
                 {
-                    var coord = entity.GetComponent<HexIdComponent>().Coords.Value;
+                    var coord = entity.GetComponent<HexIdPKComponent>().Coords.Value;
                     var level = lakeCoords.Contains(coord) ? LakeLevel : 0;
                     levelById.Add(new int2(entity.Id, level));
                 }
@@ -105,7 +104,7 @@ namespace Domains.Map.Generation.Systems
 
             foreach (var entity in entities)
             {
-                var coord = entity.GetComponent<HexIdComponent>().Coords.Value;
+                var coord = entity.GetComponent<HexIdPKComponent>().Coords.Value;
                 mapDomain.Add(coord);
                 mapCoords.Add(coord);
             }
@@ -206,7 +205,7 @@ namespace Domains.Map.Generation.Systems
         /// </summary>
         /// <param name="terrainConfig">Global terrain generation config.</param>
         /// <param name="config">Lake-specific config.</param>
-        private void Generate(in TerrainGenerationConfigComponent terrainConfig, in LakeConfigComponent config)
+        private void Generate(TerrainGenerationConfig terrainConfig, LakeConfig config)
         {
             var entities = _hexSet.Entities;
             var mapCapacity = math.max(1, entities.Count);

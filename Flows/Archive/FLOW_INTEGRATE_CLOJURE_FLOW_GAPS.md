@@ -3,8 +3,7 @@ category: A
 read: archive
 tags: [flow, process, clojure, validation]
 related:
-  - "[CLAUDE](../../CLAUDE.md)"
-  - "[AGENTS](../../AGENTS.md)"
+  - "[CLAUDE](../../AGENTS.md)"
   - "[DOC_STANDARD](../../DOC_STANDARD.md)"
 status: implemented
 ---
@@ -28,7 +27,7 @@ Add the missing Clojure-first semantics to FantasyMayor without weakening its st
 ```clojure
 {:task :integrate-clojure-flow-gaps
  :goal "додати до standing flow FantasyMayor сильні сторони нового Clojure-first flow без втрати сильніших project lifecycle rules"
- :where #{CLAUDE.md
+ :where #{AGENTS.md
           AGENTS.md
           DOC_STANDARD.md
           Tools/doc_lint.py
@@ -68,7 +67,7 @@ Add the missing Clojure-first semantics to FantasyMayor without weakening its st
           {:meter "conditional notation"
            :target "when, and, or, :then, cond та :else канонізовані до використання"}
           {:meter "project contracts"
-           :target "CLAUDE.md та AGENTS.md мають однакові normalization, amendment, resume і blocked semantics"}
+           :target "AGENTS.md та AGENTS.md мають однакові normalization, amendment, resume і blocked semantics"}
           {:meter Tools/doc_lint.py
            :target "усі актуальні Clojure fences синтаксично валідні"}
           {:meter Tools/gen_index.py
@@ -101,7 +100,7 @@ Add the missing Clojure-first semantics to FantasyMayor without weakening its st
                         :codex "/Users/serhiikharsun/.codex/AGENTS.md"
                         :current-parity "same universal forms; vendor-specific prelude and provenance wording differ intentionally"
                         :missing #{when and or :then :always-prose-normalization}}
-   :project-contract {:claude-resume "CLAUDE.md Start Working already discovers active FLOWs"
+   :project-contract {:claude-resume "AGENTS.md Start Working already discovers active FLOWs"
                       :codex-resume "/Users/serhiikharsun/.codex/skills/fantasymayor-session-start/SKILL.md"
                       :lifetime-placement {:amendments :request
                                            :durable-decisions :contract
@@ -165,7 +164,7 @@ Add the missing Clojure-first semantics to FantasyMayor without weakening its st
    :on "2026-08-06"
    :accept {:canonical-parity "glossary rows and normalization paragraph are identical"
             :conditionals "when, and, or, :then, cond and :else are canonical before project use"
-            :project-parity "CLAUDE.md and AGENTS.md lifecycle blocks are identical"
+            :project-parity "AGENTS.md and AGENTS.md lifecycle blocks are identical"
             :reader-negative "four invalid fixtures fail with line and column"
             :doc-lint "0 ghosts; 0 Clojure syntax errors; 34 current docs after archival; 1148 symbols"
             :index "active FLOW appeared in always; generated INDEX lint clean"
@@ -174,7 +173,7 @@ Add the missing Clojure-first semantics to FantasyMayor without weakening its st
             :diff "git diff --check clean"}
    :harvest {:universal #{"/Users/serhiikharsun/.claude/CLAUDE.md"
                            "/Users/serhiikharsun/.codex/AGENTS.md"}
-             :project #{CLAUDE.md AGENTS.md DOC_STANDARD.md}
+             :project #{AGENTS.md AGENTS.md DOC_STANDARD.md}
              :validator Tools/doc_lint.py
              :resume "/Users/serhiikharsun/.codex/skills/fantasymayor-session-start/SKILL.md"}
    :fate :history

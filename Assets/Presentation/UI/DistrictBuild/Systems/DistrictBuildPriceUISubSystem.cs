@@ -1,10 +1,11 @@
-﻿using System;
+using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using Domains.Actors.Archetypes;
 using Domains.Actors.City.Components;
 using Domains.Actors.Mayor.Components;
 using Domains.Economy.District.Data;
 using Domains.Economy.District.Helpers;
-using Domains.Economy.DistrictBuild.Components;
 using Domains.Economy.DistrictBuild.Configs;
 using Domains.Economy.DistrictBuildCost.Components;
 using Domains.Economy.DistrictBuildCost.Configs;
@@ -18,7 +19,6 @@ using Presentation.UI.Archetypes;
 using Presentation.UI.DistrictBuild.Components;
 using Presentation.UI.DistrictBuild.Tags;
 using Presentation.UI.DistrictBuild.Views;
-using UnityEngine;
 
 namespace Presentation.UI.DistrictBuild.Systems
 {
@@ -28,6 +28,7 @@ namespace Presentation.UI.DistrictBuild.Systems
     // lives in the view (not ECS): this reads view.SelectedOwner and re-renders on the view's PayerChanged.
     // Reads ECS directly (no read-model).
     [UsedImplicitly]
+    [ViewSubscriber(typeof(DistrictBuildPriceUIView))]
     public sealed class DistrictBuildPriceUISubSystem : DistrictBuildUISubSystem
     {
         private readonly EntityStorages _storages;
@@ -39,7 +40,7 @@ namespace Presentation.UI.DistrictBuild.Systems
         private readonly ComponentIndex<MayorIdFKComponent, int> _mayorResources;
         private readonly ComponentIndex<CityIdFKComponent, int> _cityResources;
 
-        // The chrome view lives on an ENTITY (UITag), not as a singleton component — resolve it the way the orchestrator does.
+        // The chrome view lives on an ENTITY (DistrictBuildUITag), not as a singleton component — resolve it the way the orchestrator does.
         private readonly Archetype _chrome;
 
         private bool _hooked;
@@ -57,7 +58,7 @@ namespace Presentation.UI.DistrictBuild.Systems
             _chrome = PresentationUIArchetypes.DistrictBuildUI(storages.World);
         }
 
-        public override void Populate(GameObject root)
+        public override UniTask Update(CancellationToken cancellationToken)
         {
             var view = _storages.Singletons.Get<DistrictBuildPriceUIViewComponent>().View;
 
@@ -69,6 +70,8 @@ namespace Presentation.UI.DistrictBuild.Systems
             }
 
             Render(view);
+
+            return UniTask.CompletedTask;
         }
 
         private void OnPayerChanged(ActorType owner)
@@ -131,7 +134,7 @@ namespace Presentation.UI.DistrictBuild.Systems
             PushConfirmGate(affordable);
         }
 
-        // Drives the chrome confirm button (owned by DistrictBuildUIView, which lives on the UITag chrome entity — NOT a
+        // Drives the chrome confirm button (owned by DistrictBuildUIView, which lives on the DistrictBuildUITag chrome entity — NOT a
         // singleton component). Affordability is known only here, so the price section is the single source of truth for the
         // gate — it stays in sync on both populate and payer switch because Render is the choke point for both.
         private void PushConfirmGate(bool affordable)
@@ -153,11 +156,11 @@ namespace Presentation.UI.DistrictBuild.Systems
                     $"is {DistrictType.Unknown} — the selection must be a real district or {nameof(DistrictType.None)}, " +
                     "never the error marker.");
 
-            if (type == DistrictType.None || !_storages.Singletons.Has<DistrictBuildCostsConfigComponent>())
+            if (type == DistrictType.None)
                 return false;
 
             return DistrictConfigLookup.TryFind(
-                _storages.Singletons.Get<DistrictBuildCostsConfigComponent>().Value?.Districts, type, c => c.DistrictType, out cost);
+                _storages.Get<DistrictBuildCostsConfig>().Districts, type, c => c.DistrictType, out cost);
         }
 
         private bool TryGetDistrict(DistrictType type, out DistrictBuildConfig district)
@@ -169,11 +172,11 @@ namespace Presentation.UI.DistrictBuild.Systems
                     $"is {DistrictType.Unknown} — the selection must be a real district or {nameof(DistrictType.None)}, " +
                     "never the error marker.");
 
-            if (type == DistrictType.None || !_storages.Singletons.Has<DistrictBuildsConfigComponent>())
+            if (type == DistrictType.None)
                 return false;
 
             return DistrictConfigLookup.TryFind(
-                _storages.Singletons.Get<DistrictBuildsConfigComponent>().Value?.Districts, type, d => d.DistrictType, out district);
+                _storages.Get<DistrictBuildsConfig>().Districts, type, d => d.DistrictType, out district);
         }
 
         // Default payer when the view has no valid selection yet: first allowed owner in canonical order

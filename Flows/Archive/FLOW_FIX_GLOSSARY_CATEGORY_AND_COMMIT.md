@@ -26,7 +26,7 @@ Correct the GLOSSARY metadata drift and commit the task lifecycle without unrela
 ```clojure
 {:task :fix-glossary-category-and-commit
  :goal "усунути metadata drift у GLOSSARY.md і закомітити завершений engineering-task lifecycle"
- :where #{GLOSSARY.md CLAUDE.md AGENTS.md DOC_STANDARD.md INDEX.md
+ :where #{GLOSSARY.md AGENTS.md AGENTS.md DOC_STANDARD.md INDEX.md
           Tools/gen_index.py Tools/doc_lint.py
           Flows/Archive/FLOW_ENGINEERING_TASK_LIFECYCLE.md}
  :off-limits #{"Assets/Plugins/Easy Save 3/Resources/ES3/ES3Defaults.asset"
@@ -76,7 +76,7 @@ Correct the GLOSSARY metadata drift and commit the task lifecycle without unrela
             :warnings "only the pre-existing GAMEPLAY_FOUNDATION budget warning remains"
             :commit-boundary "explicit staged path audit excludes ES3Defaults.asset"}
    :harvest {:glossary GLOSSARY.md
-             :lifecycle #{CLAUDE.md AGENTS.md DOC_STANDARD.md}
+             :lifecycle #{AGENTS.md AGENTS.md DOC_STANDARD.md}
              :history "this FLOW remains under Flows/Archive"}
    :dropped "the executed metadata, validation, closure and commit sequence"
    :record "one scoped repository commit requested; the global session-start skill remains outside it"

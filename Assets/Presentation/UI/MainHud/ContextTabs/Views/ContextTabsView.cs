@@ -172,10 +172,10 @@ namespace Presentation.UI.MainHud.ContextTabs.Views
 
         private void Emit(ContextTab tab)
         {
-            // Record the selection in the world state, then raise a payload-less pulse — ContextTabSelectionSystem
-            // reconciles the group against ActiveContextTabComponent (the pulse carries no data by design).
+            // Record the selection in the world state, then raise a payload-less event — ContextTabSelectionSystem
+            // reconciles the group against ActiveContextTabComponent (the event carries no data by design).
             _storages.Singletons.Set(new ActiveContextTabComponent(tab));
-            _storages.World.CreateEvent(new ContextTabChangedEvent());
+            _storages.Events.Raise(new ContextTabChangedEvent());
         }
 
         private Toggle Resolve(ContextTab tab)

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Domains.Economy.Archetypes;
 using Domains.Economy.District.Components;
 using Domains.Economy.District.Data;
@@ -8,6 +8,7 @@ using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
+using Core;
 using Presentation.Archetypes;
 using Presentation.Districts.Components;
 using Presentation.Districts.Configs;
@@ -20,22 +21,22 @@ using Object = UnityEngine.Object;
 namespace Presentation.Districts.Systems
 {
     /// <summary>
-    ///     Reactive runtime district-view spawner. Anchored on the one-frame
-    ///     <see cref="DistrictTableChangedEvent" /> pulse (folds the former <c>DistrictBuiltEvent</c>,
-    ///     FLOW_DISTRICT_BUILD unification, 2026-07-17): on its presence it reconciles state — every District row
-    ///     staged <c>DistrictBuildState.Built</c> that has no view yet gets its prefab instantiated on the hex
-    ///     centre. The stage filter matters now the row exists from CONFIRM (<c>Planned</c>), not just at
-    ///     completion — an unfiltered scan would spawn the finished-district prefab on rows still under
-    ///     construction. Works with current world state, not the pulse payload, so it is idempotent: a second
-    ///     pulse in the same frame finds nothing missing and no-ops.
+    ///     Reactive runtime district-view spawner. Reads the <see cref="DistrictTableChangedEvent" /> log event
+    ///     (folds the former <c>DistrictBuiltEvent</c>, FLOW_DISTRICT_BUILD unification, 2026-07-17): on every
+    ///     event it reconciles state — every District row staged <c>DistrictBuildState.Built</c> that has no view
+    ///     yet gets its prefab instantiated on the hex centre. The stage filter matters now the row exists from
+    ///     CONFIRM (<c>Planned</c>), not just at completion — an unfiltered scan would spawn the finished-district
+    ///     prefab on rows still under construction. Works with current world state, not the event payload, so it
+    ///     is idempotent: a second event in the same tick finds nothing missing and no-ops.
     /// </summary>
     [UsedImplicitly]
-    public sealed class DistrictViewSpawnSystem : UpdatedSystem
+    public sealed class DistrictViewSpawnSystem : IUpdatedSystem
     {
         // District rows: one per hex, carrying the hex FK, its type, and its build stage.
         private readonly Archetype _districts;
 
         private readonly EntityStorages _storages;
+        private readonly EventReader<DistrictTableChangedEvent> _districtTableChanges;
 
         // District view entities -> lets the reconcile skip hexes already viewed; also the birth archetype for
         // new views. HexIdFKComponent is shared by every hex-anchored entity kind (the District row itself
@@ -44,32 +45,33 @@ namespace Presentation.Districts.Systems
 
         private UnityEngine.Transform _root;
 
-        public override int Priority => SystemPriorities.RuntimeTick.DistrictViewSpawn;
+        public AppState AppState { get; }
+        public int Priority => SystemPriorities.RuntimeTick.DistrictViewSpawn;
 
-        public DistrictViewSpawnSystem(EntityStorages storages)
-            : base(storages.World, EventArchetypes.Of<DistrictTableChangedEvent>(storages.World))
+        public DistrictViewSpawnSystem(AppState appState, EntityStorages storages, EventReader<DistrictTableChangedEvent> districtTableChanges)
         {
+            AppState = appState;
             _storages = storages;
+            _districtTableChanges = districtTableChanges;
 
             _districts = EconomyArchetypes.District(storages.World);
             _viewArchetype = PresentationArchetypes.DistrictView(storages.World);
         }
 
-        // The pulse entity itself is ignored — reconciliation is global over current state.
-        protected override void Update(GameState state, in Entity pulse)
+        public void Update(GameState state)
         {
-            if (!EcsEventExtensions.IsRipe(pulse))
-                return;
+            while (_districtTableChanges.TryRead(out _))
+                SpawnMissingDistrictViews();
+        }
 
-            if (!_storages.Singletons.Has<DistrictViewsConfigComponent>())
-                throw new InvalidOperationException(
-                    "DistrictViewSpawnSystem: DistrictViewsConfigComponent singleton component is missing.");
-
+        // Reconciliation is global over current state — the event's payload itself is ignored.
+        private void SpawnMissingDistrictViews()
+        {
             if (!_storages.Singletons.Has<VertexGridComponent>())
                 throw new InvalidOperationException(
                     "DistrictViewSpawnSystem: VertexGridComponent singleton component is missing.");
 
-            var viewsConfig = _storages.Singletons.Get<DistrictViewsConfigComponent>().Value;
+            var viewsConfig = _storages.Get<DistrictViewsConfig>();
             var vertexGrid = _storages.Singletons.Get<VertexGridComponent>().Grid;
 
             // Snapshot-before-iterate: birth via _viewArchetype.CreateEntity() is NOT a structural change,

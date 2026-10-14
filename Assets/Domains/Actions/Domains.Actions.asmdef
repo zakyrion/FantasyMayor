@@ -9,7 +9,6 @@
         "AxialSystem",
         "Turn",
         "Ecs.Extensions",
-        "Boot.Core",
         "Addressables.Core",
         "Core",
         "VContainer",

@@ -14,12 +14,13 @@ using Presentation.Terrain.Components;
 using Presentation.Terrain.Views;
 using Unity.Collections;
 using UnityEngine;
+using Presentation.Terrain.Configs;
 
 namespace Presentation.Terrain.Systems
 {
     /// <summary>
     ///     Generates an animated water surface mesh covering all Water-type hexes and
-    ///     applies stylistic parameters from <see cref="WaterViewConfigComponent" /> to the renderer.
+    ///     applies stylistic parameters from <see cref="WaterViewConfig" /> to the renderer.
     ///     Runs after texture generation (Priority 300). Owns the <c>Box&lt;WaterView&gt;</c>; disposes
     ///     the previous view whenever terrain is regenerated.
     /// </summary>
@@ -53,15 +54,12 @@ namespace Presentation.Terrain.Systems
         }
 
         /// <inheritdoc />
-        public override async UniTask Update(GameState state, CancellationToken cancellationToken)
+        public override async UniTask Update(CancellationToken cancellationToken)
         {
             DisposeWaterView();
 
-            if (!HasRequiredConfigComponents())
-                return;
-
-            var terrainConfig = _storages.Singletons.Get<TerrainViewConfigComponent>();
-            var waterConfig = _storages.Singletons.Get<WaterViewConfigComponent>();
+            var terrainConfig = _storages.Get<TerrainViewConfig>();
+            var waterConfig = _storages.Get<WaterViewConfig>();
 
             var result = await _addressable.LoadAndInstanceAsync(WATER_VIEW_ADDRESS, cancellationToken);
 
@@ -85,8 +83,8 @@ namespace Presentation.Terrain.Systems
             _waterViewBox = Box<WaterView>.Wrap(component, _ => result.Box.Dispose());
 
             var hexSize = terrainConfig.CellSize;
-            var waterY = -terrainConfig.HeightScale + waterConfig.WaterYOffset;
-            var subdivisions = waterConfig.Subdivisions;
+            var waterY = -terrainConfig.HeightScale + waterConfig.waterYOffset;
+            var subdivisions = waterConfig.subdivisions;
 
             var waterHexes = CollectWaterHexCoords();
             var shoreHexes = CollectShoreHexCoords(waterHexes);
@@ -102,7 +100,7 @@ namespace Presentation.Terrain.Systems
                 shoreHexes.Dispose();
             }
 
-            component.ApplyConfig(in waterConfig);
+            component.ApplyConfig(waterConfig);
 
             DestroyWaterViewEntity();
             var entity = _waterViewArchetype.CreateEntity();
@@ -126,7 +124,7 @@ namespace Presentation.Terrain.Systems
             var waterHexes = new NativeHashSet<HexCoord>(1, Allocator.Persistent);
 
             foreach (var entity in _hexesByType[HexType.Water])
-                waterHexes.Add(entity.GetComponent<HexIdComponent>().Coords);
+                waterHexes.Add(entity.GetComponent<HexIdPKComponent>().Coords);
 
             return waterHexes;
         }
@@ -149,7 +147,7 @@ namespace Presentation.Terrain.Systems
                 if (!entity.HasComponent<HexTypeComponent>() || entity.GetComponent<HexTypeComponent>().Type == HexType.Water)
                     continue;
 
-                var coord = entity.GetComponent<HexIdComponent>().Coords;
+                var coord = entity.GetComponent<HexIdPKComponent>().Coords;
                 for (var d = 0; d < AxialMath.NeighborCount; d++)
                 {
                     var neighbor = coord + AxialMath.NeighborsPointyTop[d];
@@ -162,16 +160,6 @@ namespace Presentation.Terrain.Systems
             }
 
             return shoreHexes;
-        }
-
-        /// <summary>Validates that all required singleton config components are present.</summary>
-        private bool HasRequiredConfigComponents()
-        {
-            if (_storages.Singletons.Has<TerrainViewConfigComponent>() && _storages.Singletons.Has<WaterViewConfigComponent>())
-                return true;
-
-            Debug.LogError("[WaterViewSubSystem] One or more required configs are missing.");
-            return false;
         }
 
         private void DisposeWaterView()

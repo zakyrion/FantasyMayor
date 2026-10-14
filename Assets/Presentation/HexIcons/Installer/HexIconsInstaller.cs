@@ -1,8 +1,9 @@
+using Core;
 using EcsExtensions;
-using Modules.Boot.Core;
 using Presentation.HexIcons.Systems;
 using VContainer;
 using VContainer.Unity;
+using Presentation.HexIcons.Configs;
 
 namespace Presentation.HexIcons.Installer
 {
@@ -10,19 +11,21 @@ namespace Presentation.HexIcons.Installer
     {
         public void Install(IContainerBuilder builder)
         {
-            builder.Register<HexIconsConfigLoaderSystem>(Lifetime.Singleton)
-                .As<HexIconsConfigLoaderSystem, IUniTaskSystem<ConfigLoadStep>>();
+            builder.RegisterAppStateSystem<ConfigLoaderSystem<HexIconsConfig>>(Lifetime.Singleton, AppState.ConfigLoading)
+                .WithParameter("address", ConfigAddresses.HEX_ICONS_CONFIG);
 
-            builder.Register<HexIconsSpawnSystem>(Lifetime.Singleton)
-                .As<HexIconsSpawnSystem, IPrioritizedUniTaskSystem<MapGenerationStep>>();
+            builder.RegisterAppStateSystem<ConfigLoaderSystem<HexResourceIconConfig>>(Lifetime.Singleton, AppState.ConfigLoading)
+                .WithParameter("address", ConfigAddresses.HEX_RESOURCE_ICON_CONFIG);
 
-            // Per-frame positioner — a concrete singleton wired into GameplayState by Boot (like ForestSpawnSystem).
-            builder.Register<HexIconsContainerPositionSystem>(Lifetime.Singleton)
-                .As<HexIconsContainerPositionSystem>();
+            builder.RegisterAppStateSystem<HexIconsSpawnSystem>(Lifetime.Singleton, AppState.MapCreation);
 
-            // Event-driven icon renderer — a concrete singleton wired into GameplayState by Boot.
-            builder.Register<HexIconsVisibilitySystem>(Lifetime.Singleton)
-                .As<HexIconsVisibilitySystem>();
+            // Per-frame positioner — a first-order system, its state membership is its AppState flags.
+            builder.RegisterAppStateSystem<HexIconsContainerPositionSystem>(Lifetime.Singleton, AppState.Gameplay);
+
+            // Event-driven icon renderer — a first-order system, its state membership is its AppState flags.
+            builder.RegisterAppStateSystem<HexIconsVisibilitySystem>(Lifetime.Singleton, AppState.Gameplay);
+
+            builder.RegisterAppStateSystem<HexIconsVisibilitySeedSystem>(Lifetime.Singleton, AppState.Gameplay);
         }
     }
 }

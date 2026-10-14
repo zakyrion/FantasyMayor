@@ -25,7 +25,8 @@ namespace Domains.Economy.Archetypes
                 Tags.Get<DistrictTag>());
 
         /// <summary>
-        ///     A "single open" rule row. Open conditions form TWO archetypes under one tag: this one and
+        ///     A "single open" rule row. Open conditions form TWO archetypes, each under its own main tag beside
+        ///     the family label <see cref="DistrictOpenConditionTag" />: this one and
         ///     <see cref="OpenConditionExist" /> differ by composition — the Exist rule carries a
         ///     required-district column this one has no use for — so they are separate archetypes, born
         ///     distinct and never converted into each other.
@@ -34,14 +35,14 @@ namespace Domains.Economy.Archetypes
             store.GetArchetype(
                 ComponentTypes.Get<DistrictTypeFKComponent, DistrictOpenConditionKindComponent,
                     DistrictOpenStateComponent>(),
-                Tags.Get<DistrictOpenConditionTag>());
+                Tags.Get<DistrictSingleOpenConditionTag, DistrictOpenConditionTag>());
 
         /// <summary>An "exists" rule row — carries the district it requires.</summary>
         public static Archetype OpenConditionExist(EntityStore store) =>
             store.GetArchetype(
                 ComponentTypes.Get<DistrictTypeFKComponent, DistrictExistConditionComponent,
                     DistrictOpenConditionKindComponent, DistrictOpenStateComponent>(),
-                Tags.Get<DistrictOpenConditionTag>());
+                Tags.Get<DistrictExistOpenConditionTag, DistrictOpenConditionTag>());
 
         /// <summary>A build-outcome rule row. The outcome KIND is a column, not a second archetype.</summary>
         public static Archetype BuildOutcome(EntityStore store) =>

@@ -8,9 +8,9 @@ namespace EcsExtensions
     /// </summary>
     public sealed class SingletonComponents
     {
-        private readonly EntityStore _store;
-        private readonly Entity _row;
         private readonly ComponentTypes _declaredComponents;
+        private readonly Entity _row;
+        private readonly EntityStore _store;
         private ComponentTypes _initializedComponents;
 
         internal SingletonComponents(in SingletonArchetypeDefinition archetype)
@@ -29,8 +29,10 @@ namespace EcsExtensions
             return _row.GetComponent<T>();
         }
 
-        public bool Has<T>() where T : struct, IComponent =>
-            _initializedComponents.Has<T>();
+        public bool Has<T>() where T : struct, IComponent
+        {
+            return _initializedComponents.Has<T>();
+        }
 
         public void Set<T>(in T component) where T : struct, IComponent
         {

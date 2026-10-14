@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Domains.Actions.BuildDistrictAction.Components;
 using Domains.Actions.BuildDistrictAction.Events;
 using Domains.Actors.Archetypes;
@@ -20,6 +20,7 @@ using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
+using Core;
 
 namespace Domains.Actions.BuildDistrictAction.Systems
 {
@@ -38,7 +39,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
     ///     skips. See <c>Flows/FLOW_DISTRICT_BUILD.md</c> R5 and <c>Patterns/PATTERN_REACTIVE_SYSTEM.md</c>.
     /// </summary>
     [UsedImplicitly]
-    public sealed class BuildDistrictActionCancelSystem : UpdatedSystem
+    public sealed class BuildDistrictActionCancelSystem : IUpdatedSystem
     {
         // District rows: HexIdFKComponent is shared by every hex-anchored entity kind (views, containers,
         // resources), so a bare ComponentIndex over it is ambiguous across kinds — scope to the archetype.
@@ -54,13 +55,16 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         private readonly ComponentIndex<CityIdFKComponent, int> _cityResources;
 
         private readonly EntityStorages _storages;
+        private readonly EventReader<BuildDistrictCancelEvent> _buildCancellations;
 
-        public override int Priority => SystemPriorities.RuntimeTick.BuildDistrictActionCancel;
+        public AppState AppState { get; }
+        public int Priority => SystemPriorities.RuntimeTick.BuildDistrictActionCancel;
 
-        public BuildDistrictActionCancelSystem(EntityStorages storages)
-            : base(storages.World, EventArchetypes.Of<BuildDistrictCancelEvent>(storages.World))
+        public BuildDistrictActionCancelSystem(AppState appState, EntityStorages storages, EventReader<BuildDistrictCancelEvent> buildCancellations)
         {
+            AppState = appState;
             _storages = storages;
+            _buildCancellations = buildCancellations;
 
             _districts = EconomyArchetypes.District(storages.World);
             _inProgressByDistrictId = storages.World.ComponentIndex<DistrictIdFKComponent, int>();
@@ -71,12 +75,15 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             _cityResources = storages.World.ComponentIndex<CityIdFKComponent, int>();
         }
 
-        protected override void Update(GameState state, in Entity pulse)
+        public void Update(GameState state)
         {
-            if (!EcsEventExtensions.IsRipe(pulse))
-                return;
+            while (_buildCancellations.TryRead(out var evt))
+                CancelDistrictBuild(evt);
+        }
 
-            var coords = pulse.GetComponent<BuildDistrictCancelEvent>().Coords;
+        private void CancelDistrictBuild(in BuildDistrictCancelEvent cancelled)
+        {
+            var coords = cancelled.Coords;
 
             if (!TryGetDistrict(coords, out var district))
                 throw new InvalidOperationException(
@@ -97,7 +104,7 @@ namespace Domains.Actions.BuildDistrictAction.Systems
             district.DeleteEntity();
             verb.DeleteEntity();
 
-            _storages.World.CreateEvent(new DistrictTableChangedEvent { Change = DistrictTableChange.Removed });
+            _storages.Events.Raise(new DistrictTableChangedEvent { Change = DistrictTableChange.Removed });
         }
 
         // Same-turn (TurnsLeft == TurnsToBuild, nothing ticked since confirm): AP + resources in full. Any later
@@ -172,12 +179,8 @@ namespace Domains.Actions.BuildDistrictAction.Systems
         // The district's cost config, by DistrictType — same shared lookup BuildDistrictActionSystem uses.
         private DistrictBuildCostConfig ResolveCost(DistrictType type)
         {
-            if (!_storages.Singletons.Has<DistrictBuildCostsConfigComponent>())
-                throw new InvalidOperationException(
-                    "BuildDistrictActionCancelSystem: DistrictBuildCostsConfigComponent singleton component is missing.");
-
             if (!DistrictConfigLookup.TryFind(
-                    _storages.Singletons.Get<DistrictBuildCostsConfigComponent>().Value?.Districts, type, c => c.DistrictType, out var cost))
+                    _storages.Get<DistrictBuildCostsConfig>().Districts, type, c => c.DistrictType, out var cost))
                 throw new InvalidOperationException(
                     $"BuildDistrictActionCancelSystem: no DistrictBuildCostConfig for district type '{type}'.");
 

@@ -1,14 +1,26 @@
+using System;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+
 namespace EcsExtensions
 {
     /// <summary>
-    ///     An <see cref="IUniTaskSystem{T}" /> that declares an explicit execution order via <see cref="Priority" />.
-    ///     Used when a sequential async pipeline must run its systems in a deterministic order
-    ///     (lower priority runs first), independent of DI registration order.
+    ///     The one sub-system contract: a part collected by its orchestrator through <see cref="OrchestratorType" />
+    ///     and run in ascending <see cref="Priority" /> order. Derives from nothing — a sub-system never carries
+    ///     an <c>AppState</c> and is never itself an <see cref="IUniTaskSystem" />.
     /// </summary>
-    /// <typeparam name="T">The type of the object used as state to update the system.</typeparam>
-    public interface IPrioritizedUniTaskSystem<in T> : IUniTaskSystem<T>
+    public interface IPrioritizedUniTaskSystem
     {
-        /// <summary>Execution order within the pipeline. Lower runs first.</summary>
+        /// <summary>The orchestrator system this sub-system belongs to.</summary>
+        Type OrchestratorType { get; }
+
+        /// <summary>Execution order within the orchestrator's run. Lower runs first.</summary>
         int Priority { get; }
+
+        /// <summary>Determines whether this sub-system participates when its orchestrator runs.</summary>
+        bool IsEnabled { get; }
+
+        /// <summary>Updates the sub-system once.</summary>
+        UniTask Update(CancellationToken cancellationToken);
     }
 }

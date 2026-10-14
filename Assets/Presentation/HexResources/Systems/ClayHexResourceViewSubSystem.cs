@@ -1,4 +1,6 @@
-﻿using Domains.Map.Archetypes;
+﻿using System.Threading;
+using Cysharp.Threading.Tasks;
+using Domains.Map.Archetypes;
 using Domains.Map.Hex.Components;
 using Domains.Map.HexResources.Data;
 using EcsExtensions;
@@ -11,6 +13,8 @@ using Presentation.HexResources.Helpers;
 using Presentation.Terrain.Components;
 using Unity.Collections;
 using UnityEngine;
+using Presentation.HexResources.Configs;
+using Presentation.Terrain.Configs;
 
 namespace Presentation.HexResources.Systems
 {
@@ -43,23 +47,23 @@ namespace Presentation.HexResources.Systems
             _hexSet = MapArchetypes.Hex(storages.World);
         }
 
-        public override void Update(GameState state)
+        public override UniTask Update(CancellationToken cancellationToken)
         {
             var clayEntities = GetTargetResourceEntities();
             if (clayEntities.Length == 0)
-                return;
+                return UniTask.CompletedTask;
 
-            if (!TryGetVertexGrid(out var grid) || !_storages.Singletons.Has<ClayViewConfigComponent>())
-                return;
+            if (!TryGetVertexGrid(out var grid))
+                return UniTask.CompletedTask;
 
-            if (!_storages.Singletons.Has<TerrainViewConfigComponent>() || !_storages.Singletons.Has<TerrainTextureComponent>() || _terrainViewSet.Count == 0)
+            if (!_storages.Singletons.Has<TerrainTextureComponent>() || _terrainViewSet.Count == 0)
             {
-                Debug.LogWarning("[ClayHexResourceViewSubSystem] Missing terrain config, texture, or view — clay skipped.");
-                return;
+                Debug.LogWarning("[ClayHexResourceViewSubSystem] Missing terrain texture or view — clay skipped.");
+                return UniTask.CompletedTask;
             }
 
-            var clayConfig = _storages.Singletons.Get<ClayViewConfigComponent>();
-            var cellSize = _storages.Singletons.Get<TerrainViewConfigComponent>().CellSize;
+            var clayConfig = _storages.Get<ClayViewConfig>();
+            var cellSize = _storages.Get<TerrainViewConfig>().CellSize;
             var texture = _storages.Singletons.Get<TerrainTextureComponent>().Texture;
             _terrainViewSet.TryGetFirst(out var terrainViewEntity);
             var terrainView = terrainViewEntity.GetComponent<TerrainViewComponent>().ObjectRef;
@@ -67,12 +71,12 @@ namespace Presentation.HexResources.Systems
             if (texture == null || terrainView == null)
             {
                 Debug.LogWarning("[ClayHexResourceViewSubSystem] Terrain texture or view reference is null — clay skipped.");
-                return;
+                return UniTask.CompletedTask;
             }
 
             var radius = clayConfig.DepressionRadius * cellSize;
             if (radius <= 0f)
-                return; // clay config not authored yet — nothing to deform or paint
+                return UniTask.CompletedTask; // clay config not authored yet — nothing to deform or paint
 
             InitializePainter(texture, cellSize);
 
@@ -94,6 +98,8 @@ namespace Presentation.HexResources.Systems
 
             terrainView.ApplyHeightsFromVertexGrid(grid);
             _painter.Apply();
+
+            return UniTask.CompletedTask;
         }
 
         public override void Dispose()
@@ -107,7 +113,7 @@ namespace Presentation.HexResources.Systems
             var hexCoords = new NativeArray<HexCoord>(hexEntities.Count, Allocator.Temp);
             var index = 0;
             foreach (var hexEntity in hexEntities)
-                hexCoords[index++] = hexEntity.GetComponent<HexIdComponent>().Coords;
+                hexCoords[index++] = hexEntity.GetComponent<HexIdPKComponent>().Coords;
 
             _painter.Initialize(hexCoords, texture, cellSize);
             hexCoords.Dispose();

@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using Domains.Economy.Resource.Data;
 using UnityEngine;
+using EcsExtensions;
+using Unity.Collections;
 
 namespace Presentation.UI.MainHud.ResourceBar.Configs
 {
@@ -13,7 +15,7 @@ namespace Presentation.UI.MainHud.ResourceBar.Configs
     /// </summary>
     [CreateAssetMenu(fileName = "InventoryResourceIconConfig",
         menuName = "FantasyMayor/MainUI/InventoryResourceIconConfig")]
-    public sealed class InventoryResourceIconConfig : ScriptableObject
+    public sealed class InventoryResourceIconConfig : ScriptableObject, IValidatableConfig
     {
         [Serializable]
         public struct ResourceIconEntry
@@ -30,5 +32,31 @@ namespace Presentation.UI.MainHud.ResourceBar.Configs
         [SerializeField] private ResourceIconEntry[] _entries;
 
         public IReadOnlyList<ResourceIconEntry> Entries => _entries;
+
+        public void Validate()
+        {
+            if (Entries == null || Entries.Count == 0)
+                throw new InvalidOperationException("InventoryResourceIconConfig: Entries is null or empty.");
+
+            // NativeHashSet keys require IEquatable<T>, which enums lack — key on the underlying int.
+            var seenTypes = new NativeHashSet<int>(Entries.Count, Allocator.Temp);
+            try
+            {
+                foreach (var entry in Entries)
+                {
+                    if (entry.Type == ResourceType.Unknown)
+                        throw new InvalidOperationException(
+                            "InventoryResourceIconConfig: Entries contains an entry with ResourceType.Unknown.");
+
+                    if (!seenTypes.Add((int)entry.Type))
+                        throw new InvalidOperationException(
+                            $"InventoryResourceIconConfig: duplicate ResourceType '{entry.Type}' in Entries.");
+                }
+            }
+            finally
+            {
+                seenTypes.Dispose();
+            }
+        }
     }
 }

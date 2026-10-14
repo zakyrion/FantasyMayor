@@ -6,15 +6,22 @@
 # graphify knowledge graph — local-only, regenerated on demand, never tracked
 /graphify-out/
 
-# ecs-graph DoD/ECS knowledge graph — derived, regenerated on demand, never tracked
-/.ecs-graph/
+# fantasymayor-graph code graph (ECS + DI + recipes) — derived, regenerated on demand, never tracked
+/.fantasymayor-graph/
 
-# di-graph VContainer DI knowledge graph — derived, regenerated on demand, never tracked
-/.di-graph/
+# unity-asset-graph asset reachability graph — derived, regenerated on demand, never tracked
+/.unity-asset-graph/
+
+# PlantUML diagrams of the boot — fmgraph.py build writes them into Assets/ for Rider; derived, never tracked
+/Assets/Diagrams/
+/Assets/Diagrams.meta
 
 # Local editor / OS noise (solo dev, one machine)
 .idea/
 .DS_Store
+/Tools/MarkerShapeAnalyzer/bin/
+/Tools/MarkerShapeAnalyzer/obj/
+__pycache__/
 
 /[Ll]ibrary/
 /[Tt]emp/
@@ -47,6 +54,7 @@
 ExportedObj/
 .consulo/
 *.csproj
+!/Tools/MarkerShapeAnalyzer/MarkerShapeAnalyzer.csproj
 *.unityproj
 *.sln
 *.suo

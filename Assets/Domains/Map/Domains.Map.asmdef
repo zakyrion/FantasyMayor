@@ -8,7 +8,6 @@
         "Ecs.Extensions",
         "Addressables.Core",
         "UniTask",
-        "Boot.Core",
         "Unity.Mathematics",
         "Unity.Burst",
         "Unity.Collections"

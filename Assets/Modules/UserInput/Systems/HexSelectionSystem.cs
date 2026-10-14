@@ -2,6 +2,7 @@
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
+using Core;
 using Modules.Cameras.Components;
 using Modules.UserInput.Archetypes;
 using Modules.UserInput.Components;
@@ -12,6 +13,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using Presentation.Terrain.Configs;
 
 namespace Modules.UserInput.Systems
 {
@@ -34,11 +36,12 @@ namespace Modules.UserInput.Systems
         /// <inheritdoc />
         public override int Priority => SystemPriorities.RuntimeTick.HexSelection;
 
+        /// <param name="appState">The game states this system belongs to.</param>
         /// <param name="storages">Named ECS storages used to query camera, config, and selection state.</param>
-        public HexSelectionSystem(EntityStorages storages)
+        public HexSelectionSystem(AppState appState, EntityStorages storages)
             // Anchored on the single PlayerInputComponent entity so Update ticks once per frame;
             // the camera itself is a singleton component (CameraComponent), read via storages.Singletons below.
-            : base(storages.World, UserInputArchetypes.PlayerInput(storages.World))
+            : base(appState, storages.World, UserInputArchetypes.PlayerInput(storages.World))
         {
             _storages = storages;
             _playerInputArchetype = UserInputArchetypes.PlayerInput(storages.World);
@@ -56,9 +59,6 @@ namespace Modules.UserInput.Systems
                     return;
             }
 
-            if (!_storages.Singletons.Has<TerrainViewConfigComponent>())
-                return;
-
             if (!_clickAction.WasPressedThisFrame())
                 return;
 
@@ -72,7 +72,7 @@ namespace Modules.UserInput.Systems
             if (camera == null)
                 return;
 
-            var cellSize = _storages.Singletons.Get<TerrainViewConfigComponent>().CellSize;
+            var cellSize = _storages.Get<TerrainViewConfig>().CellSize;
             if (cellSize <= 0f)
                 return;
 
@@ -114,13 +114,13 @@ namespace Modules.UserInput.Systems
         }
 
         /// <summary>
-        ///     One-frame pulse so selection consumers (the hex info panel, the context tabs) reconcile against
+        ///     Log event so selection consumers (the hex info panel, the context tabs) reconcile against
         ///     the new <see cref="HexSelectedComponent" /> state without per-frame polling. Raised on every
         ///     mutation — create, deselect (dispose), and re-select to another coord.
         /// </summary>
         private void RaiseSelectionChanged()
         {
-            _storages.World.CreateEvent(new SelectedHexChangedEvent());
+            _storages.Events.Raise(new SelectedHexChangedEvent());
         }
 
         /// <summary>

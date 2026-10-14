@@ -7,54 +7,63 @@ using EcsExtensions;
 using Friflo.Engine.ECS;
 using JetBrains.Annotations;
 using Modules.AxialSystem;
+using Core;
 using Presentation.Archetypes;
-using Presentation.HexResources.Components;
+using Presentation.HexResources.Configs;
 using Presentation.HexResources.Events;
 using Presentation.HexResources.Helpers;
 using Presentation.Terrain.Components;
+using Presentation.Terrain.Configs;
 using Unity.Collections;
 using UnityEngine;
+using Transform = UnityEngine.Transform;
 
 namespace Presentation.HexResources.Systems
 {
     /// <summary>
-    ///     Reactive runtime forest spawner. Anchored on the one-frame <see cref="ForestHexAppearedEvent" />
-    ///     pulse: on its presence it reconciles state — every forest resource hex that has no view yet gets
-    ///     its trees planted (via <see cref="ForestPlanter" />) and its green ground splatted (append-only).
-    ///     Works with current world state, not transitive deltas, so it is idempotent: a second pulse in the
-    ///     same frame finds nothing missing and no-ops. The startup bulk is done one-shot by
-    ///     <see cref="ForestHexResourceViewSubSystem" />; no emitter raises this pulse yet (future gameplay).
+    ///     Reactive runtime forest spawner. Reads the <see cref="ForestHexAppearedEvent" /> log event: on every
+    ///     event it reconciles state — every forest resource hex that has no view yet gets its trees planted (via
+    ///     <see cref="ForestPlanter" />) and its green ground splatted (append-only). Works with current world
+    ///     state, not the event payload, so it is idempotent: a second event in the same tick finds nothing
+    ///     missing and no-ops. The startup bulk is done one-shot by <see cref="ForestHexResourceViewSubSystem" />;
+    ///     no producer raises this event yet (future gameplay) — a dormant consumer (event/dormant-consumer).
     /// </summary>
     [UsedImplicitly]
-    public sealed class ForestSpawnSystem : UpdatedSystem
+    public sealed class ForestSpawnSystem : IUpdatedSystem
     {
-        // HexResource table indexed by its discriminator value -> the Forest bucket is the wanted set.
-        private readonly ComponentIndex<HexResourceComponent, HexResourceType> _resourcesByType;
+        private readonly EventReader<ForestHexAppearedEvent> _forestHexAppearances;
 
         private readonly Archetype _forestViews;
         private readonly Archetype _hexSet;
         private readonly ForestPlanter _planter = new();
+        // HexResource table indexed by its discriminator value -> the Forest bucket is the wanted set.
+        private readonly ComponentIndex<HexResourceComponent, HexResourceType> _resourcesByType;
         private readonly EntityStorages _storages;
 
-        private UnityEngine.Transform _root;
+        private Transform _root;
 
-        public override int Priority => SystemPriorities.RuntimeTick.ForestSpawn;
+        public AppState AppState { get; }
+        public int Priority => SystemPriorities.RuntimeTick.ForestSpawn;
 
-        public ForestSpawnSystem(EntityStorages storages)
-            : base(storages.World, EventArchetypes.Of<ForestHexAppearedEvent>(storages.World))
+        public ForestSpawnSystem(AppState appState, EntityStorages storages, EventReader<ForestHexAppearedEvent> forestHexAppearances)
         {
+            AppState = appState;
             _storages = storages;
+            _forestHexAppearances = forestHexAppearances;
             _resourcesByType = storages.World.ComponentIndex<HexResourceComponent, HexResourceType>();
             _forestViews = PresentationArchetypes.ForestView(storages.World);
             _hexSet = MapArchetypes.Hex(storages.World);
         }
 
-        // The pulse entity itself is ignored — reconciliation is global over current state.
-        protected override void Update(GameState state, in Entity pulse)
+        public void Update(GameState state)
         {
-            if (!EcsEventExtensions.IsRipe(pulse))
-                return;
+            while (_forestHexAppearances.TryRead(out _))
+                SpawnMissingForests();
+        }
 
+        // Reconciliation is global over current state — the event's payload itself is ignored.
+        private void SpawnMissingForests()
+        {
             if (!_storages.Singletons.Has<TerrainTextureComponent>())
                 return;
 
@@ -66,16 +75,13 @@ namespace Presentation.HexResources.Systems
                 throw new InvalidOperationException(
                     "ForestSpawnSystem: VertexGridComponent singleton component is missing.");
 
-            if (!_storages.Singletons.Has<TerrainViewConfigComponent>() || !_storages.Singletons.Has<HexResourcesViewConfigComponent>())
-                return;
-
             var forestResources = _resourcesByType[HexResourceType.Forest];
             if (forestResources.Count == 0)
                 return;
 
             var vertexGrid = _storages.Singletons.Get<VertexGridComponent>().Grid;
-            var viewConfig = _storages.Singletons.Get<HexResourcesViewConfigComponent>().Value;
-            var cellSize = _storages.Singletons.Get<TerrainViewConfigComponent>().CellSize;
+            var viewConfig = _storages.Get<HexResourcesViewConfig>();
+            var cellSize = _storages.Get<TerrainViewConfig>().CellSize;
 
             if (_root == null)
                 _root = new GameObject("ForestViewRoot").transform;
